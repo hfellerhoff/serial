@@ -117,6 +117,13 @@ export const feedRouter = createTRPCRouter({
     });
 
     const feedIds = feeds.map((feed) => feed.id);
+    if (!feedIds.length) {
+      return {
+        feeds: [],
+        items: [],
+      }
+    }
+
     const items = await ctx.db.query.feedItems.findMany({
       where: inArray(feedItems.feedId, feedIds),
       orderBy: desc(feedItems.postedAt),
