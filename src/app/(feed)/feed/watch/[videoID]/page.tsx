@@ -1,30 +1,29 @@
 "use client";
 
 import clsx from "clsx";
-import { useEffect, useState } from "react";
-import { useKeyboard } from "~/components/KeyboardProvider";
-import ResponsiveVideo from "~/components/ResponsiveVideo";
-import { VideoActions } from "./VideoActions";
+import React from "react";
+import { FeedContext, useKeyboard } from "~/components/KeyboardProvider";
+import { VideoDisplay } from "./VideoDisplay";
 
 export default function WatchVideoPage({
   params,
 }: {
   params: { videoID: string };
 }) {
-  const [showVideo, setShowVideo] = useState(false);
-  const { view } = useKeyboard();
+  const { view, zoom } = useKeyboard();
 
-  useEffect(() => {
-    setTimeout(() => {
-      setShowVideo(true);
-    }, 250);
-  }, []);
+  console.log(zoom);
 
   return (
     <div
-      className={clsx("grid h-full w-full place-items-center", {
+      className={clsx("mx-auto grid h-full w-full place-items-center", {
         "absolute inset-0 z-30 bg-background": view === "fullscreen",
-        "mx-auto max-w-3xl": view === "windowed",
+        "max-w-xl": view === "windowed" && zoom === 0,
+        "max-w-2xl": view === "windowed" && zoom === 1,
+        "max-w-3xl": view === "windowed" && zoom === 2,
+        "max-w-4xl": view === "windowed" && zoom === 3,
+        "max-w-5xl": view === "windowed" && zoom === 4,
+        "max-w-6xl": view === "windowed" && zoom === 5,
       })}
     >
       <div
@@ -32,26 +31,7 @@ export default function WatchVideoPage({
           "sm:py-6": view === "windowed",
         })}
       >
-        <div className="relative">
-          <div
-            className={clsx(
-              "absolute top-0 aspect-video w-full animate-pulse overflow-hidden bg-muted transition-opacity",
-              {
-                rounded: view === "windowed",
-              },
-            )}
-          />
-          <div
-            className={clsx("w-full overflow-hidden transition-opacity", {
-              rounded: view === "windowed",
-              "opacity-0": !showVideo,
-              "opacity-100": showVideo,
-            })}
-          >
-            <ResponsiveVideo videoID={params.videoID} />
-          </div>
-          <VideoActions videoID={params.videoID} />
-        </div>
+        <VideoDisplay id={params.videoID} />
       </div>
     </div>
   );

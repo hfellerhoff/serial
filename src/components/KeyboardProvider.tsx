@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { useFeed } from "../lib/data/FeedProvider";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
 
 function doesAnyInputElementHaveFocus() {
@@ -15,8 +15,9 @@ function doesAnyInputElementHaveFocus() {
   return false;
 }
 
-type FeedContext = {
+export type FeedContext = {
   view: "windowed" | "fullscreen";
+  zoom: number;
   isCategoriesOpen: boolean;
   setIsCategoriesOpen: (value: boolean) => void;
 };
@@ -30,6 +31,9 @@ type KeyboardProviderProps = {
 export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname();
+
+  const [zoom, setZoom] = useState(2);
 
   const {
     items,
@@ -58,8 +62,10 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
             return prev === "windowed" ? "fullscreen" : "windowed";
           });
           break;
-        // case "Escape":
-        //   break;
+        case "Escape":
+          if (pathname === "/feed") break;
+          router.push("/feed");
+          break;
         case "[":
           if (!items.length || event.metaKey) return;
 
@@ -118,6 +124,22 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
           void toggleIsWatched(videoID);
           break;
+        case "=":
+          setZoom((z) => {
+            if (z >= 5) {
+              return z;
+            }
+            return z + 1;
+          });
+          break;
+        case "-":
+          setZoom((z) => {
+            if (z <= 0) {
+              return z;
+            }
+            return z - 1;
+          });
+          break;
       }
     };
 
@@ -137,11 +159,13 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     router,
     toggleIsWatched,
     toggleWatchLater,
+    setZoom,
+    pathname,
   ]);
 
   return (
     <FeedContext.Provider
-      value={{ view, isCategoriesOpen, setIsCategoriesOpen }}
+      value={{ view, zoom, isCategoriesOpen, setIsCategoriesOpen }}
     >
       {children}
     </FeedContext.Provider>

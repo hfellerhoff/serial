@@ -3,7 +3,7 @@
 import { UserButton } from "@clerk/nextjs";
 import { HomeIcon } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "~/components/ui/button";
 
 export function TopLeftButton() {

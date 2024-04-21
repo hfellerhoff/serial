@@ -45,7 +45,7 @@
     "drizzle-orm": "^0.29.3",
     "lucia": "^2.7.6",
     "lucide-react": "^0.314.0",
-    "next": "^14.0.4",
+    "next": "^14.2.2",
     "next-pwa": "^5.6.0",
     "next-themes": "^0.2.1",
     "react": "18.2.0",

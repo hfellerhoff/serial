@@ -46,25 +46,25 @@
     --ds-sat: 60%;
     --ds-lgt: 30%;
 
-    --background:             var(--bg-hue) var(--bg-sat) var(--bg-lgt);
-    --foreground:             var(--fg-hue) var(--fg-sat) var(--fg-lgt);
-    --card:                   var(--bg-hue) var(--bg-sat) var(--bg-lgt);
-    --card-foreground:        var(--fg-hue) var(--fg-sat) var(--fg-lgt);
-    --popover:                var(--bg-hue) var(--bg-sat) var(--bg-lgt);
-    --popover-foreground:     var(--fg-hue) var(--fg-sat) var(--fg-lgt);
-    --primary:                var(--fg-hue) var(--fg-sat) var(--fg-lgt);
-    --primary-foreground:     var(--pr-hue) var(--pr-sat) var(--pr-lgt);
-    --secondary:              var(--sc-hue) var(--sc-sat) var(--sc-lgt);
-    --secondary-foreground:   var(--fg-hue) var(--fg-sat) var(--fg-lgt);
-    --muted:                  var(--sc-hue) var(--sc-sat) var(--sc-lgt);
-    --muted-foreground:       var(--mf-hue) var(--mf-sat) var(--mf-lgt);
-    --accent:                 var(--sc-hue) var(--sc-sat) var(--sc-lgt);
-    --accent-foreground:      var(--fg-hue) var(--fg-sat) var(--fg-lgt);
-    --destructive:            var(--ds-hue) var(--ds-sat) var(--ds-lgt);
+    --background: var(--bg-hue) var(--bg-sat) var(--bg-lgt);
+    --foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --card: var(--bg-hue) var(--bg-sat) var(--bg-lgt);
+    --card-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --popover: var(--bg-hue) var(--bg-sat) var(--bg-lgt);
+    --popover-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --primary: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --primary-foreground: var(--pr-hue) var(--pr-sat) var(--pr-lgt);
+    --secondary: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --secondary-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --muted: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --muted-foreground: var(--mf-hue) var(--mf-sat) var(--mf-lgt);
+    --accent: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --accent-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --destructive: var(--ds-hue) var(--ds-sat) var(--ds-lgt);
     --destructive-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
-    --border:                 var(--sc-hue) var(--sc-sat) var(--sc-lgt);
-    --input:                  var(--sc-hue) var(--sc-sat) var(--sc-lgt);
-    --ring:                   var(--mf-hue) var(--mf-sat) var(--rg-lgt);
+    --border: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --input: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --ring: var(--mf-hue) var(--mf-sat) var(--rg-lgt);
   }
 
   .dark {
@@ -94,25 +94,25 @@
     --ds-sat: 60%;
     --ds-lgt: 30%;
 
-    --background:             var(--bg-hue) var(--bg-sat) var(--bg-lgt);
-    --foreground:             var(--fg-hue) var(--fg-sat) var(--fg-lgt);
-    --card:                   var(--bg-hue) var(--bg-sat) var(--bg-lgt);
-    --card-foreground:        var(--fg-hue) var(--fg-sat) var(--fg-lgt);
-    --popover:                var(--bg-hue) var(--bg-sat) var(--bg-lgt);
-    --popover-foreground:     var(--fg-hue) var(--fg-sat) var(--fg-lgt);
-    --primary:                var(--fg-hue) var(--fg-sat) var(--fg-lgt);
-    --primary-foreground:     var(--pr-hue) var(--pr-sat) var(--pr-lgt);
-    --secondary:              var(--sc-hue) var(--sc-sat) var(--sc-lgt);
-    --secondary-foreground:   var(--fg-hue) var(--fg-sat) var(--fg-lgt);
-    --muted:                  var(--sc-hue) var(--sc-sat) var(--sc-lgt);
-    --muted-foreground:       var(--mf-hue) var(--mf-sat) var(--mf-lgt);
-    --accent:                 var(--sc-hue) var(--sc-sat) var(--sc-lgt);
-    --accent-foreground:      var(--fg-hue) var(--fg-sat) var(--fg-lgt);
-    --destructive:            var(--ds-hue) var(--ds-sat) var(--ds-lgt);
+    --background: var(--bg-hue) var(--bg-sat) var(--bg-lgt);
+    --foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --card: var(--bg-hue) var(--bg-sat) var(--bg-lgt);
+    --card-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --popover: var(--bg-hue) var(--bg-sat) var(--bg-lgt);
+    --popover-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --primary: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --primary-foreground: var(--pr-hue) var(--pr-sat) var(--pr-lgt);
+    --secondary: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --secondary-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --muted: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --muted-foreground: var(--mf-hue) var(--mf-sat) var(--mf-lgt);
+    --accent: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --accent-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --destructive: var(--ds-hue) var(--ds-sat) var(--ds-lgt);
     --destructive-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
-    --border:                 var(--sc-hue) var(--sc-sat) var(--sc-lgt);
-    --input:                  var(--sc-hue) var(--sc-sat) var(--sc-lgt);
-    --ring:                   var(--mf-hue) var(--mf-sat) var(--rg-lgt);
+    --border: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --input: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --ring: var(--mf-hue) var(--mf-sat) var(--rg-lgt);
   }
 
   /* .arc {
@@ -193,15 +193,15 @@
   }
 
   .prose ul {
-    @apply text-foreground/80 list-disc pl-4;
+    @apply list-disc pl-4 text-foreground/80;
   }
 
   .prose ol {
-    @apply text-foreground/80 list-decimal pl-4;
+    @apply list-decimal pl-4 text-foreground/80;
   }
 
   .prose p {
-    @apply text-foreground/80 text-base;
+    @apply text-base text-foreground/80;
   }
 
   .prose kbd {
@@ -253,4 +253,9 @@
   .prose ol:has(+ h6) {
     @apply pb-8 md:pb-10;
   }
+}
+
+dialog:modal {
+  max-width: 100vw;
+  max-height: 100vh;
 }
