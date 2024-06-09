@@ -17,7 +17,6 @@
     "@formkit/auto-animate": "^0.8.1",
     "@libsql/client": "0.4.0-pre.7",
     "@libsql/linux-x64-musl": "0.4.0-pre.1",
-    "@lucia-auth/adapter-sqlite": "^2.0.1",
     "@mdx-js/loader": "^3.0.1",
     "@mdx-js/react": "^3.0.1",
     "@next/mdx": "^14.1.3",

@@ -17,9 +17,6 @@ dependencies:
   '@libsql/linux-x64-musl':
     specifier: 0.4.0-pre.1
     version: 0.4.0-pre.1
-  '@lucia-auth/adapter-sqlite':
-    specifier: ^2.0.1
-    version: 2.0.1(@libsql/client@0.4.0-pre.7)(better-sqlite3@9.3.0)(lucia@2.7.6)
   '@mdx-js/loader':
     specifier: ^3.0.1
     version: 3.0.1(webpack@5.90.0)
@@ -2056,23 +2053,6 @@ packages:
     requiresBuild: true
     dev: false
     optional: true
-
-  /@lucia-auth/adapter-sqlite@2.0.1(@libsql/client@0.4.0-pre.7)(better-sqlite3@9.3.0)(lucia@2.7.6):
-    resolution: {integrity: sha512-yc7XQ4X3sWG1gyUGHqaXipJIkmvB4MOgJypnSMWy7Vjhn3AOCM2xw51xTs+dGpLOQIn2Laomg9xpmDM2/9tgqQ==}
-    peerDependencies:
-      '@libsql/client': ^0.3.0
-      better-sqlite3: 8.x - 9.x
-      lucia: ^2.0.0
-    peerDependenciesMeta:
-      '@libsql/client':
-        optional: true
-      better-sqlite3:
-        optional: true
-    dependencies:
-      '@libsql/client': 0.4.0-pre.7
-      better-sqlite3: 9.3.0
-      lucia: 2.7.6
-    dev: false
 
   /@mdx-js/loader@3.0.1(webpack@5.90.0):
     resolution: {integrity: sha512-YbYUt7YyEOdFxhyuCWmLKf5vKhID/hJAojEUnheJk4D8iYVLFQw+BAoBWru/dHGch1omtmZOPstsmKPyBF68Tw==}
