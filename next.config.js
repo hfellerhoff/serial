@@ -26,6 +26,7 @@ const withMDX = createWithMDX();
 /** @type {import("next").NextConfig} */
 const config = {
   pageExtensions: ["js", "jsx", "mdx", "ts", "tsx"],
+  output: "standalone",
   // experimental: {
   //   mdxRs: true,
   // },
