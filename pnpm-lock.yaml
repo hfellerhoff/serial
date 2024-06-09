@@ -14,6 +14,9 @@ dependencies:
   '@libsql/client':
     specifier: 0.4.0-pre.7
     version: 0.4.0-pre.7
+  '@libsql/linux-x64-musl':
+    specifier: 0.4.0-pre.1
+    version: 0.4.0-pre.1
   '@lucia-auth/adapter-sqlite':
     specifier: ^2.0.1
     version: 2.0.1(@libsql/client@0.4.0-pre.7)(better-sqlite3@9.3.0)(lucia@2.7.6)
@@ -2039,6 +2042,12 @@ packages:
     requiresBuild: true
     dev: false
     optional: true
+
+  /@libsql/linux-x64-musl@0.4.0-pre.1:
+    resolution: {integrity: sha512-AWwwtV7PadJT8OSzvaFmFln78eVbndRgQ2626TPV/QHGwUXnhIusfKXgXzSTKgdGJO1VhbCIZvfLoS7rsu6Y1g==}
+    cpu: [x64]
+    os: [linux]
+    dev: false
 
   /@libsql/win32-x64-msvc@0.2.0-pre.7:
     resolution: {integrity: sha512-vNKWGHIws3qoqMV4hX0kRt54IiFaA0FuSzQnclqlygGTXetHragnuimZANIOYVWagU35wk5s23+Ir/eO158+Sg==}
