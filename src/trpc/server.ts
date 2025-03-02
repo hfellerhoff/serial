@@ -26,7 +26,7 @@ const createContext = cache(async () => {
 
   return createTRPCContext({
     headers: heads,
-    auth: auth(),
+    auth: await auth(),
   });
 });
 

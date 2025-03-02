@@ -13,7 +13,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@clerk/nextjs": "^5.7.5",
+    "@clerk/nextjs": "^6.12.2",
     "@formkit/auto-animate": "^0.8.1",
     "@libsql/client": "0.4.0-pre.7",
     "@libsql/linux-x64-musl": "0.4.0-pre.1",
