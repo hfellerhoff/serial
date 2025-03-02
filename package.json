@@ -13,7 +13,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@clerk/nextjs": "^4.29.4",
+    "@clerk/nextjs": "^5.7.5",
     "@formkit/auto-animate": "^0.8.1",
     "@libsql/client": "0.4.0-pre.7",
     "@libsql/linux-x64-musl": "0.4.0-pre.1",
@@ -48,8 +48,8 @@
     "next": "^14.2.2",
     "next-pwa": "^5.6.0",
     "next-themes": "^0.2.1",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
     "react-resizable-panels": "^1.0.9",
     "rss-parser": "^3.13.0",
     "server-only": "^0.0.1",
@@ -72,7 +72,7 @@
     "@typescript-eslint/eslint-plugin": "^6.11.0",
     "@typescript-eslint/parser": "^6.11.0",
     "autoprefixer": "^10.4.14",
-    "better-sqlite3": "^9.3.0",
+    "better-sqlite3": "^11.8.1",
     "dotenv": "^16.3.2",
     "drizzle-kit": "^0.20.13",
     "eslint": "^8.54.0",
