@@ -99,9 +99,6 @@ dependencies:
   drizzle-orm:
     specifier: ^0.29.3
     version: 0.29.3(@libsql/client@0.4.0-pre.7)(@planetscale/database@1.13.0)(@types/react@19.0.10)(better-sqlite3@11.8.1)(mysql2@3.7.1)(react@19.0.0)
-  lucia:
-    specifier: ^2.7.6
-    version: 2.7.6
   lucide-react:
     specifier: ^0.314.0
     version: 0.314.0(react@19.0.0)
@@ -6791,10 +6788,6 @@ packages:
     dependencies:
       es5-ext: 0.10.62
     dev: true
-
-  /lucia@2.7.6:
-    resolution: {integrity: sha512-xyRkNtevf0DUM4nGC6F2nCFFNphZ1qqBrfWwAgPa9zkpQsVJ/hN32I8zAY+pm+ZKWPPS/C/Sqqmo2LreSCzg7w==}
-    dev: false
 
   /lucide-react@0.314.0(react@19.0.0):
     resolution: {integrity: sha512-c2zOW7TOyKxPCaSs1og2lFdoI3SR4iii3yrZJU2Zpdc78nOw4fUmrcFNultaCiwZcr4CyiKdzjMdvKNlBBk+UQ==}
