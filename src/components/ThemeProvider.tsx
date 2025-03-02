@@ -1,21 +1,23 @@
-"use client";
-
+"use client";;
 import * as React from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { type ThemeProviderProps } from "next-themes/dist/types";
-import { api } from "~/trpc/react";
+import { useTRPC } from "~/trpc/react";
 import { useUser } from "@clerk/nextjs";
+
+import { useQuery } from "@tanstack/react-query";
 
 const setVariable = (name: string, value: string) => {
   document.documentElement.style.setProperty(name, value);
 };
 
 function ApplyColorThemeOnMount() {
+  const api = useTRPC();
   const user = useUser();
 
-  const { data } = api.userConfig.getConfig.useQuery(undefined, {
+  const { data } = useQuery(api.userConfig.getConfig.queryOptions(undefined, {
     enabled: user.isSignedIn ?? false,
-  });
+  }));
 
   React.useEffect(() => {
     if (!data) return;
