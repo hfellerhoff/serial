@@ -116,7 +116,7 @@ export default function RootLayout({
       <body
         className={cn(`min-h-screen font-sans antialiased ${inter.variable}`)}
       >
-        <ClerkProvider>
+        <ClerkProvider afterSignOutUrl="/welcome">
           <TRPCReactProvider>
             <ThemeProvider
               attribute="class"
@@ -131,6 +131,7 @@ export default function RootLayout({
             </ThemeProvider>
           </TRPCReactProvider>
         </ClerkProvider>
+        si
       </body>
     </html>
   );

@@ -37,10 +37,8 @@ export function AddFeedDialog() {
     label: category.name,
   }));
 
-  const { dialog, onOpenChange } = useDialogStore((store) => ({
-    dialog: store.dialog,
-    onOpenChange: store.onOpenChange,
-  }));
+  const dialog = useDialogStore((store) => store.dialog);
+  const onOpenChange = useDialogStore((store) => store.onOpenChange);
 
   return (
     <Dialog open={dialog === "add-feed"} onOpenChange={onOpenChange}>

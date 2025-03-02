@@ -23,10 +23,9 @@ function getYouTubeVideoIdFromUrl(url: string) {
 
 export function CustomVideoDialog() {
   const [videoUrl, setVideoUrl] = useState("");
-  const { dialog, onOpenChange } = useDialogStore((store) => ({
-    dialog: store.dialog,
-    onOpenChange: store.onOpenChange,
-  }));
+
+  const dialog = useDialogStore((store) => store.dialog);
+  const onOpenChange = useDialogStore((store) => store.onOpenChange);
 
   return (
     <Dialog open={dialog === "custom-video"} onOpenChange={onOpenChange}>
