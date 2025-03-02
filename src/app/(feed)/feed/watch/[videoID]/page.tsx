@@ -1,15 +1,16 @@
 "use client";
 
 import clsx from "clsx";
-import React from "react";
+import React, { use } from "react";
 import { FeedContext, useKeyboard } from "~/components/KeyboardProvider";
 import { VideoDisplay } from "./VideoDisplay";
 
-export default function WatchVideoPage({
-  params,
-}: {
-  params: { videoID: string };
-}) {
+export default function WatchVideoPage(
+  props: {
+    params: Promise<{ videoID: string }>;
+  }
+) {
+  const params = use(props.params);
   const { view, zoom } = useKeyboard();
 
   console.log(zoom);

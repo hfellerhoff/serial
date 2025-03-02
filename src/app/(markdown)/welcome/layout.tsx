@@ -1,13 +1,13 @@
 import "~/styles/globals.css";
 
-// import { Inter } from "next/font/google";
+import { Inter } from "next/font/google";
 
 import { type Metadata, type Viewport } from "next";
 
-// const inter = Inter({
-//   subsets: ["latin"],
-//   variable: "--font-sans",
-// });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
 
 const title = "Serial";
 const description = "Your personal content newsletter";
