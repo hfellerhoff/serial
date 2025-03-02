@@ -72,6 +72,7 @@ export const feedRouter = createTRPCRouter({
     const feeds = await ctx.db.query.feeds.findMany({
       where: sql`user_id = ${ctx.auth!.userId}`,
     });
+
     if (!feeds) {
       return {
         feeds: [],
@@ -80,6 +81,7 @@ export const feedRouter = createTRPCRouter({
     }
 
     const feedData = await fetchFeedData(feeds);
+
     if (!feedData) {
       return {
         feeds: feeds,
@@ -121,7 +123,7 @@ export const feedRouter = createTRPCRouter({
       return {
         feeds: [],
         items: [],
-      }
+      };
     }
 
     const items = await ctx.db.query.feedItems.findMany({

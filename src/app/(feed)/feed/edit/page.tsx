@@ -16,13 +16,16 @@ export default function EditFeedsPage() {
         <h2 className="font-mono text-lg">Feeds</h2>
         <AddFeedButton />
       </div>
-      <div className="space-y-2 pt-4">
+      <div className="py-4">
         {feeds
           ?.toSorted((a, b) => {
             return a.name.localeCompare(b.name);
           })
-          .map((feed) => (
-            <div key={feed.url} className="flex items-center justify-between">
+          .map((feed, i) => (
+            <div
+              key={feed.url}
+              className="flex items-center justify-between border-0 border-t border-solid border-muted/50 py-4"
+            >
               <h3>{feed.name}</h3>
               <div
                 key={feed.url}
