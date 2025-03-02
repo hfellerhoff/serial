@@ -1,5 +1,5 @@
-"use client";
-import { api } from "~/trpc/react";
+"use client";;
+import { useTRPC } from "~/trpc/react";
 import { useKeyboard } from "./KeyboardProvider";
 import {
   SheetContent,
@@ -10,9 +10,12 @@ import {
 } from "./ui/sheet";
 import { Button } from "./ui/button";
 
+import { useQuery } from "@tanstack/react-query";
+
 export function CategoriesSheet() {
+  const api = useTRPC();
   const { isCategoriesOpen } = useKeyboard();
-  const { data: categories } = api.contentCategories.getAllForUser.useQuery();
+  const { data: categories } = useQuery(api.contentCategories.getAllForUser.queryOptions());
 
   if (!isCategoriesOpen) return null;
 

@@ -44,11 +44,10 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   } = useFeed();
   const [view, setView] = useState<FeedContext["view"]>("windowed");
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
-  const { dialog, launchDialog, closeDialog } = useDialogStore((store) => ({
-    dialog: store.dialog,
-    launchDialog: store.launchDialog,
-    closeDialog: store.closeDialog,
-  }));
+
+  const dialog = useDialogStore((store) => store.dialog);
+  const launchDialog = useDialogStore((store) => store.launchDialog);
+  const closeDialog = useDialogStore((store) => store.closeDialog);
 
   useEffect(() => {
     const processKey = (event: KeyboardEvent) => {

@@ -1,9 +1,8 @@
 "use client";
-
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { useState } from "react";
 import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
-import { api } from "~/trpc/react";
+import { useTRPC } from "~/trpc/react";
 import { Button } from "./ui/button";
 import { Combobox } from "./ui/combobox";
 import { Dialog, DialogContent, DialogHeader } from "./ui/dialog";
@@ -13,7 +12,11 @@ import { validateFeedUrl } from "~/server/rss/validateFeedUrl";
 import { toast } from "sonner";
 import { useFeed } from "~/lib/data/FeedProvider";
 
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+
 export function AddFeedDialog() {
+  const trpc = useTRPC();
   const [feedUrl, setFeedUrl] = useState("");
   const { addFeed } = useFeed();
   const [isAddingFeed, setIsAddingFeed] = useState(false);
@@ -22,20 +25,20 @@ export function AddFeedDialog() {
     data: categories,
     refetch: refetchCategories,
     isLoading: isLoadingCategories,
-  } = api.contentCategories.getAllForUser.useQuery();
+  } = useQuery(trpc.contentCategories.getAllForUser.queryOptions());
   const [categoryName, setCategoryName] = useState<string | null>(null);
 
-  const addCategory = api.contentCategories.create.useMutation();
+  const addCategory = useMutation(
+    trpc.contentCategories.create.mutationOptions(),
+  );
 
   const categoryOptions = categories?.map((category) => ({
     value: category.name.toLowerCase(),
     label: category.name,
   }));
 
-  const { dialog, onOpenChange } = useDialogStore((store) => ({
-    dialog: store.dialog,
-    onOpenChange: store.onOpenChange,
-  }));
+  const dialog = useDialogStore((store) => store.dialog);
+  const onOpenChange = useDialogStore((store) => store.onOpenChange);
 
   return (
     <Dialog open={dialog === "add-feed"} onOpenChange={onOpenChange}>
@@ -56,7 +59,7 @@ export function AddFeedDialog() {
               }}
             />
           </div>
-          {addCategory.isLoading || isLoadingCategories ? (
+          {addCategory.isPending || isLoadingCategories ? (
             <Button disabled variant="outline">
               Loading...
             </Button>
@@ -102,7 +105,7 @@ export function AddFeedDialog() {
                 toast.success("Feed added!");
                 setFeedUrl("");
               } catch {}
-              
+
               setIsAddingFeed(false);
             }}
           >

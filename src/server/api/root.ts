@@ -2,6 +2,9 @@ import { feedRouter } from "~/server/api/routers/feed";
 import { contentCategoriesRouter } from "~/server/api/routers/content-categories";
 import { createTRPCRouter } from "~/server/api/trpc";
 import { userConfigRouter } from "./routers/user-config";
+import { headers } from "next/headers";
+import { auth } from "@clerk/nextjs/server";
+import { db } from "../db";
 
 /**
  * This is the primary router for your server.
@@ -16,3 +19,11 @@ export const appRouter = createTRPCRouter({
 
 // export type definition of API
 export type AppRouter = typeof appRouter;
+
+export const getServerApi = async () => {
+  return appRouter.createCaller({
+    headers: await headers(),
+    auth: await auth(),
+    db,
+  });
+};

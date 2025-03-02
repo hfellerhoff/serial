@@ -1,11 +1,8 @@
 import "~/styles/globals.css";
 
-import { ClerkProvider } from "@clerk/nextjs";
 import { Inter } from "next/font/google";
 
 import { type Metadata, type Viewport } from "next";
-import { ThemeProvider } from "~/components/ThemeProvider";
-import { cn } from "~/lib/utils";
 
 const inter = Inter({
   subsets: ["latin"],

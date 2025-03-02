@@ -1,10 +1,11 @@
-"use client";
-
+"use client";;
 import { useTheme } from "next-themes";
 import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 import { Input } from "~/components/ui/input";
 import { Slider } from "~/components/ui/slider";
-import { api } from "~/trpc/react";
+import { useTRPC } from "~/trpc/react";
+
+import { useMutation } from "@tanstack/react-query";
 
 function getCssVariable(name: string) {
   const value = window
@@ -36,7 +37,8 @@ function FormSection({
 }
 
 export default function EditColorsPage() {
-  const { mutate } = api.userConfig.setThemeHSL.useMutation();
+  const api = useTRPC();
+  const { mutate } = useMutation(api.userConfig.setThemeHSL.mutationOptions());
 
   const { resolvedTheme } = useTheme();
 

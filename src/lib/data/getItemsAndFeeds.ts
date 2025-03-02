@@ -1,7 +1,8 @@
 "use server";
 
-import { api } from "~/trpc/server";
+import { getServerApi } from "~/server/api/root";
 
 export async function getItemsAndFeeds() {
-  return await api.feed.getAllFeedData.query();
+  const api = await getServerApi();
+  return await api.feed.getAllFeedData();
 }

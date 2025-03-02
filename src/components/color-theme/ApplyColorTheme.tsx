@@ -1,12 +1,13 @@
-import { api } from "~/trpc/server";
 import { ApplyColorThemeOnMount } from "./ApplyColorThemeOnMount";
+import { getServerApi } from "~/server/api/root";
 
 export async function ApplyColorTheme({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const data = await api.userConfig.getConfig.query();
+  const api = await getServerApi();
+  const data = await api.userConfig.getConfig();
 
   return (
     <>

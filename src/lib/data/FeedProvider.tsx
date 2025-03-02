@@ -1,5 +1,4 @@
 "use client";
-
 import {
   type Dispatch,
   type PropsWithChildren,
@@ -10,15 +9,17 @@ import {
   useState,
   useCallback,
 } from "react";
-import { type api as serverApi } from "~/trpc/server";
-import { api } from "~/trpc/react";
+import { useTRPC } from "~/trpc/react";
 import { useSearchParamState } from "../hooks/use-search-param-state";
 import { z } from "zod";
 import { getItemsAndFeeds } from "./getItemsAndFeeds";
 
+import { useMutation } from "@tanstack/react-query";
+import type { FeedRouter } from "~/server/api/routers/feed";
+
 export type VisibilityFilter = "all" | "unread" | "later";
 
-type FeedData = Awaited<ReturnType<typeof serverApi.feed.getAllFeedData.query>>;
+type FeedData = FeedRouter["getAllFeedData"];
 type Item = FeedData["items"][number];
 
 type FeedContext = {
@@ -70,17 +71,22 @@ export const FeedProvider = ({
 }: PropsWithChildren<{
   data: FeedData;
 }>) => {
+  const trpc = useTRPC();
   const [feeds, setFeeds] = useState(data.feeds);
   const [items, setItems] = useState(data.items);
 
-  const { mutateAsync: setIsItemWatchLater } =
-    api.feed.setFeedItemWatchLater.useMutation();
-
-  const { mutateAsync: setIsItemWatched } =
-    api.feed.setFeedItemWatched.useMutation();
-
-  const { mutateAsync: addFeedMutation } = api.feed.create.useMutation();
-  const { mutateAsync: deleteFeedMutation } = api.feed.delete.useMutation();
+  const { mutateAsync: setIsItemWatchLater } = useMutation(
+    trpc.feed.setFeedItemWatchLater.mutationOptions(),
+  );
+  const { mutateAsync: setIsItemWatched } = useMutation(
+    trpc.feed.setFeedItemWatched.mutationOptions(),
+  );
+  const { mutateAsync: addFeedMutation } = useMutation(
+    trpc.feed.create.mutationOptions(),
+  );
+  const { mutateAsync: deleteFeedMutation } = useMutation(
+    trpc.feed.delete.mutationOptions(),
+  );
 
   const [dateFilter, setDateFilter] = useSearchParamState(
     "days",
@@ -210,7 +216,7 @@ export const FeedProvider = ({
       setItems(res.items);
       setFeeds(res.feeds);
     },
-    [addFeedMutation],
+    [deleteFeedMutation],
   );
 
   return (

@@ -1,3 +1,4 @@
+import { inferRouterOutputs } from "@trpc/server";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 
@@ -179,3 +180,5 @@ export const feedRouter = createTRPCRouter({
         );
     }),
 });
+
+export type FeedRouter = inferRouterOutputs<typeof feedRouter>;

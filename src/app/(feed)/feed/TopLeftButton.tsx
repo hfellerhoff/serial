@@ -20,8 +20,8 @@ export function TopLeftButton() {
   }
 
   return (
-    <div className="h-8 w-8 flex-shrink-0">
-      <UserButton afterSignOutUrl="/welcome" />
+    <div className="h-8 w-8 shrink-0">
+      <UserButton />
     </div>
   );
 }
