@@ -1,5 +1,5 @@
 import { ApplyColorThemeOnMount } from "./ApplyColorThemeOnMount";
-import { getServerApi } from "~/server/api/root";
+import { getServerApi } from "~/server/api/server";
 
 export async function ApplyColorTheme({
   children,

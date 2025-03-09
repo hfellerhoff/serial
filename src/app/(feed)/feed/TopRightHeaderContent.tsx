@@ -1,5 +1,6 @@
 import { ListIcon, PaletteIcon } from "lucide-react";
 import Link from "next/link";
+import { ColorThemePopoverButton } from "~/components/color-theme/ColorThemePopoverButton";
 import { ColorModeToggle } from "~/components/ColorModeToggle";
 import { CustomVideoButton } from "~/components/CustomVideoButton";
 import { Button } from "~/components/ui/button";
@@ -31,13 +32,7 @@ export function TopRightHeaderContent() {
       <div className="md:hidden">
         <CustomVideoButton />
       </div>
-      <Link href="/feed/colors" prefetch>
-        <ResponsiveButton>
-          <PaletteIcon size={16} />
-          <span className="hidden pl-1.5 md:block">Theme</span>
-        </ResponsiveButton>
-      </Link>
-      <ColorModeToggle />
+      <ColorThemePopoverButton />
     </div>
   );
 }

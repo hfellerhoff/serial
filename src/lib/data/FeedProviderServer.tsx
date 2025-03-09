@@ -1,6 +1,6 @@
 import { type PropsWithChildren } from "react";
 import { FeedProvider } from "./FeedProvider";
-import { getServerApi } from "~/server/api/root";
+import { getServerApi } from "~/server/api/server";
 
 export async function FeedProviderServer({ children }: PropsWithChildren) {
   const api = await getServerApi();
