@@ -41,7 +41,7 @@ function FormSection({
 
 function EditColorsForm() {
   const api = useTRPC();
-  const { mutateAsync } = useMutation(
+  const { mutate: saveThemeHSLToDatabase } = useMutation(
     api.userConfig.setThemeHSL.mutationOptions(),
   );
 
@@ -76,7 +76,7 @@ function EditColorsForm() {
     };
 
   const saveValuesToDatabase = () => {
-    mutateAsync({
+    saveThemeHSLToDatabase({
       theme: (resolvedTheme as "light" | "dark") ?? "light",
       hsl: [hue, saturation, lightness],
     });
