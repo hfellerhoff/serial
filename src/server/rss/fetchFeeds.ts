@@ -15,18 +15,13 @@ export async function fetchNewFeedDetails(
     const feed = await fetch(url);
     const text = await feed.text();
 
-    // extract channelId from text
-    const channelIds = text.matchAll(/"channelId":([^&]{26})/g);
+    const rssFeedUrlMatches = text.matchAll(
+      /<link rel="alternate" type="application\/rss\+xml" title="RSS" href="(https:\/\/www\.youtube\.com\/feeds\/videos\.xml\?channel_id=[^&]{24})">/gm,
+    );
 
-    const idList = Array.from(channelIds)
-      .map((id) => id?.[1]?.replaceAll('"', ""))
+    urls = Array.from(rssFeedUrlMatches)
+      .map((id) => id?.[1])
       .filter(Boolean);
-
-    if (!!idList.length) {
-      urls = idList.map(
-        (id) => `https://www.youtube.com/feeds/videos.xml?channel_id=${id}`,
-      );
-    }
   }
 
   const feedDetailList = (
