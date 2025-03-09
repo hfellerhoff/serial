@@ -1,7 +1,9 @@
-"use client";;
+"use client";
 import * as React from "react";
-import { ThemeProvider as NextThemesProvider } from "next-themes";
-import { type ThemeProviderProps } from "next-themes/dist/types";
+import {
+  ThemeProvider as NextThemesProvider,
+  type ThemeProviderProps,
+} from "next-themes";
 import { useTRPC } from "~/trpc/react";
 import { useUser } from "@clerk/nextjs";
 
@@ -15,9 +17,11 @@ function ApplyColorThemeOnMount() {
   const api = useTRPC();
   const user = useUser();
 
-  const { data } = useQuery(api.userConfig.getConfig.queryOptions(undefined, {
-    enabled: user.isSignedIn ?? false,
-  }));
+  const { data } = useQuery(
+    api.userConfig.getConfig.queryOptions(undefined, {
+      enabled: user.isSignedIn ?? false,
+    }),
+  );
 
   React.useEffect(() => {
     if (!data) return;

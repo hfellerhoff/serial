@@ -4,7 +4,6 @@ import { TrashIcon } from "lucide-react";
 import { AddFeedButton } from "~/components/AddFeedButton";
 import { Button } from "~/components/ui/button";
 import { useFeed } from "~/lib/data/FeedProvider";
-import { api } from "~/trpc/react";
 
 export default function EditFeedsPage() {
   const { feeds, deleteFeed } = useFeed();
@@ -24,7 +23,7 @@ export default function EditFeedsPage() {
           .map((feed, i) => (
             <div
               key={feed.url}
-              className="flex items-center justify-between border-0 border-t border-solid border-muted/50 py-4"
+              className="border-muted/50 flex items-center justify-between border-0 border-t border-solid py-4"
             >
               <h3>{feed.name}</h3>
               <div

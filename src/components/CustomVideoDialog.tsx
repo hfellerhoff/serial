@@ -9,10 +9,9 @@ import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 
 function getYouTubeVideoIdFromUrl(url: string) {
-  const match = url.match(
-    // eslint-disable-next-line no-useless-escape
+  const match = new RegExp(
     /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/,
-  );
+  ).exec(url);
 
   if (!match) {
     return null;
