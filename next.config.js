@@ -25,8 +25,9 @@ const withMDX = createWithMDX();
 
 /** @type {import("next").NextConfig} */
 const config = {
-  pageExtensions: ["js", "jsx", "mdx", "ts", "tsx"],
+  pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
   output: "standalone",
+  transpilePackages: ["next-mdx-remote"],
   // experimental: {
   //   mdxRs: true,
   // },

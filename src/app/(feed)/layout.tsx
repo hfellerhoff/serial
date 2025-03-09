@@ -6,6 +6,8 @@ import { ScrollArea } from "~/components/ui/scroll-area";
 import { AppProviders } from "~/lib/data/AppProviders";
 import { AppDialogs } from "./feed/AppDialogs";
 import { Header } from "./feed/Header";
+import { ApplyColorTheme } from "~/components/color-theme/ApplyColorTheme";
+import { Suspense } from "react";
 
 const title = "Serial";
 const description = "Your personal content newsletter";
@@ -90,15 +92,19 @@ export default function RootLayout({
 }) {
   return (
     <AppProviders>
-      <KeyboardProvider>
-        <Header />
-        <main className="flex h-screen flex-col">
-          <ScrollArea className="h-full w-full">
-            <div className="h-full w-full pb-6 pt-24">{children}</div>
-          </ScrollArea>
-          <AppDialogs />
-        </main>
-      </KeyboardProvider>
+      <ApplyColorTheme>
+        <Suspense>
+          <KeyboardProvider>
+            <Header />
+            <main className="flex h-screen flex-col">
+              <ScrollArea className="h-full w-full">
+                <div className="h-full w-full pt-24 pb-6">{children}</div>
+              </ScrollArea>
+              <AppDialogs />
+            </main>
+          </KeyboardProvider>
+        </Suspense>
+      </ApplyColorTheme>
     </AppProviders>
   );
 }

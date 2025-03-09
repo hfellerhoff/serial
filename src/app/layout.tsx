@@ -124,14 +124,11 @@ export default function RootLayout({
               enableSystem
               disableTransitionOnChange
             >
-              <ApplyColorTheme>
-                <Suspense>{children}</Suspense>
-              </ApplyColorTheme>
+              <Suspense>{children}</Suspense>
               <Toaster />
             </ThemeProvider>
           </TRPCReactProvider>
         </ClerkProvider>
-        si
       </body>
     </html>
   );
