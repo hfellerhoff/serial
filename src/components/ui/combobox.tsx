@@ -117,6 +117,7 @@ export function Combobox<T extends string>({
                     );
                     setOpen(false);
                   }}
+                  className="data-disabled:pointer-events-auto data-disabled:opacity-100"
                 >
                   <Check
                     className={cn(
