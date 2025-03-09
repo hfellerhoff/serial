@@ -20,7 +20,7 @@ export default function ResponsiveVideo(props: IResponsiveVideoProps) {
           <iframe
             width="1600"
             height="900"
-            src={`https://www.youtube.com/embed/${props.videoID}`}
+            src={`https://www.youtube-nocookie.com/embed/${props.videoID}`}
             title="YouTube video player"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen

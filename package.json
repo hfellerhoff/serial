@@ -9,7 +9,8 @@
     "db:studio": "drizzle-kit studio",
     "schema:generate": "drizzle-kit generate",
     "schema:migrate": "node --experimental-specifier-resolution=node --loader ts-node/esm src/server/db/migrate",
-    "dev": "pnpm schema:generate && pnpm schema:migrate && next dev --turbopack",
+    "dev": "pnpm schema:generate && pnpm schema:migrate && next dev",
+    "dev:atomic": "next dev",
     "lint": "next lint",
     "start": "next start"
   },
@@ -46,6 +47,7 @@
     "drizzle-orm": "^0.40.0",
     "lucide-react": "^0.477.0",
     "next": "15.2.0",
+    "next-mdx-remote": "^5.0.0",
     "next-pwa": "^5.6.0",
     "next-themes": "^0.4.4",
     "react": "19.0.0",
