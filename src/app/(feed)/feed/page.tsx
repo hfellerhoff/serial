@@ -24,11 +24,7 @@ export default async function Home() {
         </div> */}
       </div>
       <TodayItems />
-      <div className="fixed inset-x-4 bottom-4 flex items-center justify-center">
-        <div className="bg-background border-border w-full rounded border border-solid px-4 py-2 md:w-max md:max-w-3xl">
-          <CategorySelectionChips />
-        </div>
-      </div>
+      <CategorySelectionChips />
     </div>
   );
 }

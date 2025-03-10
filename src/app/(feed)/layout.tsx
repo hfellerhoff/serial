@@ -7,6 +7,7 @@ import { AppDialogs } from "./feed/AppDialogs";
 import { Header } from "./feed/Header";
 import { ApplyColorTheme } from "~/components/color-theme/ApplyColorTheme";
 import { Suspense } from "react";
+import { ReleaseNotifier } from "~/components/releases/ReleaseNotifier";
 
 const title = "Serial";
 const description = "Your personal content newsletter";
@@ -100,6 +101,7 @@ export default function RootLayout({
             </ScrollArea>
             <AppDialogs />
           </main>
+          <ReleaseNotifier />
         </KeyboardProvider>
       </Suspense>
     </ApplyColorTheme>

@@ -64,6 +64,7 @@ export default async function Page({ params }: { params: Params }) {
       <div className="flex items-center justify-between pb-6">
         <Link href="/releases">⭠ All Releases</Link>
       </div>
+      <p className="pb-0 font-mono">{frontmatter.publish_date}</p>
       <h2>{frontmatter.title}</h2>
       <p>{frontmatter.description}</p>
       <hr />
@@ -71,7 +72,14 @@ export default async function Page({ params }: { params: Params }) {
 
       {!!authData.sessionId && (
         <>
-          <p className="pt-6 pb-1">Thanks for checking out the release log!</p>
+          <p className="pt-6 pb-2">
+            Thanks for checking out the release log! If you have any questions
+            or feedback, feel free to send me an email at{" "}
+            <a href="mailto:hey@serial.tube?subject=Question%20about%20serial.tube">
+              hey@serial.tube
+            </a>
+            .
+          </p>
           <Link href="/feed">Return to the app →</Link>
         </>
       )}
