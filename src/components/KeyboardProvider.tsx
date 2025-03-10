@@ -124,7 +124,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
           if (!foundItem?.feedId) return;
 
-          setWatchLaterValue({
+          void setWatchLaterValue({
             feedId: foundItem.feedId,
             contentId: foundItem.contentId,
             isWatchLater: !foundItem.isWatchLater,
@@ -135,7 +135,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
           if (!foundItem?.feedId) return;
 
-          setWatchedValue({
+          void setWatchedValue({
             feedId: foundItem.feedId,
             contentId: foundItem.contentId,
             isWatched: !foundItem.isWatched,

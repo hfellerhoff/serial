@@ -21,17 +21,17 @@ export function useCreateFeedMutation() {
 
   return useMutation(
     api.feeds.create.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
           queryKey: api.feeds.getAll.queryKey(),
         });
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: api.feedItems.getAll.queryKey(),
         });
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: api.feedCategories.getAll.queryKey(),
         });
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: FETCH_NEW_FEED_ITEMS_KEY,
         });
       },
@@ -45,11 +45,11 @@ export function useDeleteFeedMutation() {
 
   return useMutation(
     api.feeds.delete.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
           queryKey: api.feeds.getAll.queryKey(),
         });
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: api.feedItems.getAll.queryKey(),
         });
       },

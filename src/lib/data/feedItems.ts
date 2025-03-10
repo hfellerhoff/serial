@@ -88,8 +88,8 @@ export function useFetchNewFeedItemsMutation() {
 
   return useMutation(
     api.feedItems.fetchNewItems.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
           queryKey: api.feedItems.getAll.queryKey(),
         });
       },

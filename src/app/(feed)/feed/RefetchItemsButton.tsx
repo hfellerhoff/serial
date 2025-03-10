@@ -33,8 +33,8 @@ export function RefetchItemsButton() {
     <Button
       size="icon md:default"
       variant="outline"
-      onClick={() => {
-        fetchNewFeedItems();
+      onClick={async () => {
+        await fetchNewFeedItems();
       }}
       disabled={isPending}
     >

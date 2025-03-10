@@ -67,6 +67,7 @@ export function FeedCategoryEditor({
       <div className="flex items-center gap-1">
         {appliedContentCategories?.map((category) => (
           <Popover
+            key={category?.id}
             open={deletePopoverCategory === category?.id}
             onOpenChange={(open) => {
               if (open) {

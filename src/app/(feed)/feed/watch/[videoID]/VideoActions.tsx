@@ -34,8 +34,8 @@ export function VideoActions({ videoID }: { videoID: string }) {
       <div className="absolute inset-x-0 bottom-0 z-0 flex w-full items-center justify-center gap-2 p-6">
         <Button
           variant={isWatchLater ? "secondary" : "outline"}
-          onClick={() => {
-            setWatchLaterValue({
+          onClick={async () => {
+            await setWatchLaterValue({
               contentId: video.contentId,
               feedId: video.feedId!,
               isWatchLater: !video.isWatchLater,
@@ -47,8 +47,8 @@ export function VideoActions({ videoID }: { videoID: string }) {
         </Button>
         <Button
           variant={isWatched ? "secondary" : "outline"}
-          onClick={() => {
-            setWatchedValue({
+          onClick={async () => {
+            await setWatchedValue({
               contentId: video.contentId,
               feedId: video.feedId!,
               isWatched: !video.isWatched,
@@ -66,8 +66,8 @@ export function VideoActions({ videoID }: { videoID: string }) {
     <div className="flex w-full items-center justify-center gap-2 p-6">
       <Button
         variant={isWatchLater ? "secondary" : "outline"}
-        onClick={() => {
-          setWatchLaterValue({
+        onClick={async () => {
+          await setWatchLaterValue({
             contentId: video.contentId,
             feedId: video.feedId!,
             isWatchLater: !video.isWatchLater,
@@ -80,8 +80,8 @@ export function VideoActions({ videoID }: { videoID: string }) {
       </Button>
       <Button
         variant={isWatched ? "secondary" : "outline"}
-        onClick={() => {
-          setWatchedValue({
+        onClick={async () => {
+          await setWatchedValue({
             contentId: video.contentId,
             feedId: video.feedId!,
             isWatched: !video.isWatched,

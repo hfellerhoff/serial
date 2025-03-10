@@ -17,8 +17,8 @@ export function useCreateContentCategoryMutation() {
 
   return useMutation(
     api.contentCategories.create.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
           queryKey: api.contentCategories.getAll.queryKey(),
         });
       },

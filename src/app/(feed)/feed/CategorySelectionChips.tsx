@@ -40,7 +40,7 @@ function useCheckFilteredFeedItemsForCategory() {
         ),
       );
     },
-    [feedItems, dateFilter, visibilityFilter],
+    [feedItems, dateFilter, visibilityFilter, feedCategories],
   );
 }
 

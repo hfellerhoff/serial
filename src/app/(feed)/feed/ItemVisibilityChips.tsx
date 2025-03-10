@@ -2,7 +2,7 @@
 
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
 import { useAtom } from "jotai";
-import { VisibilityFilter, visibilityFilterAtom } from "~/lib/data/atoms";
+import { type VisibilityFilter, visibilityFilterAtom } from "~/lib/data/atoms";
 
 export function ItemVisibilityChips() {
   const [visibilityFilter, setVisibilityFilter] = useAtom(visibilityFilterAtom);

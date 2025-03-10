@@ -17,8 +17,8 @@ export function useAssignFeedCategoryMutation() {
 
   return useMutation(
     api.feedCategories.assignToFeed.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
           queryKey: api.feedCategories.getAll.queryKey(),
         });
       },
@@ -32,8 +32,8 @@ export function useRemoveFeedCategoryMutation() {
 
   return useMutation(
     api.feedCategories.removeFromFeed.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
           queryKey: api.feedCategories.getAll.queryKey(),
         });
       },
