@@ -1,16 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  DatabaseContentCategory,
-  DatabaseFeedCategory,
-  DatabaseFeedItem,
-} from "~/server/db/schema";
+import { DatabaseFeedCategory, DatabaseFeedItem } from "~/server/db/schema";
 import { useTRPC } from "~/trpc/react";
-import { VisibilityFilter } from "./FeedProvider";
 import { useMemo } from "react";
 import { useAtomValue } from "jotai";
 import {
   categoryFilterAtom,
   dateFilterAtom,
+  type VisibilityFilter,
   visibilityFilterAtom,
 } from "./atoms";
 

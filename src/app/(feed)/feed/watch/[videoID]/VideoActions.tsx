@@ -6,7 +6,6 @@ import {
   useFeedItemsSetWatchedValueMutation,
   useFeedItemsSetWatchLaterValueMutation,
 } from "~/lib/data/feedItems";
-import { useFeed } from "~/lib/data/FeedProvider";
 import { useMediaQuery } from "~/lib/hooks/use-media-query";
 
 export function VideoActions({ videoID }: { videoID: string }) {
