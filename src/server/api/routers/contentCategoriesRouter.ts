@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
@@ -13,11 +13,13 @@ export const contentCategoriesRouter = createTRPCRouter({
         name: input.name,
       });
     }),
-  getAllForUser: protectedProcedure.query(async ({ ctx }) => {
-    const contentCategories = await ctx.db.query.contentCategories.findMany({
-      where: sql`user_id = ${ctx.auth!.userId!}`,
-    });
+  getAll: protectedProcedure.query(async ({ ctx }) => {
+    const contentCategoriesList = await ctx.db
+      .select()
+      .from(contentCategories)
+      .where(eq(contentCategories.userId, ctx.auth!.userId!))
+      .orderBy(asc(contentCategories.name));
 
-    return contentCategories;
+    return contentCategoriesList;
   }),
 });

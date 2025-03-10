@@ -85,7 +85,7 @@ export const contentCategories = sqliteTable(
     nameIndex: index("content_categories_name_idx").on(example.name),
   }),
 );
-export type DatabaseContentCategories = typeof feeds.$inferSelect;
+export type DatabaseContentCategory = typeof contentCategories.$inferSelect;
 
 export const feedCategories = sqliteTable(
   "feed_categories",
@@ -97,7 +97,7 @@ export const feedCategories = sqliteTable(
     pk: primaryKey({ columns: [table.feedId, table.categoryId] }),
   }),
 );
-export type DatabaseFeedCategories = typeof feeds.$inferSelect;
+export type DatabaseFeedCategory = typeof feedCategories.$inferSelect;
 
 export const userConfig = sqliteTable("user_config", {
   userId: text("user_id").primaryKey(),
@@ -110,4 +110,4 @@ export const userConfig = sqliteTable("user_config", {
   lightHSL: text("light_hsl", { length: 16 }).notNull().default(""),
   darkHSL: text("dark_hsl", { length: 16 }).notNull().default(""),
 });
-export type DatabaseUserConfig = typeof feeds.$inferSelect;
+export type DatabaseUserConfig = typeof userConfig.$inferSelect;

@@ -2,7 +2,10 @@
 
 import { RefreshCwIcon } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import { useFetchNewFeedItemsMutation } from "~/lib/data/feedItems";
+import {
+  FETCH_NEW_FEED_ITEMS_KEY,
+  useFetchNewFeedItemsMutation,
+} from "~/lib/data/feedItems";
 import clsx from "clsx";
 import { useQuery } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
@@ -16,7 +19,7 @@ export function RefetchItemsButton() {
     useFetchNewFeedItemsMutation();
 
   useQuery({
-    queryKey: ["fetch-items-on-mount"],
+    queryKey: [FETCH_NEW_FEED_ITEMS_KEY],
     queryFn: async () => {
       await fetchNewFeedItems();
       return true;
@@ -33,6 +36,7 @@ export function RefetchItemsButton() {
       onClick={() => {
         fetchNewFeedItems();
       }}
+      disabled={isPending}
     >
       <RefreshCwIcon
         size={16}

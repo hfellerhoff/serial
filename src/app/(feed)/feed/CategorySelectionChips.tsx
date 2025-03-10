@@ -1,23 +1,69 @@
 "use client";
 
-import { useTRPC } from "~/trpc/react";
-import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
 
-import { useAtom } from "jotai";
-import { categoryFilterAtom } from "~/lib/data/atoms";
-import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
+import { useQuery } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
+
+import clsx from "clsx";
+import { useAtom, useAtomValue } from "jotai";
 import { ScrollArea, ScrollBar } from "~/components/ui/scroll-area";
+import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
+import {
+  categoryFilterAtom,
+  dateFilterAtom,
+  visibilityFilterAtom,
+} from "~/lib/data/atoms";
+import { useFeedCategoriesQuery } from "~/lib/data/feedCategories";
+import {
+  doesFeedItemPassFilters,
+  useFeedItemsQuery,
+} from "~/lib/data/feedItems";
+
+function useCheckFilteredFeedItemsForCategory() {
+  const { data: feedItems } = useFeedItemsQuery();
+  const { data: feedCategories } = useFeedCategoriesQuery();
+
+  const dateFilter = useAtomValue(dateFilterAtom);
+  const visibilityFilter = useAtomValue(visibilityFilterAtom);
+
+  return useCallback(
+    (category: number) => {
+      if (!feedItems || !feedCategories) return [];
+      return feedItems.filter((item) =>
+        doesFeedItemPassFilters(
+          item,
+          dateFilter,
+          visibilityFilter,
+          category,
+          feedCategories,
+        ),
+      );
+    },
+    [feedItems, dateFilter, visibilityFilter],
+  );
+}
 
 export function CategorySelectionChips() {
+  const checkFilteredFeedItemsForCategory =
+    useCheckFilteredFeedItemsForCategory();
+
   const [categoryFilter, setCategoryFilter] = useAtom(categoryFilterAtom);
 
   const trpc = useTRPC();
   const { data: categories } = useQuery(
-    trpc.contentCategories.getAllForUser.queryOptions(),
+    trpc.contentCategories.getAll.queryOptions(),
   );
 
+  const categoryOptions = categories?.map((category) => ({
+    ...category,
+    hasEntries: !!checkFilteredFeedItemsForCategory(category.id).length,
+  }));
+
+  const hasAnyItems = !!checkFilteredFeedItemsForCategory(-1).length;
+
   return (
-    <ScrollArea className="pb-2">
+    <ScrollArea className="py-2" id="categories">
       <ToggleGroup
         type="single"
         value={categoryFilter.toString()}
@@ -26,9 +72,22 @@ export function CategorySelectionChips() {
         }}
         size="sm"
       >
-        <ToggleGroupItem value="-1">All</ToggleGroupItem>
-        {categories?.map((option) => (
-          <ToggleGroupItem value={option.id.toString()} className="w-max">
+        <ToggleGroupItem
+          value="-1"
+          className={clsx("w-max", {
+            "opacity-50": !hasAnyItems && categoryFilter !== -1,
+          })}
+        >
+          All
+        </ToggleGroupItem>
+        {categoryOptions?.map((option) => (
+          <ToggleGroupItem
+            key={option.id}
+            value={option.id.toString()}
+            className={clsx("w-max", {
+              "opacity-50": !option.hasEntries && categoryFilter !== option.id,
+            })}
+          >
             {option.name}
           </ToggleGroupItem>
         ))}

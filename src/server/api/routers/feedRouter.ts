@@ -39,14 +39,22 @@ export const feedRouter = createTRPCRouter({
                 return "Feed already exists";
               }
 
-              const feedRes = await tx.insert(feeds).values({
-                userId: ctx.auth!.userId!,
-                ...newFeed,
-              });
+              const newFeeds = await tx
+                .insert(feeds)
+                .values({
+                  userId: ctx.auth!.userId!,
+                  ...newFeed,
+                })
+                .returning();
 
-              if (input.categoryId && feedRes.lastInsertRowid) {
+              const newFeedRow = newFeeds?.[0];
+
+              console.log(input.categoryId);
+              console.log(newFeeds);
+
+              if (input.categoryId && !!newFeedRow) {
                 await tx.insert(feedCategories).values({
-                  feedId: Number(feedRes.lastInsertRowid),
+                  feedId: Number(newFeedRow.id),
                   categoryId: input.categoryId,
                 });
               }

@@ -16,6 +16,8 @@ import {
 } from "~/lib/data/feedItems";
 import { DatabaseFeedItem } from "~/server/db/schema";
 import FeedLoading from "~/app/loading";
+import { useContentCategoriesQuery } from "~/lib/data/contentCategories";
+import { useFeedCategoriesQuery } from "~/lib/data/feedCategories";
 
 function timeAgo(date: string | Date) {
   const diff = dayjs().diff(date);
@@ -142,12 +144,14 @@ function ItemDisplay({ item }: { item: DatabaseFeedItem }) {
 export function TodayItems() {
   const { data: feeds, isLoading: isLoadingFeeds } = useFeedsQuery();
   const { data: items, isLoading: isLoadingItems } = useFeedItemsQuery();
+  const { data: feedCategories, isLoading: isLoadingFeedCategories } =
+    useFeedCategoriesQuery();
 
-  const filteredFeeds = useFilteredFeedItems(items);
+  const filteredFeeds = useFilteredFeedItems(items, feedCategories);
 
   const [parent] = useAutoAnimate();
 
-  if (isLoadingItems || isLoadingFeeds) {
+  if (isLoadingItems) {
     return <FeedLoading />;
   }
 
@@ -155,7 +159,7 @@ export function TodayItems() {
     return <TodayItemsFeedEmptyState />;
   }
 
-  if (items?.length === 0 || !items) {
+  if (filteredFeeds?.length === 0 || !items) {
     return <TodayItemsEmptyState />;
   }
 

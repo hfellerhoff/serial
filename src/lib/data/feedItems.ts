@@ -1,5 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { DatabaseFeedItem } from "~/server/db/schema";
+import {
+  DatabaseContentCategory,
+  DatabaseFeedCategory,
+  DatabaseFeedItem,
+} from "~/server/db/schema";
 import { useTRPC } from "~/trpc/react";
 import { VisibilityFilter } from "./FeedProvider";
 import { useMemo } from "react";
@@ -10,11 +14,12 @@ import {
   visibilityFilterAtom,
 } from "./atoms";
 
-function doesItemMatchFilters(
+export function doesFeedItemPassFilters(
   item: DatabaseFeedItem,
   dateFilter: number,
   visibilityFilter: VisibilityFilter,
-  categoryFilter: number | null,
+  categoryFilter: number,
+  feedCategories: DatabaseFeedCategory[],
 ) {
   const date = new Date(item.postedAt);
   const now = new Date();
@@ -34,22 +39,34 @@ function doesItemMatchFilters(
   }
 
   // Category filter
-  // if (!!categoryFilter && item.content_categories?.name !== categoryFilter) {
-  //   return false;
-  // }
+  const feedIdsInCategory = feedCategories
+    .filter((category) => category.categoryId === categoryFilter)
+    .map((category) => category.feedId);
+  if (categoryFilter >= 0 && !feedIdsInCategory.includes(item.feedId)) {
+    return false;
+  }
 
   return true;
 }
 
-export function useFilteredFeedItems(items: DatabaseFeedItem[] | undefined) {
+export function useFilteredFeedItems(
+  items: DatabaseFeedItem[] | undefined,
+  feedCategories: DatabaseFeedCategory[] | undefined,
+) {
   const dateFilter = useAtomValue(dateFilterAtom);
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
   const categoryFilter = useAtomValue(categoryFilterAtom);
 
   return useMemo(() => {
-    if (!items) return [];
+    if (!items || !feedCategories) return [];
     return items.filter((item) =>
-      doesItemMatchFilters(item, dateFilter, visibilityFilter, categoryFilter),
+      doesFeedItemPassFilters(
+        item,
+        dateFilter,
+        visibilityFilter,
+        categoryFilter,
+        feedCategories,
+      ),
     );
   }, [items, dateFilter, visibilityFilter, categoryFilter]);
 }
@@ -64,6 +81,7 @@ export function useFeedItemsQuery() {
   );
 }
 
+export const FETCH_NEW_FEED_ITEMS_KEY = "fetch-items-on-mount";
 export function useFetchNewFeedItemsMutation() {
   const api = useTRPC();
   const queryClient = useQueryClient();
