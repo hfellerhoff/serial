@@ -3,7 +3,12 @@ import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { feedCategories, feedItems, feeds } from "~/server/db/schema";
+import {
+  contentCategories,
+  feedCategories,
+  feedItems,
+  feeds,
+} from "~/server/db/schema";
 import { fetchFeedData, fetchNewFeedDetails } from "~/server/rss/fetchFeeds";
 
 export const feedRouter = createTRPCRouter({
@@ -34,14 +39,22 @@ export const feedRouter = createTRPCRouter({
                 return "Feed already exists";
               }
 
-              const feedRes = await tx.insert(feeds).values({
-                userId: ctx.auth!.userId!,
-                ...newFeed,
-              });
+              const newFeeds = await tx
+                .insert(feeds)
+                .values({
+                  userId: ctx.auth!.userId!,
+                  ...newFeed,
+                })
+                .returning();
 
-              if (input.categoryId && feedRes.lastInsertRowid) {
+              const newFeedRow = newFeeds?.[0];
+
+              console.log(input.categoryId);
+              console.log(newFeeds);
+
+              if (input.categoryId && !!newFeedRow) {
                 await tx.insert(feedCategories).values({
-                  feedId: Number(feedRes.lastInsertRowid),
+                  feedId: Number(newFeedRow.id),
                   categoryId: input.categoryId,
                 });
               }
@@ -70,22 +83,22 @@ export const feedRouter = createTRPCRouter({
       });
     }),
   getAllFeedData: protectedProcedure.query(async ({ ctx }) => {
-    const feeds = await ctx.db.query.feeds.findMany({
+    const feedsList = await ctx.db.query.feeds.findMany({
       where: sql`user_id = ${ctx.auth!.userId}`,
     });
 
-    if (!feeds) {
+    if (!feedsList) {
       return {
         feeds: [],
         items: [],
       };
     }
 
-    const feedData = await fetchFeedData(feeds);
+    const feedData = await fetchFeedData(feedsList);
 
     if (!feedData) {
       return {
-        feeds: feeds,
+        feeds: feedsList,
         items: [],
       };
     }
@@ -119,7 +132,7 @@ export const feedRouter = createTRPCRouter({
       );
     });
 
-    const feedIds = feeds.map((feed) => feed.id);
+    const feedIds = feedsList.map((feed) => feed.id);
     if (!feedIds.length) {
       return {
         feeds: [],
@@ -127,58 +140,43 @@ export const feedRouter = createTRPCRouter({
       };
     }
 
-    const items = await ctx.db.query.feedItems.findMany({
-      where: inArray(feedItems.feedId, feedIds),
-      orderBy: desc(feedItems.postedAt),
-    });
+    const itemsQueryData = await ctx.db
+      .select()
+      .from(feedItems)
+      .where(inArray(feedItems.feedId, feedIds))
+      .leftJoin(feedCategories, eq(feedItems.feedId, feedCategories.feedId))
+      .leftJoin(
+        contentCategories,
+        eq(contentCategories.id, feedCategories.categoryId),
+      )
+      .orderBy(desc(feedItems.postedAt));
 
     return {
-      feeds,
-      items,
+      feeds: feedsList,
+      items: itemsQueryData,
     };
   }),
-  setFeedItemWatched: protectedProcedure
-    .input(
-      z.object({
-        feedId: z.number(),
-        contentId: z.string(),
-        isWatched: z.boolean(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      await ctx.db
-        .update(feedItems)
-        .set({
-          isWatched: input.isWatched,
-        })
-        .where(
-          and(
-            eq(feedItems.feedId, input.feedId),
-            eq(feedItems.contentId, input.contentId),
-          ),
-        );
-    }),
-  setFeedItemWatchLater: protectedProcedure
-    .input(
-      z.object({
-        feedId: z.number(),
-        contentId: z.string(),
-        isWatchLater: z.boolean(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      await ctx.db
-        .update(feedItems)
-        .set({
-          isWatchLater: input.isWatchLater,
-        })
-        .where(
-          and(
-            eq(feedItems.feedId, input.feedId),
-            eq(feedItems.contentId, input.contentId),
-          ),
-        );
-    }),
+  getAll: protectedProcedure.query(async ({ ctx }) => {
+    const feedsList = await ctx.db.query.feeds.findMany({
+      where: sql`user_id = ${ctx.auth!.userId}`,
+    });
+
+    return feedsList;
+
+    // const feedIds = feedsList.map((feed) => feed.id);
+
+    // const feedCategoriesList = await ctx.db
+    //   .select()
+    //   .from(feedCategories)
+    //   .where(inArray(feedCategories.feedId, feedIds));
+
+    // return feedsList.map((feed) => ({
+    //   ...feed,
+    //   categories: feedCategoriesList.filter(
+    //     (feedCategory) => feedCategory.feedId === feed.id,
+    //   ),
+    // }));
+  }),
 });
 
 export type FeedRouter = inferRouterOutputs<typeof feedRouter>;

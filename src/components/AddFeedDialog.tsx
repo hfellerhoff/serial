@@ -10,30 +10,30 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { validateFeedUrl } from "~/server/rss/validateFeedUrl";
 import { toast } from "sonner";
-import { useFeed } from "~/lib/data/FeedProvider";
-
-import { useQuery } from "@tanstack/react-query";
-import { useMutation } from "@tanstack/react-query";
+import { useCreateFeedMutation } from "~/lib/data/feeds";
+import {
+  useContentCategoriesQuery,
+  useCreateContentCategoryMutation,
+} from "~/lib/data/contentCategories";
 
 export function AddFeedDialog() {
   const trpc = useTRPC();
   const [feedUrl, setFeedUrl] = useState("");
-  const { addFeed } = useFeed();
   const [isAddingFeed, setIsAddingFeed] = useState(false);
+
+  const { mutateAsync: createFeed } = useCreateFeedMutation();
 
   const {
     data: categories,
     refetch: refetchCategories,
     isLoading: isLoadingCategories,
-  } = useQuery(trpc.contentCategories.getAllForUser.queryOptions());
+  } = useContentCategoriesQuery();
   const [categoryName, setCategoryName] = useState<string | null>(null);
 
-  const addCategory = useMutation(
-    trpc.contentCategories.create.mutationOptions(),
-  );
+  const addCategory = useCreateContentCategoryMutation();
 
   const categoryOptions = categories?.map((category) => ({
-    value: category.name.toLowerCase(),
+    value: category.name,
     label: category.name,
   }));
 
@@ -76,7 +76,7 @@ export function AddFeedDialog() {
                 );
 
                 if (newCategory) {
-                  setCategoryName(newCategory.name.toLowerCase());
+                  setCategoryName(newCategory.name);
                 }
               }}
               value={categoryName}
@@ -87,17 +87,20 @@ export function AddFeedDialog() {
           <Button
             disabled={!validateFeedUrl(feedUrl) || isAddingFeed}
             onClick={async () => {
+              console.log(categoryName);
               const category = !!categoryName
                 ? categories?.find((category) => category.name === categoryName)
                 : undefined;
+              console.log(category);
+              console.log(categories);
 
               setIsAddingFeed(true);
 
               try {
                 if (!category) {
-                  await addFeed({ url: feedUrl });
+                  await createFeed({ url: feedUrl });
                 } else {
-                  await addFeed({
+                  await createFeed({
                     url: feedUrl,
                     categoryId: category.id,
                   });

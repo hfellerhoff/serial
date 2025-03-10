@@ -2,7 +2,7 @@
 
 import { useServerInsertedHTML } from "next/navigation";
 import { useRef } from "react";
-import { type UserConfigValues } from "~/server/api/routers/user-config";
+import { type UserConfigValues } from "~/server/api/routers/userConfigRouter";
 
 export function ApplyColorThemeOnMount({ data }: { data: UserConfigValues }) {
   const isServerInserted = useRef(false);

@@ -1,18 +1,19 @@
 "use client";
 
-import { useFeed } from "~/lib/data/FeedProvider";
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
+import { useAtom } from "jotai";
+import { dateFilterAtom } from "~/lib/data/atoms";
 
 export function DateFilterChips() {
-  const { dateFilter, setDateFilter } = useFeed();
+  const [dateFilter, setDateFilter] = useAtom(dateFilterAtom);
 
   return (
     <ToggleGroup
       type="single"
-      value={dateFilter}
+      value={dateFilter.toString()}
       onValueChange={(value) => {
         if (!value) return;
-        setDateFilter(value);
+        setDateFilter(parseInt(value));
       }}
       size="sm"
     >

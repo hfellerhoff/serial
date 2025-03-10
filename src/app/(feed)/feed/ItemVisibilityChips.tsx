@@ -1,10 +1,11 @@
 "use client";
 
-import { type VisibilityFilter, useFeed } from "~/lib/data/FeedProvider";
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
+import { useAtom } from "jotai";
+import { type VisibilityFilter, visibilityFilterAtom } from "~/lib/data/atoms";
 
 export function ItemVisibilityChips() {
-  const { visibilityFilter, setVisibilityFilter } = useFeed();
+  const [visibilityFilter, setVisibilityFilter] = useAtom(visibilityFilterAtom);
 
   return (
     <ToggleGroup

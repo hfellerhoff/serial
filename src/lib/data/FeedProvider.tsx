@@ -15,7 +15,7 @@ import { z } from "zod";
 import { getItemsAndFeeds } from "./getItemsAndFeeds";
 
 import { useMutation } from "@tanstack/react-query";
-import type { FeedRouter } from "~/server/api/routers/feed";
+import type { FeedRouter } from "~/server/api/routers/feedRouter";
 
 export type VisibilityFilter = "all" | "unread" | "later";
 
@@ -30,6 +30,8 @@ type FeedContext = {
   setDateFilter: Dispatch<SetStateAction<string>>;
   visibilityFilter: VisibilityFilter;
   setVisibilityFilter: Dispatch<SetStateAction<VisibilityFilter>>;
+  categoryFilter: string;
+  setCategoryFilter: Dispatch<SetStateAction<string>>;
   findPreviousVideoId: (videoID: string) => string | null;
   findNextVideoId: (videoID: string) => string | null;
   toggleWatchLater: (videoID: string) => Promise<void>;
@@ -44,8 +46,9 @@ function doesItemMatchFilters(
   item: Item,
   dateFilter: string,
   visibilityFilter: VisibilityFilter,
+  categoryFilter: string,
 ) {
-  const date = new Date(item.postedAt);
+  const date = new Date(item.feed_item.postedAt);
   const now = new Date();
   const parsedDateFilter = parseInt(dateFilter, 10);
   const sevenDaysAgo = new Date(
@@ -53,12 +56,23 @@ function doesItemMatchFilters(
       now.getDate() - (Number.isNaN(parsedDateFilter) ? 1 : parsedDateFilter),
     ),
   );
+
+  // Date filter
   if (date <= sevenDaysAgo) return false;
 
-  if (visibilityFilter === "unread" && (item.isWatched || item.isWatchLater)) {
+  // Visibility filter
+  if (
+    visibilityFilter === "unread" &&
+    (item.feed_item.isWatched || item.feed_item.isWatchLater)
+  ) {
     return false;
   }
-  if (visibilityFilter === "later" && !item.isWatchLater) {
+  if (visibilityFilter === "later" && !item.feed_item.isWatchLater) {
+    return false;
+  }
+
+  // Category filter
+  if (!!categoryFilter && item.content_categories?.name !== categoryFilter) {
     return false;
   }
 
@@ -75,17 +89,11 @@ export const FeedProvider = ({
   const [feeds, setFeeds] = useState(data.feeds);
   const [items, setItems] = useState(data.items);
 
-  const { mutateAsync: setIsItemWatchLater } = useMutation(
-    trpc.feed.setFeedItemWatchLater.mutationOptions(),
-  );
-  const { mutateAsync: setIsItemWatched } = useMutation(
-    trpc.feed.setFeedItemWatched.mutationOptions(),
-  );
   const { mutateAsync: addFeedMutation } = useMutation(
-    trpc.feed.create.mutationOptions(),
+    trpc.feeds.create.mutationOptions(),
   );
   const { mutateAsync: deleteFeedMutation } = useMutation(
-    trpc.feed.delete.mutationOptions(),
+    trpc.feeds.delete.mutationOptions(),
   );
 
   const [dateFilter, setDateFilter] = useSearchParamState(
@@ -98,81 +106,41 @@ export const FeedProvider = ({
     "unread",
     z.enum(["all", "unread", "later"]),
   );
+  const [categoryFilter, setCategoryFilter] = useSearchParamState(
+    "category",
+    "",
+    z.string(),
+  );
 
   const processedItems = useMemo(() => {
     return items.filter((item) =>
-      doesItemMatchFilters(item, dateFilter, visibilityFilter),
+      doesItemMatchFilters(item, dateFilter, visibilityFilter, categoryFilter),
     );
-  }, [items, dateFilter, visibilityFilter]);
-
-  const toggleWatchLater = useCallback(
-    async (videoID: string) => {
-      const item = items.find((item) => item.contentId === videoID);
-      // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
-      if (!item || item.feedId === null) return;
-
-      const isWatchLater = !item.isWatchLater;
-
-      setItems((prevItems) => {
-        return prevItems.map((prevItem) => {
-          if (prevItem.contentId === item.contentId) {
-            return { ...prevItem, isWatchLater };
-          }
-          return prevItem;
-        });
-      });
-
-      await setIsItemWatchLater({
-        feedId: item.feedId,
-        contentId: item.contentId,
-        isWatchLater,
-      });
-    },
-    [items, setIsItemWatchLater],
-  );
-
-  const toggleIsWatched = useCallback(
-    async (videoID: string) => {
-      const item = items.find((item) => item.contentId === videoID);
-      // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
-      if (!item || item.feedId === null) return;
-
-      const isWatched = !item.isWatched;
-
-      setItems((prevItems) => {
-        return prevItems.map((prevItem) => {
-          if (prevItem.contentId === item.contentId) {
-            return { ...prevItem, isWatched };
-          }
-          return prevItem;
-        });
-      });
-
-      await setIsItemWatched({
-        feedId: item.feedId,
-        contentId: item.contentId,
-        isWatched,
-      });
-    },
-    [items, setIsItemWatched],
-  );
+  }, [items, dateFilter, visibilityFilter, categoryFilter]);
 
   const findPreviousVideoId = useCallback(
     (videoID: string) => {
       const currentIndex = items.findIndex(
-        (item) => item.contentId === videoID,
+        (item) => item.feed_item.contentId === videoID,
       );
       if (currentIndex <= 0) return null;
 
       let index = currentIndex - 1;
       let video = items[index]!;
-      while (!doesItemMatchFilters(video, dateFilter, visibilityFilter)) {
+      while (
+        !doesItemMatchFilters(
+          video,
+          dateFilter,
+          visibilityFilter,
+          categoryFilter,
+        )
+      ) {
         index = index - 1;
         if (index < 0) return null;
         video = items[index]!;
       }
 
-      return video.contentId;
+      return video.feed_item.contentId;
     },
     [dateFilter, items, visibilityFilter],
   );
@@ -180,43 +148,28 @@ export const FeedProvider = ({
   const findNextVideoId = useCallback(
     (videoID: string) => {
       const currentIndex = items.findIndex(
-        (item) => item.contentId === videoID,
+        (item) => item.feed_item.contentId === videoID,
       );
       if (currentIndex === -1 || currentIndex === items.length - 1) return null;
 
       let index = currentIndex + 1;
       let video = items[index]!;
-      while (!doesItemMatchFilters(video, dateFilter, visibilityFilter)) {
+      while (
+        !doesItemMatchFilters(
+          video,
+          dateFilter,
+          visibilityFilter,
+          categoryFilter,
+        )
+      ) {
         index = index + 1;
         if (index >= items.length - 1) return null;
         video = items[index]!;
       }
 
-      return video.contentId;
+      return video.feed_item.contentId;
     },
     [dateFilter, items, visibilityFilter],
-  );
-
-  const addFeed = useCallback<FeedContext["addFeed"]>(
-    async ({ url, categoryId }) => {
-      await addFeedMutation({ url, categoryId });
-      const res = await getItemsAndFeeds();
-      setItems(res.items);
-      setFeeds(res.feeds);
-    },
-    [addFeedMutation],
-  );
-
-  const deleteFeed = useCallback<FeedContext["deleteFeed"]>(
-    async (id) => {
-      setFeeds((prevFeeds) => prevFeeds.filter((feed) => feed.id !== id));
-      await deleteFeedMutation(id);
-
-      const res = await getItemsAndFeeds();
-      setItems(res.items);
-      setFeeds(res.feeds);
-    },
-    [deleteFeedMutation],
   );
 
   return (
@@ -229,12 +182,10 @@ export const FeedProvider = ({
         setDateFilter,
         visibilityFilter,
         setVisibilityFilter,
+        categoryFilter,
+        setCategoryFilter,
         findPreviousVideoId,
         findNextVideoId,
-        toggleWatchLater,
-        toggleIsWatched,
-        addFeed,
-        deleteFeed,
       }}
     >
       {children}

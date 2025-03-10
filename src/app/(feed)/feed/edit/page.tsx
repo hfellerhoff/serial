@@ -3,11 +3,17 @@
 import { TrashIcon } from "lucide-react";
 import { AddFeedButton } from "~/components/AddFeedButton";
 import { Button } from "~/components/ui/button";
-import { useFeed } from "~/lib/data/FeedProvider";
+import { useContentCategoriesQuery } from "~/lib/data/contentCategories";
+import { useFeedCategoriesQuery } from "~/lib/data/feedCategories";
+import { useDeleteFeedMutation, useFeedsQuery } from "~/lib/data/feeds";
+import { FeedCategoryEditor } from "./FeedCategoryEditor";
 
 export default function EditFeedsPage() {
-  const { feeds, deleteFeed } = useFeed();
-  // const { data: categories } = api.contentCategories.getAllForUser.useQuery();
+  const { data: feeds } = useFeedsQuery();
+  const { data: contentCategories } = useContentCategoriesQuery();
+  const { data: feedCategories } = useFeedCategoriesQuery();
+
+  const { mutateAsync: deleteFeed } = useDeleteFeedMutation();
 
   return (
     <div className="mx-auto max-w-2xl p-6">
@@ -35,6 +41,11 @@ export default function EditFeedsPage() {
                     <ExternalLinkIcon size={16} />
                   </Button>
                 </Link> */}
+                <FeedCategoryEditor
+                  feed={feed}
+                  contentCategories={contentCategories}
+                  feedCategories={feedCategories}
+                />
                 <Button
                   variant="outline"
                   size="icon"
