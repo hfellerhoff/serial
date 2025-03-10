@@ -1,7 +1,6 @@
 // Example model schema from the Drizzle docs
 // https://orm.drizzle.team/docs/sql-schema-declaration
 
-import { sql } from "drizzle-orm";
 import {
   integer,
   text,
@@ -37,6 +36,7 @@ export const feeds = sqliteTable(
     nameIndex: index("feed_name_idx").on(example.name),
   }),
 );
+export type DatabaseFeed = typeof feeds.$inferSelect;
 
 export const feedItems = sqliteTable(
   "feed_item",
@@ -66,6 +66,7 @@ export const feedItems = sqliteTable(
     feedIdIndex: index("feed_item_feed_id_idx").on(example.feedId),
   }),
 );
+export type DatabaseFeedItem = typeof feedItems.$inferSelect;
 
 export const contentCategories = sqliteTable(
   "content_categories",
@@ -84,6 +85,7 @@ export const contentCategories = sqliteTable(
     nameIndex: index("content_categories_name_idx").on(example.name),
   }),
 );
+export type DatabaseContentCategories = typeof feeds.$inferSelect;
 
 export const feedCategories = sqliteTable(
   "feed_categories",
@@ -95,6 +97,7 @@ export const feedCategories = sqliteTable(
     pk: primaryKey({ columns: [table.feedId, table.categoryId] }),
   }),
 );
+export type DatabaseFeedCategories = typeof feeds.$inferSelect;
 
 export const userConfig = sqliteTable("user_config", {
   userId: text("user_id").primaryKey(),
@@ -107,3 +110,4 @@ export const userConfig = sqliteTable("user_config", {
   lightHSL: text("light_hsl", { length: 16 }).notNull().default(""),
   darkHSL: text("dark_hsl", { length: 16 }).notNull().default(""),
 });
+export type DatabaseUserConfig = typeof feeds.$inferSelect;

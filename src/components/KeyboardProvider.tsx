@@ -1,9 +1,13 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { useFeed } from "../lib/data/FeedProvider";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
+import {
+  useFeedItemsQuery,
+  useFeedItemsSetWatchedValueMutation,
+  useFeedItemsSetWatchLaterValueMutation,
+} from "~/lib/data/feedItems";
 
 function doesAnyInputElementHaveFocus() {
   const elements = document.querySelectorAll("input, textarea, select, button");
@@ -35,13 +39,15 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
   const [zoom, setZoom] = useState(2);
 
-  const {
-    items,
-    findPreviousVideoId,
-    findNextVideoId,
-    toggleIsWatched,
-    toggleWatchLater,
-  } = useFeed();
+  const { data: items } = useFeedItemsQuery();
+  const { mutateAsync: setWatchedValue } =
+    useFeedItemsSetWatchedValueMutation();
+  const { mutateAsync: setWatchLaterValue } =
+    useFeedItemsSetWatchLaterValueMutation();
+
+  // TODO: add this back
+  // const { findPreviousVideoId, findNextVideoId } = useFeed();
+
   const [view, setView] = useState<FeedContext["view"]>("windowed");
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
 
@@ -55,6 +61,10 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
       if (doesAnyInputElementHaveFocus()) return;
 
+      const foundItem = items?.find(
+        (item) => item.contentId === videoID && !!item.feedId,
+      );
+
       switch (event.key) {
         case "`":
           setView((prev) => {
@@ -65,40 +75,40 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           if (pathname === "/feed") break;
           router.push("/feed");
           break;
-        case "[":
-          if (!items.length || event.metaKey) return;
+        // case "[":
+        //   if (!items?.length || event.metaKey) return;
 
-          if (!videoID) {
-            void router.push("/feed");
-            break;
-          }
+        //   if (!videoID) {
+        //     void router.push("/feed");
+        //     break;
+        //   }
 
-          const previousVideoId = findPreviousVideoId(videoID);
+        //   const previousVideoId = findPreviousVideoId(videoID);
 
-          if (!previousVideoId) {
-            void router.push("/feed");
-            break;
-          }
+        //   if (!previousVideoId) {
+        //     void router.push("/feed");
+        //     break;
+        //   }
 
-          void router.push(`/feed/watch/${previousVideoId}`);
-          break;
-        case "]":
-          if (!items.length || event.metaKey) return;
+        //   void router.push(`/feed/watch/${previousVideoId}`);
+        //   break;
+        // case "]":
+        //   if (!items?.length || event.metaKey) return;
 
-          if (!videoID) {
-            void router.push("/feed");
-            break;
-          }
+        //   if (!videoID) {
+        //     void router.push("/feed");
+        //     break;
+        //   }
 
-          const nextVideoId = findNextVideoId(videoID);
+        //   const nextVideoId = findNextVideoId(videoID);
 
-          if (!nextVideoId) {
-            void router.push("/feed");
-            break;
-          }
+        //   if (!nextVideoId) {
+        //     void router.push("/feed");
+        //     break;
+        //   }
 
-          void router.push(`/feed/watch/${nextVideoId}`);
-          break;
+        //   void router.push(`/feed/watch/${nextVideoId}`);
+        //   break;
         case "a":
           event.preventDefault();
 
@@ -112,16 +122,24 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         case "w":
           event.preventDefault();
 
-          if (!videoID) return;
+          if (!foundItem?.feedId) return;
 
-          void toggleWatchLater(videoID);
+          setWatchLaterValue({
+            feedId: foundItem.feedId,
+            contentId: foundItem.contentId,
+            isWatchLater: !foundItem.isWatchLater,
+          });
           break;
         case "e":
           event.preventDefault();
 
-          if (!videoID) return;
+          if (!foundItem?.feedId) return;
 
-          void toggleIsWatched(videoID);
+          setWatchedValue({
+            feedId: foundItem.feedId,
+            contentId: foundItem.contentId,
+            isWatched: !foundItem.isWatched,
+          });
           break;
         case "=":
           setZoom((z) => {
@@ -150,14 +168,10 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   }, [
     closeDialog,
     dialog,
-    findNextVideoId,
-    findPreviousVideoId,
     items,
     launchDialog,
     params.videoID,
     router,
-    toggleIsWatched,
-    toggleWatchLater,
     setZoom,
     pathname,
   ]);

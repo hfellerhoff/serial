@@ -6,8 +6,16 @@ import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { useDialogStore } from "./dialogStore";
 import clsx from "clsx";
-import { useFeed } from "~/lib/data/FeedProvider";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { useFeedsQuery } from "~/lib/data/feeds";
+import {
+  useFeedItemsQuery,
+  useFeedItemsSetWatchedValueMutation,
+  useFeedItemsSetWatchLaterValueMutation,
+  useFilteredFeedItems,
+} from "~/lib/data/feedItems";
+import { DatabaseFeedItem } from "~/server/db/schema";
+import FeedLoading from "~/app/loading";
 
 function timeAgo(date: string | Date) {
   const diff = dayjs().diff(date);
@@ -30,7 +38,7 @@ function timeAgo(date: string | Date) {
 function TodayItemsEmptyState() {
   return (
     <div className="w-full px-6 md:py-6">
-      <div className="flex w-full flex-col items-center justify-center rounded bg-muted p-12">
+      <div className="bg-muted flex w-full flex-col items-center justify-center rounded p-12">
         <SproutIcon size={40} />
         <h2 className="pt-2 text-lg font-semibold">
           You&apos;ve seen everything!
@@ -52,7 +60,7 @@ function TodayItemsFeedEmptyState() {
       className="w-full px-6 md:py-6"
       onClick={() => launchDialog("add-feed")}
     >
-      <div className="flex w-full flex-col items-center justify-center rounded bg-muted p-12">
+      <div className="bg-muted flex w-full flex-col items-center justify-center rounded p-12">
         <PlusIcon size={40} />
         <h2 className="pt-2 text-lg font-semibold">Add a feed</h2>
         <p className="max-w-xs pt-1 text-center text-sm opacity-80">
@@ -63,12 +71,11 @@ function TodayItemsFeedEmptyState() {
   );
 }
 
-function ItemDisplay({
-  item,
-}: {
-  item: ReturnType<typeof useFeed>["items"][0];
-}) {
-  const { toggleWatchLater, toggleIsWatched } = useFeed();
+function ItemDisplay({ item }: { item: DatabaseFeedItem }) {
+  const { mutateAsync: setWatchedValue } =
+    useFeedItemsSetWatchedValueMutation();
+  const { mutateAsync: setWatchLaterValue } =
+    useFeedItemsSetWatchLaterValueMutation();
 
   return (
     <article
@@ -82,7 +89,7 @@ function ItemDisplay({
     >
       <Link
         href={`/feed/watch/${item.contentId}`}
-        className="flex w-full flex-1 flex-col gap-4 py-4 pl-6 pr-4 text-left transition-colors sm:hover:bg-muted md:h-20 md:flex-row md:items-center md:rounded md:py-0 md:pr-0"
+        className="sm:hover:bg-muted flex w-full flex-1 flex-col gap-4 py-4 pr-4 pl-6 text-left transition-colors md:h-20 md:flex-row md:items-center md:rounded md:py-0 md:pr-0"
         prefetch
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -105,7 +112,11 @@ function ItemDisplay({
           size="icon"
           variant="ghost"
           onClick={() => {
-            void toggleWatchLater(item.contentId);
+            void setWatchLaterValue({
+              contentId: item.contentId,
+              feedId: item.feedId!,
+              isWatchLater: !item.isWatchLater,
+            });
           }}
         >
           <ClockIcon size={16} />
@@ -114,7 +125,11 @@ function ItemDisplay({
           size="icon"
           variant="ghost"
           onClick={() => {
-            void toggleIsWatched(item.contentId);
+            void setWatchedValue({
+              contentId: item.contentId,
+              feedId: item.feedId!,
+              isWatched: !item.isWatched,
+            });
           }}
         >
           <EyeIcon size={16} />
@@ -125,20 +140,28 @@ function ItemDisplay({
 }
 
 export function TodayItems() {
-  const { items, feeds } = useFeed();
-  const [parent] = useAutoAnimate(/* optional config */);
+  const { data: feeds, isLoading: isLoadingFeeds } = useFeedsQuery();
+  const { data: items, isLoading: isLoadingItems } = useFeedItemsQuery();
 
-  if (feeds.length === 0) {
+  const filteredFeeds = useFilteredFeedItems(items);
+
+  const [parent] = useAutoAnimate();
+
+  if (isLoadingItems || isLoadingFeeds) {
+    return <FeedLoading />;
+  }
+
+  if (feeds?.length === 0 || !feeds) {
     return <TodayItemsFeedEmptyState />;
   }
 
-  if (items.length === 0) {
+  if (items?.length === 0 || !items) {
     return <TodayItemsEmptyState />;
   }
 
   return (
     <div className="w-full md:pt-4" ref={parent}>
-      {items.map((item) => (
+      {filteredFeeds.map((item) => (
         <ItemDisplay item={item} key={item.contentId} />
       ))}
     </div>

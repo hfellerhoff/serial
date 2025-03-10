@@ -3,7 +3,6 @@ import "~/styles/globals.css";
 import { type Metadata, type Viewport } from "next";
 import { KeyboardProvider } from "~/components/KeyboardProvider";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { AppProviders } from "~/lib/data/AppProviders";
 import { AppDialogs } from "./feed/AppDialogs";
 import { Header } from "./feed/Header";
 import { ApplyColorTheme } from "~/components/color-theme/ApplyColorTheme";
@@ -91,20 +90,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AppProviders>
-      <ApplyColorTheme>
-        <Suspense>
-          <KeyboardProvider>
-            <Header />
-            <main className="flex h-screen flex-col">
-              <ScrollArea className="h-full w-full">
-                <div className="h-full w-full pt-24 pb-6">{children}</div>
-              </ScrollArea>
-              <AppDialogs />
-            </main>
-          </KeyboardProvider>
-        </Suspense>
-      </ApplyColorTheme>
-    </AppProviders>
+    <ApplyColorTheme>
+      <Suspense>
+        <KeyboardProvider>
+          <Header />
+          <main className="flex h-screen flex-col">
+            <ScrollArea className="h-full w-full">
+              <div className="h-full w-full pt-24 pb-6">{children}</div>
+            </ScrollArea>
+            <AppDialogs />
+          </main>
+        </KeyboardProvider>
+      </Suspense>
+    </ApplyColorTheme>
   );
 }

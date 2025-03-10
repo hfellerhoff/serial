@@ -3,11 +3,11 @@
 import { TrashIcon } from "lucide-react";
 import { AddFeedButton } from "~/components/AddFeedButton";
 import { Button } from "~/components/ui/button";
-import { useFeed } from "~/lib/data/FeedProvider";
+import { useDeleteFeedMutation, useFeedsQuery } from "~/lib/data/feeds";
 
 export default function EditFeedsPage() {
-  const { feeds, deleteFeed } = useFeed();
-  // const { data: categories } = api.contentCategories.getAllForUser.useQuery();
+  const { data: feeds } = useFeedsQuery();
+  const { mutateAsync: deleteFeed } = useDeleteFeedMutation();
 
   return (
     <div className="mx-auto max-w-2xl p-6">

@@ -1,9 +1,9 @@
-import { ListIcon, PaletteIcon } from "lucide-react";
+import { ListIcon } from "lucide-react";
 import Link from "next/link";
 import { ColorThemePopoverButton } from "~/components/color-theme/ColorThemePopoverButton";
-import { ColorModeToggle } from "~/components/ColorModeToggle";
 import { CustomVideoButton } from "~/components/CustomVideoButton";
 import { Button } from "~/components/ui/button";
+import { RefetchItemsButton } from "./RefetchItemsButton";
 
 function ResponsiveButton({ children }: { children: React.ReactNode }) {
   return (
@@ -23,6 +23,7 @@ function ResponsiveButton({ children }: { children: React.ReactNode }) {
 export function TopRightHeaderContent() {
   return (
     <div className="flex items-center gap-2">
+      <RefetchItemsButton />
       <Link href="/feed/edit" prefetch>
         <ResponsiveButton>
           <ListIcon size={16} />

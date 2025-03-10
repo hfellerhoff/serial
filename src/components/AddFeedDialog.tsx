@@ -14,12 +14,14 @@ import { useFeed } from "~/lib/data/FeedProvider";
 
 import { useQuery } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
+import { useCreateFeedMutation } from "~/lib/data/feeds";
 
 export function AddFeedDialog() {
   const trpc = useTRPC();
   const [feedUrl, setFeedUrl] = useState("");
-  const { addFeed } = useFeed();
   const [isAddingFeed, setIsAddingFeed] = useState(false);
+
+  const { mutateAsync: createFeed } = useCreateFeedMutation();
 
   const {
     data: categories,
@@ -95,9 +97,9 @@ export function AddFeedDialog() {
 
               try {
                 if (!category) {
-                  await addFeed({ url: feedUrl });
+                  await createFeed({ url: feedUrl });
                 } else {
-                  await addFeed({
+                  await createFeed({
                     url: feedUrl,
                     categoryId: category.id,
                   });

@@ -13,7 +13,6 @@ export const contentCategoriesRouter = createTRPCRouter({
         name: input.name,
       });
     }),
-
   getAllForUser: protectedProcedure.query(async ({ ctx }) => {
     const contentCategories = await ctx.db.query.contentCategories.findMany({
       where: sql`user_id = ${ctx.auth!.userId!}`,
