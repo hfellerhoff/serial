@@ -23,39 +23,46 @@ const STEPS = [
         >
           Google Takeout
         </Link>
-        . Once, there, hit "Deselect all" to exclude unneeded app data.
+        . Once, there, hit &quot;Deselect all&quot; to exclude unneeded app
+        data.
       </p>
     ),
   },
   {
     content: (
       <p>
-        Next, check "YouTube and YouTube Music", then click on "All YouTube data
-        included".
+        Next, check &quot;YouTube and YouTube Music&quot;, then click on
+        &quot;All YouTube data included&quot;.
       </p>
     ),
   },
   {
     content: (
-      <p>Deselect all options, then check "subscriptions" and hit "OK".</p>
+      <p>
+        Deselect all options, then check &quot;subscriptions&quot; and hit
+        &quot;OK&quot;.
+      </p>
     ),
   },
   {
-    content: <p>Hit "Next step", then hit "Create export".</p>,
+    content: (
+      <p>Hit &quot;Next step&quot;, then hit &quot;Create export&quot;.</p>
+    ),
   },
   {
     content: (
       <p>
         Soon, you will recieve an email from Google with your subscription data.
-        Since we deselected data we didn't need, this should be nearly instant.
+        Since we deselected data we didn&apos;t need, this should be nearly
+        instant.
       </p>
     ),
   },
   {
     content: (
       <p>
-        Unzip the file from Google. You will find the "subscriptions.csv" file
-        nested a few folders inside.
+        Unzip the file from Google. You will find the
+        &quot;subscriptions.csv&quot; file nested a few folders inside.
       </p>
     ),
   },

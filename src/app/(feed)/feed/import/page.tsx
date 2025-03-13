@@ -94,10 +94,6 @@ export default function EditFeedsPage() {
                 YouTube Subscriptions (<code>subscriptions.csv</code>)
               </Label>
             </div>
-            {/* <div className="flex items-center space-x-2">
-              <RadioGroupItem value="opml" id="opml" disabled />
-              <Label htmlFor="opml">OPML (coming soon)</Label>
-            </div> */}
           </RadioGroup>
         </div>
       </fieldset>
@@ -136,7 +132,7 @@ export default function EditFeedsPage() {
       {!importedChannels && (
         <div className="mt-16">
           <h3 className="mb-4 font-semibold">
-            How do I find my "subscriptions.csv" file?
+            How do I find my &quot;subscriptions.csv&quot; file?
           </h3>
           <hr />
           <div className="mt-6 max-w-[calc(100vw-48px)]">
@@ -238,7 +234,7 @@ export default function EditFeedsPage() {
                 className="w-full"
                 size="lg"
                 onClick={() => {
-                  createFeedsFromSubscriptionImportMutation({
+                  void createFeedsFromSubscriptionImportMutation({
                     channels: importedChannels,
                   });
                 }}
