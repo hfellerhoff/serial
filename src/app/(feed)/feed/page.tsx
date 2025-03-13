@@ -19,9 +19,6 @@ export default async function Home() {
         <div className="w-max pt-2">
           <ItemVisibilityChips />
         </div>
-        {/* <div className="w-max max-w-full self-start pt-6 pb-2 md:w-full md:pt-12 md:pb-0">
-          <CategorySelectionChips />
-        </div> */}
       </div>
       <TodayItems />
       <CategorySelectionChips />

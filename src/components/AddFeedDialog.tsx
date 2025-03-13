@@ -15,6 +15,9 @@ import {
   useContentCategoriesQuery,
   useCreateContentCategoryMutation,
 } from "~/lib/data/contentCategories";
+import Link from "next/link";
+import { ImportFeedButton } from "./ImportFeedButton";
+import { ImportIcon } from "lucide-react";
 
 export function AddFeedDialog() {
   const trpc = useTRPC();
@@ -111,6 +114,22 @@ export function AddFeedDialog() {
           >
             {isAddingFeed ? "Adding..." : "Add Feed"}
           </Button>
+          <div className="py-4">
+            <hr />
+          </div>
+          <Label>Have a lot of feeds to add?</Label>
+          <Link href="/feed/import">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                onOpenChange(false);
+              }}
+            >
+              <ImportIcon size={16} />
+              <span className="hidden pl-1.5 md:block">Bulk Import</span>
+            </Button>
+          </Link>
         </div>
       </DialogContent>
     </Dialog>
