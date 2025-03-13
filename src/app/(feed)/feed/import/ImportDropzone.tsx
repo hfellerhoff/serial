@@ -1,10 +1,5 @@
 import clsx from "clsx";
 import { DragEvent, useRef, useState } from "react";
-import { parse } from "csv-parse";
-
-const parser = parse({
-  skipRecordsWithError: true,
-});
 
 type ImportDropzoneProps = {
   inputElement: HTMLInputElement | null;
