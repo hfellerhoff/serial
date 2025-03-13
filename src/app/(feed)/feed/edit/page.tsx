@@ -7,6 +7,7 @@ import { useContentCategoriesQuery } from "~/lib/data/contentCategories";
 import { useFeedCategoriesQuery } from "~/lib/data/feedCategories";
 import { useDeleteFeedMutation, useFeedsQuery } from "~/lib/data/feeds";
 import { FeedCategoryEditor } from "./FeedCategoryEditor";
+import { ImportFeedButton } from "~/components/ImportFeedButton";
 
 export default function EditFeedsPage() {
   const { data: feeds } = useFeedsQuery();
@@ -19,7 +20,10 @@ export default function EditFeedsPage() {
     <div className="mx-auto max-w-2xl p-6">
       <div className="flex items-center justify-between">
         <h2 className="font-mono text-lg">Feeds</h2>
-        <AddFeedButton />
+        <div className="flex items-center justify-end gap-2">
+          <ImportFeedButton />
+          <AddFeedButton />
+        </div>
       </div>
       <div className="py-4">
         {feeds
@@ -36,11 +40,6 @@ export default function EditFeedsPage() {
                 key={feed.url}
                 className="flex items-center justify-between gap-2"
               >
-                {/* <Link href={feed.url}>
-                  <Button variant="outline" size="icon" disabled={disabled}>
-                    <ExternalLinkIcon size={16} />
-                  </Button>
-                </Link> */}
                 <FeedCategoryEditor
                   feed={feed}
                   contentCategories={contentCategories}

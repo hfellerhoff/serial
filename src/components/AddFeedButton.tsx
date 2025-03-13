@@ -10,10 +10,11 @@ export function AddFeedButton() {
   return (
     <Button
       variant="outline"
-      size="icon"
+      size="icon md:default"
       onClick={() => launchDialog("add-feed")}
     >
       <PlusIcon />
+      <span className="hidden md:block">Add</span>
     </Button>
   );
 }

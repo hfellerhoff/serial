@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import {
   contentCategories,
+  DatabaseFeed,
   feedCategories,
   feedItems,
   feeds,
@@ -49,9 +50,6 @@ export const feedRouter = createTRPCRouter({
 
               const newFeedRow = newFeeds?.[0];
 
-              console.log(input.categoryId);
-              console.log(newFeeds);
-
               if (input.categoryId && !!newFeedRow) {
                 await tx.insert(feedCategories).values({
                   feedId: Number(newFeedRow.id),
@@ -68,6 +66,58 @@ export const feedRouter = createTRPCRouter({
       if (errors.length === newFeeds.length) {
         throw new Error(errors[0]);
       }
+    }),
+  createFeedsFromSubscriptionImport: protectedProcedure
+    .input(
+      z.object({
+        channels: z
+          .object({
+            channelId: z.string(),
+            feedUrl: z
+              .string()
+              .startsWith(
+                "https://www.youtube.com/feeds/videos.xml?channel_id=",
+              ),
+            title: z.string(),
+            shouldImport: z.boolean(),
+          })
+          .array(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!input.channels.length) return;
+
+      const feedsToAdd: Omit<DatabaseFeed, "id" | "createdAt" | "updatedAt">[] =
+        input.channels
+          .filter((channel) => channel.shouldImport)
+          .map((channel) => ({
+            userId: ctx.auth!.userId!,
+            name: channel.title,
+            platform: "youtube",
+            url: channel.feedUrl,
+          }));
+      if (!feedsToAdd.length) return;
+
+      await ctx.db.transaction(async (tx) => {
+        return await Promise.all(
+          feedsToAdd.map(async (newFeed) => {
+            if (!newFeed.url) return "No feed url found.";
+
+            const existingFeed = await tx.query.feeds.findFirst({
+              where: and(
+                eq(feeds.url, newFeed.url),
+                eq(feeds.userId, ctx.auth!.userId!),
+              ),
+            });
+
+            if (existingFeed) {
+              return "Feed already exists";
+            }
+
+            await tx.insert(feeds).values(newFeed);
+          }),
+        );
+      });
     }),
   delete: protectedProcedure
     .input(z.number())

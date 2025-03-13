@@ -39,6 +39,30 @@ export function useCreateFeedMutation() {
   );
 }
 
+export function useCreateFeedsFromSubscriptionImportMutation() {
+  const api = useTRPC();
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    api.feeds.createFeedsFromSubscriptionImport.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: FETCH_NEW_FEED_ITEMS_KEY,
+        });
+        await queryClient.invalidateQueries({
+          queryKey: api.feeds.getAll.queryKey(),
+        });
+        await queryClient.invalidateQueries({
+          queryKey: api.feedItems.getAll.queryKey(),
+        });
+        await queryClient.invalidateQueries({
+          queryKey: api.feedCategories.getAll.queryKey(),
+        });
+      },
+    }),
+  );
+}
+
 export function useDeleteFeedMutation() {
   const api = useTRPC();
   const queryClient = useQueryClient();
