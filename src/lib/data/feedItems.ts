@@ -79,11 +79,7 @@ export function useFilteredFeedItems(
 export function useFeedItemsQuery() {
   const api = useTRPC();
 
-  return useQuery(
-    api.feedItems.getAll.queryOptions(undefined, {
-      staleTime: Infinity,
-    }),
-  );
+  return useQuery(api.feedItems.getAll.queryOptions());
 }
 
 export const FETCH_NEW_FEED_ITEMS_KEY = "fetch-items-on-mount";
