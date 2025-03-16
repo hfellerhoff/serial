@@ -17,9 +17,10 @@ export function ItemVisibilityChips() {
       }}
       size="sm"
     >
-      <ToggleGroupItem value="all">All</ToggleGroupItem>
       <ToggleGroupItem value="unread">Unread</ToggleGroupItem>
       <ToggleGroupItem value="later">Later</ToggleGroupItem>
+      <ToggleGroupItem value="videos">Videos</ToggleGroupItem>
+      <ToggleGroupItem value="shorts">Shorts</ToggleGroupItem>
     </ToggleGroup>
   );
 }

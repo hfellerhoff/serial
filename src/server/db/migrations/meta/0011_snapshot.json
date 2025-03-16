@@ -1,6 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
+  "id": "08db08b6-f804-438e-9c12-017fb28a52e4",
+  "prevId": "2d4fdd26-9198-4a43-a4eb-de3e06502538",
   "tables": {
     "serial_content_categories": {
       "name": "serial_content_categories",
@@ -79,35 +81,35 @@
         "serial_feed_categories_feed_id_serial_feed_id_fk": {
           "name": "serial_feed_categories_feed_id_serial_feed_id_fk",
           "tableFrom": "serial_feed_categories",
+          "tableTo": "serial_feed",
           "columnsFrom": [
             "feed_id"
           ],
-          "tableTo": "serial_feed",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "serial_feed_categories_category_id_serial_content_categories_id_fk": {
           "name": "serial_feed_categories_category_id_serial_content_categories_id_fk",
           "tableFrom": "serial_feed_categories",
+          "tableTo": "serial_content_categories",
           "columnsFrom": [
             "category_id"
           ],
-          "tableTo": "serial_content_categories",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "serial_feed_categories_feed_id_category_id_pk": {
           "columns": [
-            "category_id",
-            "feed_id"
+            "feed_id",
+            "category_id"
           ],
           "name": "serial_feed_categories_feed_id_category_id_pk"
         }
@@ -169,13 +171,20 @@
           "autoincrement": false,
           "default": false
         },
-        "is_hidden": {
-          "name": "is_hidden",
+        "is_watch_later": {
+          "name": "is_watch_later",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
           "default": false
+        },
+        "orientation": {
+          "name": "orientation",
+          "type": "text(64)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "posted_at": {
           "name": "posted_at",
@@ -212,22 +221,22 @@
         "serial_feed_item_feed_id_serial_feed_id_fk": {
           "name": "serial_feed_item_feed_id_serial_feed_id_fk",
           "tableFrom": "serial_feed_item",
+          "tableTo": "serial_feed",
           "columnsFrom": [
             "feed_id"
           ],
-          "tableTo": "serial_feed",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "serial_feed_item_feed_id_content_id_pk": {
           "columns": [
-            "content_id",
-            "feed_id"
+            "feed_id",
+            "content_id"
           ],
           "name": "serial_feed_item_feed_id_content_id_pk"
         }
@@ -354,12 +363,14 @@
       "checkConstraints": {}
     }
   },
+  "views": {},
   "enums": {},
   "_meta": {
+    "schemas": {},
     "tables": {},
     "columns": {}
   },
-  "id": "d837815d-1932-498d-8da3-040481f200d1",
-  "prevId": "82eac6e6-f902-4279-8f26-f00100611f91",
-  "views": {}
+  "internal": {
+    "indexes": {}
+  }
 }

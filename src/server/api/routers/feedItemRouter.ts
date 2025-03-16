@@ -1,7 +1,8 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { checkFeedItemIsVerticalFromThumbnail } from "~/server/checkFeedItemIsVertical";
 import { feedItems, feeds } from "~/server/db/schema";
 import { fetchFeedData } from "~/server/rss/fetchFeeds";
 
@@ -51,6 +52,47 @@ export const feedItemRouter = createTRPCRouter({
     await ctx.db.transaction(async (tx) => {
       return await Promise.all(
         feedItemList.map(async (item) => {
+          return await tx
+            .insert(feedItems)
+            .values(item)
+            .onConflictDoUpdate({
+              target: [feedItems.contentId, feedItems.feedId],
+              set: item,
+            });
+        }),
+      );
+    });
+
+    // check if items are vertical
+    const uncategorizedFeedItems = await ctx.db
+      .select()
+      .from(feedItems)
+      .where(isNull(feedItems.orientation));
+
+    if (uncategorizedFeedItems.length === 0) {
+      return;
+    }
+
+    const categorizedFeedItems: (typeof feedItems.$inferInsert)[] = (
+      await Promise.all(
+        uncategorizedFeedItems.map(async (item) => {
+          const orientation = await checkFeedItemIsVerticalFromThumbnail(
+            item.thumbnail,
+          );
+
+          if (orientation !== null) {
+            return {
+              ...item,
+              orientation,
+            };
+          }
+        }),
+      )
+    ).filter(Boolean);
+
+    await ctx.db.transaction(async (tx) => {
+      return await Promise.all(
+        categorizedFeedItems.map(async (item) => {
           return await tx
             .insert(feedItems)
             .values(item)

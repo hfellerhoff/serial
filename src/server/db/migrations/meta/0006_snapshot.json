@@ -1,8 +1,6 @@
 {
-  "version": "5",
+  "version": "6",
   "dialect": "sqlite",
-  "id": "82eac6e6-f902-4279-8f26-f00100611f91",
-  "prevId": "55cc93cd-7fe5-4a0c-87f7-94f26267d4f0",
   "tables": {
     "serial_content_categories": {
       "name": "serial_content_categories",
@@ -55,7 +53,8 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     },
     "serial_feed_categories": {
       "name": "serial_feed_categories",
@@ -80,28 +79,28 @@
         "serial_feed_categories_feed_id_serial_feed_id_fk": {
           "name": "serial_feed_categories_feed_id_serial_feed_id_fk",
           "tableFrom": "serial_feed_categories",
-          "tableTo": "serial_feed",
           "columnsFrom": [
             "feed_id"
           ],
+          "tableTo": "serial_feed",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "serial_feed_categories_category_id_serial_content_categories_id_fk": {
           "name": "serial_feed_categories_category_id_serial_content_categories_id_fk",
           "tableFrom": "serial_feed_categories",
-          "tableTo": "serial_content_categories",
           "columnsFrom": [
             "category_id"
           ],
+          "tableTo": "serial_content_categories",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -113,7 +112,8 @@
           "name": "serial_feed_categories_feed_id_category_id_pk"
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     },
     "serial_feed": {
       "name": "serial_feed",
@@ -183,7 +183,8 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     },
     "serial_user_config": {
       "name": "serial_user_config",
@@ -229,13 +230,16 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     }
   },
   "enums": {},
   "_meta": {
-    "schemas": {},
     "tables": {},
     "columns": {}
-  }
+  },
+  "id": "82eac6e6-f902-4279-8f26-f00100611f91",
+  "prevId": "55cc93cd-7fe5-4a0c-87f7-94f26267d4f0",
+  "views": {}
 }

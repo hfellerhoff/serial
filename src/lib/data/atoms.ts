@@ -12,6 +12,6 @@ export const contentCategoriesAtom = atom<DatabaseContentCategory[]>([]);
 export const feedCategoriesAtom = atom<DatabaseFeedCategory[]>([]);
 
 export const dateFilterAtom = atom<number>(1);
-export type VisibilityFilter = "all" | "unread" | "later";
+export type VisibilityFilter = "unread" | "later" | "videos" | "shorts";
 export const visibilityFilterAtom = atom<VisibilityFilter>("unread");
 export const categoryFilterAtom = atom<number>(-1);

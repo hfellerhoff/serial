@@ -1,8 +1,6 @@
 {
-  "version": "5",
+  "version": "6",
   "dialect": "sqlite",
-  "id": "2f3b9843-03ba-4327-a405-1ebfceedb033",
-  "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "serial_content_categories": {
       "name": "serial_content_categories",
@@ -49,7 +47,8 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     },
     "serial_feed_categories": {
       "name": "serial_feed_categories",
@@ -74,28 +73,28 @@
         "serial_feed_categories_feed_id_serial_feed_id_fk": {
           "name": "serial_feed_categories_feed_id_serial_feed_id_fk",
           "tableFrom": "serial_feed_categories",
-          "tableTo": "serial_feed",
           "columnsFrom": [
             "feed_id"
           ],
+          "tableTo": "serial_feed",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "serial_feed_categories_category_id_serial_content_categories_id_fk": {
           "name": "serial_feed_categories_category_id_serial_content_categories_id_fk",
           "tableFrom": "serial_feed_categories",
-          "tableTo": "serial_content_categories",
           "columnsFrom": [
             "category_id"
           ],
+          "tableTo": "serial_content_categories",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -107,7 +106,8 @@
           "name": "serial_feed_categories_feed_id_category_id_pk"
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     },
     "serial_feed_item": {
       "name": "serial_feed_item",
@@ -193,19 +193,20 @@
         "serial_feed_item_feed_id_serial_feed_id_fk": {
           "name": "serial_feed_item_feed_id_serial_feed_id_fk",
           "tableFrom": "serial_feed_item",
-          "tableTo": "serial_feed",
           "columnsFrom": [
             "feed_id"
           ],
+          "tableTo": "serial_feed",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     },
     "serial_feed": {
       "name": "serial_feed",
@@ -285,13 +286,16 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     }
   },
   "enums": {},
   "_meta": {
-    "schemas": {},
     "tables": {},
     "columns": {}
-  }
+  },
+  "id": "2f3b9843-03ba-4327-a405-1ebfceedb033",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "views": {}
 }
