@@ -1,42 +1,28 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { CheckIcon, XIcon } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
 import { Label } from "~/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
-import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
 import {
-  useCreateFeedMutation,
   useCreateFeedsFromSubscriptionImportMutation,
   useFeedsQuery,
 } from "~/lib/data/feeds";
-import { ImportDropzone } from "./ImportDropzone";
-import {
-  ParsedChannel,
-  YouTubeSubscriptionInput,
-} from "./YouTubeSubscriptionImportInput";
-import { Checkbox } from "~/components/ui/checkbox";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
-import { CheckIcon } from "lucide-react";
-import Link from "next/link";
-import { parseYouTubeSubscriptionInput } from "./parseYouTubeSubscriptionInput";
-import { YouTubeSubscriptionImportCarousel } from "./YouTubeSubscriptionImportCarousel";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "~/components/ui/accordion";
+import { SubscriptionImportMethod, SubscriptionImportChannel } from "./types";
+import { YouTubeSubscriptionImport } from "./youtube/YouTubeSubscriptionImport";
+import { OPMLSubscriptionImport } from "./opml/OPMLSubscriptionImport";
 import FeedLoading from "~/app/loading";
 
 export default function EditFeedsPage() {
-  const [inputElement, setInputElement] = useState<HTMLInputElement | null>(
-    null,
-  );
-  const [importMethod, setImportMethod] = useState<string>("subscriptions");
+  const [importMethod, setImportMethod] =
+    useState<SubscriptionImportMethod>("subscriptions");
 
   const [importedChannels, setImportedChannels] = useState<
-    ParsedChannel[] | null
+    SubscriptionImportChannel[] | null
   >(null);
 
   const {
@@ -45,19 +31,17 @@ export default function EditFeedsPage() {
     isSuccess,
   } = useCreateFeedsFromSubscriptionImportMutation();
 
-  const { data: feeds } = useFeedsQuery();
-
   const channelImportCount = importedChannels?.filter(
     (channel) => channel.shouldImport,
   ).length;
+
+  const { data: feeds } = useFeedsQuery();
 
   if (isSuccess) {
     return (
       <div className="mx-auto max-w-2xl p-6">
         <h2 className="font-mono text-lg">Import Feeds</h2>
-        <div className="my-4">
-          Import success! {channelImportCount} channels added.
-        </div>
+        <div className="my-4">Import success! Channels added successfully.</div>
         <Link href="/feed/edit">
           <Button>Back to feeds</Button>
         </Link>
@@ -65,80 +49,39 @@ export default function EditFeedsPage() {
     );
   }
 
-  const onSelectFiles = async () => {
-    if (!inputElement || feeds === undefined) return;
-
-    const newChannels = await parseYouTubeSubscriptionInput(
-      inputElement,
-      feeds,
-    );
-    if (!newChannels) return;
-
-    setImportedChannels(newChannels);
-  };
-
   return (
     <div className="mx-auto max-w-2xl p-6">
       {isPending && <FeedLoading />}
       <h2 className="font-mono text-lg">Import Feeds</h2>
-      <fieldset className="mt-4">
-        <h3 className="font-semibold">Method</h3>
-        <div className="mt-2 w-max">
-          <RadioGroup
-            defaultValue="subscriptions"
-            onValueChange={setImportMethod}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="subscriptions" id="subscriptions" />
-              <Label htmlFor="subscriptions">
-                YouTube Subscriptions (<code>subscriptions.csv</code>)
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
-      </fieldset>
-
-      <fieldset className="mt-12">
-        <h3 className="font-semibold">Import File</h3>
-        <div className="mt-2">
-          <ImportDropzone
-            inputElement={inputElement}
-            onSelectFile={onSelectFiles}
-            filename={'"subscriptions.csv"'}
-          />
-          <input
-            ref={setInputElement}
-            type="file"
-            accept="text/csv"
-            className="hidden"
-            multiple={false}
-            onChange={onSelectFiles}
-          ></input>
-          {!!inputElement?.files?.length && (
-            <Button
-              className="w-full"
-              variant="outline"
-              size="lg"
-              onClick={() => {
-                setImportedChannels(null);
-                inputElement.value = "";
-              }}
-            >
-              Not happy? Try again with another file
-            </Button>
-          )}
-        </div>
-      </fieldset>
       {!importedChannels && (
-        <div className="mt-16">
-          <h3 className="mb-4 font-semibold">
-            How do I find my &quot;subscriptions.csv&quot; file?
-          </h3>
-          <hr />
-          <div className="mt-6 max-w-[calc(100vw-48px)]">
-            <YouTubeSubscriptionImportCarousel />
+        <fieldset className="mt-4">
+          <h3 className="font-semibold">Method</h3>
+          <div className="mt-2 w-max">
+            <RadioGroup
+              defaultValue={importMethod}
+              onValueChange={(v) =>
+                setImportMethod(v as SubscriptionImportMethod)
+              }
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="subscriptions" id="subscriptions" />
+                <Label htmlFor="subscriptions">
+                  YouTube Subscriptions (<code>subscriptions.csv</code>)
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="opml" id="opml" />
+                <Label htmlFor="opml">OPML</Label>
+              </div>
+            </RadioGroup>
           </div>
-        </div>
+        </fieldset>
+      )}
+      {importMethod === "subscriptions" && (
+        <YouTubeSubscriptionImport setImportedChannels={setImportedChannels} />
+      )}
+      {importMethod === "opml" && (
+        <OPMLSubscriptionImport setImportedChannels={setImportedChannels} />
       )}
       {!!importedChannels && (
         <>
@@ -153,7 +96,7 @@ export default function EditFeedsPage() {
                     setImportedChannels((prevChannels) => {
                       if (!prevChannels) return prevChannels;
                       return prevChannels.map((channel) => {
-                        if (channel.isAddedAlready) {
+                        if (!!channel.disabledReason) {
                           return channel;
                         }
                         channel.shouldImport = true;
@@ -164,7 +107,7 @@ export default function EditFeedsPage() {
                     setImportedChannels((prevChannels) => {
                       if (!prevChannels) return prevChannels;
                       return prevChannels.map((channel) => {
-                        if (channel.isAddedAlready) {
+                        if (!!channel.disabledReason) {
                           return channel;
                         }
                         channel.shouldImport = false;
@@ -194,12 +137,17 @@ export default function EditFeedsPage() {
                       key={channel.channelId}
                       className="flex items-center justify-between gap-2"
                     >
-                      {channel.isAddedAlready && (
+                      {channel.disabledReason === "added-already" && (
                         <Badge variant="outline">
                           <CheckIcon size={8} /> Already added
                         </Badge>
                       )}
-                      {!channel.isAddedAlready && (
+                      {channel.disabledReason === "not-supported" && (
+                        <Badge variant="outline">
+                          <XIcon size={8} /> Not supported
+                        </Badge>
+                      )}
+                      {!channel.disabledReason && (
                         <Checkbox
                           id={`channel ${channel.title}`}
                           checked={channel.shouldImport}
@@ -235,7 +183,9 @@ export default function EditFeedsPage() {
                 size="lg"
                 onClick={() => {
                   void createFeedsFromSubscriptionImportMutation({
-                    channels: importedChannels,
+                    channels: importedChannels.filter(
+                      (channel) => channel.shouldImport,
+                    ),
                   });
                 }}
                 disabled={isPending || channelImportCount === 0}

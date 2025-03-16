@@ -1,12 +1,5 @@
 import { DatabaseFeed } from "~/server/db/schema";
-
-export type ParsedChannel = {
-  channelId: string;
-  feedUrl: string;
-  title: string;
-  shouldImport: boolean;
-  isAddedAlready: boolean;
-};
+import { SubscriptionImportChannel } from "../types";
 
 export async function parseYouTubeSubscriptionInput(
   input: HTMLInputElement,
@@ -34,7 +27,7 @@ export async function parseYouTubeSubscriptionInput(
     return;
   }
 
-  const channels: ParsedChannel[] = restRows
+  const channels: SubscriptionImportChannel[] = restRows
     .map((row) => {
       const [channelId, channelUrl, title] = row.split(",");
 
@@ -51,8 +44,9 @@ export async function parseYouTubeSubscriptionInput(
         feedUrl,
         title,
         shouldImport: !hasFeedAlready,
-        isAddedAlready: hasFeedAlready,
-      };
+        disabledReason: hasFeedAlready ? "added-already" : null,
+        categories: [],
+      } as SubscriptionImportChannel;
     })
     .filter(Boolean);
 

@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -243,31 +243,31 @@
   }
 
   .prose h1 {
-    @apply font-mono text-2xl font-bold leading-relaxed lg:text-3xl lg:leading-loose;
+    @apply font-mono text-2xl leading-relaxed font-bold lg:text-3xl lg:leading-loose;
   }
 
   .prose h2 {
-    @apply font-mono text-xl font-bold leading-relaxed lg:text-2xl lg:leading-loose;
+    @apply font-mono text-xl leading-relaxed font-bold lg:text-2xl lg:leading-loose;
   }
 
   .prose h3 {
-    @apply font-mono text-lg font-bold leading-relaxed lg:text-xl lg:leading-loose;
+    @apply font-mono text-lg leading-relaxed font-bold lg:text-xl lg:leading-loose;
   }
 
   .prose h4 {
-    @apply font-mono text-base font-bold leading-relaxed lg:text-lg lg:leading-loose;
+    @apply font-mono text-base leading-relaxed font-bold lg:text-lg lg:leading-loose;
   }
 
   .prose h5 {
-    @apply font-mono text-base font-bold leading-relaxed lg:text-base lg:leading-loose;
+    @apply font-mono text-base leading-relaxed font-bold lg:text-base lg:leading-loose;
   }
 
   .prose h6 {
-    @apply font-mono text-base font-bold leading-relaxed lg:text-base lg:leading-loose;
+    @apply font-mono text-base leading-relaxed font-bold lg:text-base lg:leading-loose;
   }
 
   .prose a {
-    @apply -m-1 rounded p-1 font-semibold text-foreground hover:bg-primary hover:text-background;
+    @apply text-foreground hover:bg-primary hover:text-background -m-1 rounded p-1 font-semibold;
   }
 
   .prose hr {
@@ -275,19 +275,19 @@
   }
 
   .prose ul {
-    @apply list-disc pl-4 text-foreground/80;
+    @apply text-foreground/80 list-disc pl-4;
   }
 
   .prose ol {
-    @apply list-decimal pl-4 text-foreground/80;
+    @apply text-foreground/80 list-decimal pl-4;
   }
 
   .prose p {
-    @apply text-base text-foreground/80;
+    @apply text-foreground/80 text-base;
   }
 
   .prose kbd {
-    @apply rounded bg-muted px-1.5 py-0.5 text-sm;
+    @apply bg-muted rounded px-1.5 py-0.5 text-sm;
   }
 
   .prose img {
