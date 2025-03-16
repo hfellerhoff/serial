@@ -65,7 +65,6 @@ export async function readContentPage(directory: string, slug: string[]) {
 
     return { content, frontmatter };
   } catch (error) {
-    console.log(error);
     notFound();
   }
 }

@@ -74,7 +74,6 @@ export async function fetchYouTubeFeedData(
         }),
     };
   } catch (e) {
-    console.log("error :(");
     return null;
   }
 }

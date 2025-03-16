@@ -24,13 +24,22 @@ export function doesFeedItemPassFilters(
   );
 
   // Date filter
-  if (date <= sevenDaysAgo) return false;
+  if (date <= sevenDaysAgo) {
+    return false;
+  }
 
   // Visibility filter
   if (visibilityFilter === "unread" && (item.isWatched || item.isWatchLater)) {
     return false;
   }
   if (visibilityFilter === "later" && !item.isWatchLater) {
+    return false;
+  }
+
+  if (visibilityFilter === "shorts" && item.orientation !== "vertical") {
+    return false;
+  }
+  if (visibilityFilter !== "shorts" && item.orientation === "vertical") {
     return false;
   }
 
@@ -102,16 +111,13 @@ export function useFeedItemsSetWatchedValueMutation() {
   return useMutation(
     api.feedItems.setWatchedValue.mutationOptions({
       onMutate: ({ contentId, isWatched }) => {
-        console.log("mutate");
         const previousFeedItems: undefined | DatabaseFeedItem[] =
           queryClient.getQueryData(api.feedItems.getAll.queryKey());
-        console.log("previous", previousFeedItems);
         if (!previousFeedItems) return;
 
         const indexToUpdate = previousFeedItems.findIndex(
           (item) => item.contentId === contentId,
         );
-        console.log("index", indexToUpdate);
         if (!previousFeedItems?.[indexToUpdate]) return;
 
         const updatedFeedItems = [...previousFeedItems];

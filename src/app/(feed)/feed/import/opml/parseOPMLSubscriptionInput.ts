@@ -105,7 +105,5 @@ export async function parseOPMLSubscriptionInput(
       }
     });
 
-  console.log(channels);
-
   return channels;
 }

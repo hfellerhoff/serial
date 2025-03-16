@@ -5,20 +5,16 @@ import React, { use } from "react";
 import { FeedContext, useKeyboard } from "~/components/KeyboardProvider";
 import { VideoDisplay } from "./VideoDisplay";
 
-export default function WatchVideoPage(
-  props: {
-    params: Promise<{ videoID: string }>;
-  }
-) {
+export default function WatchVideoPage(props: {
+  params: Promise<{ videoID: string }>;
+}) {
   const params = use(props.params);
   const { view, zoom } = useKeyboard();
-
-  console.log(zoom);
 
   return (
     <div
       className={clsx("mx-auto grid h-full w-full place-items-center", {
-        "absolute inset-0 z-30 bg-background": view === "fullscreen",
+        "bg-background absolute inset-0 z-30": view === "fullscreen",
         "max-w-xl": view === "windowed" && zoom === 0,
         "max-w-2xl": view === "windowed" && zoom === 1,
         "max-w-3xl": view === "windowed" && zoom === 2,

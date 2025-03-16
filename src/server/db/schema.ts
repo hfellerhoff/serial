@@ -32,9 +32,7 @@ export const feeds = sqliteTable(
       .$default(() => new Date())
       .notNull(),
   },
-  (example) => ({
-    nameIndex: index("feed_name_idx").on(example.name),
-  }),
+  (example) => [index("feed_name_idx").on(example.name)],
 );
 export type DatabaseFeed = typeof feeds.$inferSelect;
 
@@ -53,6 +51,7 @@ export const feedItems = sqliteTable(
     isWatchLater: integer("is_watch_later", { mode: "boolean" })
       .notNull()
       .default(false),
+    orientation: text("orientation", { length: 64 }),
     postedAt: integer("posted_at", { mode: "timestamp" }).notNull(),
     createdAt: integer("created_at", { mode: "timestamp" })
       .$default(() => new Date())
@@ -61,10 +60,10 @@ export const feedItems = sqliteTable(
       .$default(() => new Date())
       .notNull(),
   },
-  (example) => ({
-    pk: primaryKey({ columns: [example.feedId, example.contentId] }),
-    feedIdIndex: index("feed_item_feed_id_idx").on(example.feedId),
-  }),
+  (example) => [
+    primaryKey({ columns: [example.feedId, example.contentId] }),
+    index("feed_item_feed_id_idx").on(example.feedId),
+  ],
 );
 export type DatabaseFeedItem = typeof feedItems.$inferSelect;
 
@@ -81,9 +80,7 @@ export const contentCategories = sqliteTable(
       .$default(() => new Date())
       .notNull(),
   },
-  (example) => ({
-    nameIndex: index("content_categories_name_idx").on(example.name),
-  }),
+  (example) => [index("content_categories_name_idx").on(example.name)],
 );
 export type DatabaseContentCategory = typeof contentCategories.$inferSelect;
 
@@ -93,9 +90,7 @@ export const feedCategories = sqliteTable(
     feedId: integer("feed_id").references(() => feeds.id),
     categoryId: integer("category_id").references(() => contentCategories.id),
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.feedId, table.categoryId] }),
-  }),
+  (table) => [primaryKey({ columns: [table.feedId, table.categoryId] })],
 );
 export type DatabaseFeedCategory = typeof feedCategories.$inferSelect;
 
