@@ -12,6 +12,10 @@ import {
 } from "~/server/db/schema";
 import { fetchFeedData, fetchNewFeedDetails } from "~/server/rss/fetchFeeds";
 
+const importUrlSchema = z
+  .string()
+  .startsWith("https://www.youtube.com/feeds/videos.xml?channel_id=");
+
 export const feedRouter = createTRPCRouter({
   create: protectedProcedure
     .input(
@@ -73,11 +77,7 @@ export const feedRouter = createTRPCRouter({
         channels: z
           .object({
             channelId: z.string(),
-            feedUrl: z
-              .string()
-              .startsWith(
-                "https://www.youtube.com/feeds/videos.xml?channel_id=",
-              ),
+            feedUrl: z.string(),
             title: z.string(),
             shouldImport: z.boolean(),
           })
@@ -90,6 +90,9 @@ export const feedRouter = createTRPCRouter({
       const feedsToAdd: Omit<DatabaseFeed, "id" | "createdAt" | "updatedAt">[] =
         input.channels
           .filter((channel) => channel.shouldImport)
+          .filter(
+            (channel) => importUrlSchema.safeParse(channel.feedUrl).success,
+          )
           .map((channel) => ({
             userId: ctx.auth!.userId!,
             name: channel.title,
