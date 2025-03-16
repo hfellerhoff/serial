@@ -1,10 +1,16 @@
-import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import dayjs from "dayjs";
+import { and, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { checkFeedItemIsVerticalFromThumbnail } from "~/server/checkFeedItemIsVertical";
 import { feedItems, feeds } from "~/server/db/schema";
 import { fetchFeedData } from "~/server/rss/fetchFeeds";
+
+const isWithinLastMonth = gte(
+  feedItems.postedAt,
+  dayjs().subtract(32, "days").toDate(),
+);
 
 export const feedItemRouter = createTRPCRouter({
   getAll: protectedProcedure.query(async ({ ctx }) => {
@@ -14,7 +20,7 @@ export const feedItemRouter = createTRPCRouter({
     const feedIds = feedsData.map((feed) => feed.id);
 
     const itemsData = await ctx.db.query.feedItems.findMany({
-      where: inArray(feedItems.feedId, feedIds),
+      where: and(inArray(feedItems.feedId, feedIds), isWithinLastMonth),
       orderBy: desc(feedItems.postedAt),
     });
 
@@ -67,7 +73,7 @@ export const feedItemRouter = createTRPCRouter({
     const uncategorizedFeedItems = await ctx.db
       .select()
       .from(feedItems)
-      .where(isNull(feedItems.orientation));
+      .where(and(isNull(feedItems.orientation), isWithinLastMonth));
 
     if (uncategorizedFeedItems.length === 0) {
       return;
