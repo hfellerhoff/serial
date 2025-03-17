@@ -1,3 +1,5 @@
+"use client";
+
 import { useTRPC } from "~/trpc/react";
 import { useUser } from "@clerk/nextjs";
 

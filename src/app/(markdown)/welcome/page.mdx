@@ -1,21 +1,41 @@
 import { RecentReleaseBanner } from "./RecentReleaseBanner";
+import { DemoCarousel } from "./DemoCarousel";
+import { GetStartedButton } from "./GetStartedButton";
+import { ColorThemePopoverButton } from "../../../components/color-theme/ColorThemePopoverButton";
 
 <RecentReleaseBanner />
+
+<DemoCarousel />
 
 # Serial
 
 A snappy, customizable video feed. Designed to show you exactly the content you want to see and nothing else.
 
-[Get Started →](/feed)
+<GetStartedButton />
 
----
+## Appearance
 
-## Features
+Serial features a fully customizable appearance, with flexible light and dark mode styles.
+
+Check out the customization for yourself below!
+
+<div className="mt-4 mb-8 md:mb-12">
+    <ColorThemePopoverButton isResponsive={false} />
+</div>
+
+## More Features
 
 - View a chronological feed of your subscriptions
 - View videos in a daily digest format
 - Sort by a combination of date and read status
-- Organize feeds with categories (in progress)
+- Filter out shorts from the rest of your videos
+- Organize feeds with categories
+- Import feeds from either:
+  - An `.opml` file
+  - A Google Takeout export (`subscriptions.csv`)
+
+For more features, check out the [release log →](/releases)
+
 
 ### Shortcuts
 
@@ -27,5 +47,3 @@ A snappy, customizable video feed. Designed to show you exactly the content you 
 - <kbd>`</kbd> - Toggle windowed fullscreen
 
 Have a question? Send me an email at [hey@serial.tube](mailto:hey@serial.tube?subject=Question%20about%20serial.tube)!
-
-![Screenshot of an example video feed in Serial](/feed.jpg)

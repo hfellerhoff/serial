@@ -141,6 +141,9 @@ dependencies:
   react-dom:
     specifier: 19.0.0
     version: 19.0.0(react@19.0.0)
+  react-fast-marquee:
+    specifier: ^1.6.5
+    version: 1.6.5(react-dom@19.0.0)(react@19.0.0)
   react-resizable-panels:
     specifier: ^2.1.7
     version: 2.1.7(react-dom@19.0.0)(react@19.0.0)
@@ -8014,6 +8017,16 @@ packages:
     dependencies:
       react: 19.0.0
       scheduler: 0.25.0
+
+  /react-fast-marquee@1.6.5(react-dom@19.0.0)(react@19.0.0):
+    resolution: {integrity: sha512-swDnPqrT2XISAih0o74zQVE2wQJFMvkx+9VZXYYNSLb/CUcAzU9pNj637Ar2+hyRw6b4tP6xh4GQZip2ZCpQpg==}
+    peerDependencies:
+      react: '>= 16.8.0 || ^18.0.0'
+      react-dom: '>= 16.8.0 || ^18.0.0'
+    dependencies:
+      react: 19.0.0
+      react-dom: 19.0.0(react@19.0.0)
+    dev: false
 
   /react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}

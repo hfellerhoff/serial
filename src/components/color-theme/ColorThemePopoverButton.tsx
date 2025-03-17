@@ -9,6 +9,8 @@ import { useTRPC } from "~/trpc/react";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Slider } from "../ui/slider";
+import { useUser } from "@clerk/nextjs";
+import clsx from "clsx";
 
 function getCssVariable(name: string) {
   const value = window
@@ -40,6 +42,7 @@ function FormSection({
 }
 
 function EditColorsForm() {
+  const user = useUser();
   const api = useTRPC();
   const { mutate: saveThemeHSLToDatabase } = useMutation(
     api.userConfig.setThemeHSL.mutationOptions(),
@@ -76,6 +79,7 @@ function EditColorsForm() {
     };
 
   const saveValuesToDatabase = () => {
+    if (!user.isSignedIn) return;
     saveThemeHSLToDatabase({
       theme: (resolvedTheme as "light" | "dark") ?? "light",
       hsl: [hue, saturation, lightness],
@@ -169,13 +173,29 @@ function ColorModeToggleGroup() {
   );
 }
 
-export function ColorThemePopoverButton() {
+export function ColorThemePopoverButton({
+  isResponsive = true,
+  children = "Appearance",
+}: {
+  isResponsive?: boolean;
+  children?: React.ReactNode;
+}) {
   return (
     <Popover>
       <PopoverTrigger>
-        <Button size="icon md:default" variant="outline">
+        <Button
+          size={isResponsive ? "icon md:default" : "default"}
+          variant="outline"
+        >
           <PaletteIcon size={16} />
-          <span className="hidden md:inline-block">Appearance</span>
+          <span
+            className={clsx({
+              "hidden md:inline-block": isResponsive,
+              "pl-1.5": !isResponsive,
+            })}
+          >
+            {children}
+          </span>
         </Button>
       </PopoverTrigger>
       <PopoverContent>

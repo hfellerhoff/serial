@@ -91,6 +91,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="prose mx-auto p-6 sm:p-8 md:p-10 lg:p-12">{children}</div>
+    <div className="prose mx-auto p-6 pb-16 sm:p-8 md:p-10 lg:p-12">
+      {children}
+    </div>
   );
 }
