@@ -151,7 +151,7 @@ export function TodayItems() {
 
   const [parent] = useAutoAnimate();
 
-  if (isLoadingItems) {
+  if (isLoadingItems || (items?.length === 0 && !!feeds?.length)) {
     return <FeedLoading />;
   }
 
@@ -168,6 +168,7 @@ export function TodayItems() {
       {filteredFeeds.map((item) => (
         <ItemDisplay item={item} key={item.contentId} />
       ))}
+      <div className="h-16" />
     </div>
   );
 }
