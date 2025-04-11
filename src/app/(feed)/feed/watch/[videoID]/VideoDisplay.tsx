@@ -4,7 +4,13 @@ import { VideoActions } from "./VideoActions";
 import { useState, useEffect } from "react";
 import { useKeyboard } from "~/components/KeyboardProvider";
 
-export function VideoDisplay({ id }: { id: string }) {
+export function VideoDisplay({
+  id,
+  isInactive,
+}: {
+  id: string;
+  isInactive: boolean;
+}) {
   const [showVideo, setShowVideo] = useState(false);
   const { view } = useKeyboard();
 
@@ -36,7 +42,7 @@ export function VideoDisplay({ id }: { id: string }) {
             "opacity-100": showVideo,
           })}
         >
-          <ResponsiveVideo videoID={id} />
+          <ResponsiveVideo videoID={id} isInactive={isInactive} />
         </div>
       </div>
       <VideoActions videoID={id} />

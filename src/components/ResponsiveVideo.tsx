@@ -7,6 +7,7 @@ import CustomVideoPlayer from "./CustomVideoPlayer";
 interface IResponsiveVideoProps {
   videoID?: string;
   videoSrc?: string;
+  isInactive: boolean;
 }
 
 export default function ResponsiveVideo(props: IResponsiveVideoProps) {

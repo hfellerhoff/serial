@@ -9,6 +9,24 @@ import clsx from "clsx";
 import { PlayIcon } from "lucide-react";
 import { Slider } from "./ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
+import { transformSecondsToFormattedTime } from "~/lib/transformSecondsToFormattedTime";
+import { useFeedItemGlobalState } from "~/lib/data/atoms";
+
+const PLAYBACK_SPEEDS = [
+  {
+    label: "1x",
+    value: 1,
+  },
+  {
+    label: "1.5x",
+    value: 1.5,
+  },
+  {
+    label: "2x",
+    value: 2,
+  },
+];
+const FASTEST_SPEED = PLAYBACK_SPEEDS[PLAYBACK_SPEEDS.length - 1].value;
 
 function useVideoShortcuts() {
   const playerRef = useRef<YouTube | null>(null);
@@ -16,6 +34,14 @@ function useVideoShortcuts() {
     YOUTUBE_PLAYER_STATES.BUFFERING,
   );
   const [manualPlayerState, setManualPlayerState] = useState(playerState);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+
+  const changeVideoPlaybackSpeed = useCallback((speed: number) => {
+    if (!playerRef?.current) return;
+    setPlaybackSpeed(speed);
+    const player = playerRef?.current as YouTube | null;
+    void player?.internalPlayer?.setPlaybackRate(speed);
+  }, []);
 
   const toggleVideoPlayback = useCallback(() => {
     if (!playerRef?.current) return;
@@ -45,7 +71,24 @@ function useVideoShortcuts() {
       if (event.key === " ") {
         event.preventDefault();
         toggleVideoPlayback();
-
+        return;
+      }
+      if (event.key === "<" && event.shiftKey) {
+        event.preventDefault();
+        const currentSpeedIndex = PLAYBACK_SPEEDS.findIndex(
+          (speed) => speed.value === playbackSpeed,
+        );
+        if (currentSpeedIndex <= 0) return;
+        changeVideoPlaybackSpeed(PLAYBACK_SPEEDS[currentSpeedIndex - 1]!.value);
+        return;
+      }
+      if (event.key === ">" && event.shiftKey) {
+        event.preventDefault();
+        const currentSpeedIndex = PLAYBACK_SPEEDS.findIndex(
+          (speed) => speed.value === playbackSpeed,
+        );
+        if (playbackSpeed >= FASTEST_SPEED) return;
+        changeVideoPlaybackSpeed(PLAYBACK_SPEEDS[currentSpeedIndex + 1]!.value);
         return;
       }
     };
@@ -54,7 +97,7 @@ function useVideoShortcuts() {
     return () => {
       window.removeEventListener("keydown", processKey);
     };
-  }, [playerState, toggleVideoPlayback]);
+  }, [playerState, toggleVideoPlayback, playbackSpeed]);
 
   return {
     playerRef,
@@ -63,12 +106,15 @@ function useVideoShortcuts() {
     setManualPlayerState,
     playerState,
     setPlayerState,
+    playbackSpeed,
+    changeVideoPlaybackSpeed,
   };
 }
 
 interface IResponsiveVideoProps {
   videoID?: string;
   videoSrc?: string;
+  isInactive: boolean;
 }
 
 export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
@@ -79,9 +125,12 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
     setManualPlayerState,
     playerState,
     setPlayerState,
+    playbackSpeed,
+    changeVideoPlaybackSpeed,
   } = useVideoShortcuts();
 
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [video] = useFeedItemGlobalState(props.videoID!);
+
   const [videoDuration, setVideoDuration] = useState(0);
 
   const [videoProgress, setVideoProgress] = useState(0);
@@ -95,7 +144,7 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
     };
 
     if (playerState === YOUTUBE_PLAYER_STATES.PLAYING) {
-      videoProgressIntervalRef.current = setInterval(updateTime, 1000);
+      videoProgressIntervalRef.current = setInterval(updateTime, 250);
     } else if (videoProgressIntervalRef.current) {
       clearInterval(videoProgressIntervalRef.current);
     }
@@ -106,7 +155,7 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
   const player = playerRef?.current as YouTube | null;
 
   return (
-    <div className={classes.video}>
+    <div className={clsx("relative", classes.video)}>
       <div
         style={{
           // @ts-expect-error need this
@@ -118,12 +167,16 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
             <YouTube
               ref={playerRef}
               videoId={props.videoID}
-              className="pointer-events-none h-full w-full"
-              iframeClassName="w-full h-full border-none pointer-events-none"
+              className="pointer-events-none h-full w-full select-none"
+              iframeClassName="w-full h-full border-none select-none pointer-events-none"
               opts={{
                 host: "https://www.youtube-nocookie.com",
-                playerVars: { rel: 0 },
-                rel: 0,
+                playerVars: {
+                  rel: 0,
+                  controls: 0,
+                  disablekb: 0,
+                  playsinline: 1,
+                },
               }}
               onStateChange={(event) => {
                 setVideoDuration(event.target.getDuration());
@@ -141,8 +194,6 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
               }}
             />
 
-            <div className="pointer-events-none absolute -inset-2" />
-
             <div className="group">
               <div
                 className={clsx("transition-all", {
@@ -157,14 +208,28 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
                 />
                 <button
                   onClick={toggleVideoPlayback}
-                  className="absolute inset-0 inset-y-8 z-10 grid cursor-pointer place-items-center"
+                  className={clsx(
+                    "absolute inset-0 inset-y-8 z-20 grid place-items-center",
+                    {
+                      "cursor-pointer": !props.isInactive,
+                      "cursor-none!": props.isInactive,
+                    },
+                  )}
                 >
                   <div className="bg-background grid size-20 place-items-center rounded-2xl shadow-2xl transition-all group-hover:scale-105">
                     <PlayIcon size={32} />
                   </div>
                 </button>
               </div>
-              <div className="absolute inset-x-4 bottom-4 z-20 flex items-center opacity-0 transition-opacity group-hover:opacity-100">
+              <div
+                className={clsx(
+                  "from-background absolute inset-x-0 bottom-0 z-30 flex flex-col bg-gradient-to-t to-transparent p-4 opacity-0 transition-opacity",
+                  {
+                    "group-hover:opacity-100": !props.isInactive,
+                    "cursor-none!": props.isInactive,
+                  },
+                )}
+              >
                 <Slider
                   value={[videoProgress]}
                   min={0}
@@ -173,25 +238,39 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
                     setIsSeeking(true);
                     setVideoProgress(value[0]!);
                     void player?.internalPlayer.seekTo(value[0]!);
+                    if (playerState !== YOUTUBE_PLAYER_STATES.PLAYING) {
+                      toggleVideoPlayback();
+                    }
                   }}
                   className="mr-4"
                 />
-                <ToggleGroup
-                  type="single"
-                  value={playbackSpeed.toString()}
-                  onValueChange={(value) => {
-                    if (!value) return;
-                    const numberValue = parseFloat(value);
+                <div className="flex items-center justify-between pt-2">
+                  <div className="w-max font-mono text-sm font-bold">
+                    {transformSecondsToFormattedTime(videoProgress)} /{" "}
+                    {transformSecondsToFormattedTime(videoDuration)}
+                  </div>
 
-                    setPlaybackSpeed(numberValue);
-                    void player?.internalPlayer.setPlaybackRate(numberValue);
-                  }}
-                  size="sm"
-                >
-                  <ToggleGroupItem value="1">1x</ToggleGroupItem>
-                  <ToggleGroupItem value="1.5">1.5x</ToggleGroupItem>
-                  <ToggleGroupItem value="2">2x</ToggleGroupItem>
-                </ToggleGroup>
+                  <ToggleGroup
+                    type="single"
+                    value={playbackSpeed.toString()}
+                    onValueChange={(value) => {
+                      if (!value) return;
+                      const numberValue = parseFloat(value);
+
+                      changeVideoPlaybackSpeed(numberValue);
+                    }}
+                    size="sm"
+                  >
+                    {PLAYBACK_SPEEDS.map((speed) => (
+                      <ToggleGroupItem
+                        key={speed.value}
+                        value={speed.value.toString()}
+                      >
+                        {speed.label}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
+                </div>
                 {/* <Button
                   className="ml-2"
                   size="icon"

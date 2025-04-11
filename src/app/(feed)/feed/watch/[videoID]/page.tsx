@@ -1,15 +1,26 @@
 "use client";
 
 import clsx from "clsx";
-import React, { use } from "react";
-import { FeedContext, useKeyboard } from "~/components/KeyboardProvider";
+import React, { use, useEffect } from "react";
+import { useKeyboard } from "~/components/KeyboardProvider";
 import { VideoDisplay } from "./VideoDisplay";
+import useIsInactive from "~/lib/hooks/useIsInactive";
 
 export default function WatchVideoPage(props: {
   params: Promise<{ videoID: string }>;
 }) {
   const params = use(props.params);
   const { view, zoom } = useKeyboard();
+
+  const isInactive = useIsInactive();
+
+  useEffect(() => {
+    if (isInactive) {
+      document.body.classList.add("no-cursor");
+    } else {
+      document.body.classList.remove("no-cursor");
+    }
+  }, [isInactive]);
 
   return (
     <div
@@ -28,7 +39,7 @@ export default function WatchVideoPage(props: {
           "sm:py-6": view === "windowed",
         })}
       >
-        <VideoDisplay id={params.videoID} />
+        <VideoDisplay id={params.videoID} isInactive={isInactive} />
       </div>
     </div>
   );
