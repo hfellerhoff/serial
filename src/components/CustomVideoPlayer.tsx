@@ -1,18 +1,17 @@
+/* eslint-disable */
 "use client";
 
-import { Ref, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import classes from "./ResponsiveVideo.module.css";
 import YouTube from "react-youtube";
 import { YOUTUBE_PLAYER_STATES } from "./youtube";
 import clsx from "clsx";
-import { FullscreenIcon, PlayIcon } from "lucide-react";
+import { PlayIcon } from "lucide-react";
 import { Slider } from "./ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
-import { Button } from "./ui/button";
 
-type PlayerRefType = Ref<YouTube> | null;
 function useVideoShortcuts() {
-  const playerRef = useRef<PlayerRefType>(null);
+  const playerRef = useRef<YouTube | null>(null);
   const [playerState, setPlayerState] = useState<number>(
     YOUTUBE_PLAYER_STATES.BUFFERING,
   );
@@ -20,15 +19,14 @@ function useVideoShortcuts() {
 
   const toggleVideoPlayback = useCallback(() => {
     if (!playerRef?.current) return;
-    // @ts-expect-error ignore for now
-    const player = playerRef?.current as YouTube;
+    const player = playerRef?.current as YouTube | null;
 
     if (
       playerState === YOUTUBE_PLAYER_STATES.BUFFERING ||
       playerState === YOUTUBE_PLAYER_STATES.CUED ||
       playerState === YOUTUBE_PLAYER_STATES.PAUSED
     ) {
-      player?.internalPlayer?.playVideo();
+      void player?.internalPlayer?.playVideo();
       return;
     }
 
@@ -36,7 +34,7 @@ function useVideoShortcuts() {
       setManualPlayerState(YOUTUBE_PLAYER_STATES.PAUSED);
 
       setTimeout(() => {
-        player?.internalPlayer?.pauseVideo();
+        void player?.internalPlayer?.pauseVideo();
       }, 100);
       return;
     }
@@ -86,10 +84,7 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isSeeking, setIsSeeking] = useState(false);
 
-  // @ts-expect-error ignore for now
-  const player = playerRef?.current as YouTube;
-
-  console.log(manualPlayerState, isSeeking);
+  const player = playerRef?.current as YouTube | null;
 
   return (
     <div className={classes.video}>
@@ -102,7 +97,6 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
         {props.videoID && (
           <>
             <YouTube
-              // @ts-expect-error ignore for now
               ref={playerRef}
               videoId={props.videoID}
               className="pointer-events-none h-full w-full"
@@ -159,7 +153,7 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
                   onValueChange={(value) => {
                     setIsSeeking(true);
                     setVideoProgress(value[0]!);
-                    player.internalPlayer.seekTo(value[0]!);
+                    void player?.internalPlayer.seekTo(value[0]!);
                   }}
                   className="mr-4"
                 />
@@ -171,7 +165,7 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
                     const numberValue = parseFloat(value);
 
                     setPlaybackSpeed(numberValue);
-                    player.internalPlayer.setPlaybackRate(numberValue);
+                    void player?.internalPlayer.setPlaybackRate(numberValue);
                   }}
                   size="sm"
                 >

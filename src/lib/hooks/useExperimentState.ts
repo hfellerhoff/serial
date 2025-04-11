@@ -2,7 +2,7 @@
 
 import { atom, useAtom } from "jotai";
 import { focusAtom } from "jotai-optics";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 
 const LOCAL_STORAGE_EXPERIMENTS = {
@@ -37,10 +37,13 @@ export function useExperimentState(
 
   const [value, setStateValue] = useAtom(experimentAtom);
 
-  const setValue = (newValue: boolean) => {
-    localStorage.setItem(key, newValue.toString());
-    setStateValue(newValue);
-  };
+  const setValue = useCallback(
+    (newValue: boolean) => {
+      localStorage.setItem(key, newValue.toString());
+      setStateValue(newValue);
+    },
+    [setStateValue],
+  );
 
   useEffect(() => {
     const storedValue = localStorage.getItem(key);
@@ -49,7 +52,7 @@ export function useExperimentState(
     if (parsedValue.success) {
       setValue(parsedValue.data);
     }
-  }, [key, value]);
+  }, [key, value, setValue]);
 
   return [value, setValue] as const;
 }

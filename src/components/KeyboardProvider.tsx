@@ -15,9 +15,7 @@ import {
   useFeedItemsSetWatchedValueMutation,
   useFeedItemsSetWatchLaterValueMutation,
 } from "~/lib/data/feed-items/mutations";
-import { useFeedItemsMap, useFeedItemsOrder } from "~/lib/data/atoms";
-import YouTube from "react-youtube";
-import { YOUTUBE_PLAYER_STATES } from "./youtube";
+import { useFeedItemsMap } from "~/lib/data/atoms";
 
 function doesAnyInputElementHaveFocus() {
   const elements = document.querySelectorAll("input, textarea, select, button");
@@ -34,7 +32,6 @@ export type FeedContext = {
   zoom: number;
   isCategoriesOpen: boolean;
   setIsCategoriesOpen: (value: boolean) => void;
-  playerRef?: Ref<YouTube> | null;
 };
 
 const FeedContext = createContext<FeedContext | null>(null);
@@ -47,8 +44,6 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const params = useParams();
   const router = useRouter();
   const pathname = usePathname();
-
-  const playerRef = useRef<FeedContext["playerRef"]>(null);
 
   const [zoom, setZoom] = useState(2);
 
@@ -69,15 +64,13 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const closeDialog = useDialogStore((store) => store.closeDialog);
 
   useEffect(() => {
-    const processKey = async (event: KeyboardEvent) => {
+    const processKey = (event: KeyboardEvent) => {
       const videoID = params.videoID as string;
 
       if (doesAnyInputElementHaveFocus()) return;
 
       const foundItem = feedItemsMap[videoID];
       const currentItemIndex = filteredFeedItemsOrder?.indexOf(videoID);
-
-      const player = playerRef?.current as YouTube | null;
 
       if (event.key === "`") {
         setView((prev) => {
@@ -203,7 +196,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
   return (
     <FeedContext.Provider
-      value={{ view, zoom, isCategoriesOpen, setIsCategoriesOpen, playerRef }}
+      value={{ view, zoom, isCategoriesOpen, setIsCategoriesOpen }}
     >
       {children}
     </FeedContext.Provider>
