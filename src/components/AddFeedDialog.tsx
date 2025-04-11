@@ -1,23 +1,20 @@
 "use client";
 import { DialogTitle } from "@radix-ui/react-dialog";
+import { ImportIcon } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
+import { toast } from "sonner";
 import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
+import { useContentCategories } from "~/lib/data/content-categories";
+import { useCreateContentCategoryMutation } from "~/lib/data/content-categories/mutations";
+import { useCreateFeedMutation } from "~/lib/data/feeds/mutations";
+import { validateFeedUrl } from "~/server/rss/validateFeedUrl";
 import { useTRPC } from "~/trpc/react";
 import { Button } from "./ui/button";
 import { Combobox } from "./ui/combobox";
 import { Dialog, DialogContent, DialogHeader } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { validateFeedUrl } from "~/server/rss/validateFeedUrl";
-import { toast } from "sonner";
-import { useCreateFeedMutation } from "~/lib/data/feeds";
-import {
-  useContentCategoriesQuery,
-  useCreateContentCategoryMutation,
-} from "~/lib/data/contentCategories";
-import Link from "next/link";
-import { ImportFeedButton } from "./ImportFeedButton";
-import { ImportIcon } from "lucide-react";
 
 export function AddFeedDialog() {
   const trpc = useTRPC();
@@ -27,15 +24,17 @@ export function AddFeedDialog() {
   const { mutateAsync: createFeed } = useCreateFeedMutation();
 
   const {
-    data: categories,
-    refetch: refetchCategories,
-    isLoading: isLoadingCategories,
-  } = useContentCategoriesQuery();
+    contentCategories,
+    contentCategoriesQuery: {
+      refetch: refetchCategories,
+      isLoading: isLoadingCategories,
+    },
+  } = useContentCategories();
   const [categoryName, setCategoryName] = useState<string | null>(null);
 
   const addCategory = useCreateContentCategoryMutation();
 
-  const categoryOptions = categories?.map((category) => ({
+  const categoryOptions = contentCategories?.map((category) => ({
     value: category.name,
     label: category.name,
   }));

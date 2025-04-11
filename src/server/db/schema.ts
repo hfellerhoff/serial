@@ -8,6 +8,7 @@ import {
   index,
   primaryKey,
 } from "drizzle-orm/sqlite-core";
+import { createSelectSchema } from "drizzle-zod";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -34,6 +35,7 @@ export const feeds = sqliteTable(
   },
   (example) => [index("feed_name_idx").on(example.name)],
 );
+export const feedsSchema = createSelectSchema(feeds);
 export type DatabaseFeed = typeof feeds.$inferSelect;
 
 export const feedItems = sqliteTable(
@@ -65,6 +67,7 @@ export const feedItems = sqliteTable(
     index("feed_item_feed_id_idx").on(example.feedId),
   ],
 );
+export const feedItemSchema = createSelectSchema(feedItems);
 export type DatabaseFeedItem = typeof feedItems.$inferSelect;
 
 export const contentCategories = sqliteTable(
@@ -82,6 +85,7 @@ export const contentCategories = sqliteTable(
   },
   (example) => [index("content_categories_name_idx").on(example.name)],
 );
+export const contentCategorySchema = createSelectSchema(contentCategories);
 export type DatabaseContentCategory = typeof contentCategories.$inferSelect;
 
 export const feedCategories = sqliteTable(
@@ -92,6 +96,7 @@ export const feedCategories = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.feedId, table.categoryId] })],
 );
+export const feedCategorySchema = createSelectSchema(feedCategories);
 export type DatabaseFeedCategory = typeof feedCategories.$inferSelect;
 
 export const userConfig = sqliteTable("user_config", {

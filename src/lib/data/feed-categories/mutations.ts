@@ -1,15 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useTRPC } from "~/trpc/react";
-
-export function useFeedCategoriesQuery() {
-  const api = useTRPC();
-
-  return useQuery(
-    api.feedCategories.getAll.queryOptions(undefined, {
-      staleTime: Infinity,
-    }),
-  );
-}
 
 export function useAssignFeedCategoryMutation() {
   const api = useTRPC();

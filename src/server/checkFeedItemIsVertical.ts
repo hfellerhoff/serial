@@ -1,11 +1,8 @@
 import { Jimp } from "jimp";
-import { DatabaseFeedItem } from "./db/schema";
+import type { DatabaseFeedItem } from "./db/schema";
 
 const WIDTH = 480;
 const HEIGHT = 360;
-
-const WIDTH_MID = WIDTH / 2;
-const HEIGHT_MID = HEIGHT / 2;
 
 function isBlackPixel(value: number) {
   return value === 255;
@@ -46,7 +43,7 @@ export async function checkFeedItemIsVerticalFromThumbnail(
     }
 
     return "vertical";
-  } catch (err) {
+  } catch {
     if (retries < 3) {
       return checkFeedItemIsVerticalFromThumbnail(thumbnail, retries + 1);
     }

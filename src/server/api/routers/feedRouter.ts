@@ -1,11 +1,11 @@
-import { inferRouterOutputs } from "@trpc/server";
+import type { inferRouterOutputs } from "@trpc/server";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import {
   contentCategories,
-  DatabaseFeed,
+  type DatabaseFeed,
   feedCategories,
   feedItems,
   feeds,
