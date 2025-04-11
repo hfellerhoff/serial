@@ -217,7 +217,6 @@ export function TodayItems() {
 
   return (
     <div className="w-full md:pt-4" ref={parent}>
-      {/* <LoaderDisplay /> */}
       {filteredFeedItemsOrder.map((contentId) => (
         <ItemDisplay contentId={contentId} key={contentId} />
       ))}
