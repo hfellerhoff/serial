@@ -3,11 +3,12 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
+import { useFeedItems, useFilteredFeedItemsOrder } from "~/lib/data/feed-items";
 import {
-  useFeedItemsQuery,
   useFeedItemsSetWatchedValueMutation,
   useFeedItemsSetWatchLaterValueMutation,
-} from "~/lib/data/feedItems";
+} from "~/lib/data/feed-items/mutations";
+import { useFeedItemsMap, useFeedItemsOrder } from "~/lib/data/atoms";
 
 function doesAnyInputElementHaveFocus() {
   const elements = document.querySelectorAll("input, textarea, select, button");
@@ -39,11 +40,15 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
   const [zoom, setZoom] = useState(2);
 
-  const { data: items } = useFeedItemsQuery();
-  const { mutateAsync: setWatchedValue } =
-    useFeedItemsSetWatchedValueMutation();
+  const feedItemsOrder = useFeedItemsOrder();
+  const feedItemsMap = useFeedItemsMap();
+  const filteredFeedItemsOrder = useFilteredFeedItemsOrder();
+
+  const { mutateAsync: setWatchedValue } = useFeedItemsSetWatchedValueMutation(
+    params.videoID as string,
+  );
   const { mutateAsync: setWatchLaterValue } =
-    useFeedItemsSetWatchLaterValueMutation();
+    useFeedItemsSetWatchLaterValueMutation(params.videoID as string);
 
   // TODO: add this back
   // const { findPreviousVideoId, findNextVideoId } = useFeed();
@@ -61,9 +66,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
       if (doesAnyInputElementHaveFocus()) return;
 
-      const foundItem = items?.find(
-        (item) => item.contentId === videoID && !!item.feedId,
-      );
+      const foundItem = feedItemsMap[videoID];
+      const currentItemIndex = filteredFeedItemsOrder?.indexOf(videoID);
 
       switch (event.key) {
         case "`":
@@ -75,40 +79,44 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           if (pathname === "/feed") break;
           router.push("/feed");
           break;
-        // case "[":
-        //   if (!items?.length || event.metaKey) return;
+        case "[":
+          if (!filteredFeedItemsOrder?.length || event.metaKey) return;
 
-        //   if (!videoID) {
-        //     void router.push("/feed");
-        //     break;
-        //   }
+          if (!videoID || currentItemIndex <= 0) {
+            void router.push("/feed");
+            break;
+          }
 
-        //   const previousVideoId = findPreviousVideoId(videoID);
+          const previousVideoId = filteredFeedItemsOrder[currentItemIndex - 1];
 
-        //   if (!previousVideoId) {
-        //     void router.push("/feed");
-        //     break;
-        //   }
+          if (!previousVideoId) {
+            void router.push("/feed");
+            break;
+          }
 
-        //   void router.push(`/feed/watch/${previousVideoId}`);
-        //   break;
-        // case "]":
-        //   if (!items?.length || event.metaKey) return;
+          void router.push(`/feed/watch/${previousVideoId}`);
+          break;
+        case "]":
+          if (!filteredFeedItemsOrder?.length || event.metaKey) return;
 
-        //   if (!videoID) {
-        //     void router.push("/feed");
-        //     break;
-        //   }
+          if (
+            !videoID ||
+            currentItemIndex < 0 ||
+            currentItemIndex >= filteredFeedItemsOrder.length - 1
+          ) {
+            void router.push("/feed");
+            break;
+          }
 
-        //   const nextVideoId = findNextVideoId(videoID);
+          const nextVideoId = filteredFeedItemsOrder[currentItemIndex + 1];
 
-        //   if (!nextVideoId) {
-        //     void router.push("/feed");
-        //     break;
-        //   }
+          if (!nextVideoId) {
+            void router.push("/feed");
+            break;
+          }
 
-        //   void router.push(`/feed/watch/${nextVideoId}`);
-        //   break;
+          void router.push(`/feed/watch/${nextVideoId}`);
+          break;
         case "a":
           event.preventDefault();
 
@@ -168,7 +176,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   }, [
     closeDialog,
     dialog,
-    items,
+    feedItemsMap,
     launchDialog,
     params.videoID,
     router,

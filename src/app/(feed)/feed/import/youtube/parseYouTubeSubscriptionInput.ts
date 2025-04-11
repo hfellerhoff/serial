@@ -1,5 +1,5 @@
-import { DatabaseFeed } from "~/server/db/schema";
-import { SubscriptionImportChannel } from "../types";
+import { type DatabaseFeed } from "~/server/db/schema";
+import { type SubscriptionImportChannel } from "../types";
 
 export async function parseYouTubeSubscriptionInput(
   input: HTMLInputElement,

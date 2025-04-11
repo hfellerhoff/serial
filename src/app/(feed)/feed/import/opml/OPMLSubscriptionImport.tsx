@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
-import { useFeedsQuery } from "~/lib/data/feeds";
+import { useFeeds, useFeedsQuery } from "~/lib/data/feeds";
 import { ImportDropzone } from "../ImportDropzone";
-import { SubscriptionImportMethodProps } from "../types";
+import { type SubscriptionImportMethodProps } from "../types";
 import { parseOPMLSubscriptionInput } from "./parseOPMLSubscriptionInput";
 
 export function OPMLSubscriptionImport({
@@ -12,7 +12,7 @@ export function OPMLSubscriptionImport({
     null,
   );
 
-  const { data: feeds } = useFeedsQuery();
+  const { feeds } = useFeeds();
 
   const onSelectFiles = async () => {
     if (!inputElement || feeds === undefined) return;

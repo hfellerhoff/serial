@@ -2,13 +2,11 @@
 
 import { RefreshCwIcon } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import {
-  FETCH_NEW_FEED_ITEMS_KEY,
-  useFetchNewFeedItemsMutation,
-} from "~/lib/data/feedItems";
+import { FETCH_NEW_FEED_ITEMS_KEY } from "~/lib/data/feed-items";
 import clsx from "clsx";
 import { useQuery } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
+import { useFetchNewFeedItemsMutation } from "~/lib/data/feed-items/mutations";
 
 const ONE_HOUR = 1000 * 60 * 60;
 

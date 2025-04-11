@@ -100,17 +100,23 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {process.env.NODE_ENV === "production" ? (
+        {/* {process.env.NODE_ENV !== "production" && (
+          <>
+            <script
+              crossOrigin="anonymous"
+              src="//unpkg.com/react-scan/dist/auto.global.js"
+            />
+          </>
+        )} */}
+        {process.env.NODE_ENV === "production" && (
           <>
             <script
               async
               defer
               data-website-id="b65ad781-e11e-43e3-a53e-35e09c16709a"
               src="https://umami.henryfellerhoff.com/script.js"
-            ></script>
+            />
           </>
-        ) : (
-          <></>
         )}
       </head>
       <body

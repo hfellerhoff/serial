@@ -78,6 +78,9 @@ dependencies:
   '@tanstack/react-query':
     specifier: ^5.66.11
     version: 5.66.11(react@19.0.0)
+  '@tanstack/react-virtual':
+    specifier: ^3.13.4
+    version: 3.13.4(react-dom@19.0.0)(react@19.0.0)
   '@trpc/client':
     specifier: 11.0.0-rc.819
     version: 11.0.0-rc.819(@trpc/server@11.0.0-rc.819)(typescript@5.8.2)
@@ -108,6 +111,9 @@ dependencies:
   drizzle-orm:
     specifier: ^0.40.0
     version: 0.40.0(@libsql/client@0.14.0)(@planetscale/database@1.19.0)(better-sqlite3@11.8.1)(mysql2@3.12.0)
+  drizzle-zod:
+    specifier: ^0.7.0
+    version: 0.7.0(drizzle-orm@0.40.0)(zod@3.24.2)
   embla-carousel-react:
     specifier: ^8.5.2
     version: 8.5.2(react@19.0.0)
@@ -120,6 +126,9 @@ dependencies:
   jotai:
     specifier: ^2.12.1
     version: 2.12.1(@types/react@19.0.10)(react@19.0.0)
+  jotai-optics:
+    specifier: ^0.4.0
+    version: 0.4.0(jotai@2.12.1)(optics-ts@2.4.1)
   lucide-react:
     specifier: ^0.477.0
     version: 0.477.0(react@19.0.0)
@@ -3767,6 +3776,21 @@ packages:
       react: 19.0.0
     dev: false
 
+  /@tanstack/react-virtual@3.13.4(react-dom@19.0.0)(react@19.0.0):
+    resolution: {integrity: sha512-jPWC3BXvVLHsMX67NEHpJaZ+/FySoNxFfBEiF4GBc1+/nVwdRm+UcSCYnKP3pXQr0eEsDpXi/PQZhNfJNopH0g==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    dependencies:
+      '@tanstack/virtual-core': 3.13.4
+      react: 19.0.0
+      react-dom: 19.0.0(react@19.0.0)
+    dev: false
+
+  /@tanstack/virtual-core@3.13.4:
+    resolution: {integrity: sha512-fNGO9fjjSLns87tlcto106enQQLycCKR4DPNpgq3djP5IdcPFdPAmaKjsgzIeRhH7hWrELgW12hYnRthS5kLUw==}
+    dev: false
+
   /@tokenizer/token@0.3.0:
     resolution: {integrity: sha512-OvjF+z51L3ov0OyAU0duzsYuvO01PH7x4t6DJx+guahgTnBHkhJdG7soQeTSFLWN3efnHyibZ4Z8l2EuWwJN3A==}
     dev: false
@@ -5100,6 +5124,16 @@ packages:
       '@planetscale/database': 1.19.0
       better-sqlite3: 11.8.1
       mysql2: 3.12.0
+    dev: false
+
+  /drizzle-zod@0.7.0(drizzle-orm@0.40.0)(zod@3.24.2):
+    resolution: {integrity: sha512-xgCRYYVEzRkeXTS33GSMgoowe3vKsMNBjSI+cwG1oLQVEhAWWbqtb/AAMlm7tkmV4fG/uJjEmWzdzlEmTgWOoQ==}
+    peerDependencies:
+      drizzle-orm: '>=0.36.0'
+      zod: '>=3.0.0'
+    dependencies:
+      drizzle-orm: 0.40.0(@libsql/client@0.14.0)(@planetscale/database@1.19.0)(better-sqlite3@11.8.1)(mysql2@3.12.0)
+      zod: 3.24.2
     dev: false
 
   /dunder-proto@1.0.1:
@@ -6566,6 +6600,16 @@ packages:
     hasBin: true
     dev: true
 
+  /jotai-optics@0.4.0(jotai@2.12.1)(optics-ts@2.4.1):
+    resolution: {integrity: sha512-osbEt9AgS55hC4YTZDew2urXKZkaiLmLqkTS/wfW5/l0ib8bmmQ7kBXSFaosV6jDDWSp00IipITcJARFHdp42g==}
+    peerDependencies:
+      jotai: '>=2.0.0'
+      optics-ts: '>=2.0.0'
+    dependencies:
+      jotai: 2.12.1(@types/react@19.0.10)(react@19.0.0)
+      optics-ts: 2.4.1
+    dev: false
+
   /jotai@2.12.1(@types/react@19.0.10)(react@19.0.0):
     resolution: {integrity: sha512-VUW0nMPYIru5g89tdxwr9ftiVdc/nGV9jvHISN8Ucx+m1vI9dBeHemfqYzEuw5XSkmYjD/MEyApN9k6yrATsZQ==}
     engines: {node: '>=12.20.0'}
@@ -7657,6 +7701,10 @@ packages:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
     dependencies:
       wrappy: 1.0.2
+
+  /optics-ts@2.4.1:
+    resolution: {integrity: sha512-HaYzMHvC80r7U/LqAd4hQyopDezC60PO2qF5GuIwALut2cl5rK1VWHsqTp0oqoJJWjiv6uXKqsO+Q2OO0C3MmQ==}
+    dev: false
 
   /optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}

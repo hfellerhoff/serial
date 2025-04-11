@@ -8,14 +8,12 @@ import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Label } from "~/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
-import {
-  useCreateFeedsFromSubscriptionImportMutation,
-  useFeedsQuery,
-} from "~/lib/data/feeds";
-import { SubscriptionImportMethod, SubscriptionImportChannel } from "./types";
+import { useFeeds } from "~/lib/data/feeds";
+import { type SubscriptionImportMethod, type SubscriptionImportChannel } from "./types";
 import { YouTubeSubscriptionImport } from "./youtube/YouTubeSubscriptionImport";
 import { OPMLSubscriptionImport } from "./opml/OPMLSubscriptionImport";
 import FeedLoading from "~/app/loading";
+import { useCreateFeedsFromSubscriptionImportMutation } from "~/lib/data/feeds/mutations";
 
 export default function EditFeedsPage() {
   const [importMethod, setImportMethod] =
@@ -35,7 +33,7 @@ export default function EditFeedsPage() {
     (channel) => channel.shouldImport,
   ).length;
 
-  const { data: feeds } = useFeedsQuery();
+  const { feeds } = useFeeds();
 
   if (isSuccess) {
     return (

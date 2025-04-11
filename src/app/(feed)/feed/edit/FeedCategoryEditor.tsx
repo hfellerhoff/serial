@@ -1,25 +1,18 @@
-import {
-  AlertTriangle,
-  DeleteIcon,
-  ListFilterPlusIcon,
-  PlusIcon,
-} from "lucide-react";
+import { PopoverTrigger } from "@radix-ui/react-popover";
+import { useState } from "react";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { Combobox } from "~/components/ui/combobox";
+import { Popover, PopoverContent } from "~/components/ui/popover";
 import {
-  DatabaseContentCategory,
-  DatabaseFeedCategory,
-  DatabaseFeed,
+  type DatabaseContentCategory,
+  type DatabaseFeed,
+  type DatabaseFeedCategory,
 } from "~/server/db/schema";
 import { FeedCategoryCombobox } from "./FeedCategoryCombobox";
 import {
   useAssignFeedCategoryMutation,
   useRemoveFeedCategoryMutation,
-} from "~/lib/data/feedCategories";
-import { Popover, PopoverContent } from "~/components/ui/popover";
-import { PopoverTrigger } from "@radix-ui/react-popover";
-import { useState } from "react";
+} from "~/lib/data/feed-categories/mutations";
 
 export function FeedCategoryEditor({
   feed,
@@ -77,7 +70,7 @@ export function FeedCategoryEditor({
               }
             }}
           >
-            <PopoverTrigger>
+            <PopoverTrigger asChild>
               <Badge
                 className="hover:bg-muted h-max"
                 key={category?.id}

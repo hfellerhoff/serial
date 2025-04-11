@@ -182,7 +182,7 @@ export function ColorThemePopoverButton({
 }) {
   return (
     <Popover>
-      <PopoverTrigger>
+      <PopoverTrigger asChild>
         <Button
           size={isResponsive ? "icon md:default" : "default"}
           variant="outline"

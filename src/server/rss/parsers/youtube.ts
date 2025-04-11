@@ -73,7 +73,7 @@ export async function fetchYouTubeFeedData(
           } satisfies RSSContent;
         }),
     };
-  } catch (e) {
+  } catch {
     return null;
   }
 }

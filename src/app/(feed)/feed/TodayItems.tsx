@@ -1,23 +1,35 @@
 "use client";
 
-import dayjs from "dayjs";
-import { ClockIcon, SproutIcon, EyeIcon, PlusIcon } from "lucide-react";
-import Link from "next/link";
-import { Button } from "~/components/ui/button";
-import { useDialogStore } from "./dialogStore";
-import clsx from "clsx";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { useFeedsQuery } from "~/lib/data/feeds";
+import clsx from "clsx";
+import dayjs from "dayjs";
 import {
-  useFeedItemsQuery,
+  CheckIcon,
+  ClockIcon,
+  EyeIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  SproutIcon,
+} from "lucide-react";
+import Link from "next/link";
+import FeedLoading from "~/app/loading";
+import { Button } from "~/components/ui/button";
+import {
+  useFeedItemGlobalState,
+  useFeedItemsMap,
+  useFeedItemsOrder,
+  useHasFetchedFeedItems,
+} from "~/lib/data/atoms";
+import { useFeedCategories } from "~/lib/data/feed-categories";
+import { useFilteredFeedItemsOrder } from "~/lib/data/feed-items";
+import {
   useFeedItemsSetWatchedValueMutation,
   useFeedItemsSetWatchLaterValueMutation,
-  useFilteredFeedItems,
-} from "~/lib/data/feedItems";
-import { DatabaseFeedItem } from "~/server/db/schema";
-import FeedLoading from "~/app/loading";
-import { useContentCategoriesQuery } from "~/lib/data/contentCategories";
-import { useFeedCategoriesQuery } from "~/lib/data/feedCategories";
+  useFetchNewFeedItemsMutation,
+} from "~/lib/data/feed-items/mutations";
+import { useFeeds } from "~/lib/data/feeds";
+import { useDialogStore } from "./dialogStore";
+import { Suspense } from "react";
 
 function timeAgo(date: string | Date) {
   const diff = dayjs().diff(date);
@@ -73,11 +85,38 @@ function TodayItemsFeedEmptyState() {
   );
 }
 
-function ItemDisplay({ item }: { item: DatabaseFeedItem }) {
+// function LoaderDisplay() {
+//   const hasFetchedFeedItems = useHasFetchedFeedItems();
+//   const { hasFetchedFeeds } = useFeeds();
+//   const { hasFetchedFeedCategories } = useFeedCategories();
+
+//   if (hasFetchedFeeds && hasFetchedFeedItems && hasFetchedFeedCategories) {
+//     return null;
+//   }
+
+//   return (
+//     <article
+//       className={clsx(
+//         "group relative mb-6 flex w-full flex-1 items-center justify-center gap-2 rounded px-6",
+//       )}
+//     >
+//       <div className="bg-muted/50 flex w-full flex-1 items-center gap-4 rounded p-6 text-left transition-colors md:justify-center">
+//         <RefreshCwIcon className="size-4 animate-spin" />
+//         <h3 className="w-fit text-sm font-semibold md:text-sm">
+//           Refreshing data...
+//         </h3>
+//       </div>
+//     </article>
+//   );
+// }
+
+function ItemDisplay({ contentId }: { contentId: string }) {
+  const [item] = useFeedItemGlobalState(contentId);
+
   const { mutateAsync: setWatchedValue } =
-    useFeedItemsSetWatchedValueMutation();
+    useFeedItemsSetWatchedValueMutation(contentId);
   const { mutateAsync: setWatchLaterValue } =
-    useFeedItemsSetWatchLaterValueMutation();
+    useFeedItemsSetWatchLaterValueMutation(contentId);
 
   return (
     <article
@@ -121,7 +160,11 @@ function ItemDisplay({ item }: { item: DatabaseFeedItem }) {
             });
           }}
         >
-          <ClockIcon size={16} />
+          {item.isWatchLater ? (
+            <CheckIcon size={16} />
+          ) : (
+            <ClockIcon size={16} />
+          )}
         </Button>
         <Button
           size="icon"
@@ -142,31 +185,41 @@ function ItemDisplay({ item }: { item: DatabaseFeedItem }) {
 }
 
 export function TodayItems() {
-  const { data: feeds, isLoading: isLoadingFeeds } = useFeedsQuery();
-  const { data: items, isLoading: isLoadingItems } = useFeedItemsQuery();
-  const { data: feedCategories, isLoading: isLoadingFeedCategories } =
-    useFeedCategoriesQuery();
+  const { feeds, hasFetchedFeeds } = useFeeds();
+  const { feedCategories, hasFetchedFeedCategories } = useFeedCategories();
+  const hasFetchedFeedItems = useHasFetchedFeedItems();
+  const feedItemsOrder = useFeedItemsOrder();
 
-  const filteredFeeds = useFilteredFeedItems(items, feedCategories);
+  const filteredFeedItemsOrder = useFilteredFeedItemsOrder();
 
   const [parent] = useAutoAnimate();
 
-  if (isLoadingItems || (items?.length === 0 && !!feeds?.length)) {
+  if (
+    (!hasFetchedFeeds && !feeds) ||
+    (!hasFetchedFeedItems && !feedItemsOrder) ||
+    (!hasFetchedFeedCategories && !feedCategories)
+  ) {
     return <FeedLoading />;
   }
 
-  if (feeds?.length === 0 || !feeds) {
+  if (hasFetchedFeeds && !feeds) {
     return <TodayItemsFeedEmptyState />;
   }
 
-  if (filteredFeeds?.length === 0 || !items) {
+  if (
+    hasFetchedFeeds &&
+    hasFetchedFeedItems &&
+    hasFetchedFeedCategories &&
+    !filteredFeedItemsOrder
+  ) {
     return <TodayItemsEmptyState />;
   }
 
   return (
     <div className="w-full md:pt-4" ref={parent}>
-      {filteredFeeds.map((item) => (
-        <ItemDisplay item={item} key={item.contentId} />
+      {/* <LoaderDisplay /> */}
+      {filteredFeedItemsOrder.map((contentId) => (
+        <ItemDisplay contentId={contentId} key={contentId} />
       ))}
       <div className="h-16" />
     </div>

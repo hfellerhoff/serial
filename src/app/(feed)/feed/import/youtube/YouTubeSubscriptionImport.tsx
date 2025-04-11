@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
-import { useFeedsQuery } from "~/lib/data/feeds";
+import { useFeeds } from "~/lib/data/feeds";
 import { ImportDropzone } from "../ImportDropzone";
-import { SubscriptionImportMethodProps } from "../types";
+import { type SubscriptionImportMethodProps } from "../types";
 import { parseYouTubeSubscriptionInput } from "./parseYouTubeSubscriptionInput";
 import { YouTubeSubscriptionImportCarousel } from "./YouTubeSubscriptionImportCarousel";
 
@@ -13,7 +13,7 @@ export function YouTubeSubscriptionImport({
     null,
   );
 
-  const { data: feeds } = useFeedsQuery();
+  const { feeds } = useFeeds();
 
   const onSelectFiles = async () => {
     if (!inputElement || feeds === undefined) return;

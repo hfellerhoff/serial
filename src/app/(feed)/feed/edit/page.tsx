@@ -3,16 +3,18 @@
 import { TrashIcon } from "lucide-react";
 import { AddFeedButton } from "~/components/AddFeedButton";
 import { Button } from "~/components/ui/button";
-import { useContentCategoriesQuery } from "~/lib/data/contentCategories";
-import { useFeedCategoriesQuery } from "~/lib/data/feedCategories";
-import { useDeleteFeedMutation, useFeedsQuery } from "~/lib/data/feeds";
+
+import { useFeeds } from "~/lib/data/feeds";
 import { FeedCategoryEditor } from "./FeedCategoryEditor";
 import { ImportFeedButton } from "~/components/ImportFeedButton";
+import { useContentCategories } from "~/lib/data/content-categories";
+import { useFeedCategories } from "~/lib/data/feed-categories";
+import { useDeleteFeedMutation } from "~/lib/data/feeds/mutations";
 
 export default function EditFeedsPage() {
-  const { data: feeds } = useFeedsQuery();
-  const { data: contentCategories } = useContentCategoriesQuery();
-  const { data: feedCategories } = useFeedCategoriesQuery();
+  const { feeds } = useFeeds();
+  const { contentCategories } = useContentCategories();
+  const { feedCategories } = useFeedCategories();
 
   const { mutateAsync: deleteFeed } = useDeleteFeedMutation();
 

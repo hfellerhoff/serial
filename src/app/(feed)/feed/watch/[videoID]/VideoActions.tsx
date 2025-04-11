@@ -1,23 +1,22 @@
 import { ClockIcon, EyeIcon, EyeOffIcon, CheckIcon } from "lucide-react";
 import { useKeyboard } from "~/components/KeyboardProvider";
 import { Button } from "~/components/ui/button";
+import { useFeedItemGlobalState } from "~/lib/data/atoms";
 import {
-  useFeedItemsQuery,
   useFeedItemsSetWatchedValueMutation,
   useFeedItemsSetWatchLaterValueMutation,
-} from "~/lib/data/feedItems";
+} from "~/lib/data/feed-items/mutations";
 import { useMediaQuery } from "~/lib/hooks/use-media-query";
 
 export function VideoActions({ videoID }: { videoID: string }) {
   const { view } = useKeyboard();
 
-  const { data: allFeedItems } = useFeedItemsQuery();
-  const { mutateAsync: setWatchedValue } =
-    useFeedItemsSetWatchedValueMutation();
-  const { mutateAsync: setWatchLaterValue } =
-    useFeedItemsSetWatchLaterValueMutation();
+  const [video] = useFeedItemGlobalState(videoID);
 
-  const video = allFeedItems?.find((item) => item.contentId === videoID);
+  const { mutateAsync: setWatchedValue } =
+    useFeedItemsSetWatchedValueMutation(videoID);
+  const { mutateAsync: setWatchLaterValue } =
+    useFeedItemsSetWatchLaterValueMutation(videoID);
 
   const isWatched = video?.isWatched;
   const isWatchLater = video?.isWatchLater;

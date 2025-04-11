@@ -8,6 +8,10 @@ import { Header } from "./feed/Header";
 import { ApplyColorTheme } from "~/components/color-theme/ApplyColorTheme";
 import { Suspense } from "react";
 import { ReleaseNotifier } from "~/components/releases/ReleaseNotifier";
+import { useFeedsQuery } from "~/lib/data/feeds";
+import { useFeedItemsQuery } from "~/lib/data/feedItems";
+import { InitialClientQueries } from "~/lib/data/InitialClientQueries";
+import FeedLoading from "../loading";
 
 const title = "Serial";
 const description = "Your personal content newsletter";
@@ -92,17 +96,19 @@ export default function RootLayout({
 }) {
   return (
     <ApplyColorTheme>
-      <Suspense>
-        <KeyboardProvider>
-          <Header />
-          <main className="flex h-screen flex-col">
-            <ScrollArea className="h-full w-full">
-              <div className="h-full w-full pt-24 pb-6">{children}</div>
-            </ScrollArea>
-            <AppDialogs />
-          </main>
-          <ReleaseNotifier />
-        </KeyboardProvider>
+      <Suspense fallback={<FeedLoading />}>
+        <InitialClientQueries>
+          <KeyboardProvider>
+            <Header />
+            <main className="flex h-screen flex-col">
+              <ScrollArea className="h-full w-full">
+                <div className="h-full w-full pt-24 pb-6">{children}</div>
+              </ScrollArea>
+              <AppDialogs />
+            </main>
+            <ReleaseNotifier />
+          </KeyboardProvider>
+        </InitialClientQueries>
       </Suspense>
     </ApplyColorTheme>
   );

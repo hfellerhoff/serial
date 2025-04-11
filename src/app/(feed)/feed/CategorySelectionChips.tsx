@@ -2,9 +2,6 @@
 
 import { useCallback } from "react";
 
-import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "~/trpc/react";
-
 import clsx from "clsx";
 import { useAtom, useAtomValue } from "jotai";
 import { ScrollArea, ScrollBar } from "~/components/ui/scroll-area";
@@ -12,35 +9,44 @@ import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
 import {
   categoryFilterAtom,
   dateFilterAtom,
+  useFeedItemsMap,
+  useFeedItemsOrder,
   visibilityFilterAtom,
 } from "~/lib/data/atoms";
-import { useFeedCategoriesQuery } from "~/lib/data/feedCategories";
-import {
-  doesFeedItemPassFilters,
-  useFeedItemsQuery,
-} from "~/lib/data/feedItems";
+import { useContentCategories } from "~/lib/data/content-categories";
+import { useFeedCategories } from "~/lib/data/feed-categories";
+import { doesFeedItemPassFilters, useFeedItems } from "~/lib/data/feed-items";
 
 function useCheckFilteredFeedItemsForCategory() {
-  const { data: feedItems } = useFeedItemsQuery();
-  const { data: feedCategories } = useFeedCategoriesQuery();
+  const feedItemsOrder = useFeedItemsOrder();
+  const feedItemsMap = useFeedItemsMap();
+  const { feedCategories } = useFeedCategories();
 
   const dateFilter = useAtomValue(dateFilterAtom);
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
 
   return useCallback(
     (category: number) => {
-      if (!feedItems || !feedCategories) return [];
-      return feedItems.filter((item) =>
-        doesFeedItemPassFilters(
-          item,
-          dateFilter,
-          visibilityFilter,
-          category,
-          feedCategories,
-        ),
+      if (!feedItemsOrder || !feedCategories) return [];
+      return feedItemsOrder.filter(
+        (item) =>
+          feedItemsMap[item] &&
+          doesFeedItemPassFilters(
+            feedItemsMap[item],
+            dateFilter,
+            visibilityFilter,
+            category,
+            feedCategories,
+          ),
       );
     },
-    [feedItems, dateFilter, visibilityFilter, feedCategories],
+    [
+      feedItemsOrder,
+      feedItemsMap,
+      dateFilter,
+      visibilityFilter,
+      feedCategories,
+    ],
   );
 }
 
@@ -50,12 +56,9 @@ export function CategorySelectionChips() {
 
   const [categoryFilter, setCategoryFilter] = useAtom(categoryFilterAtom);
 
-  const trpc = useTRPC();
-  const { data: categories } = useQuery(
-    trpc.contentCategories.getAll.queryOptions(),
-  );
+  const { contentCategories } = useContentCategories();
 
-  const categoryOptions = categories?.map((category) => ({
+  const categoryOptions = contentCategories?.map((category) => ({
     ...category,
     hasEntries: !!checkFilteredFeedItemsForCategory(category.id).length,
   }));
