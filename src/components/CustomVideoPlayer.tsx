@@ -26,7 +26,7 @@ const PLAYBACK_SPEEDS = [
     value: 2,
   },
 ];
-const FASTEST_SPEED = PLAYBACK_SPEEDS[PLAYBACK_SPEEDS.length - 1].value;
+const FASTEST_SPEED = PLAYBACK_SPEEDS[PLAYBACK_SPEEDS.length - 1]!.value;
 
 function useVideoShortcuts() {
   const playerRef = useRef<YouTube | null>(null);
