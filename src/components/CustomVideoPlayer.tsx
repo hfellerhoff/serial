@@ -10,7 +10,6 @@ import { PlayIcon } from "lucide-react";
 import { Slider } from "./ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 import { transformSecondsToFormattedTime } from "~/lib/transformSecondsToFormattedTime";
-import { useFeedItemGlobalState } from "~/lib/data/atoms";
 
 const PLAYBACK_SPEEDS = [
   {
@@ -129,8 +128,6 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
     changeVideoPlaybackSpeed,
   } = useVideoShortcuts();
 
-  const [video] = useFeedItemGlobalState(props.videoID!);
-
   const [videoDuration, setVideoDuration] = useState(0);
 
   const [videoProgress, setVideoProgress] = useState(0);
@@ -175,7 +172,7 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
                   rel: 0,
                   controls: 0,
                   disablekb: 0,
-                  playsinline: 1,
+                  playsinline: 0,
                 },
               }}
               onStateChange={(event) => {
