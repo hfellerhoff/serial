@@ -1,6 +1,8 @@
 "use client";
 
+import { useExperimentState } from "~/lib/hooks/useExperimentState";
 import classes from "./ResponsiveVideo.module.css";
+import CustomVideoPlayer from "./CustomVideoPlayer";
 
 interface IResponsiveVideoProps {
   videoID?: string;
@@ -8,6 +10,14 @@ interface IResponsiveVideoProps {
 }
 
 export default function ResponsiveVideo(props: IResponsiveVideoProps) {
+  const [shouldShowCustomVideoPlayer] = useExperimentState(
+    "CUSTOM_VIDEO_PLAYER",
+  );
+
+  if (shouldShowCustomVideoPlayer) {
+    return <CustomVideoPlayer {...props} />;
+  }
+
   return (
     <div className={classes.video}>
       <div

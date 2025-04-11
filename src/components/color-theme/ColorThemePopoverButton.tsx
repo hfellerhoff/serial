@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { Slider } from "../ui/slider";
 import { useUser } from "@clerk/nextjs";
 import clsx from "clsx";
+import { EnableCustomVideoPlayerToggle } from "./EnableCustomVideoPlayerToggle";
 
 function getCssVariable(name: string) {
   const value = window
@@ -202,6 +203,8 @@ export function ColorThemePopoverButton({
         <ColorModeToggleGroup />
         <div className="h-4" />
         <EditColorsForm />
+        <div className="h-6" />
+        <EnableCustomVideoPlayerToggle />
       </PopoverContent>
     </Popover>
   );

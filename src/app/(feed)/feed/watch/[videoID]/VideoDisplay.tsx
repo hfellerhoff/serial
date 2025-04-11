@@ -23,7 +23,7 @@ export function VideoDisplay({ id }: { id: string }) {
       <div className="relative z-10 w-full">
         <div
           className={clsx(
-            "absolute top-0 aspect-video w-full animate-pulse overflow-hidden bg-muted transition-opacity",
+            "bg-muted absolute top-0 aspect-video w-full animate-pulse overflow-hidden transition-opacity",
             {
               rounded: view === "windowed",
             },

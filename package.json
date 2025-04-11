@@ -63,6 +63,7 @@
     "react-dom": "19.0.0",
     "react-fast-marquee": "^1.6.5",
     "react-resizable-panels": "^2.1.7",
+    "react-youtube": "^10.1.0",
     "rss-parser": "^3.13.0",
     "server-only": "^0.0.1",
     "sonner": "^2.0.1",

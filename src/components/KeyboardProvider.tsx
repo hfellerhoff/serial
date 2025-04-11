@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  Ref,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
 import { useFilteredFeedItemsOrder } from "~/lib/data/feed-items";
@@ -9,6 +16,8 @@ import {
   useFeedItemsSetWatchLaterValueMutation,
 } from "~/lib/data/feed-items/mutations";
 import { useFeedItemsMap, useFeedItemsOrder } from "~/lib/data/atoms";
+import YouTube from "react-youtube";
+import { YOUTUBE_PLAYER_STATES } from "./youtube";
 
 function doesAnyInputElementHaveFocus() {
   const elements = document.querySelectorAll("input, textarea, select, button");
@@ -25,6 +34,7 @@ export type FeedContext = {
   zoom: number;
   isCategoriesOpen: boolean;
   setIsCategoriesOpen: (value: boolean) => void;
+  playerRef?: Ref<YouTube> | null;
 };
 
 const FeedContext = createContext<FeedContext | null>(null);
@@ -38,9 +48,10 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const router = useRouter();
   const pathname = usePathname();
 
+  const playerRef = useRef<FeedContext["playerRef"]>(null);
+
   const [zoom, setZoom] = useState(2);
 
-  const feedItemsOrder = useFeedItemsOrder();
   const feedItemsMap = useFeedItemsMap();
   const filteredFeedItemsOrder = useFilteredFeedItemsOrder();
 
@@ -50,9 +61,6 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const { mutateAsync: setWatchLaterValue } =
     useFeedItemsSetWatchLaterValueMutation(params.videoID as string);
 
-  // TODO: add this back
-  // const { findPreviousVideoId, findNextVideoId } = useFeed();
-
   const [view, setView] = useState<FeedContext["view"]>("windowed");
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
 
@@ -61,7 +69,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const closeDialog = useDialogStore((store) => store.closeDialog);
 
   useEffect(() => {
-    const processKey = (event: KeyboardEvent) => {
+    const processKey = async (event: KeyboardEvent) => {
       const videoID = params.videoID as string;
 
       if (doesAnyInputElementHaveFocus()) return;
@@ -69,102 +77,111 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       const foundItem = feedItemsMap[videoID];
       const currentItemIndex = filteredFeedItemsOrder?.indexOf(videoID);
 
-      switch (event.key) {
-        case "`":
-          setView((prev) => {
-            return prev === "windowed" ? "fullscreen" : "windowed";
-          });
-          break;
-        case "Escape":
-          if (pathname === "/feed") break;
-          router.push("/feed");
-          break;
-        case "[":
-          if (!filteredFeedItemsOrder?.length || event.metaKey) return;
+      const player = playerRef?.current as YouTube | null;
 
-          if (!videoID || currentItemIndex <= 0) {
-            void router.push("/feed");
-            break;
+      if (event.key === "`") {
+        setView((prev) => {
+          return prev === "windowed" ? "fullscreen" : "windowed";
+        });
+        return;
+      }
+      if (event.key === "Escape") {
+        if (pathname === "/feed") return;
+        router.push("/feed");
+        return;
+      }
+      if (event.key === "[") {
+        if (!filteredFeedItemsOrder?.length || event.metaKey) return;
+
+        if (!videoID || currentItemIndex <= 0) {
+          void router.push("/feed");
+          return;
+        }
+
+        const previousVideoId = filteredFeedItemsOrder[currentItemIndex - 1];
+
+        if (!previousVideoId) {
+          void router.push("/feed");
+          return;
+        }
+
+        void router.push(`/feed/watch/${previousVideoId}`);
+        return;
+      }
+      if (event.key === "]") {
+        if (!filteredFeedItemsOrder?.length || event.metaKey) return;
+
+        if (
+          !videoID ||
+          currentItemIndex < 0 ||
+          currentItemIndex >= filteredFeedItemsOrder.length - 1
+        ) {
+          void router.push("/feed");
+          return;
+        }
+
+        const nextVideoId = filteredFeedItemsOrder[currentItemIndex + 1];
+
+        if (!nextVideoId) {
+          void router.push("/feed");
+          return;
+        }
+
+        void router.push(`/feed/watch/${nextVideoId}`);
+        return;
+      }
+      if (event.key === "a") {
+        event.preventDefault();
+
+        if (dialog === "add-feed") {
+          closeDialog();
+          return;
+        }
+
+        launchDialog("add-feed");
+        return;
+      }
+      if (event.key === "w") {
+        event.preventDefault();
+
+        if (!foundItem?.feedId) return;
+
+        void setWatchLaterValue({
+          feedId: foundItem.feedId,
+          contentId: foundItem.contentId,
+          isWatchLater: !foundItem.isWatchLater,
+        });
+        return;
+      }
+      if (event.key === "e") {
+        event.preventDefault();
+
+        if (!foundItem?.feedId) return;
+
+        void setWatchedValue({
+          feedId: foundItem.feedId,
+          contentId: foundItem.contentId,
+          isWatched: !foundItem.isWatched,
+        });
+        return;
+      }
+      if (event.key === "=") {
+        setZoom((z) => {
+          if (z >= 5) {
+            return z;
           }
-
-          const previousVideoId = filteredFeedItemsOrder[currentItemIndex - 1];
-
-          if (!previousVideoId) {
-            void router.push("/feed");
-            break;
+          return z + 1;
+        });
+        return;
+      }
+      if (event.key === "-") {
+        setZoom((z) => {
+          if (z <= 0) {
+            return z;
           }
-
-          void router.push(`/feed/watch/${previousVideoId}`);
-          break;
-        case "]":
-          if (!filteredFeedItemsOrder?.length || event.metaKey) return;
-
-          if (
-            !videoID ||
-            currentItemIndex < 0 ||
-            currentItemIndex >= filteredFeedItemsOrder.length - 1
-          ) {
-            void router.push("/feed");
-            break;
-          }
-
-          const nextVideoId = filteredFeedItemsOrder[currentItemIndex + 1];
-
-          if (!nextVideoId) {
-            void router.push("/feed");
-            break;
-          }
-
-          void router.push(`/feed/watch/${nextVideoId}`);
-          break;
-        case "a":
-          event.preventDefault();
-
-          if (dialog === "add-feed") {
-            closeDialog();
-            break;
-          }
-
-          launchDialog("add-feed");
-          break;
-        case "w":
-          event.preventDefault();
-
-          if (!foundItem?.feedId) return;
-
-          void setWatchLaterValue({
-            feedId: foundItem.feedId,
-            contentId: foundItem.contentId,
-            isWatchLater: !foundItem.isWatchLater,
-          });
-          break;
-        case "e":
-          event.preventDefault();
-
-          if (!foundItem?.feedId) return;
-
-          void setWatchedValue({
-            feedId: foundItem.feedId,
-            contentId: foundItem.contentId,
-            isWatched: !foundItem.isWatched,
-          });
-          break;
-        case "=":
-          setZoom((z) => {
-            if (z >= 5) {
-              return z;
-            }
-            return z + 1;
-          });
-          break;
-        case "-":
-          setZoom((z) => {
-            if (z <= 0) {
-              return z;
-            }
-            return z - 1;
-          });
-          break;
+          return z - 1;
+        });
+        return;
       }
     };
 
@@ -186,7 +203,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
   return (
     <FeedContext.Provider
-      value={{ view, zoom, isCategoriesOpen, setIsCategoriesOpen }}
+      value={{ view, zoom, isCategoriesOpen, setIsCategoriesOpen, playerRef }}
     >
       {children}
     </FeedContext.Provider>
