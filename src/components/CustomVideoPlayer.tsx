@@ -61,6 +61,7 @@ function useVideoShortcuts() {
     toggleVideoPlayback,
     manualPlayerState,
     setManualPlayerState,
+    playerState,
     setPlayerState,
   };
 }
@@ -76,12 +77,30 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
     toggleVideoPlayback,
     manualPlayerState,
     setManualPlayerState,
+    playerState,
     setPlayerState,
   } = useVideoShortcuts();
 
-  const [videoDuration, setVideoDuration] = useState(0);
-  const [videoProgress, setVideoProgress] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [videoDuration, setVideoDuration] = useState(0);
+
+  const [videoProgress, setVideoProgress] = useState(0);
+  const videoProgressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    const player = playerRef?.current as YouTube | null;
+
+    const updateTime = async () => {
+      const time = await player?.internalPlayer?.getCurrentTime();
+      setVideoProgress(time || 0);
+    };
+
+    if (playerState === YOUTUBE_PLAYER_STATES.PLAYING) {
+      videoProgressIntervalRef.current = setInterval(updateTime, 1000);
+    } else if (videoProgressIntervalRef.current) {
+      clearInterval(videoProgressIntervalRef.current);
+    }
+  }, [playerState]);
+
   const [isSeeking, setIsSeeking] = useState(false);
 
   const player = playerRef?.current as YouTube | null;
