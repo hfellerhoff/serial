@@ -90,7 +90,9 @@ export function AddFeedDialog() {
             disabled={!validateFeedUrl(feedUrl) || isAddingFeed}
             onClick={async () => {
               const category = !!categoryName
-                ? categories?.find((category) => category.name === categoryName)
+                ? contentCategories?.find(
+                    (category) => category.name === categoryName,
+                  )
                 : undefined;
 
               setIsAddingFeed(true);

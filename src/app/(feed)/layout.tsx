@@ -8,8 +8,6 @@ import { Header } from "./feed/Header";
 import { ApplyColorTheme } from "~/components/color-theme/ApplyColorTheme";
 import { Suspense } from "react";
 import { ReleaseNotifier } from "~/components/releases/ReleaseNotifier";
-import { useFeedsQuery } from "~/lib/data/feeds";
-import { useFeedItemsQuery } from "~/lib/data/feedItems";
 import { InitialClientQueries } from "~/lib/data/InitialClientQueries";
 import FeedLoading from "../loading";
 

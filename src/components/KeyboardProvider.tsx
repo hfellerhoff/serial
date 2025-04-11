@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
-import { useFeedItems, useFilteredFeedItemsOrder } from "~/lib/data/feed-items";
+import { useFilteredFeedItemsOrder } from "~/lib/data/feed-items";
 import {
   useFeedItemsSetWatchedValueMutation,
   useFeedItemsSetWatchLaterValueMutation,

@@ -15,7 +15,7 @@ import {
 } from "~/lib/data/atoms";
 import { useContentCategories } from "~/lib/data/content-categories";
 import { useFeedCategories } from "~/lib/data/feed-categories";
-import { doesFeedItemPassFilters, useFeedItems } from "~/lib/data/feed-items";
+import { doesFeedItemPassFilters } from "~/lib/data/feed-items";
 
 function useCheckFilteredFeedItemsForCategory() {
   const feedItemsOrder = useFeedItemsOrder();
