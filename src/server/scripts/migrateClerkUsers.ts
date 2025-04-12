@@ -11,7 +11,9 @@ const clerkClient = createClerkClient({
 });
 
 async function migrate() {
-  const users = await clerkClient.users.getUserList();
+  const users = await clerkClient.users.getUserList({
+    limit: 500,
+  });
 
   let usersAdded = 0;
 
