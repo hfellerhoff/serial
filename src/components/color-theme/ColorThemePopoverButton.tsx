@@ -1,7 +1,7 @@
 "use client";
 
 import { LaptopIcon, MoonIcon, PaletteIcon, SunIcon } from "lucide-react";
-import { Button } from "../ui/button";
+import { ResponsiveButton } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { useTheme } from "next-themes";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
@@ -9,9 +9,10 @@ import { useTRPC } from "~/trpc/react";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Slider } from "../ui/slider";
-import { useUser } from "@clerk/nextjs";
 import clsx from "clsx";
 import { EnableCustomVideoPlayerToggle } from "./EnableCustomVideoPlayerToggle";
+import { ShowShortcutsToggle } from "./ShowShortcutsToggle";
+import { authClient } from "~/lib/auth-client";
 
 function getCssVariable(name: string) {
   const value = window
@@ -43,7 +44,7 @@ function FormSection({
 }
 
 function EditColorsForm() {
-  const user = useUser();
+  const { data } = authClient.useSession();
   const api = useTRPC();
   const { mutate: saveThemeHSLToDatabase } = useMutation(
     api.userConfig.setThemeHSL.mutationOptions(),
@@ -80,7 +81,7 @@ function EditColorsForm() {
     };
 
   const saveValuesToDatabase = () => {
-    if (!user.isSignedIn) return;
+    if (!data?.session.id) return;
     saveThemeHSLToDatabase({
       theme: (resolvedTheme as "light" | "dark") ?? "light",
       hsl: [hue, saturation, lightness],
@@ -184,8 +185,8 @@ export function ColorThemePopoverButton({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button
-          size={isResponsive ? "icon md:default" : "default"}
+        <ResponsiveButton
+          size={isResponsive ? "icon" : "default"}
           variant="outline"
         >
           <PaletteIcon size={16} />
@@ -197,7 +198,7 @@ export function ColorThemePopoverButton({
           >
             {children}
           </span>
-        </Button>
+        </ResponsiveButton>
       </PopoverTrigger>
       <PopoverContent>
         <ColorModeToggleGroup />
@@ -205,6 +206,8 @@ export function ColorThemePopoverButton({
         <EditColorsForm />
         <div className="h-6" />
         <EnableCustomVideoPlayerToggle />
+        <div className="h-4" />
+        <ShowShortcutsToggle />
       </PopoverContent>
     </Popover>
   );

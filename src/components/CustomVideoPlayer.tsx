@@ -13,15 +13,31 @@ import { transformSecondsToFormattedTime } from "~/lib/transformSecondsToFormatt
 
 const PLAYBACK_SPEEDS = [
   {
-    label: "1x",
+    label: "0.50x",
+    value: 0.5,
+  },
+  {
+    label: "0.75x",
+    value: 0.75,
+  },
+  {
+    label: "1.00x",
     value: 1,
   },
   {
-    label: "1.5x",
+    label: "1.25x",
+    value: 1.25,
+  },
+  {
+    label: "1.50x",
     value: 1.5,
   },
   {
-    label: "2x",
+    label: "1.75x",
+    value: 1.75,
+  },
+  {
+    label: "2.00x",
     value: 2,
   },
 ];
@@ -55,7 +71,8 @@ function useVideoShortcuts() {
     if (
       playerState === YOUTUBE_PLAYER_STATES.BUFFERING ||
       playerState === YOUTUBE_PLAYER_STATES.CUED ||
-      playerState === YOUTUBE_PLAYER_STATES.PAUSED
+      playerState === YOUTUBE_PLAYER_STATES.PAUSED ||
+      playerState === YOUTUBE_PLAYER_STATES.ENDED
     ) {
       void player?.internalPlayer?.playVideo();
       return;
@@ -87,7 +104,6 @@ function useVideoShortcuts() {
 
   useEffect(() => {
     const processKey = async (event: KeyboardEvent) => {
-      console.log(event.key);
       if (event.key === " ") {
         event.preventDefault();
         toggleVideoPlayback();
@@ -265,6 +281,37 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
               </div>
               <div
                 className={clsx(
+                  "from-background absolute inset-y-0 right-0 z-30 flex flex-col items-center justify-center bg-gradient-to-l to-transparent p-4 pl-8 opacity-0 transition-opacity",
+                  {
+                    "group-hover:opacity-100": !props.isInactive,
+                    "cursor-none!": props.isInactive,
+                  },
+                )}
+              >
+                <ToggleGroup
+                  type="single"
+                  value={playbackSpeed.toString()}
+                  onValueChange={(value) => {
+                    if (!value) return;
+                    const numberValue = parseFloat(value);
+
+                    changeVideoPlaybackSpeed(numberValue);
+                  }}
+                  size="xs"
+                  className="flex flex-col items-center justify-center font-mono"
+                >
+                  {PLAYBACK_SPEEDS.map((speed) => (
+                    <ToggleGroupItem
+                      key={speed.value}
+                      value={speed.value.toString()}
+                    >
+                      {speed.label}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              </div>
+              <div
+                className={clsx(
                   "from-background absolute inset-x-0 bottom-0 z-30 flex flex-col bg-gradient-to-t to-transparent p-4 pt-8 opacity-0 transition-opacity",
                   {
                     "group-hover:opacity-100": !props.isInactive,
@@ -291,27 +338,6 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
                     {transformSecondsToFormattedTime(videoProgress)} /{" "}
                     {transformSecondsToFormattedTime(videoDuration)}
                   </div>
-
-                  <ToggleGroup
-                    type="single"
-                    value={playbackSpeed.toString()}
-                    onValueChange={(value) => {
-                      if (!value) return;
-                      const numberValue = parseFloat(value);
-
-                      changeVideoPlaybackSpeed(numberValue);
-                    }}
-                    size="sm"
-                  >
-                    {PLAYBACK_SPEEDS.map((speed) => (
-                      <ToggleGroupItem
-                        key={speed.value}
-                        value={speed.value.toString()}
-                      >
-                        {speed.label}
-                      </ToggleGroupItem>
-                    ))}
-                  </ToggleGroup>
                 </div>
                 {/* <Button
                   className="ml-2"

@@ -2,26 +2,27 @@ import { Label } from "../ui/label";
 import { useFlagState } from "~/lib/hooks/useFlagState";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 
-export const EnableCustomVideoPlayerToggle = () => {
-  const [videoPlayer, setVideoPlayer] = useFlagState("CUSTOM_VIDEO_PLAYER");
+export const ShowShortcutsToggle = () => {
+  const [inlineShortcuts, setInlineShortcuts] =
+    useFlagState("INLINE_SHORTCUTS");
 
   return (
     <div className="mt-2">
       <Label htmlFor="video-player-select" className="mb-2 block font-semibold">
-        Video Player
+        Inline Shortcuts
       </Label>
       <ToggleGroup
-        id="video-player-select"
+        id="show-shortcuts-select"
         type="single"
         size="sm"
-        value={videoPlayer}
-        onValueChange={setVideoPlayer}
+        value={inlineShortcuts}
+        onValueChange={setInlineShortcuts}
       >
-        <ToggleGroupItem className="w-full" value="serial">
-          Serial Player
+        <ToggleGroupItem className="w-full" value="show-shortcuts">
+          Show
         </ToggleGroupItem>
-        <ToggleGroupItem className="w-full" value="youtube">
-          YouTube Player
+        <ToggleGroupItem className="w-full" value="hide-shortcuts">
+          Hide
         </ToggleGroupItem>
       </ToggleGroup>
     </div>

@@ -1,6 +1,8 @@
 const SUPPORTED_IF_INCLUDES = [
   "https://youtube.com/@",
   "https://www.youtube.com/@",
+  "https://youtube.com/channel/",
+  "https://www.youtube.com/channel/",
   "https://www.youtube.com/feeds/videos.xml?channel_id=",
 ];
 

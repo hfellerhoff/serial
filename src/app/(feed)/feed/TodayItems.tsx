@@ -71,7 +71,7 @@ function TodayItemsFeedEmptyState() {
 
   return (
     <button
-      className="w-full px-6 md:py-6"
+      className="w-full cursor-pointer px-6 md:py-6"
       onClick={() => launchDialog("add-feed")}
     >
       <div className="bg-muted flex w-full flex-col items-center justify-center rounded p-12">
@@ -195,14 +195,14 @@ export function TodayItems() {
   const [parent] = useAutoAnimate();
 
   if (
-    (!hasFetchedFeeds && !feeds) ||
-    (!hasFetchedFeedItems && !feedItemsOrder) ||
-    (!hasFetchedFeedCategories && !feedCategories)
+    (!hasFetchedFeeds && !feeds.length) ||
+    (!hasFetchedFeedItems && !feedItemsOrder.length) ||
+    (!hasFetchedFeedCategories && !feedCategories.length)
   ) {
     return <FeedLoading />;
   }
 
-  if (hasFetchedFeeds && !feeds) {
+  if (hasFetchedFeeds && !feeds.length) {
     return <TodayItemsFeedEmptyState />;
   }
 
@@ -210,7 +210,7 @@ export function TodayItems() {
     hasFetchedFeeds &&
     hasFetchedFeedItems &&
     hasFetchedFeedCategories &&
-    !filteredFeedItemsOrder
+    !filteredFeedItemsOrder.length
   ) {
     return <TodayItemsEmptyState />;
   }

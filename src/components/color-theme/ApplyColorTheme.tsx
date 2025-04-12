@@ -1,15 +1,13 @@
-import { auth } from "@clerk/nextjs/server";
 import { ApplyColorThemeOnMount } from "./ApplyColorThemeOnMount";
 import { getServerApi } from "~/server/api/server";
+import { getServerAuth, isServerAuthed } from "~/server/auth";
 
 export async function ApplyColorTheme({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await auth();
-
-  if (!user) {
+  if (!(await isServerAuthed())) {
     return children;
   }
 

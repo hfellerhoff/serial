@@ -10,6 +10,8 @@ import { Suspense } from "react";
 import { ReleaseNotifier } from "~/components/releases/ReleaseNotifier";
 import { InitialClientQueries } from "~/lib/data/InitialClientQueries";
 import FeedLoading from "../loading";
+import { isServerAuthed } from "~/server/auth";
+import { redirect } from "next/navigation";
 
 const title = "Serial";
 const description = "Your personal content newsletter";
@@ -87,11 +89,15 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  if (!(await isServerAuthed())) {
+    redirect("/auth");
+  }
+
   return (
     <ApplyColorTheme>
       <Suspense fallback={<FeedLoading />}>

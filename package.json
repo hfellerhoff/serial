@@ -4,13 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "next build && pnpm schema:generate && pnpm schema:migrate",
+    "build": "next build && pnpm schema:generate && pnpm schema:migrate && node --import=tsx src/server/scripts/migrateClerkUsers.ts",
     "build:atomic": "next build",
     "db:studio": "drizzle-kit studio",
     "schema:generate": "drizzle-kit generate",
     "schema:migrate": "node --experimental-specifier-resolution=node --loader ts-node/esm src/server/db/migrate",
     "dev": "pnpm schema:generate && pnpm schema:migrate && next dev",
     "dev:atomic": "next dev",
+    "dev:email": "email dev --port 4000",
     "lint": "next lint",
     "start": "next start"
   },
@@ -34,8 +35,11 @@
     "@radix-ui/react-scroll-area": "^1.2.3",
     "@radix-ui/react-slider": "^1.2.3",
     "@radix-ui/react-slot": "^1.1.2",
+    "@radix-ui/react-tabs": "^1.1.4",
     "@radix-ui/react-toggle": "^1.1.2",
     "@radix-ui/react-toggle-group": "^1.1.2",
+    "@react-email/components": "^0.0.36",
+    "@sendgrid/mail": "^8.1.5",
     "@t3-oss/env-nextjs": "^0.12.0",
     "@tanstack/react-query": "^5.66.11",
     "@trpc/client": "11.0.0-rc.819",
@@ -43,6 +47,7 @@
     "@trpc/server": "11.0.0-rc.819",
     "@trpc/tanstack-react-query": "11.0.0-rc.819",
     "@types/mdx": "^2.0.13",
+    "better-auth": "^1.2.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.4",
@@ -75,6 +80,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@clerk/backend": "^1.27.3",
     "@tailwindcss/postcss": "^4.0.9",
     "@tailwindcss/typography": "^0.5.16",
     "@total-typescript/ts-reset": "^0.6.1",
@@ -94,8 +100,10 @@
     "postcss": "^8.5.3",
     "prettier": "^3.5.2",
     "prettier-plugin-tailwindcss": "^0.6.11",
+    "react-email": "^4.0.7",
     "tailwindcss": "^4.0.9",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   },
   "ct3aMetadata": {

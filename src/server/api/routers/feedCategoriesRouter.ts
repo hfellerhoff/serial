@@ -9,7 +9,7 @@ export const feedCategoriesRouter = createTRPCRouter({
     const contentCategoriesList = await ctx.db
       .select()
       .from(contentCategories)
-      .where(eq(contentCategories.userId, ctx.auth!.userId!))
+      .where(eq(contentCategories.userId, ctx.auth!.user.id))
       .orderBy(asc(contentCategories.name));
     const categoryIds = contentCategoriesList.map(
       (contentCategory) => contentCategory.id,

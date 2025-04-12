@@ -36,7 +36,7 @@ export const feedRouter = createTRPCRouter({
               const existingFeed = await tx.query.feeds.findFirst({
                 where: and(
                   eq(feeds.url, newFeed.url),
-                  eq(feeds.userId, ctx.auth!.userId!),
+                  eq(feeds.userId, ctx.auth!.user.id),
                 ),
               });
 
@@ -47,7 +47,7 @@ export const feedRouter = createTRPCRouter({
               const newFeeds = await tx
                 .insert(feeds)
                 .values({
-                  userId: ctx.auth!.userId!,
+                  userId: ctx.auth!.user.id,
                   ...newFeed,
                 })
                 .returning();
@@ -94,7 +94,7 @@ export const feedRouter = createTRPCRouter({
             (channel) => importUrlSchema.safeParse(channel.feedUrl).success,
           )
           .map((channel) => ({
-            userId: ctx.auth!.userId!,
+            userId: ctx.auth!.user.id,
             name: channel.title,
             platform: "youtube",
             url: channel.feedUrl,
@@ -109,7 +109,7 @@ export const feedRouter = createTRPCRouter({
             const existingFeed = await tx.query.feeds.findFirst({
               where: and(
                 eq(feeds.url, newFeed.url),
-                eq(feeds.userId, ctx.auth!.userId!),
+                eq(feeds.userId, ctx.auth!.user.id),
               ),
             });
 
@@ -132,12 +132,12 @@ export const feedRouter = createTRPCRouter({
 
         await tx
           .delete(feeds)
-          .where(and(eq(feeds.id, input), eq(feeds.userId, ctx.auth!.userId!)));
+          .where(and(eq(feeds.id, input), eq(feeds.userId, ctx.auth!.user.id)));
       });
     }),
   getAllFeedData: protectedProcedure.query(async ({ ctx }) => {
     const feedsList = await ctx.db.query.feeds.findMany({
-      where: sql`user_id = ${ctx.auth!.userId}`,
+      where: sql`user_id = ${ctx.auth!.user.id}`,
     });
 
     if (!feedsList) {
@@ -211,7 +211,7 @@ export const feedRouter = createTRPCRouter({
   }),
   getAll: protectedProcedure.query(async ({ ctx }) => {
     const feedsList = await ctx.db.query.feeds.findMany({
-      where: sql`user_id = ${ctx.auth!.userId}`,
+      where: sql`user_id = ${ctx.auth!.user.id}`,
     });
 
     return feedsList;
