@@ -1,4 +1,5 @@
 import { ClockIcon, EyeIcon, EyeOffIcon, CheckIcon } from "lucide-react";
+import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { useKeyboard } from "~/components/KeyboardProvider";
 import { Button } from "~/components/ui/button";
 import { useFeedItemGlobalState } from "~/lib/data/atoms";
@@ -62,7 +63,8 @@ export function VideoActions({ videoID }: { videoID: string }) {
 
   return (
     <div className="flex w-full items-center justify-center gap-2 p-6">
-      <Button
+      <ButtonWithShortcut
+        shortcut="w"
         variant={isWatchLater ? "secondary" : "outline"}
         onClick={async () => {
           await setWatchLaterValue({
@@ -73,10 +75,10 @@ export function VideoActions({ videoID }: { videoID: string }) {
         }}
       >
         {isWatchLater ? <CheckIcon size={16} /> : <ClockIcon size={16} />}
-        <span className="pl-1.5 md:pr-1.5">Watch Later</span>
-        <kbd className="bg-muted hidden rounded px-1 md:inline-block">w</kbd>
-      </Button>
-      <Button
+        <span className="pl-1.5">Watch Later</span>
+      </ButtonWithShortcut>
+      <ButtonWithShortcut
+        shortcut="e"
         variant={isWatched ? "secondary" : "outline"}
         onClick={async () => {
           await setWatchedValue({
@@ -87,11 +89,8 @@ export function VideoActions({ videoID }: { videoID: string }) {
         }}
       >
         {isWatched ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
-        <span className="pl-1.5 md:pr-1.5">
-          {isWatched ? "Watched" : "Unwatched"}
-        </span>
-        <kbd className="bg-muted hidden rounded px-1 md:inline-block">e</kbd>
-      </Button>
+        <span className="pl-1.5">{isWatched ? "Watched" : "Unwatched"}</span>
+      </ButtonWithShortcut>
     </div>
   );
 }

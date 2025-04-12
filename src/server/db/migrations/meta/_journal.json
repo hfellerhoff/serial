@@ -85,6 +85,13 @@
       "when": 1742166621028,
       "tag": "0011_cloudy_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1744480782661,
+      "tag": "0012_dazzling_tyger_tiger",
+      "breakpoints": true
     }
   ]
 }

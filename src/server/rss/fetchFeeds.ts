@@ -11,7 +11,7 @@ export async function fetchNewFeedDetails(
   let urls = [url];
 
   // process url
-  if (url.includes("youtube.com/@")) {
+  if (url.includes("youtube.com/@") || url.includes("youtube.com/channel/")) {
     const feed = await fetch(url);
     const text = await feed.text();
 

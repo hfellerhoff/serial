@@ -10,6 +10,7 @@ import { TRPCReactProvider } from "~/trpc/react";
 import { Toaster } from "~/components/ui/sonner";
 import { ApplyColorTheme } from "~/components/color-theme/ApplyColorTheme";
 import { Suspense } from "react";
+import { AUTH_PAGE_URL } from "~/server/auth/constants";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -122,7 +123,7 @@ export default function RootLayout({
       <body
         className={cn(`min-h-screen font-sans antialiased ${inter.variable}`)}
       >
-        <ClerkProvider afterSignOutUrl="/welcome">
+        <ClerkProvider afterSignOutUrl={AUTH_PAGE_URL}>
           <TRPCReactProvider>
             <ThemeProvider
               attribute="class"

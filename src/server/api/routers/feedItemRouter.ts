@@ -15,7 +15,7 @@ const isWithinLastMonth = gte(
 export const feedItemRouter = createTRPCRouter({
   getAll: protectedProcedure.query(async ({ ctx }) => {
     const feedsData = await ctx.db.query.feeds.findMany({
-      where: eq(feeds.userId, ctx.auth!.userId!),
+      where: eq(feeds.userId, ctx.auth!.user.id),
     });
     const feedIds = feedsData.map((feed) => feed.id);
 
@@ -28,7 +28,7 @@ export const feedItemRouter = createTRPCRouter({
   }),
   fetchNewItems: protectedProcedure.mutation(async ({ ctx }) => {
     const feedsList = await ctx.db.query.feeds.findMany({
-      where: sql`user_id = ${ctx.auth!.userId}`,
+      where: sql`user_id = ${ctx.auth!.user.id}`,
     });
 
     if (!feedsList) {

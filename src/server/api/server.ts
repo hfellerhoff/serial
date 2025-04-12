@@ -1,12 +1,16 @@
 import { appRouter } from "./root";
-import { headers } from "next/headers";
-import { auth } from "@clerk/nextjs/server";
+import { headers as getNextHeaders } from "next/headers";
 import { db } from "../db";
+import { auth } from "../auth";
 
 export const getServerApi = async () => {
+  const headers = await getNextHeaders();
+
   return appRouter.createCaller({
-    headers: await headers(),
-    auth: await auth(),
+    headers,
+    auth: await auth.api.getSession({
+      headers,
+    }),
     db,
   });
 };

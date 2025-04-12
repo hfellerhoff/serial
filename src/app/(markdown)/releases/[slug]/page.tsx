@@ -1,10 +1,10 @@
-import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
   readContentPage,
   getPublishedReleaseSlugs,
 } from "~/lib/markdown/releases";
+import { getServerAuth } from "~/server/auth";
 
 type Params = Promise<{ slug: string | string[] }>;
 async function getSlugFromParams(params: Params) {
@@ -57,7 +57,7 @@ export default async function Page({ params }: { params: Params }) {
   const slug = await getSlugFromParams(params);
   const { content, frontmatter } = await readContentPage("releases", slug);
 
-  const authData = await auth();
+  const authData = await getServerAuth();
 
   return (
     <div>
@@ -70,7 +70,7 @@ export default async function Page({ params }: { params: Params }) {
       <hr />
       {content}
 
-      {!!authData.sessionId && (
+      {!!authData?.session.id && (
         <>
           <p className="pt-6 pb-2">
             Thanks for checking out the release log! If you have any questions
@@ -83,7 +83,7 @@ export default async function Page({ params }: { params: Params }) {
           <Link href="/feed">Return to the app →</Link>
         </>
       )}
-      {!authData.sessionId && (
+      {!authData?.session.id && (
         <>
           <p className="pt-6 pb-1">
             Thanks for checking out the release log! If you think Serial would

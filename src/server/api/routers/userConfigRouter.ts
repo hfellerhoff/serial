@@ -40,7 +40,7 @@ export const userConfigRouter = createTRPCRouter({
       await ctx.db
         .insert(userConfig)
         .values({
-          userId: ctx.auth!.userId!,
+          userId: ctx.auth!.user.id,
           [key]: formattedHSL,
         })
         .onConflictDoUpdate({
@@ -53,12 +53,12 @@ export const userConfigRouter = createTRPCRouter({
     }),
   getConfig: publicProcedure.query(
     async ({ ctx }): Promise<UserConfigValues> => {
-      if (!ctx.auth?.userId) {
+      if (!ctx.auth?.user.id) {
         return { lightHSL: undefined, darkHSL: undefined };
       }
 
       const userConfig = await ctx.db.query.userConfig.findFirst({
-        where: sql`user_id = ${ctx.auth.userId}`,
+        where: sql`user_id = ${ctx.auth.user.id}`,
       });
 
       return {

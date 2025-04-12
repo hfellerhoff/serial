@@ -1,10 +1,10 @@
 "use client";
 
-import { UserButton } from "@clerk/nextjs";
 import { HomeIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Button } from "~/components/ui/button";
+import { UserManagementPopoverButton } from "./UserManagementButton";
+import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 
 export function TopLeftButton() {
   const pathname = usePathname();
@@ -12,16 +12,16 @@ export function TopLeftButton() {
   if (pathname !== "/feed") {
     return (
       <Link href="/feed">
-        <Button size="icon" variant="outline">
+        <ButtonWithShortcut size="icon" shortcut="esc" variant="outline">
           <HomeIcon size={16} />
-        </Button>
+        </ButtonWithShortcut>
       </Link>
     );
   }
 
   return (
     <div className="h-8 w-8 shrink-0">
-      <UserButton />
+      <UserManagementPopoverButton />
     </div>
   );
 }

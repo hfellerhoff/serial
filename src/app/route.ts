@@ -1,13 +1,16 @@
-import { getAuth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { type NextRequest } from "next/server";
+import { getServerAuth } from "~/server/auth";
+import {
+  AUTH_SIGNED_IN_URL,
+  AUTH_SIGNED_OUT_URL,
+} from "~/server/auth/constants";
 
-export async function GET(request: NextRequest) {
-  const auth = getAuth(request);
+export async function GET() {
+  const auth = await getServerAuth();
 
-  if (auth.userId) {
-    return redirect("/feed");
+  if (auth?.session.id) {
+    return redirect(AUTH_SIGNED_IN_URL);
   }
 
-  return redirect("/welcome");
+  return redirect(AUTH_SIGNED_OUT_URL);
 }

@@ -26,7 +26,7 @@ import { db } from "~/server/db";
  */
 export const createTRPCContext = async (opts: {
   headers: Headers;
-  auth?: ReturnType<typeof getAuth>;
+  auth?: Awaited<ReturnType<typeof auth.api.getSession>>;
 }) => {
   return {
     db,
@@ -78,11 +78,11 @@ export const createTRPCRouter = t.router;
  */
 export const publicProcedure = t.procedure;
 
-import { type getAuth } from "@clerk/nextjs/server";
+import { auth } from "../auth";
 
 // // TODO: protected procedures
 export const isAuthed = t.middleware(async (opts) => {
-  if (!opts.ctx.auth?.sessionId || !opts.ctx.auth?.userId) {
+  if (!opts.ctx.auth?.session.id || !opts.ctx.auth?.user.id) {
     throw new Error("Unauthorized");
   }
 
