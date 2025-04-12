@@ -43,6 +43,7 @@
     "@trpc/server": "11.0.0-rc.819",
     "@trpc/tanstack-react-query": "11.0.0-rc.819",
     "@types/mdx": "^2.0.13",
+    "better-auth": "^1.2.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.4",
