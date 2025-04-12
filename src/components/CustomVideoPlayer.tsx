@@ -27,6 +27,8 @@ const PLAYBACK_SPEEDS = [
 ];
 const FASTEST_SPEED = PLAYBACK_SPEEDS[PLAYBACK_SPEEDS.length - 1]!.value;
 
+const SEEK_KEYS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+
 function useVideoShortcuts() {
   const playerRef = useRef<YouTube | null>(null);
   const [playerState, setPlayerState] = useState<number>(
@@ -34,6 +36,8 @@ function useVideoShortcuts() {
   );
   const [manualPlayerState, setManualPlayerState] = useState(playerState);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [isSeeking, setIsSeeking] = useState(false);
 
   const changeVideoPlaybackSpeed = useCallback((speed: number) => {
     if (!playerRef?.current) return;
@@ -65,11 +69,30 @@ function useVideoShortcuts() {
     }
   }, [playerState, setManualPlayerState]);
 
+  const seekToSecond = useCallback(
+    (seconds: number) => {
+      if (!playerRef?.current) return;
+      const player = playerRef?.current as YouTube | null;
+      void player?.internalPlayer.seekTo(seconds);
+      setIsSeeking(true);
+      if (playerState !== YOUTUBE_PLAYER_STATES.PLAYING) {
+        toggleVideoPlayback();
+      }
+    },
+    [playerState],
+  );
+
   useEffect(() => {
     const processKey = async (event: KeyboardEvent) => {
       if (event.key === " ") {
         event.preventDefault();
         toggleVideoPlayback();
+        return;
+      }
+      if (SEEK_KEYS.includes(event.key)) {
+        event.preventDefault();
+        const chunks = videoDuration / 10;
+        seekToSecond(chunks * parseInt(event.key));
         return;
       }
       if (event.key === "<" && event.shiftKey) {
@@ -107,6 +130,10 @@ function useVideoShortcuts() {
     setPlayerState,
     playbackSpeed,
     changeVideoPlaybackSpeed,
+    videoDuration,
+    setVideoDuration,
+    isSeeking,
+    setIsSeeking,
   };
 }
 
@@ -126,9 +153,11 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
     setPlayerState,
     playbackSpeed,
     changeVideoPlaybackSpeed,
+    videoDuration,
+    setVideoDuration,
+    isSeeking,
+    setIsSeeking,
   } = useVideoShortcuts();
-
-  const [videoDuration, setVideoDuration] = useState(0);
 
   const [videoProgress, setVideoProgress] = useState(0);
   const videoProgressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -146,8 +175,6 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
       clearInterval(videoProgressIntervalRef.current);
     }
   }, [playerState]);
-
-  const [isSeeking, setIsSeeking] = useState(false);
 
   const player = playerRef?.current as YouTube | null;
 
@@ -220,7 +247,7 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
               </div>
               <div
                 className={clsx(
-                  "from-background absolute inset-x-0 bottom-0 z-30 flex flex-col bg-gradient-to-t to-transparent p-4 opacity-0 transition-opacity",
+                  "from-background absolute inset-x-0 bottom-0 z-30 flex flex-col bg-gradient-to-t to-transparent p-4 pt-8 opacity-0 transition-opacity",
                   {
                     "group-hover:opacity-100": !props.isInactive,
                     "cursor-none!": props.isInactive,

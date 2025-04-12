@@ -1,23 +1,33 @@
-import { useState } from "react";
-import { Checkbox } from "../ui/checkbox";
 import { Label } from "../ui/label";
 import { useExperimentState } from "~/lib/hooks/useExperimentState";
+import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 
 export const EnableCustomVideoPlayerToggle = () => {
-  const [shouldShowCustomVideoPlayer, setShouldShowCustomVideoPlayer] =
-    useExperimentState("CUSTOM_VIDEO_PLAYER");
+  const [videoPlayer, setVideoPlayer] = useExperimentState(
+    "CUSTOM_VIDEO_PLAYER",
+  );
+
+  console.log(videoPlayer);
 
   return (
-    <div className="flex items-center">
-      <Checkbox
-        id="enable-custom-video-player"
-        checked={shouldShowCustomVideoPlayer}
-        onCheckedChange={(v) => setShouldShowCustomVideoPlayer(v as boolean)}
-        className="mr-2"
-      />
-      <Label htmlFor="enable-custom-video-player">
-        Enable Experimental Video Player
+    <div className="mt-2">
+      <Label htmlFor="video-player-select" className="mb-2 block font-semibold">
+        Video Player
       </Label>
+      <ToggleGroup
+        id="video-player-select"
+        type="single"
+        size="sm"
+        value={videoPlayer}
+        onValueChange={setVideoPlayer}
+      >
+        <ToggleGroupItem className="w-full" value="serial">
+          Serial Player
+        </ToggleGroupItem>
+        <ToggleGroupItem className="w-full" value="youtube">
+          YouTube Player
+        </ToggleGroupItem>
+      </ToggleGroup>
     </div>
   );
 };

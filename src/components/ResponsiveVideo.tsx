@@ -11,11 +11,9 @@ interface IResponsiveVideoProps {
 }
 
 export default function ResponsiveVideo(props: IResponsiveVideoProps) {
-  const [shouldShowCustomVideoPlayer] = useExperimentState(
-    "CUSTOM_VIDEO_PLAYER",
-  );
+  const [videoPlayer] = useExperimentState("CUSTOM_VIDEO_PLAYER");
 
-  if (shouldShowCustomVideoPlayer) {
+  if (videoPlayer === "serial") {
     return <CustomVideoPlayer {...props} />;
   }
 
