@@ -36,13 +36,15 @@ function useVideoShortcuts() {
   );
   const [manualPlayerState, setManualPlayerState] = useState(playerState);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [videoProgress, setVideoProgress] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
 
   const changeVideoPlaybackSpeed = useCallback((speed: number) => {
     if (!playerRef?.current) return;
-    setPlaybackSpeed(speed);
     const player = playerRef?.current as YouTube | null;
+
+    setPlaybackSpeed(speed);
     void player?.internalPlayer?.setPlaybackRate(speed);
   }, []);
 
@@ -74,6 +76,7 @@ function useVideoShortcuts() {
       if (!playerRef?.current) return;
       const player = playerRef?.current as YouTube | null;
       void player?.internalPlayer.seekTo(seconds);
+      setVideoProgress(seconds);
       setIsSeeking(true);
       if (playerState !== YOUTUBE_PLAYER_STATES.PLAYING) {
         toggleVideoPlayback();
@@ -84,8 +87,20 @@ function useVideoShortcuts() {
 
   useEffect(() => {
     const processKey = async (event: KeyboardEvent) => {
+      console.log(event.key);
       if (event.key === " ") {
         event.preventDefault();
+        toggleVideoPlayback();
+        return;
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        seekToSecond(videoProgress - 5 * playbackSpeed);
+        return;
+      }
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        seekToSecond(videoProgress + 5 * playbackSpeed);
         toggleVideoPlayback();
         return;
       }
@@ -119,7 +134,7 @@ function useVideoShortcuts() {
     return () => {
       window.removeEventListener("keydown", processKey);
     };
-  }, [playerState, toggleVideoPlayback, playbackSpeed]);
+  }, [playerState, toggleVideoPlayback, playbackSpeed, videoProgress]);
 
   return {
     playerRef,
@@ -134,6 +149,8 @@ function useVideoShortcuts() {
     setVideoDuration,
     isSeeking,
     setIsSeeking,
+    videoProgress,
+    setVideoProgress,
   };
 }
 
@@ -157,9 +174,10 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
     setVideoDuration,
     isSeeking,
     setIsSeeking,
+    videoProgress,
+    setVideoProgress,
   } = useVideoShortcuts();
 
-  const [videoProgress, setVideoProgress] = useState(0);
   const videoProgressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     const player = playerRef?.current as YouTube | null;
