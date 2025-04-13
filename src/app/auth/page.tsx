@@ -11,6 +11,9 @@ import {
 import { AuthHeader } from "./AuthHeader";
 import { getServerAuth } from "~/server/auth";
 import { redirect } from "next/navigation";
+import { env } from "~/env";
+
+const isForgotPasswordEnabled = !!env.SENDGRID_API_KEY;
 
 export default async function AuthPage() {
   const auth = await getServerAuth();
@@ -36,7 +39,7 @@ export default async function AuthPage() {
               </TabsList>
             </AuthHeader>
             <TabsContent value="sign-in">
-              <SignIn />
+              <SignIn isForgotPasswordEnabled={isForgotPasswordEnabled} />
             </TabsContent>
             <TabsContent value="sign-up">
               <SignUp />

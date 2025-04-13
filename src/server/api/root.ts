@@ -4,8 +4,10 @@ import { contentCategoriesRouter } from "~/server/api/routers/contentCategoriesR
 import { feedCategoriesRouter } from "~/server/api/routers/feedCategoriesRouter";
 import { createTRPCRouter } from "~/server/api/trpc";
 import { userConfigRouter } from "./routers/userConfigRouter";
+import { userRouter } from "./routers/userRouter";
 
 export const appRouter = createTRPCRouter({
+  user: userRouter,
   feeds: feedRouter,
   feedItems: feedItemRouter,
   contentCategories: contentCategoriesRouter,
