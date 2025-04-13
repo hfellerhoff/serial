@@ -80,7 +80,7 @@ export default function SignIn() {
   const signedOutRef = useRef(false);
   if (isClerkSignedIn && !signedOutRef.current) {
     signedOutRef.current = true;
-    signOutOfClerk({
+    void signOutOfClerk({
       redirectUrl: AUTH_PAGE_URL,
     });
   }
