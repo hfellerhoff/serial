@@ -25,4 +25,4 @@ jobs:
         run: pnpm install
 
       - name: Build application
-        run: pnpm build:atomic
+        run: pnpm build:ci
