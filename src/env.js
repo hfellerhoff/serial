@@ -15,7 +15,6 @@ export const env = createEnv({
         "You forgot to change the default URL",
       ),
     DATABASE_AUTH_TOKEN: z.string(),
-    CLERK_SECRET_KEY: z.string(),
     BETTER_AUTH_SECRET: z.string(),
     SENDGRID_API_KEY: z.string().optional(),
     NODE_ENV: z
@@ -29,8 +28,6 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    // NEXT_PUBLIC_CLIENTVAR: z.string(),
-    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string(),
     NEXT_PUBLIC_ROOT_URL: z.string(),
   },
 
@@ -41,9 +38,6 @@ export const env = createEnv({
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
     DATABASE_AUTH_TOKEN: process.env.DATABASE_AUTH_TOKEN,
-    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
-      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-    CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
     NODE_ENV: process.env.NODE_ENV,
     NEXT_PUBLIC_ROOT_URL: process.env.NEXT_PUBLIC_ROOT_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,

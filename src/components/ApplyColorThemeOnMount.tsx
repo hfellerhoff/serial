@@ -1,10 +1,10 @@
 "use client";
 
 import { useTRPC } from "~/trpc/react";
-import { useUser } from "@clerk/nextjs";
 
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { useSession } from "~/lib/auth-client";
 
 const setVariable = (name: string, value: string) => {
   document.documentElement.style.setProperty(name, value);
@@ -12,11 +12,11 @@ const setVariable = (name: string, value: string) => {
 
 export function ApplyColorThemeOnMount() {
   const api = useTRPC();
-  const user = useUser();
+  const { data: auth } = useSession();
 
   const { data } = useQuery(
     api.userConfig.getConfig.queryOptions(undefined, {
-      enabled: user.isSignedIn ?? false,
+      enabled: !!auth?.session.id ? true : false,
     }),
   );
 

@@ -16,8 +16,9 @@ import {
 import { AuthHeader } from "../AuthHeader";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { useClerk } from "@clerk/nextjs";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { useQuery } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 function AlertPane({
   title,
@@ -83,7 +84,6 @@ export function AuthResetPageComponent() {
   const params = useSearchParams();
 
   const token = params.get("token") ?? "";
-  const clerkSuccess = params.get("clerkSuccess") ?? "0";
 
   const [email, setEmail] = useState(params.get("email") ?? "");
   const [password, setPassword] = useState("");
@@ -91,9 +91,14 @@ export function AuthResetPageComponent() {
   const [loading, setLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
 
-  const { isSignedIn: isClerkSignedIn, signOut: signOutOfClerk } = useClerk();
+  const trpc = useTRPC();
+  const { data: isLegacyUser } = useQuery(
+    trpc.user.getIsLegacyUser.queryOptions({
+      email,
+    }),
+  );
 
-  if (clerkSuccess === "1" || (!!token && isSent)) {
+  if (!!token && isSent) {
     return (
       <AlertPane
         title="Reset Password"
@@ -147,11 +152,6 @@ export function AuthResetPageComponent() {
                     toast.error(ctx.error.message ?? "Something went wrong.");
                   },
                   onSuccess: async () => {
-                    if (isClerkSignedIn) {
-                      await signOutOfClerk({
-                        redirectUrl: `${AUTH_RESET_PASSWORD_URL}?clerkSuccess=1`,
-                      });
-                    }
                     setIsSent(true);
                   },
                 },
@@ -171,7 +171,7 @@ export function AuthResetPageComponent() {
 
   return (
     <InputPane title="Reset Password">
-      {isClerkSignedIn && (
+      {isLegacyUser && (
         <Alert className="mb-6">
           <InfoIcon className="h-4 w-4" />
           <AlertTitle>Clerk Account Migration</AlertTitle>

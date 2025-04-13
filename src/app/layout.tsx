@@ -1,6 +1,5 @@
 import "~/styles/globals.css";
 
-import { ClerkProvider } from "@clerk/nextjs";
 import { Inter } from "next/font/google";
 
 import { type Metadata, type Viewport } from "next";
@@ -10,7 +9,6 @@ import { TRPCReactProvider } from "~/trpc/react";
 import { Toaster } from "~/components/ui/sonner";
 import { ApplyColorTheme } from "~/components/color-theme/ApplyColorTheme";
 import { Suspense } from "react";
-import { AUTH_PAGE_URL } from "~/server/auth/constants";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -123,21 +121,19 @@ export default function RootLayout({
       <body
         className={cn(`min-h-screen font-sans antialiased ${inter.variable}`)}
       >
-        <ClerkProvider afterSignOutUrl={AUTH_PAGE_URL}>
-          <TRPCReactProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
-              <ApplyColorTheme>
-                <Suspense>{children}</Suspense>
-                <Toaster />
-              </ApplyColorTheme>
-            </ThemeProvider>
-          </TRPCReactProvider>
-        </ClerkProvider>
+        <TRPCReactProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <ApplyColorTheme>
+              <Suspense>{children}</Suspense>
+              <Toaster />
+            </ApplyColorTheme>
+          </ThemeProvider>
+        </TRPCReactProvider>
       </body>
     </html>
   );

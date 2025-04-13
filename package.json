@@ -16,7 +16,6 @@
     "start": "next start"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.12.2",
     "@formkit/auto-animate": "^0.8.2",
     "@libsql/client": "0.14.0",
     "@libsql/linux-x64-musl": "0.5.0-pre.6",
@@ -80,7 +79,6 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
-    "@clerk/backend": "^1.27.3",
     "@tailwindcss/postcss": "^4.0.9",
     "@tailwindcss/typography": "^0.5.16",
     "@total-typescript/ts-reset": "^0.6.1",
