@@ -176,24 +176,21 @@ function ColorModeToggleGroup() {
 }
 
 export function ColorThemePopoverButton({
-  isResponsive = true,
+  isDemo = false,
   children = "Appearance",
 }: {
-  isResponsive?: boolean;
+  isDemo?: boolean;
   children?: React.ReactNode;
 }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <ResponsiveButton
-          size={isResponsive ? "icon" : "default"}
-          variant="outline"
-        >
+        <ResponsiveButton size={!isDemo ? "icon" : "default"} variant="outline">
           <PaletteIcon size={16} />
           <span
             className={clsx({
-              "hidden md:inline-block": isResponsive,
-              "pl-1.5": !isResponsive,
+              "hidden md:inline-block": !isDemo,
+              "pl-1.5": isDemo,
             })}
           >
             {children}
@@ -204,10 +201,14 @@ export function ColorThemePopoverButton({
         <ColorModeToggleGroup />
         <div className="h-4" />
         <EditColorsForm />
-        <div className="h-6" />
-        <EnableCustomVideoPlayerToggle />
-        <div className="h-4" />
-        <ShowShortcutsToggle />
+        {!isDemo && (
+          <>
+            <div className="h-6" />
+            <EnableCustomVideoPlayerToggle />
+            <div className="h-4" />
+            <ShowShortcutsToggle />
+          </>
+        )}
       </PopoverContent>
     </Popover>
   );
