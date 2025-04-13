@@ -16,7 +16,8 @@ const inter = Inter({
 });
 
 const title = "Serial";
-const description = "Your personal content newsletter";
+const description =
+  "A snappy, customizable video feed. Designed to show you exactly the content you want to see and nothing else.";
 
 export const metadata: Metadata = {
   title: title,
