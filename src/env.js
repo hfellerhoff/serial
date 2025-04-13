@@ -29,6 +29,8 @@ export const env = createEnv({
    */
   client: {
     NEXT_PUBLIC_ROOT_URL: z.string(),
+    NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
+    NEXT_PUBLIC_POSTHOG_HOST: z.string().optional(),
   },
 
   /**
@@ -42,6 +44,8 @@ export const env = createEnv({
     NEXT_PUBLIC_ROOT_URL: process.env.NEXT_PUBLIC_ROOT_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
+    NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
+    NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
