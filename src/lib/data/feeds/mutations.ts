@@ -1,13 +1,15 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "~/trpc/react";
-import { FETCH_NEW_FEED_ITEMS_KEY } from "../feed-items";
 import { useFeeds } from ".";
 import { useAtom } from "jotai";
 import { feedItemsMapAtom, feedItemsOrderAtom } from "../atoms";
+import { useFetchNewFeedItemsMutation } from "../feed-items/mutations";
 
 export function useCreateFeedMutation() {
   const api = useTRPC();
   const queryClient = useQueryClient();
+
+  const { mutateAsync: fetchNewFeedItems } = useFetchNewFeedItemsMutation();
 
   return useMutation(
     api.feeds.create.mutationOptions({
@@ -21,9 +23,7 @@ export function useCreateFeedMutation() {
         await queryClient.invalidateQueries({
           queryKey: api.feedCategories.getAll.queryKey(),
         });
-        await queryClient.invalidateQueries({
-          queryKey: FETCH_NEW_FEED_ITEMS_KEY,
-        });
+        await fetchNewFeedItems();
       },
     }),
   );
@@ -33,12 +33,11 @@ export function useCreateFeedsFromSubscriptionImportMutation() {
   const api = useTRPC();
   const queryClient = useQueryClient();
 
+  const { mutateAsync: fetchNewFeedItems } = useFetchNewFeedItemsMutation();
+
   return useMutation(
     api.feeds.createFeedsFromSubscriptionImport.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: FETCH_NEW_FEED_ITEMS_KEY,
-        });
         await queryClient.invalidateQueries({
           queryKey: api.feeds.getAll.queryKey(),
         });
@@ -48,6 +47,7 @@ export function useCreateFeedsFromSubscriptionImportMutation() {
         await queryClient.invalidateQueries({
           queryKey: api.feedCategories.getAll.queryKey(),
         });
+        await fetchNewFeedItems();
       },
     }),
   );
