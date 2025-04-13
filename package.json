@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "pnpm schema:migrate && next dev",
     "dev:email": "email dev --port 4000",
     "build": "next build && pnpm schema:migrate",
     "build:atomic": "next build",
