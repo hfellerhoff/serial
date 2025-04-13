@@ -74,9 +74,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/icon-256.png",
-        width: 256,
-        height: 256,
+        url: "/masonry-preview.png",
         alt: title,
       },
     ],
