@@ -52,3 +52,5 @@ yarn-error.log*
 
 *.db
 .obsidian/**
+
+.env.local
