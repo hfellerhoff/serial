@@ -63,7 +63,11 @@ function useClerkSignIn() {
   };
 }
 
-export default function SignIn() {
+export default function SignIn({
+  isForgotPasswordEnabled,
+}: {
+  isForgotPasswordEnabled: boolean;
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -105,12 +109,14 @@ export default function SignIn() {
         <div className="grid gap-2">
           <div className="flex items-center">
             <Label htmlFor="password">Password</Label>
-            <Link
-              href={`${AUTH_RESET_PASSWORD_URL}?email=${encodeURIComponent(email)}`}
-              className="ml-auto inline-block text-sm underline"
-            >
-              Forgot your password?
-            </Link>
+            {isForgotPasswordEnabled && (
+              <Link
+                href={`${AUTH_RESET_PASSWORD_URL}?email=${encodeURIComponent(email)}`}
+                className="ml-auto inline-block text-sm underline"
+              >
+                Forgot your password?
+              </Link>
+            )}
           </div>
           <Input
             id="password"
