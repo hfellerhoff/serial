@@ -3,7 +3,7 @@
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { redirect, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -11,6 +11,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { signIn } from "~/lib/auth-client";
 import {
+  AUTH_PAGE_URL,
   AUTH_RESET_PASSWORD_URL,
   AUTH_SIGNED_IN_URL,
 } from "../../server/auth/constants";
@@ -70,12 +71,18 @@ export default function SignIn() {
   const router = useRouter();
 
   const { signInWithClerk } = useClerkSignIn();
-  const { isSignedIn: isClerkSignedIn, user } = useClerk();
+  const {
+    isSignedIn: isClerkSignedIn,
+    user,
+    signOut: signOutOfClerk,
+  } = useClerk();
 
-  if (isClerkSignedIn && user?.primaryEmailAddress?.emailAddress) {
-    redirect(
-      `${AUTH_RESET_PASSWORD_URL}?email=${encodeURIComponent(user.primaryEmailAddress.emailAddress)}`,
-    );
+  const signedOutRef = useRef(false);
+  if (isClerkSignedIn && !signedOutRef.current) {
+    signedOutRef.current = true;
+    signOutOfClerk({
+      redirectUrl: AUTH_PAGE_URL,
+    });
   }
 
   return (
@@ -86,7 +93,7 @@ export default function SignIn() {
           <Input
             id="email"
             type="email"
-            placeholder="m@example.com"
+            placeholder="email@example.com"
             required
             onChange={(e) => {
               setEmail(e.target.value);
@@ -154,7 +161,12 @@ export default function SignIn() {
                       password,
                     });
 
-                    if (isSuccessful) return;
+                    if (isSuccessful) {
+                      router.push(
+                        `${AUTH_RESET_PASSWORD_URL}?email=${encodeURIComponent(email)}`,
+                      );
+                    }
+                    return;
                   }
 
                   toast.error(errorMessage);
