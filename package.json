@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "next build && pnpm schema:generate && pnpm schema:migrate && node --import=tsx src/server/scripts/migrateClerkUsers.ts",
+    "build": "next build && pnpm schema:generate && pnpm schema:migrate",
     "build:atomic": "next build",
     "db:studio": "drizzle-kit studio",
     "schema:generate": "drizzle-kit generate",
