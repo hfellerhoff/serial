@@ -6,6 +6,9 @@ A snappy, customizable video feed. Designed to show you exactly the content you 
 
 [Check it out →](https://serial.tube/welcome)
 
+## Releases & Changelog
+
+All release notes can be found at [https://serial.tube/releases](https://serial.tube/releases).
 
 ## Local Development
 
