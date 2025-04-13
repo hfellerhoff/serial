@@ -1,3 +1,4 @@
+name: "Pull Request: Successful Build"
 on:
   - pull_request
 
