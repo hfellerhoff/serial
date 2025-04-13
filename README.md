@@ -16,9 +16,11 @@ Getting up and running with Serial is easy. Here are the steps you need to start
 1. Clone the repository locally
 2. Duplicate the `.env.example` file, and rename the copy to `.env`
 3. Create a new database on  [Turso](https://turso.tech/)
-	1. In the top right dropdown menu, click "Create Token" 
-	2. Create a token with read and write permissions
-	3. On the success screen, save the top value as `DATABASE_AUTH_TOKEN` and the bottom as `DATABASE_URL`
+	1. Sign up for an account if you don't have one, and navigate to the database dashboard
+	2. Create a new database
+	3. In the top right dropdown menu, click "Create Token" 
+	4. Create a token with read and write permissions
+	5. On the success screen, save the top value as `DATABASE_AUTH_TOKEN` and the bottom as `DATABASE_URL`
 4. Navigate to [Better Auth](https://www.better-auth.com/docs/installation#set-environment-variables) and generate an auth secret. Set this as `BETTER_AUTH_SECRET`
 5. (optional) Create an account on [Sendgrid](https://sendgrid.com/en-us) and set up a mailing address.
 	- This is not necessary to get up and running, but is needed if you'd like working password reset and other email-related functionality.
