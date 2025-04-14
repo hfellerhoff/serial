@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2Icon, ExpandIcon } from "lucide-react";
+import { Loader2Icon, ExpandIcon, EllipsisVerticalIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
@@ -51,7 +51,7 @@ export function UserManagementNavItem() {
                   </span>
                 </div>
               )}
-              <ExpandIcon className="ml-auto size-4" />
+              <EllipsisVerticalIcon className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
