@@ -1,27 +1,59 @@
 "use client";
 
-import { HomeIcon } from "lucide-react";
+import {
+  HomeIcon,
+  MenuIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
+} from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { UserManagementPopoverButton } from "./UserManagementButton";
+import { usePathname } from "next/navigation";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
+import { useSidebar } from "~/components/ui/sidebar";
 
 export function TopLeftButton() {
   const pathname = usePathname();
+  const { toggleSidebar, open, openLeftMobile, isMobile } = useSidebar();
 
   if (pathname !== "/feed") {
     return (
-      <Link href="/feed">
-        <ButtonWithShortcut size="icon" shortcut="esc" variant="outline">
-          <HomeIcon size={16} />
+      <div className="flex gap-2">
+        <ButtonWithShortcut
+          shortcut="\"
+          onClick={() => toggleSidebar("left")}
+          size="icon"
+          variant="outline"
+        >
+          {isMobile && openLeftMobile && <PanelLeftCloseIcon size={16} />}
+          {isMobile && !openLeftMobile && <PanelLeftOpenIcon size={16} />}
+          {!isMobile && <MenuIcon size={16} />}
+          <span className="hidden pl-1 md:block">Menu</span>
         </ButtonWithShortcut>
-      </Link>
+        {!open && (
+          <Link href="/feed">
+            <ButtonWithShortcut size="icon" shortcut="h" variant="outline">
+              <HomeIcon size={16} />
+              <span className="hidden pl-1 md:block">Home</span>
+            </ButtonWithShortcut>
+          </Link>
+        )}
+      </div>
     );
   }
 
   return (
-    <div className="h-8 w-8 shrink-0">
-      <UserManagementPopoverButton />
+    <div className="flex gap-2">
+      <ButtonWithShortcut
+        shortcut="\"
+        onClick={() => toggleSidebar("left")}
+        size="icon"
+        variant="outline"
+      >
+        {isMobile && openLeftMobile && <PanelLeftCloseIcon size={16} />}
+        {isMobile && !openLeftMobile && <PanelLeftOpenIcon size={16} />}
+        {!isMobile && <MenuIcon size={16} />}
+        <span className="hidden pl-1 md:block">Menu</span>
+      </ButtonWithShortcut>
     </div>
   );
 }

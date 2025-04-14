@@ -18,10 +18,10 @@ export const EnableCustomVideoPlayerToggle = () => {
         onValueChange={setVideoPlayer}
       >
         <ToggleGroupItem className="w-full" value="serial">
-          Serial Player
+          Custom
         </ToggleGroupItem>
         <ToggleGroupItem className="w-full" value="youtube">
-          YouTube Player
+          YouTube
         </ToggleGroupItem>
       </ToggleGroup>
     </div>

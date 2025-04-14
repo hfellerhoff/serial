@@ -24,9 +24,11 @@ type FlagsState = {
 };
 
 function parseFlagLocalStorageValue(experimentName: FlagName) {
+  if (typeof window === "undefined") return undefined;
+
   const experiment = LOCAL_STORAGE_FLAGS[experimentName];
 
-  const storedValue = localStorage.getItem(experiment.key);
+  const storedValue = window.localStorage.getItem(experiment.key);
   if (!storedValue) return undefined;
 
   const parsedValue = experiment.schema.safeParse(JSON.parse(storedValue));

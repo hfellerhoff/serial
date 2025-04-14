@@ -2,59 +2,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@theme {
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
-
-  --animate-accordion-down: accordion-down 0.2s ease-out;
-  --animate-accordion-up: accordion-up 0.2s ease-out;
-
-  @keyframes accordion-down {
-    from {
-      height: 0;
-    }
-    to {
-      height: var(--radix-accordion-content-height);
-    }
-  }
-  @keyframes accordion-up {
-    from {
-      height: var(--radix-accordion-content-height);
-    }
-    to {
-      height: 0;
-    }
-  }
-}
-
 @utility container {
   margin-inline: auto;
   padding-inline: 2rem;
@@ -86,11 +33,11 @@
 
 @layer base {
   html {
-    background: black;
+    background: hsl(var(--sidebar));
   }
 
   :root {
-    --radius: 0.3rem;
+    --radius: 0.5rem;
 
     --light-hue: 60;
     --light-sat: 10%;
@@ -118,9 +65,21 @@
     --sc-sat: calc(var(--bg-sat) * 0.9);
     --sc-lgt: calc(var(--bg-lgt) - 7.5%);
 
+    --sc-sb-hue: calc(var(--bg-hue) + 8);
+    --sc-sb-sat: calc(var(--bg-sat) * 0.9);
+    --sc-sb-lgt: calc(var(--bg-lgt) - 15%);
+
     --mf-hue: calc(var(--bg-hue) - 8);
     --mf-sat: calc(var(--bg-sat) - 10%);
     --mf-lgt: calc(var(--bg-lgt) - 50%);
+
+    --sb-hue: calc(var(--bg-hue) - 8);
+    --sb-sat: calc(var(--bg-sat) - 10%);
+    --sb-lgt: calc(var(--bg-lgt) - 4%);
+
+    --fg-hue: calc(var(--sb-hue) - 40);
+    --fg-sat: calc(var(--sb-sat) + 5%);
+    --fg-lgt: calc(var(--sb-lgt) - 85%);
 
     --rg-lgt: calc(var(--bg-lgt) - 70%);
 
@@ -147,6 +106,15 @@
     --border: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
     --input: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
     --ring: var(--mf-hue) var(--mf-sat) var(--rg-lgt);
+
+    --sidebar: var(--sb-hue) var(--sb-sat) var(--sb-lgt);
+    --sidebar-foreground: var(--sb-fg-hue) var(--sb-fg-sat) var(--sb-fg-lgt);
+    --sidebar-primary: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --sidebar-primary-foreground: var(--pr-hue) var(--pr-sat) var(--pr-lgt);
+    --sidebar-accent: var(--sc-sb-hue) var(--sc-sb-sat) var(--sc-sb-lgt);
+    --sidebar-accent-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --sidebar-border: var(--sc-sb-hue) var(--sc-sb-sat) var(--sc-lgt);
+    --sidebar-ring: var(--mf-hue) var(--mf-sat) var(--rg-lgt);
   }
 
   .dark {
@@ -169,6 +137,14 @@
     --mf-hue: calc(var(--bg-hue) + 8);
     --mf-sat: calc(var(--bg-sat) - 10%);
     --mf-lgt: calc(var(--bg-lgt) + 50%);
+
+    --sb-hue: calc(var(--bg-hue) + 8);
+    --sb-sat: calc(var(--bg-sat) - 10%);
+    --sb-lgt: calc(var(--bg-lgt) - 6%);
+
+    --sb-fg-hue: calc(var(--sb-hue) + 40);
+    --sb-fg-sat: calc(var(--sb-sat) - 5%);
+    --sb-fg-lgt: calc(var(--sb-lgt) + 85%);
 
     --rg-lgt: calc(var(--bg-lgt) + 70%);
 
@@ -195,6 +171,15 @@
     --border: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
     --input: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
     --ring: var(--mf-hue) var(--mf-sat) var(--rg-lgt);
+
+    --sidebar: var(--sb-hue) var(--sb-sat) var(--sb-lgt);
+    --sidebar-foreground: var(--sb-fg-hue) var(--sb-fg-sat) var(--sb-fg-lgt);
+    --sidebar-primary: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --sidebar-primary-foreground: var(--pr-hue) var(--pr-sat) var(--pr-lgt);
+    --sidebar-accent: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --sidebar-accent-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --sidebar-border: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --sidebar-ring: var(--mf-hue) var(--mf-sat) var(--rg-lgt);
   }
 
   /* .arc {
@@ -344,4 +329,79 @@ dialog:modal {
 
 .no-cursor {
   cursor: none !important;
+}
+
+@theme inline {
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+}
+
+/*
+  ---break---
+*/
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }

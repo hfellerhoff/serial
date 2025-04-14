@@ -1,9 +1,7 @@
-import React from "react";
 import { ClientDatetime } from "./ClientDatetime";
 import { DateFilterChips } from "./DateFilterChips";
 import { ItemVisibilityChips } from "./ItemVisibilityChips";
 import { TodayItems } from "./TodayItems";
-import { CategorySelectionChips } from "./CategorySelectionChips";
 
 export default async function Home() {
   return (
@@ -21,7 +19,6 @@ export default async function Home() {
         </div>
       </div>
       <TodayItems />
-      <CategorySelectionChips />
     </div>
   );
 }
