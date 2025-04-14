@@ -117,9 +117,7 @@ export default async function RootLayout({
               <SidebarInset>
                 <Header />
                 <main className="flex flex-col">
-                  <ScrollArea className="h-full w-full">
-                    <div className="h-full w-full pb-6">{children}</div>
-                  </ScrollArea>
+                  <div className="h-full w-full pb-6">{children}</div>
                   <AppDialogs />
                 </main>
                 <ReleaseNotifier />
