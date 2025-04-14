@@ -77,7 +77,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       const foundItem = feedItemsMap[videoID];
       const currentItemIndex = filteredFeedItemsOrder?.indexOf(videoID);
 
-      if (event.key === "`") {
+      if (event.key === "`" || event.key === "f") {
         setView((prev) => {
           return prev === "windowed" ? "fullscreen" : "windowed";
         });
