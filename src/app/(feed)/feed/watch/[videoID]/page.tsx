@@ -20,6 +20,10 @@ export default function WatchVideoPage(props: {
     } else {
       document.body.classList.remove("no-cursor");
     }
+
+    return () => {
+      document.body.classList.remove("no-cursor");
+    };
   }, [isInactive]);
 
   return (
@@ -35,7 +39,7 @@ export default function WatchVideoPage(props: {
       })}
     >
       <div
-        className={clsx("w-full", {
+        className={clsx("h-full w-full", {
           "sm:py-6": view === "windowed",
         })}
       >

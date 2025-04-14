@@ -213,133 +213,129 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
   const player = playerRef?.current as YouTube | null;
 
   return (
-    <div className={clsx("relative", classes.video)}>
-      <div
-        style={{
-          // @ts-expect-error need this
-          "--aspect-ratio": "16/9",
-        }}
-      >
-        {props.videoID && (
-          <>
-            <YouTube
-              ref={playerRef}
-              videoId={props.videoID}
-              className="pointer-events-none h-full w-full select-none"
-              iframeClassName="w-full h-full border-none select-none pointer-events-none"
-              opts={{
-                host: "https://www.youtube-nocookie.com",
-                playerVars: {
-                  rel: 0,
-                  controls: 0,
-                  disablekb: 0,
-                  playsinline: 0,
-                },
-              }}
-              onStateChange={(event) => {
-                setVideoDuration(event.target.getDuration());
-                setVideoProgress(event.target.getCurrentTime());
-                setPlayerState(event.data);
+    <div className="relative h-full w-full">
+      {props.videoID && (
+        <>
+          <YouTube
+            ref={playerRef}
+            videoId={props.videoID}
+            className="pointer-events-none h-full w-full select-none"
+            iframeClassName="w-full h-full border-none select-none pointer-events-none"
+            opts={{
+              host: "https://www.youtube-nocookie.com",
+              playerVars: {
+                rel: 0,
+                controls: 0,
+                disablekb: 0,
+                playsinline: 0,
+              },
+            }}
+            onStateChange={(event) => {
+              setVideoDuration(event.target.getDuration());
+              setVideoProgress(event.target.getCurrentTime());
+              setPlayerState(event.data);
 
-                if (event.data === YOUTUBE_PLAYER_STATES.PLAYING) {
-                  setTimeout(() => {
-                    setManualPlayerState(event.data);
-                    setIsSeeking(false);
-                  }, 50);
-                } else {
+              if (event.data === YOUTUBE_PLAYER_STATES.PLAYING) {
+                setTimeout(() => {
                   setManualPlayerState(event.data);
-                }
-              }}
-            />
+                  setIsSeeking(false);
+                }, 50);
+              } else {
+                setManualPlayerState(event.data);
+              }
+            }}
+          />
 
-            <div className="group">
-              <div
-                className={clsx("transition-all", {
-                  "opacity-0":
-                    manualPlayerState === YOUTUBE_PLAYER_STATES.PLAYING ||
-                    isSeeking,
-                })}
-              >
+          <div className="group">
+            <div
+              className={clsx("transition-all", {
+                "opacity-0":
+                  manualPlayerState === YOUTUBE_PLAYER_STATES.PLAYING ||
+                  isSeeking,
+              })}
+            >
+              <div className="absolute inset-0 h-full w-full bg-black">
                 <img
-                  className="absolute inset-0 h-full w-full object-cover"
+                  className="h-full w-full object-contain"
                   src={`http://img.youtube.com/vi/${props.videoID}/maxresdefault.jpg`}
                 />
-                <button
-                  onClick={toggleVideoPlayback}
-                  className={clsx(
-                    "absolute inset-0 inset-y-8 z-20 grid place-items-center",
-                    {
-                      "cursor-pointer": !props.isInactive,
-                      "cursor-none!": props.isInactive,
-                    },
-                  )}
-                >
-                  <div className="bg-background grid size-20 place-items-center rounded-2xl shadow-2xl transition-all group-hover:scale-105">
-                    <PlayIcon size={32} />
-                  </div>
-                </button>
               </div>
-              <div
+              <button
+                onClick={toggleVideoPlayback}
                 className={clsx(
-                  "from-background absolute inset-y-0 right-0 z-30 flex flex-col items-center justify-center bg-gradient-to-l to-transparent p-4 pl-8 opacity-0 transition-opacity",
+                  "absolute inset-0 inset-y-8 z-20 grid place-items-center",
                   {
-                    "group-hover:opacity-100": !props.isInactive,
+                    "cursor-pointer": !props.isInactive,
                     "cursor-none!": props.isInactive,
                   },
                 )}
               >
-                <ToggleGroup
-                  type="single"
-                  value={playbackSpeed.toString()}
-                  onValueChange={(value) => {
-                    if (!value) return;
-                    const numberValue = parseFloat(value);
-
-                    changeVideoPlaybackSpeed(numberValue);
-                  }}
-                  size="xs"
-                  className="flex flex-col items-center justify-center font-mono"
-                >
-                  {PLAYBACK_SPEEDS.map((speed) => (
-                    <ToggleGroupItem
-                      key={speed.value}
-                      value={speed.value.toString()}
-                    >
-                      {speed.label}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
-              </div>
-              <div
-                className={clsx(
-                  "from-background absolute inset-x-0 bottom-0 z-30 flex flex-col bg-gradient-to-t to-transparent p-4 pt-8 opacity-0 transition-opacity",
-                  {
-                    "group-hover:opacity-100": !props.isInactive,
-                    "cursor-none!": props.isInactive,
-                  },
-                )}
-              >
-                <Slider
-                  value={[videoProgress]}
-                  min={0}
-                  max={videoDuration}
-                  onValueChange={(value) => {
-                    setIsSeeking(true);
-                    setVideoProgress(value[0]!);
-                    void player?.internalPlayer.seekTo(value[0]!);
-                    if (playerState !== YOUTUBE_PLAYER_STATES.PLAYING) {
-                      toggleVideoPlayback();
-                    }
-                  }}
-                  className="mr-4"
-                />
-                <div className="flex items-center justify-between pt-2">
-                  <div className="w-max font-mono text-sm font-bold">
-                    {transformSecondsToFormattedTime(videoProgress)} /{" "}
-                    {transformSecondsToFormattedTime(videoDuration)}
-                  </div>
+                <div className="bg-background grid size-20 place-items-center rounded-2xl shadow-2xl transition-all group-hover:scale-105">
+                  <PlayIcon size={32} />
                 </div>
-                {/* <Button
+              </button>
+            </div>
+            <div
+              className={clsx(
+                "from-background absolute inset-y-0 right-0 z-30 flex flex-col items-center justify-center bg-gradient-to-l to-transparent p-4 pl-8 opacity-0 transition-opacity",
+                {
+                  "group-hover:opacity-100": !props.isInactive,
+                  "cursor-none!": props.isInactive,
+                },
+              )}
+            >
+              <ToggleGroup
+                type="single"
+                value={playbackSpeed.toString()}
+                onValueChange={(value) => {
+                  if (!value) return;
+                  const numberValue = parseFloat(value);
+
+                  changeVideoPlaybackSpeed(numberValue);
+                }}
+                size="xs"
+                className="flex flex-col items-center justify-center font-mono"
+              >
+                {PLAYBACK_SPEEDS.map((speed) => (
+                  <ToggleGroupItem
+                    key={speed.value}
+                    value={speed.value.toString()}
+                  >
+                    {speed.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
+            <div
+              className={clsx(
+                "from-background absolute inset-x-0 bottom-0 z-30 flex flex-col bg-gradient-to-t to-transparent p-4 pt-8 opacity-0 transition-opacity",
+                {
+                  "group-hover:opacity-100": !props.isInactive,
+                  "cursor-none!": props.isInactive,
+                },
+              )}
+            >
+              <Slider
+                value={[videoProgress]}
+                min={0}
+                max={videoDuration}
+                onValueChange={(value) => {
+                  setIsSeeking(true);
+                  setVideoProgress(value[0]!);
+                  void player?.internalPlayer.seekTo(value[0]!);
+                  if (playerState !== YOUTUBE_PLAYER_STATES.PLAYING) {
+                    toggleVideoPlayback();
+                  }
+                }}
+                className="mr-4"
+              />
+              <div className="flex items-center justify-between pt-2">
+                <div className="w-max font-mono text-sm font-bold">
+                  {transformSecondsToFormattedTime(videoProgress)} /{" "}
+                  {transformSecondsToFormattedTime(videoDuration)}
+                </div>
+              </div>
+              {/* <Button
                   className="ml-2"
                   size="icon"
                   variant="ghost"
@@ -351,17 +347,16 @@ export default function CustomVideoPlayer(props: IResponsiveVideoProps) {
                 >
                   <FullscreenIcon size={16} />
                 </Button> */}
-              </div>
             </div>
-          </>
-        )}
+          </div>
+        </>
+      )}
 
-        {props.videoSrc && (
-          <video width="1600" height="900" controls>
-            <source src={props.videoSrc} type="video/mp4" />
-          </video>
-        )}
-      </div>
+      {props.videoSrc && (
+        <video width="1600" height="900" controls>
+          <source src={props.videoSrc} type="video/mp4" />
+        </video>
+      )}
     </div>
   );
 }

@@ -3,6 +3,8 @@
 import { useFlagState } from "~/lib/hooks/useFlagState";
 import classes from "./ResponsiveVideo.module.css";
 import CustomVideoPlayer from "./CustomVideoPlayer";
+import clsx from "clsx";
+import { useRef } from "react";
 
 interface IResponsiveVideoProps {
   videoID?: string;
@@ -11,6 +13,7 @@ interface IResponsiveVideoProps {
 }
 
 export default function ResponsiveVideo(props: IResponsiveVideoProps) {
+  const containerRef = useRef<null | HTMLDivElement>(null);
   const [videoPlayer] = useFlagState("CUSTOM_VIDEO_PLAYER");
 
   if (videoPlayer === "serial") {
@@ -18,8 +21,12 @@ export default function ResponsiveVideo(props: IResponsiveVideoProps) {
   }
 
   return (
-    <div className={classes.video}>
+    <div
+      ref={containerRef}
+      className={clsx("relative h-full w-full", classes.video)}
+    >
       <div
+        className="h-full w-full"
         style={{
           // @ts-expect-error need this
           "--aspect-ratio": "16/9",
@@ -34,6 +41,9 @@ export default function ResponsiveVideo(props: IResponsiveVideoProps) {
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             className="border-none"
+            onMouseMove={(e) => {
+              containerRef.current?.focus();
+            }}
           />
         )}
         {props.videoSrc && (

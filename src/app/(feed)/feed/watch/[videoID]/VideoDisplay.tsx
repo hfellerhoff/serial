@@ -26,18 +26,25 @@ export function VideoDisplay({
 
   return (
     <>
-      <div className="relative z-10 w-full">
+      <div
+        className={clsx("relative z-10 w-full", {
+          "h-fit": view === "windowed",
+          "h-full": view === "fullscreen",
+        })}
+      >
         <div
           className={clsx(
             "bg-muted absolute top-0 aspect-video w-full animate-pulse overflow-hidden transition-opacity",
             {
-              rounded: view === "windowed",
+              "aspect-video rounded": view === "windowed",
+              "h-full": view === "fullscreen",
             },
           )}
         />
         <div
           className={clsx("w-full overflow-hidden transition-opacity", {
-            rounded: view === "windowed",
+            "aspect-video rounded": view === "windowed",
+            "h-full": view === "fullscreen",
             "opacity-0": !showVideo,
             "opacity-100": showVideo,
           })}
