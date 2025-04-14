@@ -12,6 +12,8 @@ import { InitialClientQueries } from "~/lib/data/InitialClientQueries";
 import FeedLoading from "../loading";
 import { isServerAuthed } from "~/server/auth";
 import { redirect } from "next/navigation";
+import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
+import { AppLeftSidebar, AppRightSidebar } from "~/components/app-sidebar";
 
 const title = "Serial";
 const description = "Your personal content newsletter";
@@ -102,16 +104,29 @@ export default async function RootLayout({
     <ApplyColorTheme>
       <Suspense fallback={<FeedLoading />}>
         <InitialClientQueries>
-          <KeyboardProvider>
-            <Header />
-            <main className="flex h-screen flex-col">
-              <ScrollArea className="h-full w-full">
-                <div className="h-full w-full pt-24 pb-6">{children}</div>
-              </ScrollArea>
-              <AppDialogs />
-            </main>
-            <ReleaseNotifier />
-          </KeyboardProvider>
+          <SidebarProvider
+            style={
+              {
+                "--sidebar-width": "calc(var(--spacing) * 72)",
+                "--header-height": "calc(var(--spacing) * 12)",
+              } as React.CSSProperties
+            }
+          >
+            <KeyboardProvider>
+              <AppLeftSidebar />
+              <SidebarInset>
+                <Header />
+                <main className="flex flex-col">
+                  <ScrollArea className="h-full w-full">
+                    <div className="h-full w-full pb-6">{children}</div>
+                  </ScrollArea>
+                  <AppDialogs />
+                </main>
+                <ReleaseNotifier />
+              </SidebarInset>
+              <AppRightSidebar />
+            </KeyboardProvider>
+          </SidebarProvider>
         </InitialClientQueries>
       </Suspense>
     </ApplyColorTheme>

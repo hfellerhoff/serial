@@ -48,9 +48,9 @@ const config = {
   },
   // This is required to support PostHog trailing slash API requests
   skipTrailingSlashRedirect: true,
-  // experimental: {
-  //   mdxRs: true,
-  // },
+  experimental: {
+    reactCompiler: true,
+  },
 };
 
 const isProd = process.env.NODE_ENV === "production";

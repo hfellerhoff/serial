@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  DatabaseFeed,
   type DatabaseFeedCategory,
   type DatabaseFeedItem,
 } from "~/server/db/schema";
@@ -10,8 +11,10 @@ import {
   categoryFilterAtom,
   dateFilterAtom,
   feedCategoriesAtom,
+  feedFilterAtom,
   feedItemsMapAtom,
   feedItemsOrderAtom,
+  feedsAtom,
   hasFetchedFeedItemsAtom,
   type VisibilityFilter,
   visibilityFilterAtom,
@@ -24,6 +27,8 @@ export function doesFeedItemPassFilters(
   visibilityFilter: VisibilityFilter,
   categoryFilter: number,
   feedCategories: DatabaseFeedCategory[],
+  feedFilter: number,
+  feeds: DatabaseFeed[],
 ) {
   const date = new Date(item.postedAt);
   const now = new Date();
@@ -59,6 +64,11 @@ export function doesFeedItemPassFilters(
     return false;
   }
 
+  // Feed filter
+  if (feedFilter >= 0 && item.feedId !== feedFilter) {
+    return false;
+  }
+
   return true;
 }
 
@@ -69,6 +79,8 @@ const filteredFeedItemsOrderAtom = atom((get) => {
   const feedItemsOrder = get(feedItemsOrderAtom);
   const feedItemsMap = get(feedItemsMapAtom);
   const feedCategories = get(feedCategoriesAtom);
+  const feedFilter = get(feedFilterAtom);
+  const feeds = get(feedsAtom);
 
   return feedItemsOrder.filter(
     (item) =>
@@ -79,6 +91,8 @@ const filteredFeedItemsOrderAtom = atom((get) => {
         visibilityFilter,
         categoryFilter,
         feedCategories,
+        feedFilter,
+        feeds,
       ),
   );
 });

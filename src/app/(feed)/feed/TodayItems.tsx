@@ -30,6 +30,7 @@ import {
 import { useFeeds } from "~/lib/data/feeds";
 import { useDialogStore } from "./dialogStore";
 import { Suspense } from "react";
+import { useSidebar } from "~/components/ui/sidebar";
 
 function timeAgo(date: string | Date) {
   const diff = dayjs().diff(date);
@@ -140,7 +141,7 @@ function ItemDisplay({ contentId }: { contentId: string }) {
           className="aspect-video w-16 rounded object-cover"
         />
         <div className="flex h-full flex-1 flex-col justify-center">
-          <h3 className="w-full text-xs font-semibold md:text-sm">
+          <h3 className="line-clamp-1 w-full text-xs font-semibold md:text-sm">
             {item.title}
           </h3>
           <p className="w-full text-xs opacity-80 md:text-sm">
@@ -216,11 +217,10 @@ export function TodayItems() {
   }
 
   return (
-    <div className="w-full md:pt-4" ref={parent}>
+    <div className="w-full transition-all md:pt-4 md:pr-6 md:pl-4" ref={parent}>
       {filteredFeedItemsOrder.map((contentId) => (
         <ItemDisplay contentId={contentId} key={contentId} />
       ))}
-      <div className="h-16" />
     </div>
   );
 }

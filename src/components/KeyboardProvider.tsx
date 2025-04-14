@@ -16,9 +16,10 @@ import {
   useFeedItemsSetWatchLaterValueMutation,
 } from "~/lib/data/feed-items/mutations";
 import { useFeedItemsMap } from "~/lib/data/atoms";
+import { useSidebar } from "./ui/sidebar";
 
 function doesAnyInputElementHaveFocus() {
-  const elements = document.querySelectorAll("input, textarea, select, button");
+  const elements = document.querySelectorAll("input, textarea, select");
   for (const element of elements) {
     if (element === document.activeElement) {
       return true;
@@ -46,6 +47,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const pathname = usePathname();
 
   const [zoom, setZoom] = useState(4);
+  const { toggleSidebar } = useSidebar();
 
   const feedItemsMap = useFeedItemsMap();
   const filteredFeedItemsOrder = useFilteredFeedItemsOrder();
@@ -68,6 +70,9 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       const videoID = params.videoID as string;
 
       if (doesAnyInputElementHaveFocus()) return;
+      if (event.metaKey || event.shiftKey || event.ctrlKey || event.altKey) {
+        return;
+      }
 
       const foundItem = feedItemsMap[videoID];
       const currentItemIndex = filteredFeedItemsOrder?.indexOf(videoID);
@@ -78,7 +83,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         });
         return;
       }
-      if (event.key === "Escape") {
+      if (event.key === "h") {
         if (pathname === "/feed") return;
         router.push("/feed");
         return;
@@ -176,6 +181,10 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         });
         return;
       }
+      if (event.key === "\\") {
+        toggleSidebar("left");
+        return;
+      }
     };
 
     window.addEventListener("keydown", processKey);
@@ -192,6 +201,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     router,
     setZoom,
     pathname,
+    toggleSidebar,
   ]);
 
   return (

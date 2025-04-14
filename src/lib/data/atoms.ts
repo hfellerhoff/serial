@@ -109,3 +109,4 @@ const visibilityFilterSchema = z.enum(["unread", "later", "videos", "shorts"]);
 export type VisibilityFilter = z.infer<typeof visibilityFilterSchema>;
 export const visibilityFilterAtom = atom<VisibilityFilter>("unread");
 export const categoryFilterAtom = atom<number>(-1);
+export const feedFilterAtom = atom<number>(-1);
