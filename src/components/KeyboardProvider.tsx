@@ -18,16 +18,7 @@ import {
 } from "~/lib/data/feed-items/mutations";
 import { useFeedItemsMap } from "~/lib/data/atoms";
 import { useSidebar } from "./ui/sidebar";
-
-function doesAnyInputElementHaveFocus() {
-  const elements = document.querySelectorAll("input, textarea, select");
-  for (const element of elements) {
-    if (element === document.activeElement) {
-      return true;
-    }
-  }
-  return false;
-}
+import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
 
 export const MIN_ZOOM = 0;
 export const MAX_ZOOM = 6;
@@ -94,7 +85,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     const processKey = (event: KeyboardEvent) => {
       const videoID = params.videoID as string;
 
-      if (doesAnyInputElementHaveFocus()) return;
+      if (doesAnyFormElementHaveFocus()) return;
       if (event.metaKey || event.shiftKey || event.ctrlKey || event.altKey) {
         return;
       }

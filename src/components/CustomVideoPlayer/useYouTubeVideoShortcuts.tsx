@@ -7,6 +7,7 @@ import {
   YOUTUBE_PLAYER_STATES,
 } from "./constants";
 import { useCustomVideoPlayerContext } from "./CustomVideoPlayerProvider";
+import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
 
 export function useVideoShortcuts() {
   const {
@@ -24,6 +25,7 @@ export function useVideoShortcuts() {
       if (event.metaKey || event.ctrlKey || event.altKey) {
         return;
       }
+      if (doesAnyFormElementHaveFocus()) return;
 
       if (event.key === " ") {
         event.preventDefault();
