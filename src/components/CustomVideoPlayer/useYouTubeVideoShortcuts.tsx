@@ -21,7 +21,7 @@ export function useVideoShortcuts() {
   } = useCustomVideoPlayerContext();
 
   useEffect(() => {
-    const processKey = async (event: KeyboardEvent) => {
+    const processKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) {
         return;
       }
