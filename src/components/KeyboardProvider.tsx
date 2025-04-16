@@ -3,6 +3,7 @@
 import {
   createContext,
   Ref,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -28,11 +29,17 @@ function doesAnyInputElementHaveFocus() {
   return false;
 }
 
+export const MIN_ZOOM = 0;
+export const MAX_ZOOM = 6;
+
 export type FeedContext = {
   view: "windowed" | "fullscreen";
+  toggleView: () => void;
   zoom: number;
   isCategoriesOpen: boolean;
   setIsCategoriesOpen: (value: boolean) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
 };
 
 const FeedContext = createContext<FeedContext | null>(null);
@@ -64,6 +71,24 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const dialog = useDialogStore((store) => store.dialog);
   const launchDialog = useDialogStore((store) => store.launchDialog);
   const closeDialog = useDialogStore((store) => store.closeDialog);
+
+  const zoomIn = useCallback(() => {
+    setZoom((z) => {
+      if (z >= MAX_ZOOM) {
+        return z;
+      }
+      return z + 1;
+    });
+  }, []);
+
+  const zoomOut = useCallback(() => {
+    setZoom((z) => {
+      if (z <= MIN_ZOOM) {
+        return z;
+      }
+      return z - 1;
+    });
+  }, []);
 
   useEffect(() => {
     const processKey = (event: KeyboardEvent) => {
@@ -164,21 +189,11 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         return;
       }
       if (event.key === "=") {
-        setZoom((z) => {
-          if (z >= 5) {
-            return z;
-          }
-          return z + 1;
-        });
+        zoomIn();
         return;
       }
       if (event.key === "-") {
-        setZoom((z) => {
-          if (z <= 0) {
-            return z;
-          }
-          return z - 1;
-        });
+        zoomOut();
         return;
       }
       if (event.key === "\\") {
@@ -202,11 +217,25 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     setZoom,
     pathname,
     toggleSidebar,
+    zoomIn,
+    zoomOut,
   ]);
+
+  const toggleView = useCallback(() => {
+    setView((v) => (v === "fullscreen" ? "windowed" : "fullscreen"));
+  }, []);
 
   return (
     <FeedContext.Provider
-      value={{ view, zoom, isCategoriesOpen, setIsCategoriesOpen }}
+      value={{
+        view,
+        toggleView,
+        zoom,
+        isCategoriesOpen,
+        setIsCategoriesOpen,
+        zoomIn,
+        zoomOut,
+      }}
     >
       {children}
     </FeedContext.Provider>

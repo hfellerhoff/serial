@@ -36,6 +36,7 @@ export default function WatchVideoPage(props: {
         "max-w-4xl": view === "windowed" && zoom === 3,
         "max-w-5xl": view === "windowed" && zoom === 4,
         "max-w-6xl": view === "windowed" && zoom === 5,
+        "max-w-7xl": view === "windowed" && zoom === 6,
       })}
     >
       <div

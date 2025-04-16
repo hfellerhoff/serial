@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  DatabaseFeed,
+  type DatabaseFeed,
   type DatabaseFeedCategory,
   type DatabaseFeedItem,
 } from "~/server/db/schema";

@@ -2,9 +2,9 @@
 
 import { useFlagState } from "~/lib/hooks/useFlagState";
 import classes from "./ResponsiveVideo.module.css";
-import CustomVideoPlayer from "./CustomVideoPlayer";
 import clsx from "clsx";
 import { useRef } from "react";
+import { CustomVideoPlayer } from "./CustomVideoPlayer";
 
 interface IResponsiveVideoProps {
   videoID?: string;
