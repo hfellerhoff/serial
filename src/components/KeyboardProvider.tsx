@@ -53,7 +53,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [zoom, setZoom] = useState(4);
+  const [zoom, setZoom] = useState(3);
   const { toggleSidebar } = useSidebar();
 
   const feedItemsMap = useFeedItemsMap();
