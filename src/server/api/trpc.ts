@@ -78,7 +78,7 @@ export const createTRPCRouter = t.router;
  */
 export const publicProcedure = t.procedure;
 
-import { auth } from "../auth";
+import { type auth } from "../auth";
 
 // // TODO: protected procedures
 export const isAuthed = t.middleware(async (opts) => {

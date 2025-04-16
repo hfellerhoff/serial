@@ -3,6 +3,7 @@
 import {
   createContext,
   Ref,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -17,22 +18,19 @@ import {
 } from "~/lib/data/feed-items/mutations";
 import { useFeedItemsMap } from "~/lib/data/atoms";
 import { useSidebar } from "./ui/sidebar";
+import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
 
-function doesAnyInputElementHaveFocus() {
-  const elements = document.querySelectorAll("input, textarea, select");
-  for (const element of elements) {
-    if (element === document.activeElement) {
-      return true;
-    }
-  }
-  return false;
-}
+export const MIN_ZOOM = 0;
+export const MAX_ZOOM = 6;
 
 export type FeedContext = {
   view: "windowed" | "fullscreen";
+  toggleView: () => void;
   zoom: number;
   isCategoriesOpen: boolean;
   setIsCategoriesOpen: (value: boolean) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
 };
 
 const FeedContext = createContext<FeedContext | null>(null);
@@ -46,7 +44,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [zoom, setZoom] = useState(4);
+  const [zoom, setZoom] = useState(3);
   const { toggleSidebar } = useSidebar();
 
   const feedItemsMap = useFeedItemsMap();
@@ -65,11 +63,29 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const launchDialog = useDialogStore((store) => store.launchDialog);
   const closeDialog = useDialogStore((store) => store.closeDialog);
 
+  const zoomIn = useCallback(() => {
+    setZoom((z) => {
+      if (z >= MAX_ZOOM) {
+        return z;
+      }
+      return z + 1;
+    });
+  }, []);
+
+  const zoomOut = useCallback(() => {
+    setZoom((z) => {
+      if (z <= MIN_ZOOM) {
+        return z;
+      }
+      return z - 1;
+    });
+  }, []);
+
   useEffect(() => {
     const processKey = (event: KeyboardEvent) => {
       const videoID = params.videoID as string;
 
-      if (doesAnyInputElementHaveFocus()) return;
+      if (doesAnyFormElementHaveFocus()) return;
       if (event.metaKey || event.shiftKey || event.ctrlKey || event.altKey) {
         return;
       }
@@ -164,21 +180,11 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         return;
       }
       if (event.key === "=") {
-        setZoom((z) => {
-          if (z >= 5) {
-            return z;
-          }
-          return z + 1;
-        });
+        zoomIn();
         return;
       }
       if (event.key === "-") {
-        setZoom((z) => {
-          if (z <= 0) {
-            return z;
-          }
-          return z - 1;
-        });
+        zoomOut();
         return;
       }
       if (event.key === "\\") {
@@ -202,11 +208,25 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     setZoom,
     pathname,
     toggleSidebar,
+    zoomIn,
+    zoomOut,
   ]);
+
+  const toggleView = useCallback(() => {
+    setView((v) => (v === "fullscreen" ? "windowed" : "fullscreen"));
+  }, []);
 
   return (
     <FeedContext.Provider
-      value={{ view, zoom, isCategoriesOpen, setIsCategoriesOpen }}
+      value={{
+        view,
+        toggleView,
+        zoom,
+        isCategoriesOpen,
+        setIsCategoriesOpen,
+        zoomIn,
+        zoomOut,
+      }}
     >
       {children}
     </FeedContext.Provider>

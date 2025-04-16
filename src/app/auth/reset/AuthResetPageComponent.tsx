@@ -2,7 +2,7 @@
 
 import { InfoIcon, Loader2, UserIcon } from "lucide-react";
 import Link from "next/link";
-import { PropsWithChildren, useState } from "react";
+import { type PropsWithChildren, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardFooter } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
