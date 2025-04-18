@@ -1,13 +1,12 @@
 "use client";
 
+import { ListFilterPlusIcon } from "lucide-react";
 import * as React from "react";
-import { Check, ChevronsUpDown, ListFilterPlusIcon } from "lucide-react";
 
-import { cn } from "~/lib/utils";
+import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -17,7 +16,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "~/components/ui/popover";
-import { useState } from "react";
 
 type FeedCategoryComboboxProps<T extends string> = {
   options:

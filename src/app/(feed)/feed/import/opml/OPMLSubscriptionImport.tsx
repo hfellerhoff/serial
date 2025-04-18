@@ -6,6 +6,7 @@ import { type SubscriptionImportMethodProps } from "../types";
 import { parseOPMLSubscriptionInput } from "./parseOPMLSubscriptionInput";
 
 export function OPMLSubscriptionImport({
+  importedChannels,
   setImportedChannels,
 }: SubscriptionImportMethodProps) {
   const [inputElement, setInputElement] = useState<HTMLInputElement | null>(
@@ -44,7 +45,7 @@ export function OPMLSubscriptionImport({
             multiple={false}
             onChange={onSelectFiles}
           ></input>
-          {!!inputElement?.files?.length && (
+          {!!importedChannels && inputElement && (
             <Button
               className="w-full"
               variant="outline"

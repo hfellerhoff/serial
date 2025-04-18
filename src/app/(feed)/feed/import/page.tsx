@@ -9,7 +9,10 @@ import { Checkbox } from "~/components/ui/checkbox";
 import { Label } from "~/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import { useFeeds } from "~/lib/data/feeds";
-import { type SubscriptionImportMethod, type SubscriptionImportChannel } from "./types";
+import {
+  type SubscriptionImportMethod,
+  type SubscriptionImportChannel,
+} from "./types";
 import { YouTubeSubscriptionImport } from "./youtube/YouTubeSubscriptionImport";
 import { OPMLSubscriptionImport } from "./opml/OPMLSubscriptionImport";
 import FeedLoading from "~/app/loading";
@@ -76,10 +79,16 @@ export default function EditFeedsPage() {
         </fieldset>
       )}
       {importMethod === "subscriptions" && (
-        <YouTubeSubscriptionImport setImportedChannels={setImportedChannels} />
+        <YouTubeSubscriptionImport
+          importedChannels={importedChannels}
+          setImportedChannels={setImportedChannels}
+        />
       )}
       {importMethod === "opml" && (
-        <OPMLSubscriptionImport setImportedChannels={setImportedChannels} />
+        <OPMLSubscriptionImport
+          importedChannels={importedChannels}
+          setImportedChannels={setImportedChannels}
+        />
       )}
       {!!importedChannels && (
         <>
@@ -180,10 +189,12 @@ export default function EditFeedsPage() {
                 className="w-full"
                 size="lg"
                 onClick={() => {
+                  const channelsToImport = importedChannels.filter(
+                    (channel) => channel.shouldImport,
+                  );
+
                   void createFeedsFromSubscriptionImportMutation({
-                    channels: importedChannels.filter(
-                      (channel) => channel.shouldImport,
-                    ),
+                    channels: channelsToImport,
                   });
                 }}
                 disabled={isPending || channelImportCount === 0}

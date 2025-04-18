@@ -7,6 +7,7 @@ import { parseYouTubeSubscriptionInput } from "./parseYouTubeSubscriptionInput";
 import { YouTubeSubscriptionImportCarousel } from "./YouTubeSubscriptionImportCarousel";
 
 export function YouTubeSubscriptionImport({
+  importedChannels,
   setImportedChannels,
 }: SubscriptionImportMethodProps) {
   const [inputElement, setInputElement] = useState<HTMLInputElement | null>(
@@ -45,7 +46,7 @@ export function YouTubeSubscriptionImport({
             multiple={false}
             onChange={onSelectFiles}
           ></input>
-          {!!inputElement?.files?.length && (
+          {!!importedChannels && inputElement && (
             <Button
               className="w-full"
               variant="outline"
@@ -60,7 +61,7 @@ export function YouTubeSubscriptionImport({
           )}
         </div>
       </fieldset>
-      {!inputElement?.files?.length && (
+      {!importedChannels && (
         <div className="mt-16">
           <h3 className="mb-4 font-semibold">
             How do I find my &quot;subscriptions.csv&quot; file?
