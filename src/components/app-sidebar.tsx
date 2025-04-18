@@ -62,13 +62,13 @@ export function AppLeftSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <LeftSidebarMain />
       </SidebarHeader>
       <SidebarContent>
-        <LeftSidebarMain />
         <SidebarCategories />
-        <LeftSidebarBottomNav />
       </SidebarContent>
       <SidebarFooter>
+        <LeftSidebarBottomNav />
         <UserManagementNavItem />
       </SidebarFooter>
     </Sidebar>
