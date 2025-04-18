@@ -65,6 +65,7 @@ function useCheckFilteredFeedItemsForFeed() {
 export function SidebarFeeds() {
   const { feeds } = useFeeds();
 
+  const setDateFilter = useSetAtom(dateFilterAtom);
   const [feedFilter, setFeedFilter] = useAtom(feedFilterAtom);
 
   const checkFilteredFeedItemsForFeed = useCheckFilteredFeedItemsForFeed();
@@ -90,7 +91,10 @@ export function SidebarFeeds() {
         <SidebarMenuItem>
           <SidebarMenuButton
             variant={feedFilter === -1 ? "outline" : "default"}
-            onClick={() => setFeedFilter(-1)}
+            onClick={() => {
+              setFeedFilter(-1);
+              setDateFilter(1);
+            }}
           >
             {!hasAnyItems && (
               <CircleSmall size={16} className="text-sidebar-accent" />
@@ -108,7 +112,10 @@ export function SidebarFeeds() {
             <SidebarMenuItem key={feed.id}>
               <SidebarMenuButton
                 variant={feed.id === feedFilter ? "outline" : "default"}
-                onClick={() => setFeedFilter(feed.id)}
+                onClick={() => {
+                  setFeedFilter(feed.id);
+                  setDateFilter(30);
+                }}
               >
                 {!feed.hasEntries && (
                   <CircleSmall size={16} className="text-sidebar-accent" />

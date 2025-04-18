@@ -15,5 +15,6 @@ export type SubscriptionImportChannel = {
 };
 
 export type SubscriptionImportMethodProps = {
+  importedChannels: SubscriptionImportChannel[] | null;
   setImportedChannels: (channels: SubscriptionImportChannel[] | null) => void;
 };

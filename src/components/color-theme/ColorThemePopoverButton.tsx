@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { useSidebar } from "../ui/sidebar";
+import { ResponsiveDropdown } from "../ui/responsive-dropdown";
 
 function getCssVariable(name: string) {
   const value = window
@@ -228,22 +229,14 @@ export function ColorThemeDropdownSidebar({
   const { isMobile } = useSidebar();
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
-      <DropdownMenuContent
-        className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg p-4"
-        side={isMobile ? "bottom" : "right"}
-        align="end"
-        sideOffset={4}
-      >
-        <ColorModeToggleGroup />
-        <div className="h-4" />
-        <EditColorsForm />
-        <div className="h-6" />
-        <EnableCustomVideoPlayerToggle />
-        <div className="h-4" />
-        <ShowShortcutsToggle />
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <ResponsiveDropdown trigger={children} side="right">
+      <ColorModeToggleGroup />
+      <div className="h-4" />
+      <EditColorsForm />
+      <div className="h-6" />
+      <EnableCustomVideoPlayerToggle />
+      <div className="h-4" />
+      <ShowShortcutsToggle />
+    </ResponsiveDropdown>
   );
 }

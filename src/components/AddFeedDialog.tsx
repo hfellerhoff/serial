@@ -128,7 +128,7 @@ export function AddFeedDialog() {
               }}
             >
               <ImportIcon size={16} />
-              <span className="hidden pl-1.5 md:block">Bulk Import</span>
+              <span className="pl-1.5">Bulk Import</span>
             </Button>
           </Link>
         </div>
