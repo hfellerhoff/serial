@@ -12,6 +12,11 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import {
+  ResponsiveDropdown,
+  ResponsiveDropdownLabel,
+  ResponsiveDropdownMenuItem,
+} from "~/components/ui/responsive-dropdown";
+import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -33,8 +38,9 @@ export function UserManagementNavItem() {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+        <ResponsiveDropdown
+          side="right"
+          trigger={
             <SidebarMenuButton
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
@@ -53,48 +59,42 @@ export function UserManagementNavItem() {
               )}
               <EllipsisVerticalIcon className="ml-auto size-4" />
             </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg p-4"
-            side={isMobile ? "bottom" : "right"}
-            align="end"
-            sideOffset={4}
-          >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex flex-col items-center justify-center pb-4">
-                <h2 className="text-sm font-semibold">
-                  {data?.user.name || "Serial User"}
-                </h2>
-                <p className="text-muted-foreground text-xs">
-                  {data?.user.email}
-                </p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuItem asChild>
-              <Button
-                className="w-full"
-                onClick={async () => {
-                  await signOut({
-                    fetchOptions: {
-                      onRequest: () => {
-                        setIsSigningOut(true);
-                      },
-                      onSuccess: async () => {
-                        router.push(AUTH_SIGNED_OUT_URL);
-                      },
+          }
+        >
+          <ResponsiveDropdownLabel className="p-0 font-normal">
+            <div className="flex flex-col items-center justify-center pb-4">
+              <h2 className="text-sm font-semibold">
+                {data?.user.name || "Serial User"}
+              </h2>
+              <p className="text-muted-foreground text-xs">
+                {data?.user.email}
+              </p>
+            </div>
+          </ResponsiveDropdownLabel>
+          <ResponsiveDropdownMenuItem asChild>
+            <Button
+              className="w-full"
+              onClick={async () => {
+                await signOut({
+                  fetchOptions: {
+                    onRequest: () => {
+                      setIsSigningOut(true);
                     },
-                  });
-                }}
-              >
-                {isSigningOut ? (
-                  <Loader2Icon className="animate-spin" size={16} />
-                ) : (
-                  "Sign Out"
-                )}
-              </Button>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+                    onSuccess: async () => {
+                      router.push(AUTH_SIGNED_OUT_URL);
+                    },
+                  },
+                });
+              }}
+            >
+              {isSigningOut ? (
+                <Loader2Icon className="animate-spin" size={16} />
+              ) : (
+                "Sign Out"
+              )}
+            </Button>
+          </ResponsiveDropdownMenuItem>
+        </ResponsiveDropdown>
       </SidebarMenuItem>
     </SidebarMenu>
   );

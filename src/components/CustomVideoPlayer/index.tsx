@@ -2,16 +2,11 @@
 "use client";
 
 import clsx from "clsx";
-import {
-  FullscreenIcon,
-  PlayIcon,
-  MaximizeIcon,
-  MinimizeIcon,
-  PlusIcon,
-  MinusIcon,
-} from "lucide-react";
+import { MaximizeIcon, MinimizeIcon, PlayIcon } from "lucide-react";
 import YouTube from "react-youtube";
+import { useFlagState } from "~/lib/hooks/useFlagState";
 import { transformSecondsToFormattedTime } from "~/lib/transformSecondsToFormattedTime";
+import { ButtonWithShortcut } from "../ButtonWithShortcut";
 import { useKeyboard } from "../KeyboardProvider";
 import { Button } from "../ui/button";
 import { Slider } from "../ui/slider";
@@ -22,8 +17,6 @@ import {
 } from "./CustomVideoPlayerProvider";
 import { YOUTUBE_PLAYBACK_SPEEDS, YOUTUBE_PLAYER_STATES } from "./constants";
 import { useVideoShortcuts } from "./useYouTubeVideoShortcuts";
-import { ButtonWithShortcut } from "../ButtonWithShortcut";
-import { useFlagState } from "~/lib/hooks/useFlagState";
 
 interface IResponsiveVideoProps {
   videoID?: string;
@@ -161,12 +154,13 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
                       {videoProgress >= videoDuration - 5 ? "Live" : "Go Live"}
                     </Button>
                   )}
-                  {videoType === "video" && (
-                    <div className="w-max font-mono text-sm font-bold">
-                      {transformSecondsToFormattedTime(videoProgress)} /{" "}
-                      {transformSecondsToFormattedTime(videoDuration)}
-                    </div>
-                  )}
+                  {videoType === "video" ||
+                    (videoType === "live" && videoProgress < videoDuration && (
+                      <div className="w-max font-mono text-sm font-bold">
+                        {transformSecondsToFormattedTime(videoProgress)} /{" "}
+                        {transformSecondsToFormattedTime(videoDuration)}
+                      </div>
+                    ))}
                 </div>
                 <div className="flex items-center gap-2">
                   <ButtonWithShortcut
