@@ -67,6 +67,7 @@ export function SidebarCategories() {
     useCheckFilteredFeedItemsForCategory();
 
   const setFeedFilter = useSetAtom(feedFilterAtom);
+  const setDateFilter = useSetAtom(dateFilterAtom);
   const [categoryFilter, setCategoryFilter] = useAtom(categoryFilterAtom);
 
   const { contentCategories } = useContentCategories();
@@ -92,7 +93,10 @@ export function SidebarCategories() {
         <SidebarMenuItem>
           <SidebarMenuButton
             variant={categoryFilter === -1 ? "outline" : "default"}
-            onClick={() => updateCategoryFilter(-1)}
+            onClick={() => {
+              updateCategoryFilter(-1);
+              setDateFilter(1);
+            }}
           >
             {!hasAnyItems && (
               <CircleSmall size={16} className="text-sidebar-accent" />
