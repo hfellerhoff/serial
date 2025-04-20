@@ -34,6 +34,7 @@ import {
 } from "~/components/ui/sidebar";
 import { ButtonWithShortcut } from "./ButtonWithShortcut";
 import { SerialLogo } from "./SerialLogo";
+import { SidebarViews } from "~/app/(feed)/feed/SidebarViews";
 
 export function AppLeftSidebar() {
   const { toggleSidebar, isMobile } = useSidebar();
@@ -65,6 +66,7 @@ export function AppLeftSidebar() {
         <LeftSidebarMain />
       </SidebarHeader>
       <SidebarContent>
+        <SidebarViews />
         <SidebarCategories />
       </SidebarContent>
       <SidebarFooter>

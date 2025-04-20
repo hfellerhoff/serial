@@ -8,7 +8,14 @@ import {
   index,
   primaryKey,
 } from "drizzle-orm/sqlite-core";
-import { createSelectSchema } from "drizzle-zod";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import {
+  FEED_ITEM_ORIENTATION,
+  feedItemOrientationSchema,
+  VIEW_READ_STATUS,
+  viewReadStatusSchema,
+} from "./constants";
+import { z } from "zod";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -167,3 +174,47 @@ export const userConfig = sqliteTable("user_config", {
   darkHSL: text("dark_hsl", { length: 16 }).notNull().default(""),
 });
 export type DatabaseUserConfig = typeof userConfig.$inferSelect;
+
+export const views = sqliteTable(
+  "views",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    userId: text("user_id").notNull().default(""),
+    name: text("name", { length: 256 }).notNull().default(""),
+    daysWindow: integer("days_window", { mode: "number" }).notNull().default(1),
+    readStatus: integer("read_status", { mode: "number" })
+      .notNull()
+      .default(VIEW_READ_STATUS.UNREAD),
+    orientation: text("orientation", { length: 16 })
+      .notNull()
+      .default(FEED_ITEM_ORIENTATION.HORIZONTAL),
+    placement: integer("read_status", { mode: "number" }).notNull().default(-1),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .$default(() => new Date())
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .$default(() => new Date())
+      .notNull(),
+  },
+  (example) => [index("feed_name_idx").on(example.name)],
+);
+export const viewSchema = createSelectSchema(views);
+export const createViewSchema = createInsertSchema(views).merge(
+  z.object({
+    readStatus: viewReadStatusSchema.optional(),
+    orientation: feedItemOrientationSchema.optional(),
+    daysWindow: z.number().lte(30).optional(),
+    placement: z.number().gte(-1).optional(),
+  }),
+);
+export type DatabaseView = typeof views.$inferSelect;
+
+export const viewCategories = sqliteTable(
+  "view_categories",
+  {
+    viewId: integer("view_id").references(() => views.id),
+    categoryId: integer("category_id").references(() => contentCategories.id),
+  },
+  (table) => [primaryKey({ columns: [table.viewId, table.categoryId] })],
+);
+export type DatabaseViewCategory = typeof viewCategories.$inferSelect;

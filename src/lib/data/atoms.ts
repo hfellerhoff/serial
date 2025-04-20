@@ -12,6 +12,7 @@ import {
   feedCategorySchema,
   feedItemSchema,
   feedsSchema,
+  viewSchema,
 } from "~/server/db/schema";
 
 function validatedPersistedAtom<T>({
@@ -102,6 +103,13 @@ export const feedCategoriesAtom = validatedPersistedAtom<
   defaultValue: [],
   schema: feedCategorySchema.array(),
   persistanceKey: "serial-feed-categories",
+});
+
+export const hasFetchedViewsAtom = atom(false);
+export const viewsAtom = validatedPersistedAtom<DatabaseContentCategory[]>({
+  defaultValue: [],
+  schema: viewSchema.array(),
+  persistanceKey: "serial-views",
 });
 
 export const dateFilterAtom = atom<number>(1);
