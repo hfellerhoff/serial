@@ -17,15 +17,13 @@ import {
   feedFilterAtom,
   useFeedItemsMap,
   useFeedItemsOrder,
+  viewFilterAtom,
   visibilityFilterAtom,
 } from "~/lib/data/atoms";
 import { useContentCategories } from "~/lib/data/content-categories";
 import { useFeedCategories } from "~/lib/data/feed-categories";
-import {
-  doesFeedItemPassFilters,
-  useFilteredFeedItemsOrder,
-} from "~/lib/data/feed-items";
-import { useFeeds } from "~/lib/data/feeds";
+import { doesFeedItemPassFilters } from "~/lib/data/feed-items";
+import { useDeselectViewFilter } from "~/lib/data/views";
 
 function useCheckFilteredFeedItemsForCategory() {
   const feedItemsOrder = useFeedItemsOrder();
@@ -49,6 +47,7 @@ function useCheckFilteredFeedItemsForCategory() {
             feedCategories,
             -1,
             [],
+            null,
           ),
       );
     },
@@ -68,6 +67,7 @@ export function SidebarCategories() {
 
   const setFeedFilter = useSetAtom(feedFilterAtom);
   const setDateFilter = useSetAtom(dateFilterAtom);
+  const deselectViewFilter = useDeselectViewFilter();
   const [categoryFilter, setCategoryFilter] = useAtom(categoryFilterAtom);
 
   const { contentCategories } = useContentCategories();
@@ -84,6 +84,7 @@ export function SidebarCategories() {
   const updateCategoryFilter = (category: number) => {
     setFeedFilter(-1);
     setCategoryFilter(category);
+    deselectViewFilter();
   };
 
   return (

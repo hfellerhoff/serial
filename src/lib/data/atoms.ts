@@ -4,6 +4,8 @@ import { useMemo } from "react";
 import superjson from "superjson";
 import { z } from "zod";
 import {
+  ApplicationView,
+  applicationViewSchema,
   contentCategorySchema,
   type DatabaseContentCategory,
   type DatabaseFeed,
@@ -12,7 +14,6 @@ import {
   feedCategorySchema,
   feedItemSchema,
   feedsSchema,
-  viewSchema,
 } from "~/server/db/schema";
 
 function validatedPersistedAtom<T>({
@@ -106,9 +107,9 @@ export const feedCategoriesAtom = validatedPersistedAtom<
 });
 
 export const hasFetchedViewsAtom = atom(false);
-export const viewsAtom = validatedPersistedAtom<DatabaseContentCategory[]>({
+export const viewsAtom = validatedPersistedAtom<ApplicationView[]>({
   defaultValue: [],
-  schema: viewSchema.array(),
+  schema: applicationViewSchema.array(),
   persistanceKey: "serial-views",
 });
 
@@ -118,3 +119,10 @@ export type VisibilityFilter = z.infer<typeof visibilityFilterSchema>;
 export const visibilityFilterAtom = atom<VisibilityFilter>("unread");
 export const categoryFilterAtom = atom<number>(-1);
 export const feedFilterAtom = atom<number>(-1);
+
+export const viewFilterIdAtom = atom<number>(-1);
+export const viewFilterAtom = atom<ApplicationView | null>((get) => {
+  const views = get(viewsAtom);
+  const viewId = get(viewFilterIdAtom);
+  return views.find((view) => view.id === viewId) || null;
+});

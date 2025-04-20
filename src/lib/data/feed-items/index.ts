@@ -16,10 +16,12 @@ import {
   feedItemsOrderAtom,
   feedsAtom,
   hasFetchedFeedItemsAtom,
+  viewFilterAtom,
   type VisibilityFilter,
   visibilityFilterAtom,
 } from "../atoms";
 import { splitAtom } from "jotai/utils";
+import { ApplicationView } from "../views";
 
 export function doesFeedItemPassFilters(
   item: DatabaseFeedItem,
@@ -29,6 +31,7 @@ export function doesFeedItemPassFilters(
   feedCategories: DatabaseFeedCategory[],
   feedFilter: number,
   feeds: DatabaseFeed[],
+  viewFilter: ApplicationView | null,
 ) {
   const date = new Date(item.postedAt);
   const now = new Date();
@@ -69,6 +72,23 @@ export function doesFeedItemPassFilters(
     return false;
   }
 
+  const feedsForView = feedCategories
+    .filter(
+      (category) =>
+        category.categoryId !== null &&
+        viewFilter?.categoryIds.includes(category.categoryId),
+    )
+    .map((category) => category.feedId);
+
+  // View filter
+  if (
+    !!viewFilter &&
+    viewFilter.categoryIds.length > 0 &&
+    !feedsForView.includes(item.feedId)
+  ) {
+    return false;
+  }
+
   return true;
 }
 
@@ -81,6 +101,7 @@ const filteredFeedItemsOrderAtom = atom((get) => {
   const feedCategories = get(feedCategoriesAtom);
   const feedFilter = get(feedFilterAtom);
   const feeds = get(feedsAtom);
+  const viewFilter = get(viewFilterAtom);
 
   return feedItemsOrder.filter(
     (item) =>
@@ -93,6 +114,7 @@ const filteredFeedItemsOrderAtom = atom((get) => {
         feedCategories,
         feedFilter,
         feeds,
+        viewFilter,
       ),
   );
 });

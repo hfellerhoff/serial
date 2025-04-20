@@ -196,18 +196,21 @@ export const views = sqliteTable(
       .$default(() => new Date())
       .notNull(),
   },
-  (example) => [index("feed_name_idx").on(example.name)],
+  (example) => [index("view_name_idx").on(example.name)],
 );
+
 export const viewSchema = createSelectSchema(views);
-export const createViewSchema = createInsertSchema(views).merge(
-  z.object({
-    readStatus: viewReadStatusSchema.optional(),
-    orientation: feedItemOrientationSchema.optional(),
-    daysWindow: z.number().lte(30).optional(),
-    placement: z.number().gte(-1).optional(),
-  }),
-);
 export type DatabaseView = typeof views.$inferSelect;
+
+export const applicationViewSchema = createInsertSchema(views)
+  .merge(
+    z.object({
+      categoryIds: z.array(z.number()),
+      isDefault: z.boolean(),
+    }),
+  )
+  .required();
+export type ApplicationView = z.infer<typeof applicationViewSchema>;
 
 export const viewCategories = sqliteTable(
   "view_categories",
@@ -218,3 +221,13 @@ export const viewCategories = sqliteTable(
   (table) => [primaryKey({ columns: [table.viewId, table.categoryId] })],
 );
 export type DatabaseViewCategory = typeof viewCategories.$inferSelect;
+
+export const createViewSchema = createInsertSchema(views).merge(
+  z.object({
+    readStatus: viewReadStatusSchema.optional(),
+    orientation: feedItemOrientationSchema.optional(),
+    daysWindow: z.number().lte(30).optional(),
+    placement: z.number().gte(-1).optional(),
+    categoryIds: z.array(z.number()).optional(),
+  }),
+);

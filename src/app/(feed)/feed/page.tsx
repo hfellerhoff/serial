@@ -2,6 +2,7 @@ import { ClientDatetime } from "./ClientDatetime";
 import { DateFilterChips } from "./DateFilterChips";
 import { ItemVisibilityChips } from "./ItemVisibilityChips";
 import { TodayItems } from "./TodayItems";
+import { ViewFilterChips } from "./ViewFilterChips";
 
 export default async function Home() {
   return (
@@ -12,10 +13,7 @@ export default async function Home() {
           <ClientDatetime />
         </p>
         <div className="w-max pt-2">
-          <DateFilterChips />
-        </div>
-        <div className="w-max pt-2">
-          <ItemVisibilityChips />
+          <ViewFilterChips />
         </div>
       </div>
       <TodayItems />

@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { CircleSmall } from "lucide-react";
+import { CircleSmall, PlusIcon } from "lucide-react";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -12,28 +12,35 @@ import {
   SidebarMenuItem,
 } from "~/components/ui/sidebar";
 import {
-  categoryFilterAtom,
   dateFilterAtom,
   feedFilterAtom,
   useFeedItemsMap,
   useFeedItemsOrder,
+  viewFilterAtom,
+  viewFilterIdAtom,
   visibilityFilterAtom,
 } from "~/lib/data/atoms";
-import { useContentCategories } from "~/lib/data/content-categories";
 import { useFeedCategories } from "~/lib/data/feed-categories";
 import { doesFeedItemPassFilters } from "~/lib/data/feed-items";
+import { useUpdateViewFilter, useViews } from "~/lib/data/views";
+import { useDialogStore } from "./dialogStore";
+import { useFeeds } from "~/lib/data/feeds";
 
 function useCheckFilteredFeedItemsForView() {
   const feedItemsOrder = useFeedItemsOrder();
   const feedItemsMap = useFeedItemsMap();
   const { feedCategories } = useFeedCategories();
+  const { feeds } = useFeeds();
+  const { views } = useViews();
 
   const dateFilter = useAtomValue(dateFilterAtom);
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
 
   return useCallback(
-    (category: number) => {
+    (viewId: number) => {
       if (!feedItemsOrder || !feedCategories) return [];
+      const viewFilter = views.find((view) => view.id === viewId) || null;
+
       return feedItemsOrder.filter(
         (item) =>
           feedItemsMap[item] &&
@@ -41,10 +48,11 @@ function useCheckFilteredFeedItemsForView() {
             feedItemsMap[item],
             dateFilter,
             visibilityFilter,
-            category,
+            -1,
             feedCategories,
             -1,
-            [],
+            feeds,
+            viewFilter,
           ),
       );
     },
@@ -59,57 +67,36 @@ function useCheckFilteredFeedItemsForView() {
 }
 
 export function SidebarViews() {
-  const checkFilteredFeedItemsForCategory = useCheckFilteredFeedItemsForView();
+  const launchDialog = useDialogStore((store) => store.launchDialog);
+  const checkFilteredFeedItemsForView = useCheckFilteredFeedItemsForView();
 
-  const setFeedFilter = useSetAtom(feedFilterAtom);
-  const setDateFilter = useSetAtom(dateFilterAtom);
-  const [categoryFilter, setCategoryFilter] = useAtom(categoryFilterAtom);
+  const updateViewFilter = useUpdateViewFilter();
+  const [viewFilter] = useAtom(viewFilterIdAtom);
 
-  const { contentCategories } = useContentCategories();
+  const { views } = useViews();
 
-  const categoryOptions = contentCategories?.map((category) => ({
-    ...category,
-    hasEntries: !!checkFilteredFeedItemsForCategory(category.id).length,
+  const viewOptions = views?.map((view) => ({
+    ...view,
+    hasEntries: !!checkFilteredFeedItemsForView(view.id).length,
   }));
-
-  const hasAnyItems = !!checkFilteredFeedItemsForCategory(-1).length;
-
-  if (!categoryOptions?.length) return null;
-
-  const updateCategoryFilter = (category: number) => {
-    setFeedFilter(-1);
-    setCategoryFilter(category);
-  };
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Views</SidebarGroupLabel>
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            variant={categoryFilter === -1 ? "outline" : "default"}
-            onClick={() => {
-              updateCategoryFilter(-1);
-              setDateFilter(1);
-            }}
-          >
-            {!hasAnyItems && (
-              <CircleSmall size={16} className="text-sidebar-accent" />
-            )}
-            {hasAnyItems && (
-              <div className="grid size-4 place-items-center">
-                <div className="bg-sidebar-accent size-2.5 rounded-full" />
-              </div>
-            )}
-            All
+      <SidebarGroupLabel className="pr-0 pb-2">
+        <span className="inline-block flex-1">Views</span>
+        <div className="flex w-fit items-center justify-end">
+          <SidebarMenuButton onClick={() => launchDialog("add-view")}>
+            <PlusIcon />
           </SidebarMenuButton>
-        </SidebarMenuItem>
-        {categoryOptions?.map((option) => {
+        </div>
+      </SidebarGroupLabel>
+      <SidebarMenu>
+        {viewOptions?.map((option) => {
           return (
             <SidebarMenuItem key={option.id}>
               <SidebarMenuButton
-                variant={option.id === categoryFilter ? "outline" : "default"}
-                onClick={() => updateCategoryFilter(option.id)}
+                variant={option.id === viewFilter ? "outline" : "default"}
+                onClick={() => updateViewFilter(option.id)}
               >
                 {!option.hasEntries && (
                   <CircleSmall size={16} className="text-sidebar-accent" />

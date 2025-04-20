@@ -1,13 +1,10 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { CircleSmall, PlusIcon } from "lucide-react";
 import { useCallback } from "react";
-import { Button } from "~/components/ui/button";
 import {
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarHeader,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "~/components/ui/sidebar";
@@ -17,11 +14,14 @@ import {
   feedFilterAtom,
   useFeedItemsMap,
   useFeedItemsOrder,
+  viewFilterAtom,
   visibilityFilterAtom,
 } from "~/lib/data/atoms";
 import { useFeedCategories } from "~/lib/data/feed-categories";
 import { doesFeedItemPassFilters } from "~/lib/data/feed-items";
 import { useFeeds } from "~/lib/data/feeds";
+import { useDialogStore } from "./dialogStore";
+import { useDeselectViewFilter } from "~/lib/data/views";
 
 function useCheckFilteredFeedItemsForFeed() {
   const feedItemsOrder = useFeedItemsOrder();
@@ -32,6 +32,7 @@ function useCheckFilteredFeedItemsForFeed() {
   const dateFilter = useAtomValue(dateFilterAtom);
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
   const categoryFilter = useAtomValue(categoryFilterAtom);
+  const viewFilter = useAtomValue(viewFilterAtom);
 
   return useCallback(
     (feed: number) => {
@@ -47,6 +48,7 @@ function useCheckFilteredFeedItemsForFeed() {
             feedCategories,
             feed,
             feeds,
+            viewFilter,
           ),
       );
     },
@@ -64,9 +66,11 @@ function useCheckFilteredFeedItemsForFeed() {
 
 export function SidebarFeeds() {
   const { feeds } = useFeeds();
+  const launchDialog = useDialogStore((store) => store.launchDialog);
 
   const setDateFilter = useSetAtom(dateFilterAtom);
   const [feedFilter, setFeedFilter] = useAtom(feedFilterAtom);
+  const deselectViewFilter = useDeselectViewFilter();
 
   const checkFilteredFeedItemsForFeed = useCheckFilteredFeedItemsForFeed();
 
@@ -86,7 +90,14 @@ export function SidebarFeeds() {
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Feeds</SidebarGroupLabel>
+      <SidebarGroupLabel className="pr-0 pb-2">
+        <span className="inline-block flex-1">Feeds</span>
+        <div className="flex w-fit items-center justify-end">
+          <SidebarMenuButton onClick={() => launchDialog("add-feed")}>
+            <PlusIcon />
+          </SidebarMenuButton>
+        </div>
+      </SidebarGroupLabel>
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton
@@ -94,6 +105,7 @@ export function SidebarFeeds() {
             onClick={() => {
               setFeedFilter(-1);
               setDateFilter(1);
+              deselectViewFilter();
             }}
           >
             {!hasAnyItems && (
@@ -115,6 +127,7 @@ export function SidebarFeeds() {
                 onClick={() => {
                   setFeedFilter(feed.id);
                   setDateFilter(30);
+                  deselectViewFilter();
                 }}
               >
                 {!feed.hasEntries && (

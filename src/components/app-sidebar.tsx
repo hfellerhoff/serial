@@ -1,24 +1,9 @@
 "use client";
 
-import {
-  IconCamera,
-  IconChartBar,
-  IconDashboard,
-  IconFileAi,
-  IconFileDescription,
-  IconFolder,
-  IconHelp,
-  IconListDetails,
-  IconSearch,
-  IconSettings,
-  IconUsers,
-} from "@tabler/icons-react";
-
-import { PlusIcon } from "lucide-react";
 import Link from "next/link";
-import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
 import { SidebarCategories } from "~/app/(feed)/feed/SidebarCategories";
 import { SidebarFeeds } from "~/app/(feed)/feed/SidebarFeeds";
+import { SidebarViews } from "~/app/(feed)/feed/SidebarViews";
 import { UserManagementNavItem } from "~/app/(feed)/feed/UserManagementButton";
 import { LeftSidebarBottomNav } from "~/components/LeftSidebarBottomNav";
 import { LeftSidebarMain } from "~/components/LeftSidebarMain";
@@ -32,9 +17,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "~/components/ui/sidebar";
-import { ButtonWithShortcut } from "./ButtonWithShortcut";
 import { SerialLogo } from "./SerialLogo";
-import { SidebarViews } from "~/app/(feed)/feed/SidebarViews";
 
 export function AppLeftSidebar() {
   const { toggleSidebar, isMobile } = useSidebar();
@@ -78,30 +61,11 @@ export function AppLeftSidebar() {
 }
 
 export function AppRightSidebar() {
-  const launchDialog = useDialogStore((store) => store.launchDialog);
-
   return (
     <Sidebar variant="inset" collapsible="offcanvas" side="right">
       <SidebarContent>
         <SidebarFeeds />
       </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <ButtonWithShortcut
-                variant="outline"
-                className="bg-sidebar border-sidebar-border"
-                onClick={() => launchDialog("add-feed")}
-                shortcut="a"
-              >
-                <PlusIcon />
-                <span>Add feed</span>
-              </ButtonWithShortcut>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
     </Sidebar>
   );
 }
