@@ -45,6 +45,12 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
 
   const player = playerRef?.current;
 
+  const shouldShowVideoTimestamps = videoType === "video";
+  const shouldShowLiveTimestamps =
+    videoType === "live" && videoProgress < videoDuration;
+  const shouldShowTimestamps =
+    shouldShowVideoTimestamps || shouldShowLiveTimestamps;
+
   return (
     <div className="relative h-full w-full">
       {props.videoID && (
@@ -154,13 +160,12 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
                       {videoProgress >= videoDuration - 5 ? "Live" : "Go Live"}
                     </Button>
                   )}
-                  {videoType === "video" ||
-                    (videoType === "live" && videoProgress < videoDuration && (
-                      <div className="w-max font-mono text-sm font-bold">
-                        {transformSecondsToFormattedTime(videoProgress)} /{" "}
-                        {transformSecondsToFormattedTime(videoDuration)}
-                      </div>
-                    ))}
+                  {shouldShowTimestamps && (
+                    <div className="w-max font-mono text-sm font-bold">
+                      {transformSecondsToFormattedTime(videoProgress)} /{" "}
+                      {transformSecondsToFormattedTime(videoDuration)}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <ButtonWithShortcut
