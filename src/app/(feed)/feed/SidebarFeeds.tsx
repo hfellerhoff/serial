@@ -22,6 +22,7 @@ import { doesFeedItemPassFilters } from "~/lib/data/feed-items";
 import { useFeeds } from "~/lib/data/feeds";
 import { useDialogStore } from "./dialogStore";
 import { useDeselectViewFilter } from "~/lib/data/views";
+import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 
 function useCheckFilteredFeedItemsForFeed() {
   const feedItemsOrder = useFeedItemsOrder();
@@ -93,8 +94,10 @@ export function SidebarFeeds() {
       <SidebarGroupLabel className="pr-0 pb-2">
         <span className="inline-block flex-1">Feeds</span>
         <div className="flex w-fit items-center justify-end">
-          <SidebarMenuButton onClick={() => launchDialog("add-feed")}>
-            <PlusIcon />
+          <SidebarMenuButton asChild onClick={() => launchDialog("add-feed")}>
+            <ButtonWithShortcut shortcut="a" variant="ghost">
+              <PlusIcon />
+            </ButtonWithShortcut>
           </SidebarMenuButton>
         </div>
       </SidebarGroupLabel>
@@ -105,7 +108,6 @@ export function SidebarFeeds() {
             onClick={() => {
               setFeedFilter(-1);
               setDateFilter(1);
-              deselectViewFilter();
             }}
           >
             {!hasAnyItems && (

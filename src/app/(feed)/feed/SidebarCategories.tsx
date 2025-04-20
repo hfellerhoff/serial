@@ -30,7 +30,6 @@ function useCheckFilteredFeedItemsForCategory() {
   const feedItemsMap = useFeedItemsMap();
   const { feedCategories } = useFeedCategories();
 
-  const dateFilter = useAtomValue(dateFilterAtom);
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
 
   return useCallback(
@@ -41,7 +40,7 @@ function useCheckFilteredFeedItemsForCategory() {
           feedItemsMap[item] &&
           doesFeedItemPassFilters(
             feedItemsMap[item],
-            dateFilter,
+            30,
             visibilityFilter,
             category,
             feedCategories,
@@ -51,13 +50,7 @@ function useCheckFilteredFeedItemsForCategory() {
           ),
       );
     },
-    [
-      feedItemsOrder,
-      feedItemsMap,
-      dateFilter,
-      visibilityFilter,
-      feedCategories,
-    ],
+    [feedItemsOrder, feedItemsMap, visibilityFilter, feedCategories],
   );
 }
 
@@ -84,6 +77,7 @@ export function SidebarCategories() {
   const updateCategoryFilter = (category: number) => {
     setFeedFilter(-1);
     setCategoryFilter(category);
+    setDateFilter(30);
     deselectViewFilter();
   };
 

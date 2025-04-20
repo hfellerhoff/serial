@@ -26,7 +26,7 @@ import { useUpdateViewFilter, useViews } from "~/lib/data/views";
 import { useDialogStore } from "./dialogStore";
 import { useFeeds } from "~/lib/data/feeds";
 
-function useCheckFilteredFeedItemsForView() {
+export function useCheckFilteredFeedItemsForView() {
   const feedItemsOrder = useFeedItemsOrder();
   const feedItemsMap = useFeedItemsMap();
   const { feedCategories } = useFeedCategories();

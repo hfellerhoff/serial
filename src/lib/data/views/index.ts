@@ -10,12 +10,18 @@ import {
   dateFilterAtom,
   feedFilterAtom,
   hasFetchedViewsAtom,
+  UNSELECTED_VIEW_ID,
+  useFeedItemsMap,
+  useFeedItemsOrder,
   viewFilterIdAtom,
   viewsAtom,
+  visibilityFilterAtom,
 } from "../atoms";
 import { useContentCategories } from "../content-categories";
+import { useFeedCategories } from "../feed-categories";
+import { useFeeds } from "../feeds";
+import { doesFeedItemPassFilters } from "../feed-items";
 
-export const UNSELECTED_VIEW_ID = -100;
 export function useDeselectViewFilter() {
   const setViewFilter = useSetAtom(viewFilterIdAtom);
   return useCallback(() => {
@@ -49,10 +55,50 @@ export function useUpdateViewFilter() {
   return updateViewFilter;
 }
 
+export function useCheckFilteredFeedItemsForView() {
+  const feedItemsOrder = useFeedItemsOrder();
+  const feedItemsMap = useFeedItemsMap();
+  const { feedCategories } = useFeedCategories();
+  const { feeds } = useFeeds();
+  const { views } = useViews();
+
+  const dateFilter = useAtomValue(dateFilterAtom);
+  const visibilityFilter = useAtomValue(visibilityFilterAtom);
+
+  return useCallback(
+    (viewId: number) => {
+      if (!feedItemsOrder || !feedCategories) return [];
+      const viewFilter = views.find((view) => view.id === viewId) || null;
+
+      return feedItemsOrder.filter(
+        (item) =>
+          feedItemsMap[item] &&
+          doesFeedItemPassFilters(
+            feedItemsMap[item],
+            dateFilter,
+            visibilityFilter,
+            -1,
+            feedCategories,
+            -1,
+            feeds,
+            viewFilter,
+          ),
+      );
+    },
+    [
+      feedItemsOrder,
+      feedItemsMap,
+      dateFilter,
+      visibilityFilter,
+      feedCategories,
+    ],
+  );
+}
+
 export function useViewsQuery() {
   const { data } = useSession();
   const { contentCategories } = useContentCategories();
-  const setHasFetchedViews = useSetAtom(hasFetchedViewsAtom);
+  const [hasFetchedViews, setHasFetchedViews] = useAtom(hasFetchedViewsAtom);
   const setViews = useSetAtom(viewsAtom);
   const updateViewFilter = useUpdateViewFilter();
 
@@ -101,9 +147,6 @@ export function useViewsQuery() {
     if (query.isSuccess) {
       setHasFetchedViews(true);
       setViews(transformedData);
-      if (!!transformedData?.[0]?.id) {
-        updateViewFilter(transformedData[0].id, transformedData);
-      }
     }
   }, [query.isSuccess, transformedData]);
 

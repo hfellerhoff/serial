@@ -8,7 +8,6 @@ import {
   ClockIcon,
   EyeIcon,
   PlusIcon,
-  RefreshCwIcon,
   SproutIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -16,7 +15,6 @@ import FeedLoading from "~/app/loading";
 import { Button } from "~/components/ui/button";
 import {
   useFeedItemGlobalState,
-  useFeedItemsMap,
   useFeedItemsOrder,
   useHasFetchedFeedItems,
 } from "~/lib/data/atoms";
@@ -25,12 +23,10 @@ import { useFilteredFeedItemsOrder } from "~/lib/data/feed-items";
 import {
   useFeedItemsSetWatchedValueMutation,
   useFeedItemsSetWatchLaterValueMutation,
-  useFetchNewFeedItemsMutation,
 } from "~/lib/data/feed-items/mutations";
 import { useFeeds } from "~/lib/data/feeds";
 import { useDialogStore } from "./dialogStore";
-import { Suspense } from "react";
-import { useSidebar } from "~/components/ui/sidebar";
+import { useViews } from "~/lib/data/views";
 
 function timeAgo(date: string | Date) {
   const diff = dayjs().diff(date);
@@ -187,7 +183,8 @@ function ItemDisplay({ contentId }: { contentId: string }) {
 
 export function TodayItems() {
   const { feeds, hasFetchedFeeds } = useFeeds();
-  const { feedCategories, hasFetchedFeedCategories } = useFeedCategories();
+  const { hasFetchedFeedCategories } = useFeedCategories();
+  const { views } = useViews();
   const hasFetchedFeedItems = useHasFetchedFeedItems();
   const feedItemsOrder = useFeedItemsOrder();
 
@@ -195,11 +192,7 @@ export function TodayItems() {
 
   const [parent] = useAutoAnimate();
 
-  if (
-    (!hasFetchedFeeds && !feeds.length) ||
-    (!hasFetchedFeedItems && !feedItemsOrder.length) ||
-    (!hasFetchedFeedCategories && !feedCategories.length)
-  ) {
+  if (!views.length) {
     return <FeedLoading />;
   }
 

@@ -106,6 +106,7 @@ export const feedCategoriesAtom = validatedPersistedAtom<
   persistanceKey: "serial-feed-categories",
 });
 
+export const hasSetInitialViewAtom = atom(false);
 export const hasFetchedViewsAtom = atom(false);
 export const viewsAtom = validatedPersistedAtom<ApplicationView[]>({
   defaultValue: [],
@@ -120,7 +121,8 @@ export const visibilityFilterAtom = atom<VisibilityFilter>("unread");
 export const categoryFilterAtom = atom<number>(-1);
 export const feedFilterAtom = atom<number>(-1);
 
-export const viewFilterIdAtom = atom<number>(-1);
+export const UNSELECTED_VIEW_ID = -100;
+export const viewFilterIdAtom = atom<number>(UNSELECTED_VIEW_ID);
 export const viewFilterAtom = atom<ApplicationView | null>((get) => {
   const views = get(viewsAtom);
   const viewId = get(viewFilterIdAtom);

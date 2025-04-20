@@ -1,14 +1,30 @@
 "use client";
 
-import { type PropsWithChildren } from "react";
+import { useEffect, useRef, type PropsWithChildren } from "react";
 import { useFeedsQuery } from "./feeds";
 import { useFeedItemsQuery } from "./feed-items";
-import { useViewsQuery } from "./views";
+import { useUpdateViewFilter, useViews, useViewsQuery } from "./views";
+import { useContentCategoriesQuery } from "./content-categories";
+import { useAtom } from "jotai";
+import { hasSetInitialViewAtom } from "./atoms";
 
 export function InitialClientQueries({ children }: PropsWithChildren) {
   useFeedsQuery();
   useFeedItemsQuery();
-  useViewsQuery();
+  useContentCategoriesQuery();
+
+  const [hasSetInitialView, setHasSetInitialView] = useAtom(
+    hasSetInitialViewAtom,
+  );
+  const { views } = useViews();
+  const updateViewFilter = useUpdateViewFilter();
+
+  useEffect(() => {
+    if (!!views?.length && !hasSetInitialView) {
+      setHasSetInitialView(true);
+      updateViewFilter(views[0]!.id);
+    }
+  }, [views, hasSetInitialView, setHasSetInitialView, updateViewFilter]);
 
   return children;
 }
