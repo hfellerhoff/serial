@@ -1,8 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useEffect } from "react";
 import { useTRPC } from "~/trpc/react";
 import { feedCategoriesAtom, hasFetchedFeedCategoriesAtom } from "../atoms";
-import { useEffect } from "react";
 
 export function useFeedCategoriesQuery() {
   const setHasFetchedFeedCategories = useSetAtom(hasFetchedFeedCategoriesAtom);
@@ -19,7 +19,7 @@ export function useFeedCategoriesQuery() {
       setHasFetchedFeedCategories(true);
       setFeedCategories(query.data);
     }
-  }, [query]);
+  }, [query, setHasFetchedFeedCategories, setFeedCategories]);
 
   return query;
 }

@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import superjson from "superjson";
 import { z } from "zod";
 import {
-  ApplicationView,
+  type ApplicationView,
   applicationViewSchema,
   contentCategorySchema,
   type DatabaseContentCategory,

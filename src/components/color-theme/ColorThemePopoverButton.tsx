@@ -1,25 +1,19 @@
 "use client";
 
+import { useMutation } from "@tanstack/react-query";
+import clsx from "clsx";
 import { LaptopIcon, MoonIcon, PaletteIcon, SunIcon } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
+import { authClient } from "~/lib/auth-client";
+import { useTRPC } from "~/trpc/react";
 import { ResponsiveButton } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { useTheme } from "next-themes";
-import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
-import { useTRPC } from "~/trpc/react";
-import { useMutation } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { ResponsiveDropdown } from "../ui/responsive-dropdown";
 import { Slider } from "../ui/slider";
-import clsx from "clsx";
+import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 import { EnableCustomVideoPlayerToggle } from "./EnableCustomVideoPlayerToggle";
 import { ShowShortcutsToggle } from "./ShowShortcutsToggle";
-import { authClient } from "~/lib/auth-client";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-import { useSidebar } from "../ui/sidebar";
-import { ResponsiveDropdown } from "../ui/responsive-dropdown";
 
 function getCssVariable(name: string) {
   const value = window
@@ -226,8 +220,6 @@ export function ColorThemeDropdownSidebar({
 }: {
   children: React.ReactNode;
 }) {
-  const { isMobile } = useSidebar();
-
   return (
     <ResponsiveDropdown trigger={children} side="right">
       <ColorModeToggleGroup />

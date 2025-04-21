@@ -64,7 +64,7 @@ export async function readContentPage(directory: string, slug: string[]) {
     });
 
     return { content, frontmatter };
-  } catch (error) {
+  } catch {
     notFound();
   }
 }

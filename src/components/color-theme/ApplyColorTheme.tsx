@@ -1,6 +1,6 @@
-import { ApplyColorThemeOnMount } from "./ApplyColorThemeOnMount";
 import { getServerApi } from "~/server/api/server";
-import { getServerAuth, isServerAuthed } from "~/server/auth";
+import { isServerAuthed } from "~/server/auth";
+import { ApplyColorThemeOnMount } from "./ApplyColorThemeOnMount";
 
 export async function ApplyColorTheme({
   children,

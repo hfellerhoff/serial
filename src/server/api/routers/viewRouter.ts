@@ -1,9 +1,8 @@
-import { eq, asc } from "drizzle-orm";
-import { z } from "zod";
+import { asc, eq } from "drizzle-orm";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import {
-  ApplicationView,
+  type ApplicationView,
   createViewSchema,
   viewCategories,
   views,
@@ -13,7 +12,7 @@ export const viewRouter = createTRPCRouter({
   create: protectedProcedure
     .input(createViewSchema)
     .mutation(async ({ ctx, input }) => {
-      ctx.db.transaction(async (tx) => {
+      await ctx.db.transaction(async (tx) => {
         const viewsResult = await tx
           .insert(views)
           .values({

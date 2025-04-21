@@ -1,12 +1,13 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { atom, useAtomValue, useSetAtom } from "jotai";
+import { useEffect } from "react";
 import {
+  ApplicationView,
   type DatabaseFeed,
   type DatabaseFeedCategory,
   type DatabaseFeedItem,
 } from "~/server/db/schema";
 import { useTRPC } from "~/trpc/react";
-import { useEffect, useMemo } from "react";
-import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   categoryFilterAtom,
   dateFilterAtom,
@@ -20,8 +21,6 @@ import {
   type VisibilityFilter,
   visibilityFilterAtom,
 } from "../atoms";
-import { splitAtom } from "jotai/utils";
-import { ApplicationView } from "../views";
 
 export function doesFeedItemPassFilters(
   item: DatabaseFeedItem,
