@@ -72,7 +72,7 @@ function useDebouncedState(defaultValue: string, delay: number) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const setDebouncedQuery = useCallback(
-    (newValue: string, forceUpdate: boolean = false) => {
+    (newValue: string, forceUpdate = false) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
