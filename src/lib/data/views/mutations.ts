@@ -15,3 +15,33 @@ export function useCreateViewMutation() {
     }),
   );
 }
+
+export function useEditViewMutation() {
+  const api = useTRPC();
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    api.views.edit.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: api.views.getAll.queryKey(),
+        });
+      },
+    }),
+  );
+}
+
+export function useDeleteViewMutation() {
+  const api = useTRPC();
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    api.views.delete.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: api.views.getAll.queryKey(),
+        });
+      },
+    }),
+  );
+}

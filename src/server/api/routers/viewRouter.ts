@@ -1,9 +1,11 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, notInArray } from "drizzle-orm";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import {
   type ApplicationView,
   createViewSchema,
+  deleteViewSchema,
+  updateViewSchema,
   viewCategories,
   views,
 } from "~/server/db/schema";
@@ -37,6 +39,65 @@ export const viewRouter = createTRPCRouter({
             });
           }),
         );
+      });
+    }),
+  edit: protectedProcedure
+    .input(updateViewSchema)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.transaction(async (tx) => {
+        const viewsResult = await tx
+          .update(views)
+          .set({
+            name: input.name,
+            daysWindow: input.daysWindow,
+            readStatus: input.readStatus,
+            orientation: input.orientation,
+            placement: input.placement,
+          })
+          .where(
+            and(eq(views.userId, ctx.auth!.user.id), eq(views.id, input.id)),
+          )
+          .returning();
+
+        const view = viewsResult?.[0];
+
+        if (!input.categoryIds || !view) return;
+
+        await tx
+          .delete(viewCategories)
+          .where(
+            and(
+              eq(viewCategories.viewId, view.id),
+              notInArray(viewCategories.categoryId, input.categoryIds),
+            ),
+          );
+
+        return await Promise.all(
+          input.categoryIds.map(async (categoryId) => {
+            await tx
+              .insert(viewCategories)
+              .values({
+                viewId: view.id,
+                categoryId,
+              })
+              .onConflictDoNothing();
+          }),
+        );
+      });
+    }),
+  delete: protectedProcedure
+    .input(deleteViewSchema)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.transaction(async (tx) => {
+        await tx
+          .delete(viewCategories)
+          .where(eq(viewCategories.viewId, input.id));
+
+        return await tx
+          .delete(views)
+          .where(
+            and(eq(views.id, input.id), eq(views.userId, ctx.auth!.user.id)),
+          );
       });
     }),
   getAll: protectedProcedure.query(async ({ ctx }) => {

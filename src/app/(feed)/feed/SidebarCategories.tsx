@@ -17,7 +17,6 @@ import {
   feedFilterAtom,
   useFeedItemsMap,
   useFeedItemsOrder,
-  viewFilterAtom,
   visibilityFilterAtom,
 } from "~/lib/data/atoms";
 import { useContentCategories } from "~/lib/data/content-categories";

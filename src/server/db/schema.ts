@@ -8,7 +8,11 @@ import {
   index,
   primaryKey,
 } from "drizzle-orm/sqlite-core";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import {
+  createInsertSchema,
+  createSelectSchema,
+  createUpdateSchema,
+} from "drizzle-zod";
 import {
   FEED_ITEM_ORIENTATION,
   feedItemOrientationSchema,
@@ -231,3 +235,14 @@ export const createViewSchema = createInsertSchema(views).merge(
     categoryIds: z.array(z.number()).optional(),
   }),
 );
+
+export const updateViewSchema = createUpdateSchema(views).merge(
+  z.object({
+    id: z.number(),
+    categoryIds: z.array(z.number()),
+  }),
+);
+
+export const deleteViewSchema = z.object({
+  id: z.number(),
+});
