@@ -1,6 +1,9 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { CircleSmall, Edit2Icon, PlusIcon } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
+import { EditFeedDialog } from "~/components/AddFeedDialog";
+import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
+import { Input } from "~/components/ui/input";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -20,11 +23,8 @@ import {
 import { useFeedCategories } from "~/lib/data/feed-categories";
 import { doesFeedItemPassFilters } from "~/lib/data/feed-items";
 import { useFeeds } from "~/lib/data/feeds";
-import { useDialogStore } from "./dialogStore";
 import { useDeselectViewFilter } from "~/lib/data/views";
-import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
-import { EditFeedDialog } from "~/components/AddFeedDialog";
-import { Input } from "~/components/ui/input";
+import { useDialogStore } from "./dialogStore";
 
 function useCheckFilteredFeedItemsForFeed() {
   const feedItemsOrder = useFeedItemsOrder();
@@ -109,31 +109,6 @@ export function SidebarFeeds() {
 
   const checkFilteredFeedItemsForFeed = useCheckFilteredFeedItemsForFeed();
 
-  // const feedOptions = feeds
-  //   ?.map((category) => ({
-  //     ...category,
-  //     hasEntries: !!checkFilteredFeedItemsForFeed(category.id).length,
-  //   }))
-  //   ?.toSorted((a, b) => {
-  //     if (!!searchQuery) {
-  //       const lowercaseQuery = searchQuery.toLowerCase();
-  //       const isLowercaseANameMatch = a.name
-  //         .toLowerCase()
-  //         .includes(lowercaseQuery);
-  //       const isLowercaseBNameMatch = b.name
-  //         .toLowerCase()
-  //         .includes(lowercaseQuery);
-
-  //       if (isLowercaseANameMatch && !isLowercaseBNameMatch) return -1;
-  //       if (!isLowercaseANameMatch && isLowercaseBNameMatch) return 1;
-  //     } else {
-  //       if (a.hasEntries && !b.hasEntries) return -1;
-  //       if (!a.hasEntries && b.hasEntries) return 1;
-  //     }
-
-  //     return a.name.localeCompare(b.name);
-  //   });
-  //
   const feedOptions = feeds?.map((category) => ({
     ...category,
     hasEntries: !!checkFilteredFeedItemsForFeed(category.id).length,
@@ -231,14 +206,13 @@ export function SidebarFeeds() {
               All
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {preferredFeedOptions.map((feed, i) => {
+          {preferredFeedOptions.map((feed) => {
             return (
               <SidebarMenuItem key={feed.id} className="group flex gap-1">
                 <SidebarMenuButton
                   variant={feed.id === feedFilter ? "outline" : "default"}
                   onClick={() => {
                     setFeedFilter(feed.id);
-                    setDateFilter(30);
                     if (!feed.hasEntries) {
                       deselectViewFilter();
                     }
@@ -267,14 +241,13 @@ export function SidebarFeeds() {
           {!!preferredFeedOptions.length && !!otherFeedOptions.length && (
             <hr className="my-2 opacity-50" />
           )}
-          {otherFeedOptions.map((feed, i) => {
+          {otherFeedOptions.map((feed) => {
             return (
               <SidebarMenuItem key={feed.id} className="group flex gap-1">
                 <SidebarMenuButton
                   variant={feed.id === feedFilter ? "outline" : "default"}
                   onClick={() => {
                     setFeedFilter(feed.id);
-                    setDateFilter(30);
                     if (!feed.hasEntries) {
                       deselectViewFilter();
                     }
