@@ -1,6 +1,6 @@
 import { ClientDatetime } from "./ClientDatetime";
-import { DateFilterChips } from "./DateFilterChips";
-import { ItemVisibilityChips } from "./ItemVisibilityChips";
+import { DateFilterSelect } from "./DateFilterChips";
+import { ItemVisibilitySelect } from "./ItemVisibilityChips";
 import { TodayItems } from "./TodayItems";
 import { ViewFilterChips } from "./ViewFilterChips";
 
@@ -12,7 +12,11 @@ export default async function Home() {
         <p className="pb-2 font-mono">
           <ClientDatetime />
         </p>
-        <div className="w-max pt-2">
+        <div className="flex w-max gap-1 pt-1">
+          <DateFilterSelect />
+          <ItemVisibilitySelect />
+        </div>
+        <div className="w-max pt-3">
           <ViewFilterChips />
         </div>
       </div>
