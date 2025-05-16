@@ -216,7 +216,6 @@ export function SidebarViews() {
           }),
         );
 
-        setViews(updatedViews);
         void updateViewsPlacement({ views: updatedViews });
 
         return updatedOptions;
