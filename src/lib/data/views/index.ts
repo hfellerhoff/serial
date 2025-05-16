@@ -22,6 +22,8 @@ import { useFeedCategories } from "../feed-categories";
 import { useFeeds } from "../feeds";
 import { doesFeedItemPassFilters } from "../feed-items";
 
+export const INBOX_VIEW_ID = -1;
+
 export function useDeselectViewFilter() {
   const setViewFilter = useSetAtom(viewFilterIdAtom);
   return useCallback(() => {
@@ -127,7 +129,7 @@ export function useViewsQuery() {
     );
 
     const inboxView: ApplicationView = {
-      id: -1,
+      id: INBOX_VIEW_ID,
       name: "Inbox",
       daysWindow: 7,
       orientation: FEED_ITEM_ORIENTATION.HORIZONTAL,

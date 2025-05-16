@@ -71,6 +71,8 @@ export function SidebarFeeds() {
 
   const setDateFilter = useSetAtom(dateFilterAtom);
   const [feedFilter, setFeedFilter] = useAtom(feedFilterAtom);
+  const categoryFilter = useAtomValue(categoryFilterAtom);
+  const viewFilter = useAtomValue(viewFilterAtom);
   const deselectViewFilter = useDeselectViewFilter();
 
   const checkFilteredFeedItemsForFeed = useCheckFilteredFeedItemsForFeed();
@@ -107,7 +109,9 @@ export function SidebarFeeds() {
             variant={feedFilter === -1 ? "outline" : "default"}
             onClick={() => {
               setFeedFilter(-1);
-              setDateFilter(1);
+              if (!viewFilter && categoryFilter < 0) {
+                setDateFilter(1);
+              }
             }}
           >
             {!hasAnyItems && (
@@ -129,7 +133,9 @@ export function SidebarFeeds() {
                 onClick={() => {
                   setFeedFilter(feed.id);
                   setDateFilter(30);
-                  deselectViewFilter();
+                  if (!feed.hasEntries) {
+                    deselectViewFilter();
+                  }
                 }}
               >
                 {!feed.hasEntries && (

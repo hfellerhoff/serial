@@ -21,6 +21,7 @@ import {
   type VisibilityFilter,
   visibilityFilterAtom,
 } from "../atoms";
+import { INBOX_VIEW_ID } from "../views";
 
 export function doesFeedItemPassFilters(
   item: DatabaseFeedItem,
@@ -80,6 +81,13 @@ export function doesFeedItemPassFilters(
     .map((category) => category.feedId);
 
   // View filter
+  const doesFeedHaveAnyCategories = feedCategories.some(
+    (category) => category.feedId === item.feedId,
+  );
+  if (viewFilter?.id === INBOX_VIEW_ID && !doesFeedHaveAnyCategories) {
+    return true;
+  }
+
   if (
     !!viewFilter &&
     viewFilter.categoryIds.length > 0 &&

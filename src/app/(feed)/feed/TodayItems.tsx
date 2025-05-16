@@ -7,10 +7,10 @@ import {
   CheckIcon,
   ClockIcon,
   EyeIcon,
+  ImportIcon,
   PlusIcon,
   SproutIcon,
 } from "lucide-react";
-import Link from "next/link";
 import FeedLoading from "~/app/loading";
 import { Button } from "~/components/ui/button";
 import {
@@ -27,6 +27,14 @@ import {
 import { useFeeds } from "~/lib/data/feeds";
 import { useDialogStore } from "./dialogStore";
 import { useViews } from "~/lib/data/views";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import Link from "next/link";
 
 function timeAgo(date: string | Date) {
   const diff = dayjs().diff(date);
@@ -65,6 +73,59 @@ function TodayItemsEmptyState() {
 
 function TodayItemsFeedEmptyState() {
   const launchDialog = useDialogStore((store) => store.launchDialog);
+
+  return (
+    <>
+      <div className="w-full px-6 pt-6 pb-4 md:pt-16 md:text-center">
+        <h2 className="font-mono text-xl font-bold">Welcome to Serial!</h2>
+        <p className="">There are a couple ways to get started:</p>
+      </div>
+      <div className="flex w-full flex-col gap-4 px-6 md:flex-row">
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Add feeds manually</CardTitle>
+            <CardDescription>
+              Add one or more feeds by
+              <ul className="list-disc pl-4">
+                <li>YouTube Channel URL</li>
+                <li>RSS Feed URL</li>
+              </ul>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex h-full flex-col justify-end">
+            <Button onClick={() => launchDialog("add-feed")}>
+              <PlusIcon size={16} />
+              <span className="pl-1.5">Add Feed</span>
+            </Button>
+          </CardContent>
+        </Card>
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Import feeds from elsewhere</CardTitle>
+            <CardDescription>
+              Serial supports importing from
+              <ul className="list-disc pl-4">
+                <li>
+                  Google Takeout (<code>subscriptions.csv</code>)
+                </li>
+                <li>
+                  Other RSS readers (<code>.opml</code>)
+                </li>
+              </ul>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex h-full flex-col justify-end">
+            <Button asChild>
+              <Link href="/feed/import">
+                <ImportIcon size={16} />
+                <span className="pl-1.5">Import Feeds</span>
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </>
+  );
 
   return (
     <button
