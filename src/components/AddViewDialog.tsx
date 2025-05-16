@@ -117,7 +117,7 @@ function ViewReadStatusInput({
   );
 }
 
-function ViewCategoriesInput({
+export function ViewCategoriesInput({
   selectedCategories,
   setSelectedCategories,
 }: {

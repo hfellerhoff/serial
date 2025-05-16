@@ -100,3 +100,18 @@ export function useDeleteFeedMutation() {
     }),
   );
 }
+
+export function useEditFeedMutation() {
+  const api = useTRPC();
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    api.feeds.update.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: api.feedCategories.getAll.queryKey(),
+        });
+      },
+    }),
+  );
+}

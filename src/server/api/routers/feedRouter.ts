@@ -1,5 +1,5 @@
 import type { inferRouterOutputs } from "@trpc/server";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
@@ -215,21 +215,38 @@ export const feedRouter = createTRPCRouter({
     });
 
     return feedsList;
-
-    // const feedIds = feedsList.map((feed) => feed.id);
-
-    // const feedCategoriesList = await ctx.db
-    //   .select()
-    //   .from(feedCategories)
-    //   .where(inArray(feedCategories.feedId, feedIds));
-
-    // return feedsList.map((feed) => ({
-    //   ...feed,
-    //   categories: feedCategoriesList.filter(
-    //     (feedCategory) => feedCategory.feedId === feed.id,
-    //   ),
-    // }));
   }),
+  update: protectedProcedure
+    .input(
+      z.object({
+        feedId: z.number(),
+        categoryIds: z.number().array(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.transaction(async (tx) => {
+        await tx
+          .delete(feedCategories)
+          .where(
+            and(
+              eq(feedCategories.feedId, input.feedId),
+              notInArray(feedCategories.categoryId, input.categoryIds),
+            ),
+          );
+
+        return await Promise.all(
+          input.categoryIds.map(async (categoryId) => {
+            await tx
+              .insert(feedCategories)
+              .values({
+                feedId: input.feedId,
+                categoryId,
+              })
+              .onConflictDoNothing();
+          }),
+        );
+      });
+    }),
 });
 
 export type FeedRouter = inferRouterOutputs<typeof feedRouter>;

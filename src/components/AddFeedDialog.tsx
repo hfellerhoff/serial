@@ -2,12 +2,16 @@
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { ImportIcon } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
 import { useContentCategories } from "~/lib/data/content-categories";
 import { useCreateContentCategoryMutation } from "~/lib/data/content-categories/mutations";
-import { useCreateFeedMutation } from "~/lib/data/feeds/mutations";
+import {
+  useCreateFeedMutation,
+  useDeleteFeedMutation,
+  useEditFeedMutation,
+} from "~/lib/data/feeds/mutations";
 import { validateFeedUrl } from "~/server/rss/validateFeedUrl";
 import { useTRPC } from "~/trpc/react";
 import { Button } from "./ui/button";
@@ -15,6 +19,9 @@ import { Combobox } from "./ui/combobox";
 import { Dialog, DialogContent, DialogHeader } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { useFeeds } from "~/lib/data/feeds";
+import { useFeedCategories } from "~/lib/data/feed-categories";
+import { ViewCategoriesInput } from "./AddViewDialog";
 
 export function AddFeedDialog() {
   const trpc = useTRPC();
@@ -131,6 +138,113 @@ export function AddFeedDialog() {
               <span className="pl-1.5">Bulk Import</span>
             </Button>
           </Link>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function EditFeedDialog({
+  selectedFeedId,
+  onClose,
+}: {
+  selectedFeedId: null | number;
+  onClose: () => void;
+}) {
+  const [isUpdatingFeed, setIsUpdatingFeed] = useState(false);
+  const [isDeletingFeed, setIsDeletingFeed] = useState(false);
+
+  const { mutateAsync: editFeed } = useEditFeedMutation();
+  const { mutateAsync: deleteFeed } = useDeleteFeedMutation();
+
+  const [name, setName] = useState<string>("");
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+
+  const isFormDisabled = !name;
+
+  const { feeds } = useFeeds();
+  const { feedCategories } = useFeedCategories();
+
+  useEffect(() => {
+    if (!feeds || !selectedFeedId) return;
+
+    const feed = feeds.find((v) => v.id === selectedFeedId);
+    if (!feed) return;
+
+    const _feedCategories = feedCategories
+      .filter((category) => category.feedId === feed.id)
+      .map((category) => category.categoryId)
+      .filter((id) => typeof id === "number");
+
+    setName(feed.name);
+    setSelectedCategories(_feedCategories);
+  }, [feedCategories, selectedFeedId]);
+
+  return (
+    <Dialog open={selectedFeedId !== null} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center justify-between font-mono">
+            Edit Feed{" "}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-6">
+          <div className="grid gap-2">
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              type="text"
+              value={name}
+              placeholder="My Feed"
+              disabled
+            />
+          </div>
+          <ViewCategoriesInput
+            selectedCategories={selectedCategories}
+            setSelectedCategories={setSelectedCategories}
+          />
+          <div className="flex gap-2">
+            <Button
+              disabled={isDeletingFeed}
+              className="flex-1"
+              variant="destructive"
+              onClick={async () => {
+                if (selectedFeedId === null) return;
+
+                setIsDeletingFeed(true);
+                try {
+                  await deleteFeed(selectedFeedId);
+                  toast.success("Feed deleted!");
+                  onClose();
+                } catch {}
+
+                setIsDeletingFeed(false);
+              }}
+            >
+              {isDeletingFeed ? "Deleting..." : "Delete"}
+            </Button>
+            <Button
+              disabled={isFormDisabled || isUpdatingFeed}
+              onClick={async () => {
+                if (selectedFeedId === null) return;
+
+                setIsUpdatingFeed(true);
+                try {
+                  await editFeed({
+                    feedId: selectedFeedId,
+                    categoryIds: selectedCategories,
+                  });
+                  toast.success("Feed updated!");
+                  onClose();
+                } catch {}
+
+                setIsUpdatingFeed(false);
+              }}
+              className="flex-1"
+            >
+              {isUpdatingFeed ? "Saving..." : "Save"}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

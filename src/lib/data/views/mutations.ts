@@ -21,7 +21,7 @@ export function useEditViewMutation() {
   const queryClient = useQueryClient();
 
   return useMutation(
-    api.views.edit.mutationOptions({
+    api.views.update.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries({
           queryKey: api.views.getAll.queryKey(),

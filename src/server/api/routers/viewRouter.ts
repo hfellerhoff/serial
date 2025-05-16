@@ -41,7 +41,7 @@ export const viewRouter = createTRPCRouter({
         );
       });
     }),
-  edit: protectedProcedure
+  update: protectedProcedure
     .input(updateViewSchema)
     .mutation(async ({ ctx, input }) => {
       await ctx.db.transaction(async (tx) => {

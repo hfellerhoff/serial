@@ -121,7 +121,7 @@ export function SidebarViews() {
                     <SidebarMenuButton
                       onClick={() => setSelectedViewForEditing(option.id)}
                     >
-                      <Edit2Icon className="opacity-60 transition-opacity group-hover/button:opacity-100" />
+                      <Edit2Icon className="opacity-30 transition-opacity group-hover/button:opacity-100" />
                     </SidebarMenuButton>
                   </div>
                 )}

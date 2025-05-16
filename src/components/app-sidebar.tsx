@@ -46,7 +46,6 @@ export function AppLeftSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <LeftSidebarMain />
       </SidebarHeader>
       <SidebarContent>
         <SidebarViews />
