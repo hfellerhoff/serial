@@ -190,10 +190,11 @@ export function AddViewDialog() {
             daysWindow={daysTimeWindow}
             setDaysWindow={setDaysTimeWindow}
           />
-          <ViewReadStatusInput
+          {/* TODO: Implement read status */}
+          {/* <ViewReadStatusInput
             readStatus={readStatus}
             setReadStatus={setReadStatus}
-          />
+          /> */}
           <ViewCategoriesInput
             selectedCategories={selectedCategories}
             setSelectedCategories={setSelectedCategories}
@@ -273,10 +274,11 @@ export function EditViewDialog({
             daysWindow={daysTimeWindow}
             setDaysWindow={setDaysTimeWindow}
           />
-          <ViewReadStatusInput
+          {/* TODO: Implement read status */}
+          {/* <ViewReadStatusInput
             readStatus={readStatus}
             setReadStatus={setReadStatus}
-          />
+          /> */}
           <ViewCategoriesInput
             selectedCategories={selectedCategories}
             setSelectedCategories={setSelectedCategories}
