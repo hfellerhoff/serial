@@ -1,7 +1,12 @@
 "use client";
 
-import * as React from "react";
-
+import {
+  LifeBuoyIcon,
+  LightbulbIcon,
+  NotebookIcon,
+  PaletteIcon,
+} from "lucide-react";
+import Link from "next/link";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -9,16 +14,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "~/components/ui/sidebar";
-import {
-  CircleHelpIcon,
-  HelpingHandIcon,
-  LifeBuoyIcon,
-  LightbulbIcon,
-  MailIcon,
-  NotebookIcon,
-  PaletteIcon,
-} from "lucide-react";
-import Link from "next/link";
 import { ColorThemeDropdownSidebar } from "./color-theme/ColorThemePopoverButton";
 
 export function LeftSidebarBottomNav() {

@@ -63,6 +63,7 @@ function useCheckFilteredFeedItemsForFeed() {
       categoryFilter,
       feedCategories,
       feeds,
+      viewFilter,
     ],
   );
 }
@@ -85,7 +86,7 @@ function useDebouncedState(defaultValue: string, delay: number) {
         }, delay);
       }
     },
-    [],
+    [delay],
   );
 
   return [searchQuery, setDebouncedQuery] as const;

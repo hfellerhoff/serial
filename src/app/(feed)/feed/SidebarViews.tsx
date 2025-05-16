@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  Dispatch,
-  SetStateAction,
+  type Dispatch,
+  type SetStateAction,
   useCallback,
   useEffect,
   useState,
@@ -35,7 +35,7 @@ import { useDialogStore } from "./dialogStore";
 import {
   closestCenter,
   DndContext,
-  DragEndEvent,
+  type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -54,11 +54,11 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-import { ApplicationView } from "~/server/db/schema";
 import {
   calculateViewsPlacement,
   useUpdateViewsPlacementMutation,
 } from "~/lib/data/views/mutations";
+import type { ApplicationView } from "~/server/db/schema";
 
 export function useCheckFilteredFeedItemsForView() {
   const feedItemsOrder = useFeedItemsOrder();
@@ -96,6 +96,8 @@ export function useCheckFilteredFeedItemsForView() {
       dateFilter,
       visibilityFilter,
       feedCategories,
+      feeds,
+      views,
     ],
   );
 }
@@ -194,7 +196,7 @@ export function SidebarViews() {
         hasEntries: !!checkFilteredFeedItemsForView(view.id).length,
       })),
     );
-  }, [views]);
+  }, [views, checkFilteredFeedItemsForView]);
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -208,6 +210,7 @@ export function SidebarViews() {
 
         const updatedViews = calculateViewsPlacement(
           updatedOptions.map((option) => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { hasEntries, ...restOfOption } = option;
             return restOfOption;
           }),

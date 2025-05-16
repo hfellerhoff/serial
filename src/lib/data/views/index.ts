@@ -3,7 +3,7 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect, useMemo } from "react";
 import { useSession } from "~/lib/auth-client";
 import { FEED_ITEM_ORIENTATION, VIEW_READ_STATUS } from "~/server/db/constants";
-import { ApplicationView, contentCategories } from "~/server/db/schema";
+import { type ApplicationView } from "~/server/db/schema";
 import { useTRPC } from "~/trpc/react";
 import {
   categoryFilterAtom,
@@ -19,8 +19,8 @@ import {
 } from "../atoms";
 import { useContentCategories } from "../content-categories";
 import { useFeedCategories } from "../feed-categories";
-import { useFeeds } from "../feeds";
 import { doesFeedItemPassFilters } from "../feed-items";
+import { useFeeds } from "../feeds";
 import { sortViewsByPlacement } from "./utils";
 
 export const INBOX_VIEW_ID = -1;
@@ -35,7 +35,7 @@ export function useDeselectViewFilter() {
 
 export function useUpdateViewFilter() {
   const views = useAtomValue(viewsAtom);
-  const [viewFilter, setViewFilter] = useAtom(viewFilterIdAtom);
+  const [, setViewFilter] = useAtom(viewFilterIdAtom);
 
   const setFeedFilter = useSetAtom(feedFilterAtom);
   const setDateFilter = useSetAtom(dateFilterAtom);
@@ -66,7 +66,6 @@ export function useCheckFilteredFeedItemsForView() {
   const { feeds } = useFeeds();
   const { views } = useViews();
 
-  const dateFilter = useAtomValue(dateFilterAtom);
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
 
   return useCallback(
@@ -92,9 +91,10 @@ export function useCheckFilteredFeedItemsForView() {
     [
       feedItemsOrder,
       feedItemsMap,
-      dateFilter,
       visibilityFilter,
       feedCategories,
+      feeds,
+      views,
     ],
   );
 }
@@ -102,9 +102,8 @@ export function useCheckFilteredFeedItemsForView() {
 export function useViewsQuery() {
   const { data } = useSession();
   const { contentCategories } = useContentCategories();
-  const [hasFetchedViews, setHasFetchedViews] = useAtom(hasFetchedViewsAtom);
+  const [, setHasFetchedViews] = useAtom(hasFetchedViewsAtom);
   const setViews = useSetAtom(viewsAtom);
-  const updateViewFilter = useUpdateViewFilter();
 
   const query = useQuery(
     useTRPC().views.getAll.queryOptions(undefined, {
@@ -145,14 +144,14 @@ export function useViewsQuery() {
     };
 
     return sortViewsByPlacement([...customViews, inboxView]);
-  }, [query.data]);
+  }, [query.data, contentCategories, data?.user.id]);
 
   useEffect(() => {
     if (query.isSuccess) {
       setHasFetchedViews(true);
       setViews(transformedData);
     }
-  }, [query.isSuccess, transformedData]);
+  }, [query.isSuccess, transformedData, setHasFetchedViews, setViews]);
 
   return {
     ...query,

@@ -83,39 +83,39 @@ function ViewTimeInput({
   );
 }
 
-function ViewReadStatusInput({
-  readStatus,
-  setReadStatus,
-}: {
-  readStatus: number;
-  setReadStatus: (status: number) => void;
-}) {
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor="name">Read Status</Label>
-      <ToggleGroup
-        type="single"
-        value={readStatus.toString()}
-        onValueChange={(value) => {
-          if (!value) return;
-          setReadStatus(parseInt(value));
-        }}
-        size="sm"
-        className="w-fit"
-      >
-        <AddViewToggleItem value={VIEW_READ_STATUS.UNREAD.toString()}>
-          Unread
-        </AddViewToggleItem>
-        <AddViewToggleItem value={VIEW_READ_STATUS.READ.toString()}>
-          Watched
-        </AddViewToggleItem>
-        <AddViewToggleItem value={VIEW_READ_STATUS.ANY.toString()}>
-          Any
-        </AddViewToggleItem>
-      </ToggleGroup>
-    </div>
-  );
-}
+// function ViewReadStatusInput({
+//   readStatus,
+//   setReadStatus,
+// }: {
+//   readStatus: number;
+//   setReadStatus: (status: number) => void;
+// }) {
+//   return (
+//     <div className="grid gap-2">
+//       <Label htmlFor="name">Read Status</Label>
+//       <ToggleGroup
+//         type="single"
+//         value={readStatus.toString()}
+//         onValueChange={(value) => {
+//           if (!value) return;
+//           setReadStatus(parseInt(value));
+//         }}
+//         size="sm"
+//         className="w-fit"
+//       >
+//         <AddViewToggleItem value={VIEW_READ_STATUS.UNREAD.toString()}>
+//           Unread
+//         </AddViewToggleItem>
+//         <AddViewToggleItem value={VIEW_READ_STATUS.READ.toString()}>
+//           Watched
+//         </AddViewToggleItem>
+//         <AddViewToggleItem value={VIEW_READ_STATUS.ANY.toString()}>
+//           Any
+//         </AddViewToggleItem>
+//       </ToggleGroup>
+//     </div>
+//   );
+// }
 
 export function ViewCategoriesInput({
   selectedCategories,

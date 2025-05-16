@@ -6,7 +6,6 @@ import { SidebarFeeds } from "~/app/(feed)/feed/SidebarFeeds";
 import { SidebarViews } from "~/app/(feed)/feed/SidebarViews";
 import { UserManagementNavItem } from "~/app/(feed)/feed/UserManagementButton";
 import { LeftSidebarBottomNav } from "~/components/LeftSidebarBottomNav";
-import { LeftSidebarMain } from "~/components/LeftSidebarMain";
 import {
   Sidebar,
   SidebarContent,

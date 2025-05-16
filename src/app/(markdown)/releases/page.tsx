@@ -1,11 +1,7 @@
 import Link from "next/link";
 import { getReleasePages } from "~/lib/markdown/releases";
 
-export default async function Page({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function Page() {
   const releases = await getReleasePages();
 
   return (

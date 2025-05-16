@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
-import { useFeeds, useFeedsQuery } from "~/lib/data/feeds";
+import { useFeeds } from "~/lib/data/feeds";
 import { ImportDropzone } from "../ImportDropzone";
 import { type SubscriptionImportMethodProps } from "../types";
 import { parseOPMLSubscriptionInput } from "./parseOPMLSubscriptionInput";

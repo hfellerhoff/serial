@@ -1,16 +1,9 @@
 "use client";
 
-import { Loader2Icon, ExpandIcon, EllipsisVerticalIcon } from "lucide-react";
+import { EllipsisVerticalIcon, Loader2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
 import {
   ResponsiveDropdown,
   ResponsiveDropdownLabel,
@@ -20,7 +13,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "~/components/ui/sidebar";
 import { authClient, signOut } from "~/lib/auth-client";
 import { AUTH_SIGNED_OUT_URL } from "~/server/auth/constants";
@@ -33,7 +25,6 @@ export function UserManagementNavItem() {
 
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const { isMobile } = useSidebar();
 
   return (
     <SidebarMenu>

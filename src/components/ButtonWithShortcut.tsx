@@ -1,8 +1,7 @@
 "use client";
 
 import { useFlagState } from "~/lib/hooks/useFlagState";
-import { Button, type ButtonProps, ResponsiveButton } from "./ui/button";
-import React from "react";
+import { type ButtonProps, ResponsiveButton } from "./ui/button";
 
 export const ButtonWithShortcut = ({
   shortcut,

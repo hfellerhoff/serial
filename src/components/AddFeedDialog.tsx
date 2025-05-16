@@ -7,24 +7,22 @@ import { toast } from "sonner";
 import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
 import { useContentCategories } from "~/lib/data/content-categories";
 import { useCreateContentCategoryMutation } from "~/lib/data/content-categories/mutations";
+import { useFeedCategories } from "~/lib/data/feed-categories";
+import { useFeeds } from "~/lib/data/feeds";
 import {
   useCreateFeedMutation,
   useDeleteFeedMutation,
   useEditFeedMutation,
 } from "~/lib/data/feeds/mutations";
 import { validateFeedUrl } from "~/server/rss/validateFeedUrl";
-import { useTRPC } from "~/trpc/react";
+import { ViewCategoriesInput } from "./AddViewDialog";
 import { Button } from "./ui/button";
 import { Combobox } from "./ui/combobox";
 import { Dialog, DialogContent, DialogHeader } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { useFeeds } from "~/lib/data/feeds";
-import { useFeedCategories } from "~/lib/data/feed-categories";
-import { ViewCategoriesInput } from "./AddViewDialog";
 
 export function AddFeedDialog() {
-  const trpc = useTRPC();
   const [feedUrl, setFeedUrl] = useState("");
   const [isAddingFeed, setIsAddingFeed] = useState(false);
 
@@ -178,7 +176,7 @@ export function EditFeedDialog({
 
     setName(feed.name);
     setSelectedCategories(_feedCategories);
-  }, [feedCategories, selectedFeedId]);
+  }, [feedCategories, selectedFeedId, feeds]);
 
   return (
     <Dialog open={selectedFeedId !== null} onOpenChange={onClose}>

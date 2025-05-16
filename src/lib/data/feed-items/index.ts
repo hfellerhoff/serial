@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { atom, useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
-import {
+import type {
   ApplicationView,
-  type DatabaseFeed,
-  type DatabaseFeedCategory,
-  type DatabaseFeedItem,
+  DatabaseFeed,
+  DatabaseFeedCategory,
+  DatabaseFeedItem,
 } from "~/server/db/schema";
 import { useTRPC } from "~/trpc/react";
 import {
@@ -150,7 +150,7 @@ export function useFeedItemsQuery() {
         ),
       );
     }
-  }, [query, setFeedItemsOrder]);
+  }, [query, setFeedItemsOrder, setFeedItemsMap, setHasFetchedFeedItems]);
 
   return query;
 }

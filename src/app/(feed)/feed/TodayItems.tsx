@@ -11,11 +11,18 @@ import {
   PlusIcon,
   SproutIcon,
 } from "lucide-react";
+import Link from "next/link";
 import FeedLoading from "~/app/loading";
 import { Button } from "~/components/ui/button";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import {
   useFeedItemGlobalState,
-  useFeedItemsOrder,
   useHasFetchedFeedItems,
 } from "~/lib/data/atoms";
 import { useFeedCategories } from "~/lib/data/feed-categories";
@@ -25,16 +32,8 @@ import {
   useFeedItemsSetWatchLaterValueMutation,
 } from "~/lib/data/feed-items/mutations";
 import { useFeeds } from "~/lib/data/feeds";
-import { useDialogStore } from "./dialogStore";
 import { useViews } from "~/lib/data/views";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
-import Link from "next/link";
+import { useDialogStore } from "./dialogStore";
 
 function timeAgo(date: string | Date) {
   const diff = dayjs().diff(date);
@@ -247,7 +246,6 @@ export function TodayItems() {
   const { hasFetchedFeedCategories } = useFeedCategories();
   const { views } = useViews();
   const hasFetchedFeedItems = useHasFetchedFeedItems();
-  const feedItemsOrder = useFeedItemsOrder();
 
   const filteredFeedItemsOrder = useFilteredFeedItemsOrder();
 

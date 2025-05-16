@@ -1,24 +1,24 @@
 "use client";
 
-import { InfoIcon, Loader2, UserIcon } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { InfoIcon, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { type PropsWithChildren, useState } from "react";
+import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardFooter } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { authClient, resetPassword } from "~/lib/auth-client";
+import { authClient } from "~/lib/auth-client";
 import {
   AUTH_PAGE_URL,
   AUTH_RESET_PASSWORD_URL,
   AUTH_SIGNED_OUT_URL,
 } from "~/server/auth/constants";
-import { AuthHeader } from "../AuthHeader";
-import { useSearchParams } from "next/navigation";
-import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
-import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "~/trpc/react";
+import { AuthHeader } from "../AuthHeader";
 
 function AlertPane({
   title,

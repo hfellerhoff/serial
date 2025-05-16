@@ -1,19 +1,18 @@
 import "~/styles/globals.css";
 
 import { type Metadata, type Viewport } from "next";
+import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { AppLeftSidebar, AppRightSidebar } from "~/components/app-sidebar";
+import { ApplyColorTheme } from "~/components/color-theme/ApplyColorTheme";
 import { KeyboardProvider } from "~/components/KeyboardProvider";
-import { ScrollArea } from "~/components/ui/scroll-area";
+import { ReleaseNotifier } from "~/components/releases/ReleaseNotifier";
+import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
+import { InitialClientQueries } from "~/lib/data/InitialClientQueries";
+import { isServerAuthed } from "~/server/auth";
+import FeedLoading from "../loading";
 import { AppDialogs } from "./feed/AppDialogs";
 import { Header } from "./feed/Header";
-import { ApplyColorTheme } from "~/components/color-theme/ApplyColorTheme";
-import { Suspense } from "react";
-import { ReleaseNotifier } from "~/components/releases/ReleaseNotifier";
-import { InitialClientQueries } from "~/lib/data/InitialClientQueries";
-import FeedLoading from "../loading";
-import { isServerAuthed } from "~/server/auth";
-import { redirect } from "next/navigation";
-import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
-import { AppLeftSidebar, AppRightSidebar } from "~/components/app-sidebar";
 
 const title = "Serial";
 const description = "Your personal content newsletter";

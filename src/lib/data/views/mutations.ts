@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ApplicationView } from "~/server/db/schema";
+import type { ApplicationView } from "~/server/db/schema";
 import { useTRPC } from "~/trpc/react";
 import { INBOX_VIEW_ID, INBOX_VIEW_PLACEMENT } from ".";
 
