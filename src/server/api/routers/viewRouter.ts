@@ -1,4 +1,6 @@
 import { and, asc, eq, notInArray } from "drizzle-orm";
+import { z } from "zod";
+import { sortViewsByPlacement } from "~/lib/data/views/utils";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import {
@@ -85,6 +87,33 @@ export const viewRouter = createTRPCRouter({
         );
       });
     }),
+  updatePlacement: protectedProcedure
+    .input(
+      z.object({
+        views: z.array(
+          z.object({
+            id: z.number(),
+            placement: z.number(),
+          }),
+        ),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.transaction(async (tx) => {
+        return await Promise.all(
+          input.views.map(async (view) => {
+            return await tx
+              .update(views)
+              .set({
+                placement: view.placement,
+              })
+              .where(
+                and(eq(views.id, view.id), eq(views.userId, ctx.auth!.user.id)),
+              );
+          }),
+        );
+      });
+    }),
   delete: protectedProcedure
     .input(deleteViewSchema)
     .mutation(async ({ ctx, input }) => {
@@ -122,6 +151,6 @@ export const viewRouter = createTRPCRouter({
       return applicationView;
     });
 
-    return zippedViews;
+    return sortViewsByPlacement(zippedViews);
   }),
 });

@@ -21,8 +21,10 @@ import { useContentCategories } from "../content-categories";
 import { useFeedCategories } from "../feed-categories";
 import { useFeeds } from "../feeds";
 import { doesFeedItemPassFilters } from "../feed-items";
+import { sortViewsByPlacement } from "./utils";
 
 export const INBOX_VIEW_ID = -1;
+export const INBOX_VIEW_PLACEMENT = -1;
 
 export function useDeselectViewFilter() {
   const setViewFilter = useSetAtom(viewFilterIdAtom);
@@ -134,7 +136,7 @@ export function useViewsQuery() {
       daysWindow: 7,
       orientation: FEED_ITEM_ORIENTATION.HORIZONTAL,
       readStatus: VIEW_READ_STATUS.UNREAD,
-      placement: -1,
+      placement: INBOX_VIEW_PLACEMENT,
       userId: data?.user.id ?? "",
       createdAt: now,
       updatedAt: now,
@@ -142,7 +144,7 @@ export function useViewsQuery() {
       isDefault: true,
     };
 
-    return [...customViews, inboxView];
+    return sortViewsByPlacement([...customViews, inboxView]);
   }, [query.data]);
 
   useEffect(() => {
