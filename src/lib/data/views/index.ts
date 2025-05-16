@@ -77,7 +77,7 @@ export function useCheckFilteredFeedItemsForView() {
           feedItemsMap[item] &&
           doesFeedItemPassFilters(
             feedItemsMap[item],
-            dateFilter,
+            viewFilter?.daysWindow ?? 1,
             visibilityFilter,
             -1,
             feedCategories,
