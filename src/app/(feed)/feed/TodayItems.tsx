@@ -9,6 +9,7 @@ import {
   EyeIcon,
   ImportIcon,
   PlusIcon,
+  RefreshCwIcon,
   SproutIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -142,30 +143,30 @@ function TodayItemsFeedEmptyState() {
   );
 }
 
-// function LoaderDisplay() {
-//   const hasFetchedFeedItems = useHasFetchedFeedItems();
-//   const { hasFetchedFeeds } = useFeeds();
-//   const { hasFetchedFeedCategories } = useFeedCategories();
+function LoaderDisplay() {
+  const hasFetchedFeedItems = useHasFetchedFeedItems();
+  const { hasFetchedFeeds } = useFeeds();
+  const { hasFetchedFeedCategories } = useFeedCategories();
 
-//   if (hasFetchedFeeds && hasFetchedFeedItems && hasFetchedFeedCategories) {
-//     return null;
-//   }
+  if (hasFetchedFeeds && hasFetchedFeedItems && hasFetchedFeedCategories) {
+    return null;
+  }
 
-//   return (
-//     <article
-//       className={clsx(
-//         "group relative mb-6 flex w-full flex-1 items-center justify-center gap-2 rounded px-6",
-//       )}
-//     >
-//       <div className="bg-muted/50 flex w-full flex-1 items-center gap-4 rounded p-6 text-left transition-colors md:justify-center">
-//         <RefreshCwIcon className="size-4 animate-spin" />
-//         <h3 className="w-fit text-sm font-semibold md:text-sm">
-//           Refreshing data...
-//         </h3>
-//       </div>
-//     </article>
-//   );
-// }
+  return (
+    <article
+      className={clsx(
+        "group relative mb-6 flex w-full flex-1 items-center justify-center gap-2 rounded px-6",
+      )}
+    >
+      <div className="bg-muted/50 flex w-full flex-1 items-center gap-4 rounded p-6 text-left transition-colors md:justify-center">
+        <RefreshCwIcon className="size-4 animate-spin" />
+        <h3 className="w-fit text-sm font-semibold md:text-sm">
+          Refreshing data...
+        </h3>
+      </div>
+    </article>
+  );
+}
 
 function ItemDisplay({ contentId }: { contentId: string }) {
   const [item] = useFeedItemGlobalState(contentId);
@@ -270,6 +271,7 @@ export function TodayItems() {
 
   return (
     <div className="w-full transition-all md:pt-4 md:pr-6 md:pl-4" ref={parent}>
+      <LoaderDisplay />
       {filteredFeedItemsOrder.map((contentId) => (
         <ItemDisplay contentId={contentId} key={contentId} />
       ))}
