@@ -182,7 +182,7 @@ export function SidebarViews() {
   const launchDialog = useDialogStore((store) => store.launchDialog);
   const checkFilteredFeedItemsForView = useCheckFilteredFeedItemsForView();
 
-  const { views, setViews } = useViews();
+  const { views } = useViews();
 
   const [viewOptions, setViewOptions] = useState<ViewOption[]>([]);
 

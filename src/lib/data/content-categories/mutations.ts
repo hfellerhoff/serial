@@ -15,3 +15,39 @@ export function useCreateContentCategoryMutation() {
     }),
   );
 }
+
+export function useUpdateContentCategoryMutation() {
+  const api = useTRPC();
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    api.contentCategories.update.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: api.contentCategories.getAll.queryKey(),
+        });
+      },
+    }),
+  );
+}
+
+export function useDeleteContentCategoryMutation() {
+  const api = useTRPC();
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    api.contentCategories.delete.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: api.contentCategories.getAll.queryKey(),
+        });
+        await queryClient.invalidateQueries({
+          queryKey: api.views.getAll.queryKey(),
+        });
+        await queryClient.invalidateQueries({
+          queryKey: api.feedCategories.getAll.queryKey(),
+        });
+      },
+    }),
+  );
+}

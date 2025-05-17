@@ -2,24 +2,24 @@
 // https://orm.drizzle.team/docs/sql-schema-declaration
 
 import {
-  integer,
-  text,
-  sqliteTableCreator,
   index,
+  integer,
   primaryKey,
+  sqliteTableCreator,
+  text,
 } from "drizzle-orm/sqlite-core";
 import {
   createInsertSchema,
   createSelectSchema,
   createUpdateSchema,
 } from "drizzle-zod";
+import { z } from "zod";
 import {
   FEED_ITEM_ORIENTATION,
   feedItemOrientationSchema,
   VIEW_READ_STATUS,
   viewReadStatusSchema,
 } from "./constants";
-import { z } from "zod";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same

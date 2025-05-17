@@ -1,3 +1,4 @@
+import { AddContentCategoryDialog } from "~/components/AddContentCategoryDialog";
 import { AddFeedDialog } from "~/components/AddFeedDialog";
 import { AddViewDialog } from "~/components/AddViewDialog";
 import { CustomVideoDialog } from "~/components/CustomVideoDialog";
@@ -7,6 +8,7 @@ export function AppDialogs() {
     <>
       <AddFeedDialog />
       <AddViewDialog />
+      <AddContentCategoryDialog />
       <CustomVideoDialog />
     </>
   );
