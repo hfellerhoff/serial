@@ -79,7 +79,7 @@ export function useCheckFilteredFeedItemsForView() {
           doesFeedItemPassFilters(
             feedItemsMap[item],
             viewFilter?.daysWindow ?? 1,
-            visibilityFilter,
+            "unread",
             -1,
             feedCategories,
             -1,

@@ -71,6 +71,7 @@ export function ViewFilterChips() {
         updateViewFilter(parseInt(value));
       }}
       size="sm"
+      className="flex max-w-[calc(100vw-3rem)] flex-wrap items-start justify-start md:items-center md:justify-center"
     >
       {views.map((view) => (
         <ToggleGroupItem
