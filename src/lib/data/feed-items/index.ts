@@ -125,6 +125,27 @@ const filteredFeedItemsOrderAtom = atom((get) => {
       ),
   );
 });
+
+export function useDoesFeedItemMatchAllFilters(item: DatabaseFeedItem) {
+  const dateFilter = useAtomValue(dateFilterAtom);
+  const visibilityFilter = useAtomValue(visibilityFilterAtom);
+  const categoryFilter = useAtomValue(categoryFilterAtom);
+  const feedCategories = useAtomValue(feedCategoriesAtom);
+  const feedFilter = useAtomValue(feedFilterAtom);
+  const feeds = useAtomValue(feedsAtom);
+  const viewFilter = useAtomValue(viewFilterAtom);
+
+  return doesFeedItemPassFilters(
+    item,
+    dateFilter,
+    visibilityFilter,
+    categoryFilter,
+    feedCategories,
+    feedFilter,
+    feeds,
+    viewFilter,
+  );
+}
 export const useFilteredFeedItemsOrder = () =>
   useAtomValue(filteredFeedItemsOrderAtom);
 
