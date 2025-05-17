@@ -190,13 +190,17 @@ export function SidebarViews() {
     useUpdateViewsPlacementMutation();
 
   useEffect(() => {
-    setViewOptions(
-      views?.map((view) => ({
+    if (viewOptions.length === views.length) {
+      return;
+    }
+
+    setViewOptions(() => {
+      return views?.map((view) => ({
         ...view,
         hasEntries: !!checkFilteredFeedItemsForView(view.id).length,
-      })),
-    );
-  }, [views, checkFilteredFeedItemsForView]);
+      }));
+    });
+  }, [views, viewOptions, checkFilteredFeedItemsForView]);
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;

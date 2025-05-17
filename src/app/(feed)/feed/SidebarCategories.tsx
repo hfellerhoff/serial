@@ -80,8 +80,6 @@ export function SidebarCategories() {
 
   const hasAnyItems = !!checkFilteredFeedItemsForCategory(-1).length;
 
-  if (!categoryOptions?.length) return null;
-
   const updateCategoryFilter = (category: number) => {
     setFeedFilter(-1);
     setCategoryFilter(category);
