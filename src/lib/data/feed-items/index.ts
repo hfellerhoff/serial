@@ -178,6 +178,7 @@ export function useFeedItemsQuery() {
   }, [
     query.isSuccess,
     query.isFetching,
+    query.data,
     setFeedItemsOrder,
     setFeedItemsMap,
     setHasFetchedFeedItems,
