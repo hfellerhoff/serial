@@ -14,7 +14,7 @@ import { Button } from "~/components/ui/button";
 function OpenInYouTubeButton() {
   const pathname = usePathname();
 
-  const videoId = pathname.split("/feed/watch/")[1]?.split("?")[1];
+  const videoId = pathname.split("/feed/watch/")[1]!;
   const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
   return (
