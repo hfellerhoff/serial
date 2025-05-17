@@ -58,11 +58,7 @@ export const hasFetchedFeedItemsAtom = atom(false);
 export const useHasFetchedFeedItems = () =>
   useAtomValue(hasFetchedFeedItemsAtom);
 
-export const feedItemsOrderAtom = validatedPersistedAtom<string[]>({
-  defaultValue: [],
-  schema: z.string().array(),
-  persistanceKey: "serial-feed-item-order",
-});
+export const feedItemsOrderAtom = atom<string[]>([]);
 export const useFeedItemsOrder = () => useAtomValue(feedItemsOrderAtom);
 
 export const feedItemsMapAtom = validatedPersistedAtom<

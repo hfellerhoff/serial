@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { atom, useAtomValue, useSetAtom } from "jotai";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type {
   ApplicationView,
   DatabaseFeed,
@@ -154,6 +154,7 @@ export function useFeedItemsQuery() {
   const setFeedItemsOrder = useSetAtom(feedItemsOrderAtom);
   const setFeedItemsMap = useSetAtom(feedItemsMapAtom);
 
+  const hasUpdatedBasedOnQueryRef = useRef(false);
   const query = useQuery(
     useTRPC().feedItems.getAll.queryOptions(undefined, {
       staleTime: Infinity,
@@ -161,7 +162,8 @@ export function useFeedItemsQuery() {
   );
 
   useEffect(() => {
-    if (query.isSuccess) {
+    if (query.isSuccess && hasUpdatedBasedOnQueryRef.current === false) {
+      hasUpdatedBasedOnQueryRef.current = true;
       setHasFetchedFeedItems(true);
       setFeedItemsOrder(query.data.map((item) => item.contentId));
       setFeedItemsMap(
@@ -170,8 +172,16 @@ export function useFeedItemsQuery() {
           {},
         ),
       );
+    } else if (query.isFetching) {
+      hasUpdatedBasedOnQueryRef.current = false;
     }
-  }, [query, setFeedItemsOrder, setFeedItemsMap, setHasFetchedFeedItems]);
+  }, [
+    query.isSuccess,
+    query.isFetching,
+    setFeedItemsOrder,
+    setFeedItemsMap,
+    setHasFetchedFeedItems,
+  ]);
 
   return query;
 }
