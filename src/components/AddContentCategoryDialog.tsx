@@ -185,12 +185,19 @@ export function AddContentCategoryDialog() {
               setIsAddingContentCategory(true);
 
               try {
-                await createContentCategory({
+                const addCategoryPromise = createContentCategory({
                   name,
                   feedCategorizations: updatedFeedIdCategorizations,
                 });
-                toast.success("Category added!");
-
+                toast.promise(addCategoryPromise, {
+                  loading: "Creating category...",
+                  success: () => {
+                    return "Category created!";
+                  },
+                  error: () => {
+                    return "Something went wrong creating your category.";
+                  },
+                });
                 onOpenChange(false);
               } catch {}
 
@@ -268,10 +275,18 @@ export function EditContentCategoryDialog({
 
                 setIsDeletingContentCategory(true);
                 try {
-                  await deleteContentCategory({
+                  const deleteCategoryPromise = deleteContentCategory({
                     id: selectedContentCategoryId,
                   });
-                  toast.success("Category deleted!");
+                  toast.promise(deleteCategoryPromise, {
+                    loading: "Deleting category...",
+                    success: () => {
+                      return "Category deleted!";
+                    },
+                    error: () => {
+                      return "Something went wrong deleting your category.";
+                    },
+                  });
                   onClose();
                 } catch {}
 
@@ -287,12 +302,20 @@ export function EditContentCategoryDialog({
 
                 setIsUpdatingContentCategory(true);
                 try {
-                  await updateContentCategory({
+                  const updateCategoryPromise = updateContentCategory({
                     name,
                     id: selectedContentCategoryId,
                     feedCategorizations: updatedFeedIdCategorizations,
                   });
-                  toast.success("Category updated!");
+                  toast.promise(updateCategoryPromise, {
+                    loading: "Updating category...",
+                    success: () => {
+                      return "Category updated!";
+                    },
+                    error: () => {
+                      return "Something went wrong updating your category.";
+                    },
+                  });
                   onClose();
                 } catch {}
 

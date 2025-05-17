@@ -216,15 +216,21 @@ export function AddViewDialog() {
               setIsAddingView(true);
 
               try {
-                await createView({
+                const addViewPromise = createView({
                   name,
                   daysWindow: daysTimeWindow,
                   readStatus,
                   categoryIds: selectedCategories,
                 });
-                toast.success("View added!");
-
-                onOpenChange(false);
+                toast.promise(addViewPromise, {
+                  loading: "Adding view...",
+                  success: () => {
+                    return "View added!";
+                  },
+                  error: () => {
+                    return "Something went wrong adding your view.";
+                  },
+                });
               } catch {}
 
               setIsAddingView(false);
@@ -304,10 +310,18 @@ export function EditViewDialog({
 
                 setIsDeletingView(true);
                 try {
-                  await deleteView({
+                  const deleteViewPromise = deleteView({
                     id: selectedViewId,
                   });
-                  toast.success("View deleted!");
+                  toast.promise(deleteViewPromise, {
+                    loading: "Deleting view...",
+                    success: () => {
+                      return "View deleted!";
+                    },
+                    error: () => {
+                      return "Something went wrong deleting your view.";
+                    },
+                  });
                   onClose();
                 } catch {}
 
@@ -323,14 +337,22 @@ export function EditViewDialog({
 
                 setIsUpdatingView(true);
                 try {
-                  await editView({
+                  const editViewPromise = editView({
                     name,
                     id: selectedViewId,
                     daysWindow: daysTimeWindow,
                     readStatus,
                     categoryIds: selectedCategories,
                   });
-                  toast.success("View updated!");
+                  toast.promise(editViewPromise, {
+                    loading: "Updating view...",
+                    success: () => {
+                      return "View updated!";
+                    },
+                    error: () => {
+                      return "Something went wrong updating your view.";
+                    },
+                  });
                   onClose();
                 } catch {}
 

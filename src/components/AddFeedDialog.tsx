@@ -28,24 +28,19 @@ export function AddFeedDialog() {
 
   const { mutateAsync: createFeed } = useCreateFeedMutation();
 
-  const {
-    contentCategories,
-    contentCategoriesQuery: {
-      refetch: refetchCategories,
-      isLoading: isLoadingCategories,
-    },
-  } = useContentCategories();
-  const [categoryName, setCategoryName] = useState<string | null>(null);
-
-  const addCategory = useCreateContentCategoryMutation();
-
-  const categoryOptions = contentCategories?.map((category) => ({
-    value: category.name,
-    label: category.name,
-  }));
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
 
   const dialog = useDialogStore((store) => store.dialog);
-  const onOpenChange = useDialogStore((store) => store.onOpenChange);
+  const onDialogOpenChange = useDialogStore((store) => store.onOpenChange);
+
+  const onOpenChange = (open: boolean = false) => {
+    onDialogOpenChange(open);
+
+    if (!open) {
+      setFeedUrl("");
+      setSelectedCategories([]);
+    }
+  };
 
   return (
     <Dialog open={dialog === "add-feed"} onOpenChange={onOpenChange}>
@@ -53,7 +48,7 @@ export function AddFeedDialog() {
         <DialogHeader>
           <DialogTitle className="font-mono">Add Feed</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4">
+        <div className="grid gap-6">
           <div className="grid gap-2">
             <Label htmlFor="url">Channel or RSS Feed URL</Label>
             <Input
@@ -66,53 +61,31 @@ export function AddFeedDialog() {
               }}
             />
           </div>
-          {addCategory.isPending || isLoadingCategories ? (
-            <Button disabled variant="outline">
-              Loading...
-            </Button>
-          ) : (
-            <Combobox
-              label="Category"
-              options={categoryOptions ?? []}
-              onSelect={setCategoryName}
-              onAddOption={async (newOption) => {
-                await addCategory.mutateAsync({ name: newOption });
-                const categoriesResponse = await refetchCategories();
-                const newCategory = categoriesResponse.data?.find(
-                  (category) => category.name === newOption,
-                );
-
-                if (newCategory) {
-                  setCategoryName(newCategory.name);
-                }
-              }}
-              value={categoryName}
-              placeholder="Select a category"
-              width="full"
-            />
-          )}
+          <ViewCategoriesInput
+            selectedCategories={selectedCategories}
+            setSelectedCategories={setSelectedCategories}
+          />
           <Button
             disabled={!validateFeedUrl(feedUrl) || isAddingFeed}
             onClick={async () => {
-              const category = !!categoryName
-                ? contentCategories?.find(
-                    (category) => category.name === categoryName,
-                  )
-                : undefined;
-
               setIsAddingFeed(true);
 
               try {
-                if (!category) {
-                  await createFeed({ url: feedUrl });
-                } else {
-                  await createFeed({
-                    url: feedUrl,
-                    categoryId: category.id,
-                  });
-                }
-                toast.success("Feed added!");
+                const createFeedPromise = createFeed({
+                  url: feedUrl,
+                  categoryIds: selectedCategories,
+                });
+                toast.promise(createFeedPromise, {
+                  loading: "Adding feed...",
+                  success: () => {
+                    return "Feed added!";
+                  },
+                  error: () => {
+                    return "Something went wrong adding your feed.";
+                  },
+                });
                 setFeedUrl("");
+                onOpenChange(false);
               } catch {}
 
               setIsAddingFeed(false);
@@ -211,8 +184,16 @@ export function EditFeedDialog({
 
                 setIsDeletingFeed(true);
                 try {
-                  await deleteFeed(selectedFeedId);
-                  toast.success("Feed deleted!");
+                  const deleteFeedPromise = deleteFeed(selectedFeedId);
+                  toast.promise(deleteFeedPromise, {
+                    loading: "Deleting feed...",
+                    success: () => {
+                      return "Feed deleted!";
+                    },
+                    error: () => {
+                      return "Something went wrong deleting your feed.";
+                    },
+                  });
                   onClose();
                 } catch {}
 

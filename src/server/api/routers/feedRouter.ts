@@ -19,7 +19,7 @@ const importUrlSchema = z
 export const feedRouter = createTRPCRouter({
   create: protectedProcedure
     .input(
-      z.object({ url: z.string().min(5), categoryId: z.number().optional() }),
+      z.object({ url: z.string().min(5), categoryIds: z.number().array() }),
     )
     .mutation(async ({ ctx, input }) => {
       const newFeeds = await fetchNewFeedDetails(input.url);
@@ -54,11 +54,15 @@ export const feedRouter = createTRPCRouter({
 
               const newFeedRow = newFeeds?.[0];
 
-              if (input.categoryId && !!newFeedRow) {
-                await tx.insert(feedCategories).values({
-                  feedId: Number(newFeedRow.id),
-                  categoryId: input.categoryId,
-                });
+              if (!!input.categoryIds.length && !!newFeedRow) {
+                await Promise.all(
+                  input.categoryIds.map(async (categoryId) => {
+                    return await tx.insert(feedCategories).values({
+                      feedId: Number(newFeedRow.id),
+                      categoryId: categoryId,
+                    });
+                  }),
+                );
               }
 
               return null;
