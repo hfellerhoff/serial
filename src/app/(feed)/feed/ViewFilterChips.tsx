@@ -40,8 +40,7 @@ export function ViewFilterChips() {
       {views.map((view) => (
         <ToggleGroupItem
           className={clsx({
-            "opacity-50":
-              !viewHasEntriesMap.get(view.id) && view.id !== viewFilter,
+            "opacity-50": !viewHasEntriesMap.get(view.id),
           })}
           key={view.id}
           value={view.id.toString()}
