@@ -9,6 +9,7 @@ import { OpenRightSidebarButton } from "./OpenRightSidebarButton";
 import { RefetchItemsButton } from "./RefetchItemsButton";
 import { useSidebar } from "~/components/ui/sidebar";
 import Link from "next/link";
+import { Button } from "~/components/ui/button";
 
 function OpenInYouTubeButton() {
   const pathname = usePathname();
@@ -18,10 +19,10 @@ function OpenInYouTubeButton() {
 
   return (
     <Link href={videoUrl} target="_blank" rel="noopener noreferrer">
-      <ButtonWithShortcut variant="outline" shortcut="o" size="icon md:default">
+      <Button variant="outline" size="icon md:default">
         <span className="hidden pr-1.5 md:block">YouTube</span>
         <ExternalLinkIcon size={16} />
-      </ButtonWithShortcut>
+      </Button>
     </Link>
   );
 }
