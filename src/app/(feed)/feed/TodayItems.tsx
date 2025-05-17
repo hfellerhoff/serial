@@ -184,7 +184,6 @@ function ItemDisplay({ contentId }: { contentId: string }) {
           "opacity-50": item.isWatched,
         },
       )}
-      key={item.contentId}
     >
       <Link
         href={`/feed/watch/${item.contentId}`}
