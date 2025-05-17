@@ -161,7 +161,7 @@ function LoaderDisplay() {
       <div className="bg-muted/50 flex w-full flex-1 items-center gap-4 rounded p-6 text-left transition-colors md:justify-center">
         <RefreshCwIcon className="size-4 animate-spin" />
         <h3 className="w-fit text-sm font-semibold md:text-sm">
-          Refreshing data...
+          Fetching data...
         </h3>
       </div>
     </article>
