@@ -15,7 +15,6 @@ import {
   useFeedItemsOrder,
   viewFilterIdAtom,
   viewsAtom,
-  visibilityFilterAtom,
 } from "../atoms";
 import { useContentCategories } from "../content-categories";
 import { useFeedCategories } from "../feed-categories";
@@ -66,8 +65,6 @@ export function useCheckFilteredFeedItemsForView() {
   const { feeds } = useFeeds();
   const { views } = useViews();
 
-  const visibilityFilter = useAtomValue(visibilityFilterAtom);
-
   return useCallback(
     (viewId: number) => {
       if (!feedItemsOrder || !feedCategories) return [];
@@ -88,14 +85,7 @@ export function useCheckFilteredFeedItemsForView() {
           ),
       );
     },
-    [
-      feedItemsOrder,
-      feedItemsMap,
-      visibilityFilter,
-      feedCategories,
-      feeds,
-      views,
-    ],
+    [feedItemsOrder, feedItemsMap, feedCategories, feeds, views],
   );
 }
 
