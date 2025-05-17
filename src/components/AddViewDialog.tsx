@@ -231,6 +231,7 @@ export function AddViewDialog() {
                     return "Something went wrong adding your view.";
                   },
                 });
+                onOpenChange(false);
               } catch {}
 
               setIsAddingView(false);
