@@ -9,14 +9,51 @@ import {
 } from "~/server/db/schema";
 
 const categoryNameSchema = z.string().min(2);
+const feedCategorizationSchema = z.object({
+  feedId: z.number(),
+  selected: z.boolean(),
+});
+export type FeedCategorization = Required<
+  z.infer<typeof feedCategorizationSchema>
+>;
+
+const feedCategorizationsSchema = z.array(feedCategorizationSchema).optional();
 
 export const contentCategoriesRouter = createTRPCRouter({
   create: protectedProcedure
-    .input(z.object({ name: categoryNameSchema }))
+    .input(
+      z.object({
+        name: categoryNameSchema,
+        feedCategorizations: feedCategorizationsSchema,
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.insert(contentCategories).values({
-        userId: ctx.auth!.user.id,
-        name: input.name,
+      await ctx.db.transaction(async (tx) => {
+        const categories = await ctx.db
+          .insert(contentCategories)
+          .values({
+            userId: ctx.auth!.user.id,
+            name: input.name,
+          })
+          .returning();
+        const category = categories[0];
+
+        if (!input.feedCategorizations || !category) return;
+
+        const feedIdsToCategorize = input.feedCategorizations
+          .filter((categorization) => categorization.selected)
+          .map((categorization) => categorization.feedId);
+
+        if (!!feedIdsToCategorize.length) {
+          await Promise.all(
+            feedIdsToCategorize.map(async (feedId) => {
+              return await ctx.db.insert(feedCategories).values({
+                categoryId: category.id,
+                feedId,
+              });
+            }),
+          );
+        }
       });
     }),
   getAll: protectedProcedure.query(async ({ ctx }) => {
@@ -29,19 +66,68 @@ export const contentCategoriesRouter = createTRPCRouter({
     return contentCategoriesList;
   }),
   update: protectedProcedure
-    .input(z.object({ id: z.number(), name: categoryNameSchema }))
+    .input(
+      z.object({
+        id: z.number(),
+        name: categoryNameSchema,
+        feedCategorizations: feedCategorizationsSchema,
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
-      await ctx.db
-        .update(contentCategories)
-        .set({
-          name: input.name,
-        })
-        .where(
-          and(
-            eq(contentCategories.userId, ctx.auth!.user.id),
-            eq(contentCategories.id, input.id),
-          ),
-        );
+      await ctx.db.transaction(async (tx) => {
+        const categories = await ctx.db
+          .update(contentCategories)
+          .set({
+            name: input.name,
+          })
+          .where(
+            and(
+              eq(contentCategories.userId, ctx.auth!.user.id),
+              eq(contentCategories.id, input.id),
+            ),
+          )
+          .returning();
+        const category = categories[0];
+
+        if (!input.feedCategorizations || !category) return;
+
+        const feedIdsToCategorize = input.feedCategorizations
+          .filter((categorization) => categorization.selected)
+          .map((categorization) => categorization.feedId);
+
+        const feedIdsToDecategorize = input.feedCategorizations
+          .filter((categorization) => !categorization.selected)
+          .map((categorization) => categorization.feedId);
+
+        if (!!feedIdsToCategorize.length) {
+          await Promise.all(
+            feedIdsToCategorize.map(async (feedId) => {
+              return await ctx.db
+                .insert(feedCategories)
+                .values({
+                  categoryId: category.id,
+                  feedId,
+                })
+                .onConflictDoNothing();
+            }),
+          );
+        }
+
+        if (!!feedIdsToDecategorize.length) {
+          await Promise.all(
+            feedIdsToDecategorize.map(async (feedId) => {
+              return await ctx.db
+                .delete(feedCategories)
+                .where(
+                  and(
+                    eq(feedCategories.feedId, feedId),
+                    eq(feedCategories.categoryId, input.id),
+                  ),
+                );
+            }),
+          );
+        }
+      });
     }),
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))

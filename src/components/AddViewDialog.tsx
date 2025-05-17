@@ -16,6 +16,8 @@ import { Dialog, DialogContent, DialogHeader } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
+import { PlusIcon } from "lucide-react";
+import { AddContentCategoriesButton } from "./AddContentCategoryButton";
 
 function AddViewToggleItem({
   value,
@@ -125,6 +127,15 @@ export function ViewCategoriesInput({
   setSelectedCategories: (categories: number[]) => void;
 }) {
   const { contentCategories } = useContentCategories();
+
+  if (contentCategories.length === 0) {
+    return (
+      <div className="grid gap-2">
+        <Label htmlFor="categories">Categories</Label>
+        <AddContentCategoriesButton />
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-2">

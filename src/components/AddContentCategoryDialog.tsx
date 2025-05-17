@@ -1,18 +1,25 @@
 "use client";
 import { DialogTitle } from "@radix-ui/react-dialog";
-import { useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
+import { useFeedItemsMap, useFeedItemsOrder } from "~/lib/data/atoms";
 import { useContentCategories } from "~/lib/data/content-categories";
 import {
   useCreateContentCategoryMutation,
   useDeleteContentCategoryMutation,
   useUpdateContentCategoryMutation,
 } from "~/lib/data/content-categories/mutations";
+import { useFeedCategories } from "~/lib/data/feed-categories";
+import { useFeeds } from "~/lib/data/feeds";
+import type { FeedCategorization } from "~/server/api/routers/contentCategoriesRouter";
+import { DatabaseFeed } from "~/server/db/schema";
 import { Button } from "./ui/button";
+import { Checkbox } from "./ui/checkbox";
 import { Dialog, DialogContent, DialogHeader } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { ScrollArea } from "./ui/scroll-area";
 
 function CategoryNameInput({
   name,
@@ -37,6 +44,101 @@ function CategoryNameInput({
   );
 }
 
+function useMostRecentlyAppearingFeeds() {
+  const { feeds } = useFeeds();
+  const order = useFeedItemsOrder();
+  const items = useFeedItemsMap();
+
+  const feedIdsInOrder = order.map((id) => items[id]?.feedId).filter(Boolean);
+  const orderSet = new Set(feedIdsInOrder);
+
+  let foundFeeds: DatabaseFeed[] = [];
+  orderSet.forEach((entry) => {
+    const foundFeed = feeds.find((feed) => feed.id === entry);
+    if (foundFeed) {
+      foundFeeds.push(foundFeed);
+    }
+  });
+
+  return foundFeeds;
+}
+
+function CategoryFeedsInput({
+  updatedFeedIdCategorizations,
+  setUpdatedFeedIdCategorizations,
+  categoryId,
+}: {
+  updatedFeedIdCategorizations: FeedCategorization[];
+  setUpdatedFeedIdCategorizations: Dispatch<
+    SetStateAction<FeedCategorization[]>
+  >;
+  categoryId: number | null;
+}) {
+  const { feedCategories } = useFeedCategories();
+  const mostRecentlyAppearingFeeds = useMostRecentlyAppearingFeeds();
+
+  if (mostRecentlyAppearingFeeds.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor="name">Feeds</Label>
+      <ScrollArea className="h-96 w-full">
+        <ul>
+          {mostRecentlyAppearingFeeds.map((feed) => {
+            const updatedIsSelected = updatedFeedIdCategorizations.find(
+              (categorization) => categorization.feedId === feed.id,
+            )?.selected;
+            const fallbackIsSelected = !!feedCategories.find(
+              (category) =>
+                category.categoryId === categoryId &&
+                category.feedId === feed.id,
+            );
+            const isSelected = updatedIsSelected ?? fallbackIsSelected;
+
+            return (
+              <li key={feed.id} className="flex w-full gap-2 text-white">
+                <Checkbox
+                  id={`category-for-${feed.id}`}
+                  className="my-2"
+                  checked={isSelected}
+                  onCheckedChange={(value) => {
+                    setUpdatedFeedIdCategorizations((categorizations) => {
+                      const categorizationIndex = categorizations.findIndex(
+                        (categorization) => categorization.feedId === feed.id,
+                      );
+
+                      const updatedCategorization: FeedCategorization = {
+                        feedId: feed.id,
+                        selected: Boolean(value),
+                      };
+
+                      if (categorizationIndex >= 0) {
+                        categorizations[categorizationIndex] =
+                          updatedCategorization;
+                        return [...categorizations];
+                      }
+
+                      return [...categorizations, updatedCategorization];
+                    });
+                  }}
+                />
+                <Label
+                  htmlFor={`category-for-${feed.id}`}
+                  className="w-full py-2"
+                >
+                  {feed.name}
+                </Label>
+              </li>
+            );
+          })}
+        </ul>
+      </ScrollArea>
+    </div>
+  );
+}
+
 export function AddContentCategoryDialog() {
   const [isAddingContentCategory, setIsAddingContentCategory] = useState(false);
 
@@ -44,6 +146,8 @@ export function AddContentCategoryDialog() {
     useCreateContentCategoryMutation();
 
   const [name, setName] = useState<string>("");
+  const [updatedFeedIdCategorizations, setUpdatedFeedIdCategorizations] =
+    useState<FeedCategorization[]>([]);
 
   const dialog = useDialogStore((store) => store.dialog);
   const onOpenChangeDialog = useDialogStore((store) => store.onOpenChange);
@@ -55,6 +159,7 @@ export function AddContentCategoryDialog() {
 
     if (!value) {
       setName("");
+      setUpdatedFeedIdCategorizations([]);
     }
   };
 
@@ -69,6 +174,11 @@ export function AddContentCategoryDialog() {
         </DialogHeader>
         <div className="grid gap-6">
           <CategoryNameInput name={name} setName={setName} />
+          <CategoryFeedsInput
+            updatedFeedIdCategorizations={updatedFeedIdCategorizations}
+            setUpdatedFeedIdCategorizations={setUpdatedFeedIdCategorizations}
+            categoryId={null}
+          />
           <Button
             disabled={isDisabled}
             onClick={async () => {
@@ -77,6 +187,7 @@ export function AddContentCategoryDialog() {
               try {
                 await createContentCategory({
                   name,
+                  feedCategorizations: updatedFeedIdCategorizations,
                 });
                 toast.success("Category added!");
 
@@ -112,6 +223,8 @@ export function EditContentCategoryDialog({
     useDeleteContentCategoryMutation();
 
   const [name, setName] = useState<string>("");
+  const [updatedFeedIdCategorizations, setUpdatedFeedIdCategorizations] =
+    useState<FeedCategorization[]>([]);
 
   const isFormDisabled = !name;
 
@@ -125,7 +238,10 @@ export function EditContentCategoryDialog({
     if (!category) return;
 
     setName(category.name);
+    setUpdatedFeedIdCategorizations([]);
   }, [contentCategories, selectedContentCategoryId]);
+
+  console.log(updatedFeedIdCategorizations);
 
   return (
     <Dialog open={selectedContentCategoryId !== null} onOpenChange={onClose}>
@@ -137,6 +253,11 @@ export function EditContentCategoryDialog({
         </DialogHeader>
         <div className="grid gap-6">
           <CategoryNameInput name={name} setName={setName} />
+          <CategoryFeedsInput
+            updatedFeedIdCategorizations={updatedFeedIdCategorizations}
+            setUpdatedFeedIdCategorizations={setUpdatedFeedIdCategorizations}
+            categoryId={selectedContentCategoryId}
+          />
           <div className="flex gap-2">
             <Button
               disabled={isDeletingContentCategory}
@@ -169,6 +290,7 @@ export function EditContentCategoryDialog({
                   await updateContentCategory({
                     name,
                     id: selectedContentCategoryId,
+                    feedCategorizations: updatedFeedIdCategorizations,
                   });
                   toast.success("Category updated!");
                   onClose();

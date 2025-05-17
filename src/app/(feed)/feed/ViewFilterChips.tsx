@@ -2,7 +2,10 @@
 
 import clsx from "clsx";
 import { useAtom } from "jotai";
+import { PlusIcon } from "lucide-react";
 import { useMemo } from "react";
+import { Button } from "~/components/ui/button";
+import { toggleVariants } from "~/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
 import { viewFilterIdAtom } from "~/lib/data/atoms";
 import {
@@ -10,9 +13,12 @@ import {
   useUpdateViewFilter,
   useViews,
 } from "~/lib/data/views";
+import { useDialogStore } from "./dialogStore";
+import { useContentCategories } from "~/lib/data/content-categories";
 
 export function ViewFilterChips() {
   const { views } = useViews();
+  const { contentCategories } = useContentCategories();
   const [viewFilter] = useAtom(viewFilterIdAtom);
 
   const updateViewFilter = useUpdateViewFilter();
@@ -26,6 +32,36 @@ export function ViewFilterChips() {
     });
     return map;
   }, [views, checkFilteredFeedItemsForView]);
+
+  const launchDialog = useDialogStore((store) => store.launchDialog);
+
+  if (contentCategories.length === 0) {
+    return (
+      <Button
+        variant="outline"
+        onClick={() => {
+          launchDialog("add-content-category");
+        }}
+      >
+        <PlusIcon size={16} />
+        <span className="pl-1.5">Add a category</span>
+      </Button>
+    );
+  }
+
+  if (views.length === 1) {
+    return (
+      <Button
+        variant="outline"
+        onClick={() => {
+          launchDialog("add-view");
+        }}
+      >
+        <PlusIcon size={16} />
+        <span className="pl-1.5">Add a view</span>
+      </Button>
+    );
+  }
 
   return (
     <ToggleGroup

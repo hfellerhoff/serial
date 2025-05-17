@@ -11,6 +11,9 @@ export function useCreateContentCategoryMutation() {
         await queryClient.invalidateQueries({
           queryKey: api.contentCategories.getAll.queryKey(),
         });
+        await queryClient.invalidateQueries({
+          queryKey: api.feedCategories.getAll.queryKey(),
+        });
       },
     }),
   );
@@ -25,6 +28,9 @@ export function useUpdateContentCategoryMutation() {
       onSuccess: async () => {
         await queryClient.invalidateQueries({
           queryKey: api.contentCategories.getAll.queryKey(),
+        });
+        await queryClient.invalidateQueries({
+          queryKey: api.feedCategories.getAll.queryKey(),
         });
       },
     }),
