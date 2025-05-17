@@ -41,7 +41,7 @@ export default function ResponsiveVideo(props: IResponsiveVideoProps) {
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             className="border-none"
-            onMouseMove={(e) => {
+            onMouseMove={() => {
               containerRef.current?.focus();
             }}
           />

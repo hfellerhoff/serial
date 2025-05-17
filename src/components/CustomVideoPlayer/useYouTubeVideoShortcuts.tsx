@@ -1,13 +1,9 @@
 const SEEK_KEYS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
 import { useEffect } from "react";
-import {
-  YOUTUBE_FASTEST_SPEED,
-  YOUTUBE_PLAYBACK_SPEEDS,
-  YOUTUBE_PLAYER_STATES,
-} from "./constants";
-import { useCustomVideoPlayerContext } from "./CustomVideoPlayerProvider";
 import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
+import { YOUTUBE_FASTEST_SPEED, YOUTUBE_PLAYBACK_SPEEDS } from "./constants";
+import { useCustomVideoPlayerContext } from "./CustomVideoPlayerProvider";
 
 export function useVideoShortcuts() {
   const {
@@ -77,5 +73,13 @@ export function useVideoShortcuts() {
     return () => {
       window.removeEventListener("keydown", processKey);
     };
-  }, [playerState, toggleVideoPlayback, playbackSpeed, videoProgress]);
+  }, [
+    playerState,
+    toggleVideoPlayback,
+    playbackSpeed,
+    videoProgress,
+    changeVideoPlaybackSpeed,
+    seekToSecond,
+    videoDuration,
+  ]);
 }

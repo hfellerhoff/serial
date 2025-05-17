@@ -13,7 +13,7 @@ import { useSidebar } from "~/components/ui/sidebar";
 
 export function TopLeftButton() {
   const pathname = usePathname();
-  const { toggleSidebar, open, openLeftMobile, isMobile } = useSidebar();
+  const { toggleSidebar, openLeftMobile, isMobile } = useSidebar();
 
   if (pathname !== "/feed") {
     return (
@@ -29,14 +29,12 @@ export function TopLeftButton() {
           {!isMobile && <MenuIcon size={16} />}
           <span className="hidden pl-1 md:block">Menu</span>
         </ButtonWithShortcut>
-        {!open && (
-          <Link href="/feed">
-            <ButtonWithShortcut size="icon" shortcut="h" variant="outline">
-              <HomeIcon size={16} />
-              <span className="hidden pl-1 md:block">Home</span>
-            </ButtonWithShortcut>
-          </Link>
-        )}
+        <Link href="/feed">
+          <ButtonWithShortcut size="icon" shortcut="h" variant="outline">
+            <HomeIcon size={16} />
+            <span className="hidden pl-1 md:block">Home</span>
+          </ButtonWithShortcut>
+        </Link>
       </div>
     );
   }

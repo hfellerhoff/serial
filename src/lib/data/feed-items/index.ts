@@ -1,12 +1,13 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  type DatabaseFeed,
-  type DatabaseFeedCategory,
-  type DatabaseFeedItem,
+import { useQuery } from "@tanstack/react-query";
+import { atom, useAtomValue, useSetAtom } from "jotai";
+import { useEffect, useRef } from "react";
+import type {
+  ApplicationView,
+  DatabaseFeed,
+  DatabaseFeedCategory,
+  DatabaseFeedItem,
 } from "~/server/db/schema";
 import { useTRPC } from "~/trpc/react";
-import { useEffect, useMemo } from "react";
-import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   categoryFilterAtom,
   dateFilterAtom,
@@ -16,10 +17,11 @@ import {
   feedItemsOrderAtom,
   feedsAtom,
   hasFetchedFeedItemsAtom,
+  viewFilterAtom,
   type VisibilityFilter,
   visibilityFilterAtom,
 } from "../atoms";
-import { splitAtom } from "jotai/utils";
+import { INBOX_VIEW_ID } from "../views";
 
 export function doesFeedItemPassFilters(
   item: DatabaseFeedItem,
@@ -29,6 +31,7 @@ export function doesFeedItemPassFilters(
   feedCategories: DatabaseFeedCategory[],
   feedFilter: number,
   feeds: DatabaseFeed[],
+  viewFilter: ApplicationView | null,
 ) {
   const date = new Date(item.postedAt);
   const now = new Date();
@@ -69,6 +72,30 @@ export function doesFeedItemPassFilters(
     return false;
   }
 
+  const feedsForView = feedCategories
+    .filter(
+      (category) =>
+        category.categoryId !== null &&
+        viewFilter?.categoryIds.includes(category.categoryId),
+    )
+    .map((category) => category.feedId);
+
+  // View filter
+  const doesFeedHaveAnyCategories = feedCategories.some(
+    (category) => category.feedId === item.feedId,
+  );
+  if (viewFilter?.id === INBOX_VIEW_ID && !doesFeedHaveAnyCategories) {
+    return true;
+  }
+
+  if (
+    !!viewFilter &&
+    viewFilter.categoryIds.length > 0 &&
+    !feedsForView.includes(item.feedId)
+  ) {
+    return false;
+  }
+
   return true;
 }
 
@@ -81,6 +108,7 @@ const filteredFeedItemsOrderAtom = atom((get) => {
   const feedCategories = get(feedCategoriesAtom);
   const feedFilter = get(feedFilterAtom);
   const feeds = get(feedsAtom);
+  const viewFilter = get(viewFilterAtom);
 
   return feedItemsOrder.filter(
     (item) =>
@@ -93,9 +121,31 @@ const filteredFeedItemsOrderAtom = atom((get) => {
         feedCategories,
         feedFilter,
         feeds,
+        viewFilter,
       ),
   );
 });
+
+export function useDoesFeedItemMatchAllFilters(item: DatabaseFeedItem) {
+  const dateFilter = useAtomValue(dateFilterAtom);
+  const visibilityFilter = useAtomValue(visibilityFilterAtom);
+  const categoryFilter = useAtomValue(categoryFilterAtom);
+  const feedCategories = useAtomValue(feedCategoriesAtom);
+  const feedFilter = useAtomValue(feedFilterAtom);
+  const feeds = useAtomValue(feedsAtom);
+  const viewFilter = useAtomValue(viewFilterAtom);
+
+  return doesFeedItemPassFilters(
+    item,
+    dateFilter,
+    visibilityFilter,
+    categoryFilter,
+    feedCategories,
+    feedFilter,
+    feeds,
+    viewFilter,
+  );
+}
 export const useFilteredFeedItemsOrder = () =>
   useAtomValue(filteredFeedItemsOrderAtom);
 
@@ -104,6 +154,7 @@ export function useFeedItemsQuery() {
   const setFeedItemsOrder = useSetAtom(feedItemsOrderAtom);
   const setFeedItemsMap = useSetAtom(feedItemsMapAtom);
 
+  const hasUpdatedBasedOnQueryRef = useRef(false);
   const query = useQuery(
     useTRPC().feedItems.getAll.queryOptions(undefined, {
       staleTime: Infinity,
@@ -111,7 +162,8 @@ export function useFeedItemsQuery() {
   );
 
   useEffect(() => {
-    if (query.isSuccess) {
+    if (query.isSuccess && hasUpdatedBasedOnQueryRef.current === false) {
+      hasUpdatedBasedOnQueryRef.current = true;
       setHasFetchedFeedItems(true);
       setFeedItemsOrder(query.data.map((item) => item.contentId));
       setFeedItemsMap(
@@ -120,8 +172,17 @@ export function useFeedItemsQuery() {
           {},
         ),
       );
+    } else if (query.isFetching) {
+      hasUpdatedBasedOnQueryRef.current = false;
     }
-  }, [query, setFeedItemsOrder]);
+  }, [
+    query.isSuccess,
+    query.isFetching,
+    query.data,
+    setFeedItemsOrder,
+    setFeedItemsMap,
+    setHasFetchedFeedItems,
+  ]);
 
   return query;
 }

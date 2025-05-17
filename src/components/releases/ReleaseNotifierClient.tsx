@@ -14,6 +14,8 @@ export function ReleaseNotifierClient({ slug }: { slug: string | undefined }) {
     const lastViewedSlug = window.localStorage.getItem(RELEASE_SLUG_KEY);
 
     if (lastViewedSlug !== slug) {
+      window.localStorage.setItem(RELEASE_SLUG_KEY, slug);
+
       const toastId = toast(
         "There have been improvements to Serial since your last visit! Check out the release notes.",
         {
@@ -22,7 +24,6 @@ export function ReleaseNotifierClient({ slug }: { slug: string | undefined }) {
               <Button
                 size="sm"
                 onClick={() => {
-                  window.localStorage.setItem(RELEASE_SLUG_KEY, slug);
                   toast.dismiss(toastId);
                 }}
               >
@@ -35,7 +36,6 @@ export function ReleaseNotifierClient({ slug }: { slug: string | undefined }) {
               size="sm"
               variant="outline"
               onClick={() => {
-                window.localStorage.setItem(RELEASE_SLUG_KEY, slug);
                 toast.dismiss(toastId);
               }}
             >
@@ -46,7 +46,7 @@ export function ReleaseNotifierClient({ slug }: { slug: string | undefined }) {
         },
       );
     }
-  }, []);
+  }, [slug]);
 
   return null;
 }

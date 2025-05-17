@@ -1,5 +1,9 @@
 import * as React from "react";
 
+import type {
+  DropdownMenuContentProps,
+  DropdownMenuItemProps,
+} from "@radix-ui/react-dropdown-menu";
 import {
   Drawer,
   DrawerContent,
@@ -16,11 +20,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "./dropdown-menu";
-import {
-  DropdownMenuContentProps,
-  DropdownMenuItemProps,
-  DropdownMenuProps,
-} from "@radix-ui/react-dropdown-menu";
 
 export function ResponsiveDropdownMenuItem({
   children,

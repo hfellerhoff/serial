@@ -1,6 +1,6 @@
 "use client";
 
-import { MoonIcon, SunIcon, LaptopIcon } from "@radix-ui/react-icons";
+import { LaptopIcon, MoonIcon, SunIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
 import { WandIcon } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -21,18 +21,8 @@ const iconClasses = (isSelected: boolean) =>
 
 export function ColorModeToggle() {
   const { theme, setTheme } = useTheme();
-  const [isArcBrowser, setIsArcBrowser] = useState(false);
 
   const [showIcons, setShowIcons] = useState(false);
-
-  function checkForArcBrowser() {
-    const variable = getComputedStyle(document.body).getPropertyValue(
-      "--arc-palette-background",
-    );
-    if (variable !== "") {
-      setIsArcBrowser(true);
-    }
-  }
 
   // dirty hack to avoid hydration errors I don't want to fix
   useEffect(() => {
@@ -40,7 +30,7 @@ export function ColorModeToggle() {
   }, []);
 
   return (
-    <DropdownMenu onOpenChange={checkForArcBrowser}>
+    <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="icon">
           {showIcons && (
@@ -61,11 +51,6 @@ export function ColorModeToggle() {
         <DropdownMenuItem onClick={() => setTheme("dark")}>
           Dark
         </DropdownMenuItem>
-        {/* {isArcBrowser && (
-          <DropdownMenuItem onClick={() => setTheme("arc")}>
-            Arc
-          </DropdownMenuItem>
-        )} */}
         <DropdownMenuItem onClick={() => setTheme("system")}>
           System
         </DropdownMenuItem>

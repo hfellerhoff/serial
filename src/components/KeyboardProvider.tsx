@@ -1,24 +1,22 @@
 "use client";
 
+import { useParams, usePathname, useRouter } from "next/navigation";
 import {
   createContext,
-  Ref,
   useCallback,
   useContext,
   useEffect,
-  useRef,
   useState,
 } from "react";
-import { useParams, usePathname, useRouter } from "next/navigation";
 import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
+import { useFeedItemsMap } from "~/lib/data/atoms";
 import { useFilteredFeedItemsOrder } from "~/lib/data/feed-items";
 import {
   useFeedItemsSetWatchedValueMutation,
   useFeedItemsSetWatchLaterValueMutation,
 } from "~/lib/data/feed-items/mutations";
-import { useFeedItemsMap } from "~/lib/data/atoms";
-import { useSidebar } from "./ui/sidebar";
 import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
+import { useSidebar } from "./ui/sidebar";
 
 export const MIN_ZOOM = 0;
 export const MAX_ZOOM = 6;
@@ -210,6 +208,9 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     toggleSidebar,
     zoomIn,
     zoomOut,
+    filteredFeedItemsOrder,
+    setWatchLaterValue,
+    setWatchedValue,
   ]);
 
   const toggleView = useCallback(() => {

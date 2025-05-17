@@ -1,12 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type DatabaseFeedItem } from "~/server/db/schema";
 import { useTRPC } from "~/trpc/react";
-import { Atom, useAtom, useSetAtom } from "jotai";
-import {
-  FeedItemAtom,
-  FeedItemStateSetter,
-  useFeedItemGlobalState,
-} from "../atoms";
+import { useFeedItemGlobalState } from "../atoms";
 
 export function useFetchNewFeedItemsMutation() {
   const api = useTRPC();

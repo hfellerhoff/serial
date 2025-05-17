@@ -84,6 +84,7 @@ export function YouTubeSubscriptionImportCarousel() {
               <img
                 className="mt-4 aspect-video object-contain"
                 src={`/walkthroughs/youtube-subscription-import/step_${i + 1}.png`}
+                alt={`YouTube subscription import walkthrough step ${i + 1}`}
               />
             </div>
           </CarouselItem>

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
 import { useTRPC } from "~/trpc/react";
@@ -24,7 +24,7 @@ export function useContentCategoriesQuery() {
       setHasFetchedContentCategories(true);
       setContentCategories(query.data);
     }
-  }, [query]);
+  }, [query, setHasFetchedContentCategories, setContentCategories]);
 
   return query;
 }

@@ -58,7 +58,7 @@ export function useFlagState<TKey extends FlagName>(key: TKey) {
       // @ts-expect-error leave me alone
       setStateValue(newValue);
     },
-    [setStateValue],
+    [key, setStateValue],
   );
 
   useEffect(() => {

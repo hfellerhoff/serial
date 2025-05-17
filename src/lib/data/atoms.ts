@@ -4,6 +4,8 @@ import { useMemo } from "react";
 import superjson from "superjson";
 import { z } from "zod";
 import {
+  type ApplicationView,
+  applicationViewSchema,
   contentCategorySchema,
   type DatabaseContentCategory,
   type DatabaseFeed,
@@ -56,11 +58,7 @@ export const hasFetchedFeedItemsAtom = atom(false);
 export const useHasFetchedFeedItems = () =>
   useAtomValue(hasFetchedFeedItemsAtom);
 
-export const feedItemsOrderAtom = validatedPersistedAtom<string[]>({
-  defaultValue: [],
-  schema: z.string().array(),
-  persistanceKey: "serial-feed-item-order",
-});
+export const feedItemsOrderAtom = atom<string[]>([]);
 export const useFeedItemsOrder = () => useAtomValue(feedItemsOrderAtom);
 
 export const feedItemsMapAtom = validatedPersistedAtom<
@@ -104,9 +102,30 @@ export const feedCategoriesAtom = validatedPersistedAtom<
   persistanceKey: "serial-feed-categories",
 });
 
+export const hasSetInitialViewAtom = atom(false);
+export const hasFetchedViewsAtom = atom(false);
+export const viewsAtom = validatedPersistedAtom<ApplicationView[]>({
+  defaultValue: [],
+  schema: applicationViewSchema.array(),
+  persistanceKey: "serial-views",
+});
+
 export const dateFilterAtom = atom<number>(1);
-const visibilityFilterSchema = z.enum(["unread", "later", "videos", "shorts"]);
+export const visibilityFilterSchema = z.enum([
+  "unread",
+  "later",
+  "videos",
+  "shorts",
+]);
 export type VisibilityFilter = z.infer<typeof visibilityFilterSchema>;
 export const visibilityFilterAtom = atom<VisibilityFilter>("unread");
 export const categoryFilterAtom = atom<number>(-1);
 export const feedFilterAtom = atom<number>(-1);
+
+export const UNSELECTED_VIEW_ID = -100;
+export const viewFilterIdAtom = atom<number>(UNSELECTED_VIEW_ID);
+export const viewFilterAtom = atom<ApplicationView | null>((get) => {
+  const views = get(viewsAtom);
+  const viewId = get(viewFilterIdAtom);
+  return views.find((view) => view.id === viewId) || null;
+});

@@ -1,6 +1,6 @@
 "use client";
 
-import { MinusIcon, PlusIcon } from "lucide-react";
+import { ExternalLinkIcon, MinusIcon, PlusIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { CustomVideoButton } from "~/components/CustomVideoButton";
@@ -8,6 +8,24 @@ import { MAX_ZOOM, MIN_ZOOM, useKeyboard } from "~/components/KeyboardProvider";
 import { OpenRightSidebarButton } from "./OpenRightSidebarButton";
 import { RefetchItemsButton } from "./RefetchItemsButton";
 import { useSidebar } from "~/components/ui/sidebar";
+import Link from "next/link";
+import { Button } from "~/components/ui/button";
+
+function OpenInYouTubeButton() {
+  const pathname = usePathname();
+
+  const videoId = pathname.split("/feed/watch/")[1]?.split("?")[1];
+  const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+  return (
+    <Link href={videoUrl} target="_blank" rel="noopener noreferrer">
+      <Button variant="outline" size="icon md:default">
+        <span className="hidden pr-1.5 md:block">YouTube</span>
+        <ExternalLinkIcon size={16} />
+      </Button>
+    </Link>
+  );
+}
 
 export function TopRightHeaderContent() {
   const pathname = usePathname();
@@ -16,7 +34,13 @@ export function TopRightHeaderContent() {
   const { zoom, zoomIn, zoomOut } = useKeyboard();
 
   if (pathname.includes("/feed/watch/")) {
-    if (isMobile) return null;
+    if (isMobile) {
+      return (
+        <div className="flex items-center gap-2">
+          <OpenInYouTubeButton />
+        </div>
+      );
+    }
 
     return (
       <div className="flex items-center gap-2">
@@ -38,6 +62,7 @@ export function TopRightHeaderContent() {
         >
           <PlusIcon size={16} />
         </ButtonWithShortcut>
+        <OpenInYouTubeButton />
       </div>
     );
   }

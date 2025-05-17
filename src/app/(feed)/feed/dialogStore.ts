@@ -1,6 +1,10 @@
 import { create } from "zustand";
 
-export type DialogType = "add-feed" | "custom-video";
+export type DialogType =
+  | "add-feed"
+  | "add-view"
+  | "add-content-category"
+  | "custom-video";
 type DialogStore = {
   dialog: null | DialogType;
   launchDialog: (dialog: DialogType) => void;

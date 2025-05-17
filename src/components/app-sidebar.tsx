@@ -1,27 +1,11 @@
 "use client";
 
-import {
-  IconCamera,
-  IconChartBar,
-  IconDashboard,
-  IconFileAi,
-  IconFileDescription,
-  IconFolder,
-  IconHelp,
-  IconListDetails,
-  IconSearch,
-  IconSettings,
-  IconUsers,
-} from "@tabler/icons-react";
-
-import { PlusIcon } from "lucide-react";
 import Link from "next/link";
-import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
 import { SidebarCategories } from "~/app/(feed)/feed/SidebarCategories";
 import { SidebarFeeds } from "~/app/(feed)/feed/SidebarFeeds";
+import { SidebarViews } from "~/app/(feed)/feed/SidebarViews";
 import { UserManagementNavItem } from "~/app/(feed)/feed/UserManagementButton";
 import { LeftSidebarBottomNav } from "~/components/LeftSidebarBottomNav";
-import { LeftSidebarMain } from "~/components/LeftSidebarMain";
 import {
   Sidebar,
   SidebarContent,
@@ -32,7 +16,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "~/components/ui/sidebar";
-import { ButtonWithShortcut } from "./ButtonWithShortcut";
 import { SerialLogo } from "./SerialLogo";
 
 export function AppLeftSidebar() {
@@ -62,9 +45,9 @@ export function AppLeftSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <LeftSidebarMain />
       </SidebarHeader>
       <SidebarContent>
+        <SidebarViews />
         <SidebarCategories />
       </SidebarContent>
       <SidebarFooter>
@@ -76,30 +59,11 @@ export function AppLeftSidebar() {
 }
 
 export function AppRightSidebar() {
-  const launchDialog = useDialogStore((store) => store.launchDialog);
-
   return (
     <Sidebar variant="inset" collapsible="offcanvas" side="right">
       <SidebarContent>
         <SidebarFeeds />
       </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <ButtonWithShortcut
-                variant="outline"
-                className="bg-sidebar border-sidebar-border"
-                onClick={() => launchDialog("add-feed")}
-                shortcut="a"
-              >
-                <PlusIcon />
-                <span>Add feed</span>
-              </ButtonWithShortcut>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
     </Sidebar>
   );
 }
