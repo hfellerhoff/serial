@@ -1,15 +1,9 @@
 "use client";
 
-import {
-  type Dispatch,
-  type SetStateAction,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 
 import { DragHandleDots2Icon } from "@radix-ui/react-icons";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom } from "jotai";
 import { CircleSmall, Edit2Icon, PlusIcon } from "lucide-react";
 import { EditViewDialog } from "~/components/AddViewDialog";
 import {
@@ -19,17 +13,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "~/components/ui/sidebar";
+import { viewFilterIdAtom } from "~/lib/data/atoms";
 import {
-  dateFilterAtom,
-  useFeedItemsMap,
-  useFeedItemsOrder,
-  viewFilterIdAtom,
-  visibilityFilterAtom,
-} from "~/lib/data/atoms";
-import { useFeedCategories } from "~/lib/data/feed-categories";
-import { doesFeedItemPassFilters } from "~/lib/data/feed-items";
-import { useFeeds } from "~/lib/data/feeds";
-import { useUpdateViewFilter, useViews } from "~/lib/data/views";
+  useCheckFilteredFeedItemsForView,
+  useUpdateViewFilter,
+  useViews,
+} from "~/lib/data/views";
 import { useDialogStore } from "./dialogStore";
 
 import {
@@ -59,48 +48,6 @@ import {
   useUpdateViewsPlacementMutation,
 } from "~/lib/data/views/mutations";
 import type { ApplicationView } from "~/server/db/schema";
-
-export function useCheckFilteredFeedItemsForView() {
-  const feedItemsOrder = useFeedItemsOrder();
-  const feedItemsMap = useFeedItemsMap();
-  const { feedCategories } = useFeedCategories();
-  const { feeds } = useFeeds();
-  const { views } = useViews();
-
-  const dateFilter = useAtomValue(dateFilterAtom);
-  const visibilityFilter = useAtomValue(visibilityFilterAtom);
-
-  return useCallback(
-    (viewId: number) => {
-      if (!feedItemsOrder || !feedCategories) return [];
-      const viewFilter = views.find((view) => view.id === viewId) || null;
-
-      return feedItemsOrder.filter(
-        (item) =>
-          feedItemsMap[item] &&
-          doesFeedItemPassFilters(
-            feedItemsMap[item],
-            dateFilter,
-            visibilityFilter,
-            -1,
-            feedCategories,
-            -1,
-            feeds,
-            viewFilter,
-          ),
-      );
-    },
-    [
-      feedItemsOrder,
-      feedItemsMap,
-      dateFilter,
-      visibilityFilter,
-      feedCategories,
-      feeds,
-      views,
-    ],
-  );
-}
 
 type ViewOption = ApplicationView & { hasEntries: boolean };
 
