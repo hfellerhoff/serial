@@ -29,7 +29,7 @@ export const contentCategoriesRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       await ctx.db.transaction(async (tx) => {
-        const categories = await ctx.db
+        const categories = await tx
           .insert(contentCategories)
           .values({
             userId: ctx.auth!.user.id,
@@ -47,7 +47,7 @@ export const contentCategoriesRouter = createTRPCRouter({
         if (!!feedIdsToCategorize.length) {
           await Promise.all(
             feedIdsToCategorize.map(async (feedId) => {
-              return await ctx.db.insert(feedCategories).values({
+              return await tx.insert(feedCategories).values({
                 categoryId: category.id,
                 feedId,
               });
@@ -75,7 +75,7 @@ export const contentCategoriesRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       await ctx.db.transaction(async (tx) => {
-        const categories = await ctx.db
+        const categories = await tx
           .update(contentCategories)
           .set({
             name: input.name,
@@ -102,7 +102,7 @@ export const contentCategoriesRouter = createTRPCRouter({
         if (!!feedIdsToCategorize.length) {
           await Promise.all(
             feedIdsToCategorize.map(async (feedId) => {
-              return await ctx.db
+              return await tx
                 .insert(feedCategories)
                 .values({
                   categoryId: category.id,

@@ -5,16 +5,15 @@ import { useAtom } from "jotai";
 import { PlusIcon } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "~/components/ui/button";
-import { toggleVariants } from "~/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
 import { viewFilterIdAtom } from "~/lib/data/atoms";
+import { useContentCategories } from "~/lib/data/content-categories";
 import {
   useCheckFilteredFeedItemsForView,
   useUpdateViewFilter,
   useViews,
 } from "~/lib/data/views";
 import { useDialogStore } from "./dialogStore";
-import { useContentCategories } from "~/lib/data/content-categories";
 
 export function ViewFilterChips() {
   const { views } = useViews();

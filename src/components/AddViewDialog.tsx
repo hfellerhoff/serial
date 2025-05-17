@@ -11,13 +11,12 @@ import {
   useEditViewMutation,
 } from "~/lib/data/views/mutations";
 import { VIEW_READ_STATUS } from "~/server/db/constants";
+import { AddContentCategoriesButton } from "./AddContentCategoryButton";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
-import { PlusIcon } from "lucide-react";
-import { AddContentCategoriesButton } from "./AddContentCategoryButton";
 
 function AddViewToggleItem({
   value,

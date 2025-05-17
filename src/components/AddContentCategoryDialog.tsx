@@ -1,6 +1,6 @@
 "use client";
 import { DialogTitle } from "@radix-ui/react-dialog";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
 import { useFeedItemsMap, useFeedItemsOrder } from "~/lib/data/atoms";
@@ -13,7 +13,7 @@ import {
 import { useFeedCategories } from "~/lib/data/feed-categories";
 import { useFeeds } from "~/lib/data/feeds";
 import type { FeedCategorization } from "~/server/api/routers/contentCategoriesRouter";
-import { DatabaseFeed } from "~/server/db/schema";
+import type { DatabaseFeed } from "~/server/db/schema";
 import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
 import { Dialog, DialogContent, DialogHeader } from "./ui/dialog";
@@ -52,7 +52,7 @@ function useMostRecentlyAppearingFeeds() {
   const feedIdsInOrder = order.map((id) => items[id]?.feedId).filter(Boolean);
   const orderSet = new Set(feedIdsInOrder);
 
-  let foundFeeds: DatabaseFeed[] = [];
+  const foundFeeds: DatabaseFeed[] = [];
   orderSet.forEach((entry) => {
     const foundFeed = feeds.find((feed) => feed.id === entry);
     if (foundFeed) {

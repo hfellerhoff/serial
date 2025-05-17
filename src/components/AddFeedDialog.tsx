@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
-import { useContentCategories } from "~/lib/data/content-categories";
-import { useCreateContentCategoryMutation } from "~/lib/data/content-categories/mutations";
 import { useFeedCategories } from "~/lib/data/feed-categories";
 import { useFeeds } from "~/lib/data/feeds";
 import {
@@ -17,7 +15,6 @@ import {
 import { validateFeedUrl } from "~/server/rss/validateFeedUrl";
 import { ViewCategoriesInput } from "./AddViewDialog";
 import { Button } from "./ui/button";
-import { Combobox } from "./ui/combobox";
 import { Dialog, DialogContent, DialogHeader } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -33,7 +30,7 @@ export function AddFeedDialog() {
   const dialog = useDialogStore((store) => store.dialog);
   const onDialogOpenChange = useDialogStore((store) => store.onOpenChange);
 
-  const onOpenChange = (open: boolean = false) => {
+  const onOpenChange = (open = false) => {
     onDialogOpenChange(open);
 
     if (!open) {
