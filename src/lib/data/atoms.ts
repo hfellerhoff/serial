@@ -5,6 +5,7 @@ import superjson from "superjson";
 import { z } from "zod";
 import {
   type ApplicationFeedItem,
+  applicationFeedItemSchema,
   type ApplicationView,
   applicationViewSchema,
   contentCategorySchema,
@@ -12,7 +13,6 @@ import {
   type DatabaseFeed,
   type DatabaseFeedCategory,
   feedCategorySchema,
-  feedItemSchema,
   feedsSchema,
 } from "~/server/db/schema";
 
@@ -65,7 +65,7 @@ export const feedItemsMapAtom = validatedPersistedAtom<
   Record<string, ApplicationFeedItem>
 >({
   defaultValue: {},
-  schema: z.record(z.string(), feedItemSchema),
+  schema: z.record(z.string(), applicationFeedItemSchema),
   persistanceKey: "serial-feed-item-map",
 });
 export const useFeedItemsMap = () => useAtomValue(feedItemsMapAtom);
