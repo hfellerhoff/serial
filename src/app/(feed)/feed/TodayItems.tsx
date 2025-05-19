@@ -190,7 +190,6 @@ function ItemDisplay({ contentId }: { contentId: string }) {
         className="sm:hover:bg-muted flex w-full flex-1 flex-col gap-4 py-4 pr-4 pl-6 text-left transition-colors md:h-20 md:flex-row md:items-center md:rounded md:py-0 md:pr-0"
         prefetch
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={item.thumbnail}
           alt={item.title}

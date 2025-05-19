@@ -1,9 +1,11 @@
-import { type feeds } from "~/server/db/schema";
+import type { FeedPlatform, feeds } from "~/server/db/schema";
 
 export type NewFeedDetails = Omit<
   typeof feeds.$inferInsert,
   "id" | "createdAt" | "updatedAt" | "userId"
->;
+> & {
+  platform: FeedPlatform;
+};
 
 export type RSSContent = {
   id: string;

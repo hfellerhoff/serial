@@ -2,10 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { atom, useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useRef } from "react";
 import type {
+  ApplicationFeedItem,
   ApplicationView,
   DatabaseFeed,
   DatabaseFeedCategory,
-  DatabaseFeedItem,
 } from "~/server/db/schema";
 import { useTRPC } from "~/trpc/react";
 import {
@@ -24,7 +24,7 @@ import {
 import { INBOX_VIEW_ID } from "../views";
 
 export function doesFeedItemPassFilters(
-  item: DatabaseFeedItem,
+  item: ApplicationFeedItem,
   dateFilter: number,
   visibilityFilter: VisibilityFilter,
   categoryFilter: number,
@@ -126,7 +126,7 @@ const filteredFeedItemsOrderAtom = atom((get) => {
   );
 });
 
-export function useDoesFeedItemMatchAllFilters(item: DatabaseFeedItem) {
+export function useDoesFeedItemMatchAllFilters(item: ApplicationFeedItem) {
   const dateFilter = useAtomValue(dateFilterAtom);
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
   const categoryFilter = useAtomValue(categoryFilterAtom);

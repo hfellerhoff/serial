@@ -1,9 +1,11 @@
-import { type feeds } from "../db/schema";
+import type { DatabaseFeed } from "../db/schema";
+import { fetchPeerTubeFeedData } from "./parsers/peertube";
+import { fetchUnknownRssFeed } from "./parsers/unknown";
 import {
   fetchYouTubeFeedData,
   fetchYouTubeFeedDetails,
 } from "./parsers/youtube";
-import { type RSSFeed, type NewFeedDetails } from "./types";
+import { type NewFeedDetails, type RSSFeed } from "./types";
 
 export async function fetchNewFeedDetails(
   url: string,
@@ -27,10 +29,11 @@ export async function fetchNewFeedDetails(
   const feedDetailList = (
     await Promise.all(
       urls.map(async (url) => {
+        console.log(url);
         if (url.includes("youtube.com")) {
           return fetchYouTubeFeedDetails(url);
         }
-        return null;
+        return fetchUnknownRssFeed(url);
       }),
     )
   ).filter(Boolean);
@@ -40,13 +43,16 @@ export async function fetchNewFeedDetails(
 }
 
 export async function fetchFeedData(
-  databaseFeeds: (typeof feeds.$inferSelect)[],
+  databaseFeeds: DatabaseFeed[],
 ): Promise<RSSFeed[] | null> {
   return (
     await Promise.all(
       databaseFeeds.map(async (feed) => {
-        if (feed.url.includes("youtube.com")) {
+        if (feed.platform === "youtube") {
           return fetchYouTubeFeedData(feed);
+        }
+        if (feed.platform === "peertube") {
+          return fetchPeerTubeFeedData(feed);
         }
         return null;
       }),
