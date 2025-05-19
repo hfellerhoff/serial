@@ -1,11 +1,11 @@
 "use client";
 
-import { useFlagState } from "~/lib/hooks/useFlagState";
-import classes from "./ResponsiveVideo.module.css";
 import clsx from "clsx";
 import { useRef } from "react";
-import { CustomVideoPlayer } from "./CustomVideoPlayer";
 import { useFeedItemGlobalState } from "~/lib/data/atoms";
+import { useFlagState } from "~/lib/hooks/useFlagState";
+import { CustomVideoPlayer } from "./CustomVideoPlayer";
+import classes from "./ResponsiveVideo.module.css";
 
 interface IResponsiveVideoProps {
   videoID?: string;
@@ -35,20 +35,25 @@ function YouTubeEmbed(props: IEmbedProps) {
 }
 
 function PeerTubeEmbed(props: IEmbedProps) {
+  const [feedItem] = useFeedItemGlobalState(props?.videoID ?? "");
+  const baseUrl = feedItem.url.split("/w/")[0];
+
   return (
-    <iframe
-      width="1600"
-      height="900"
-      src={`https://digitalcourage.video/videos/embed/${props.videoID}`}
-      title="YouTube video player"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      allowFullScreen
-      className="border-none"
-      onMouseMove={() => {
-        props.containerRef?.current?.focus();
-      }}
-      sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-    />
+    <>
+      <iframe
+        width="1600"
+        height="900"
+        src={`${baseUrl}/videos/embed/${props.videoID}`}
+        title="YouTube video player"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        className="border-none"
+        onMouseMove={() => {
+          props.containerRef?.current?.focus();
+        }}
+        sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+      />
+    </>
   );
 }
 

@@ -10,17 +10,24 @@ import { RefetchItemsButton } from "./RefetchItemsButton";
 import { useSidebar } from "~/components/ui/sidebar";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
+import { useFeedItemGlobalState } from "~/lib/data/atoms";
+
+const PLATFORM_TO_FORMATTED_NAME = {
+  youtube: "YouTube",
+  peertube: "PeerTube",
+} as const;
 
 function OpenInYouTubeButton() {
   const pathname = usePathname();
-
   const videoId = pathname.split("/feed/watch/")[1]!;
-  const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  const [feedItem] = useFeedItemGlobalState(videoId ?? "");
 
   return (
-    <Link href={videoUrl} target="_blank" rel="noopener noreferrer">
+    <Link href={feedItem.url} target="_blank" rel="noopener noreferrer">
       <Button variant="outline" size="icon md:default">
-        <span className="hidden pr-1.5 md:block">YouTube</span>
+        <span className="hidden pr-1.5 md:block">
+          {PLATFORM_TO_FORMATTED_NAME[feedItem.platform]}
+        </span>
         <ExternalLinkIcon size={16} />
       </Button>
     </Link>

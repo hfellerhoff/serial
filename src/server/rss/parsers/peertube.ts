@@ -15,21 +15,14 @@ export const peerTubeItemSchema = z.object({
   title: z.string(),
   link: z.string(),
   pubDate: z.string(),
-  "content:encoded": z.string(),
   "dc:creator": z.string(),
-  content: z.string(),
-  contentSnippet: z.string(),
   guid: z.string(),
   "media:thumbnail": z.object({
     $: z.object({
       url: z.string(),
     }),
   }),
-  "media:description": z.string(),
-  // "media:group": z.object({
-  //   "media:thumbnail":
-  // })
-  // 'categories': z.string().array(),
+  "media:description": z.string().optional(),
   isoDate: z.string(),
 });
 
@@ -56,8 +49,11 @@ export async function getPeerTubeFeedIfMatches(
 ): Promise<NewFeedDetails | null> {
   const rssData = await parser.parseString(rssString); //as unknown as RSSPeerTubeData;
 
-  const { data: peerTubeData, success: peerTubeSuccess } =
-    peerTubeSchema.safeParse(rssData);
+  const {
+    data: peerTubeData,
+    success: peerTubeSuccess,
+    error,
+  } = peerTubeSchema.safeParse(rssData);
 
   if (peerTubeSuccess) {
     return {
@@ -65,6 +61,8 @@ export async function getPeerTubeFeedIfMatches(
       url: peerTubeData.feedUrl,
       platform: "peertube",
     };
+  } else {
+    console.error(error);
   }
 
   return null;
