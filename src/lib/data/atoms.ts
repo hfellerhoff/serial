@@ -4,15 +4,15 @@ import { useMemo } from "react";
 import superjson from "superjson";
 import { z } from "zod";
 import {
+  type ApplicationFeedItem,
+  applicationFeedItemSchema,
   type ApplicationView,
   applicationViewSchema,
   contentCategorySchema,
   type DatabaseContentCategory,
   type DatabaseFeed,
   type DatabaseFeedCategory,
-  type DatabaseFeedItem,
   feedCategorySchema,
-  feedItemSchema,
   feedsSchema,
 } from "~/server/db/schema";
 
@@ -62,10 +62,10 @@ export const feedItemsOrderAtom = atom<string[]>([]);
 export const useFeedItemsOrder = () => useAtomValue(feedItemsOrderAtom);
 
 export const feedItemsMapAtom = validatedPersistedAtom<
-  Record<string, DatabaseFeedItem>
+  Record<string, ApplicationFeedItem>
 >({
   defaultValue: {},
-  schema: z.record(z.string(), feedItemSchema),
+  schema: z.record(z.string(), applicationFeedItemSchema),
   persistanceKey: "serial-feed-item-map",
 });
 export const useFeedItemsMap = () => useAtomValue(feedItemsMapAtom);

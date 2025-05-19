@@ -4,7 +4,12 @@ import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { checkFeedItemIsVerticalFromThumbnail } from "~/server/checkFeedItemIsVertical";
-import { feedItems, feeds } from "~/server/db/schema";
+import {
+  type ApplicationFeedItem,
+  type DatabaseFeedItem,
+  feedItems,
+  feeds,
+} from "~/server/db/schema";
 import { fetchFeedData } from "~/server/rss/fetchFeeds";
 
 const isWithinLastMonth = gte(
@@ -24,7 +29,14 @@ export const feedItemRouter = createTRPCRouter({
       orderBy: desc(feedItems.postedAt),
     });
 
-    return itemsData;
+    return itemsData.map((item) => {
+      const feed = feedsData.find((feed) => feed.id === item.feedId);
+
+      return {
+        ...item,
+        platform: feed?.platform ?? "youtube",
+      } as ApplicationFeedItem;
+    });
   }),
   fetchNewItems: protectedProcedure.mutation(async ({ ctx }) => {
     const feedsList = await ctx.db.query.feeds.findMany({
@@ -82,9 +94,13 @@ export const feedItemRouter = createTRPCRouter({
     const categorizedFeedItems: (typeof feedItems.$inferInsert)[] = (
       await Promise.all(
         uncategorizedFeedItems.map(async (item) => {
-          const orientation = await checkFeedItemIsVerticalFromThumbnail(
-            item.thumbnail,
-          );
+          const feed = feedsList.find((feed) => feed.id === item.feedId);
+          let orientation: DatabaseFeedItem["orientation"] = "horizontal";
+          if (feed?.platform === "youtube") {
+            orientation = await checkFeedItemIsVerticalFromThumbnail(
+              item.thumbnail,
+            );
+          }
 
           if (orientation !== null) {
             return {

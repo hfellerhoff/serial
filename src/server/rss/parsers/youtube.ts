@@ -39,6 +39,7 @@ export async function fetchYouTubeFeedDetails(
   return {
     name: data.title,
     url: url,
+    platform: "youtube",
   };
 }
 

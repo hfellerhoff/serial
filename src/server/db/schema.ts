@@ -102,7 +102,14 @@ export const feeds = sqliteTable(
   },
   (example) => [index("feed_name_idx").on(example.name)],
 );
-export const feedsSchema = createSelectSchema(feeds);
+export const platformsSchema = z.enum(["youtube", "peertube"]);
+export type FeedPlatform = z.infer<typeof platformsSchema>;
+
+export const feedsSchema = createSelectSchema(feeds).merge(
+  z.object({
+    platform: platformsSchema,
+  }),
+);
 export type DatabaseFeed = typeof feeds.$inferSelect;
 
 export const feedItems = sqliteTable(
@@ -136,6 +143,15 @@ export const feedItems = sqliteTable(
 );
 export const feedItemSchema = createSelectSchema(feedItems);
 export type DatabaseFeedItem = typeof feedItems.$inferSelect;
+
+export const applicationFeedItemSchema = feedItemSchema
+  .merge(
+    z.object({
+      platform: platformsSchema,
+    }),
+  )
+  .required();
+export type ApplicationFeedItem = z.infer<typeof applicationFeedItemSchema>;
 
 export const contentCategories = sqliteTable(
   "content_categories",
