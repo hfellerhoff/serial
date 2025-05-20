@@ -8,8 +8,8 @@ import type { AppRouter } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { appRouter } from "~/server/api/root";
 
-import { createQueryClient } from "./query-client";
 import { auth } from "~/server/auth";
+import { getQueryClient } from "./react";
 
 /**
  * This wraps the `createTRPCContext` helper and provides the required context for the tRPC API when
@@ -27,12 +27,10 @@ const createContext = cache(async () => {
   });
 });
 
-const getQueryClient = cache(createQueryClient);
-
 export const trpc = createTRPCOptionsProxy<AppRouter>({
   router: appRouter,
   ctx: createContext,
-  queryClient: getQueryClient,
+  queryClient: getQueryClient(),
 });
 
 export function HydrateClient(props: { children: React.ReactNode }) {
