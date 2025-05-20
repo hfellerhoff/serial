@@ -1,17 +1,60 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { focusAtom } from "jotai-optics";
 import { useMemo } from "react";
+import superjson from "superjson";
 import { z } from "zod";
 import {
   type ApplicationFeedItem,
+  applicationFeedItemSchema,
   type ApplicationView,
+  applicationViewSchema,
+  contentCategorySchema,
   type DatabaseContentCategory,
   type DatabaseFeed,
   type DatabaseFeedCategory,
+  feedCategorySchema,
+  feedsSchema,
 } from "~/server/db/schema";
 
+function validatedPersistedAtom<T>({
+  defaultValue,
+  schema,
+  persistanceKey,
+}: {
+  defaultValue: T;
+  schema: z.Schema<T>;
+  persistanceKey: string;
+}) {
+  if (typeof window !== "undefined") {
+    try {
+      const persistedValue = localStorage.getItem(persistanceKey);
+      if (!!persistedValue) {
+        const parsedValue = superjson.parse(persistedValue);
+        const validatedValue = schema.parse(parsedValue);
+        defaultValue = validatedValue;
+      }
+    } catch (err) {
+      console.warn(err);
+    }
+  }
+
+  const primitiveAtom = atom(defaultValue);
+
+  return atom(
+    (get) => get(primitiveAtom),
+    (_get, set, value: T) => {
+      set(primitiveAtom, value);
+      localStorage.setItem(persistanceKey, superjson.stringify(value));
+    },
+  );
+}
+
 export const hasFetchedFeedsAtom = atom(false);
-export const feedsAtom = atom<DatabaseFeed[]>([]);
+export const feedsAtom = validatedPersistedAtom<DatabaseFeed[]>({
+  defaultValue: [],
+  schema: feedsSchema.array(),
+  persistanceKey: "serial-feeds",
+});
 
 export const hasFetchedFeedItemsAtom = atom(false);
 export const useHasFetchedFeedItems = () =>
@@ -20,7 +63,13 @@ export const useHasFetchedFeedItems = () =>
 export const feedItemsOrderAtom = atom<string[]>([]);
 export const useFeedItemsOrder = () => useAtomValue(feedItemsOrderAtom);
 
-export const feedItemsMapAtom = atom<Record<string, ApplicationFeedItem>>({});
+export const feedItemsMapAtom = validatedPersistedAtom<
+  Record<string, ApplicationFeedItem>
+>({
+  defaultValue: {},
+  schema: z.record(z.string(), applicationFeedItemSchema),
+  persistanceKey: "serial-feed-item-map",
+});
 export const useFeedItemsMap = () => useAtomValue(feedItemsMapAtom);
 
 export function useFeedItemAtom(contentId: string) {
@@ -38,14 +87,30 @@ export function useFeedItemGlobalState(contentId: string) {
 export type FeedItemStateSetter = ReturnType<typeof useFeedItemGlobalState>[1];
 
 export const hasFetchedContentCategoriesAtom = atom(false);
-export const contentCategoriesAtom = atom<DatabaseContentCategory[]>([]);
+export const contentCategoriesAtom = validatedPersistedAtom<
+  DatabaseContentCategory[]
+>({
+  defaultValue: [],
+  schema: contentCategorySchema.array(),
+  persistanceKey: "serial-content-categories",
+});
 
 export const hasFetchedFeedCategoriesAtom = atom(false);
-export const feedCategoriesAtom = atom<DatabaseFeedCategory[]>([]);
+export const feedCategoriesAtom = validatedPersistedAtom<
+  DatabaseFeedCategory[]
+>({
+  defaultValue: [],
+  schema: feedCategorySchema.array(),
+  persistanceKey: "serial-feed-categories",
+});
 
 export const hasSetInitialViewAtom = atom(false);
 export const hasFetchedViewsAtom = atom(false);
-export const viewsAtom = atom<ApplicationView[]>([]);
+export const viewsAtom = validatedPersistedAtom<ApplicationView[]>({
+  defaultValue: [],
+  schema: applicationViewSchema.array(),
+  persistanceKey: "serial-views",
+});
 
 export const dateFilterAtom = atom<number>(1);
 export const visibilityFilterSchema = z.enum([
