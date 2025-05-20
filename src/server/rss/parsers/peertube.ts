@@ -103,7 +103,8 @@ export async function fetchPeerTubeFeedData(
         .filter(Boolean),
     };
   } catch (e) {
-    console.log(e);
+    console.error("Error fetching PeerTube feed data for URL =", feed.url);
+    console.error(e);
     return null;
   }
 }

@@ -25,15 +25,17 @@ function validatedPersistedAtom<T>({
   schema: z.Schema<T>;
   persistanceKey: string;
 }) {
-  try {
-    const persistedValue = localStorage.getItem(persistanceKey);
-    if (!!persistedValue) {
-      const parsedValue = superjson.parse(persistedValue);
-      const validatedValue = schema.parse(parsedValue);
-      defaultValue = validatedValue;
+  if (typeof window !== "undefined") {
+    try {
+      const persistedValue = localStorage.getItem(persistanceKey);
+      if (!!persistedValue) {
+        const parsedValue = superjson.parse(persistedValue);
+        const validatedValue = schema.parse(parsedValue);
+        defaultValue = validatedValue;
+      }
+    } catch (err) {
+      console.warn(err);
     }
-  } catch (err) {
-    console.warn(err);
   }
 
   const primitiveAtom = atom(defaultValue);
