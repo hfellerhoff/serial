@@ -10,7 +10,7 @@ const setVariable = (name: string, value: string) => {
   document.documentElement.style.setProperty(name, value);
 };
 
-export function ApplyColorThemeOnMount() {
+export function useApplyColorThemeOnClientMount() {
   const api = useTRPC();
   const { data: auth } = useSession();
 
@@ -38,6 +38,4 @@ export function ApplyColorThemeOnMount() {
       setVariable("--dark-lgt", `${lgt}%`);
     }
   }, [data]);
-
-  return null;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { EllipsisVerticalIcon, Loader2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -15,6 +16,7 @@ import {
   SidebarMenuItem,
 } from "~/components/ui/sidebar";
 import { authClient, signOut } from "~/lib/auth-client";
+import { useClearAllUserData } from "~/lib/data/atoms";
 import { AUTH_SIGNED_OUT_URL } from "~/server/auth/constants";
 
 export function UserManagementNavItem() {
@@ -25,6 +27,8 @@ export function UserManagementNavItem() {
 
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const queryClient = useQueryClient();
+  const clearAllUserData = useClearAllUserData();
 
   return (
     <SidebarMenu>
@@ -72,6 +76,8 @@ export function UserManagementNavItem() {
                       setIsSigningOut(true);
                     },
                     onSuccess: async () => {
+                      queryClient.clear();
+                      clearAllUserData();
                       router.push(AUTH_SIGNED_OUT_URL);
                     },
                   },

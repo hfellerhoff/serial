@@ -1,6 +1,6 @@
 import { getServerApi } from "~/server/api/server";
 import { isServerAuthed } from "~/server/auth";
-import { ApplyColorThemeOnMount } from "./ApplyColorThemeOnMount";
+import { ApplyColorThemeOnServerMount } from "./ApplyColorThemeOnMount";
 
 export async function ApplyColorTheme({
   children,
@@ -16,7 +16,7 @@ export async function ApplyColorTheme({
 
   return (
     <>
-      <ApplyColorThemeOnMount data={data} />
+      <ApplyColorThemeOnServerMount data={data} />
       {children}
     </>
   );
