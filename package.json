@@ -121,7 +121,7 @@
     "initVersion": "7.25.2"
   },
   "engines": {
-    "node": ">=22.0.0 <24.0.0"
+    "node": ">=22.0.0"
   },
   "packageManager": "pnpm@10.8.0",
   "pnpm": {
