@@ -22,6 +22,22 @@ function OpenInYouTubeButton() {
   const videoId = pathname.split("/feed/watch/")[1]!;
   const [feedItem] = useFeedItemGlobalState(videoId ?? "");
 
+  // If not a Serial item, assume YouTube
+  if (!feedItem) {
+    return (
+      <Link
+        href={`https://www.youtube.com/watch?v=${videoId}`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <Button variant="outline" size="icon md:default">
+          <span className="hidden pr-1.5 md:block">YouTube</span>
+          <ExternalLinkIcon size={16} />
+        </Button>
+      </Link>
+    );
+  }
+
   return (
     <Link href={feedItem.url} target="_blank" rel="noopener noreferrer">
       <Button variant="outline" size="icon md:default">
