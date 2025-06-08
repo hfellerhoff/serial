@@ -4,7 +4,8 @@ export type DialogType =
   | "add-feed"
   | "add-view"
   | "add-content-category"
-  | "custom-video";
+  | "custom-video"
+  | "edit-user-profile";
 type DialogStore = {
   dialog: null | DialogType;
   launchDialog: (dialog: DialogType) => void;

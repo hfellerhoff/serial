@@ -1,12 +1,13 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
+import clsx from "clsx";
 import { RefreshCwIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import { FETCH_NEW_FEED_ITEMS_KEY } from "~/lib/data/feed-items";
-import clsx from "clsx";
-import { useQuery } from "@tanstack/react-query";
-import { usePathname } from "next/navigation";
 import { useFetchNewFeedItemsMutation } from "~/lib/data/feed-items/mutations";
+import { useShortcut } from "~/lib/hooks/useShortcut";
 
 const ONE_HOUR = 1000 * 60 * 60;
 
@@ -23,6 +24,10 @@ export function RefetchItemsButton() {
       return true;
     },
     staleTime: ONE_HOUR,
+  });
+
+  useShortcut("r", () => {
+    void fetchNewFeedItems();
   });
 
   if (pathname !== "/feed") return null;

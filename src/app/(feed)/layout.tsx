@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { AppLeftSidebar, AppRightSidebar } from "~/components/app-sidebar";
 import { ApplyColorTheme } from "~/components/color-theme/ApplyColorTheme";
-import { KeyboardProvider } from "~/components/KeyboardProvider";
 import { ReleaseNotifier } from "~/components/releases/ReleaseNotifier";
 import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
 import { InitialClientQueries } from "~/lib/data/InitialClientQueries";
@@ -111,18 +110,16 @@ export default async function RootLayout({
               } as React.CSSProperties
             }
           >
-            <KeyboardProvider>
-              <AppLeftSidebar />
-              <SidebarInset>
-                <Header />
-                <main className="flex flex-col">
-                  <div className="h-full w-full pb-6">{children}</div>
-                  <AppDialogs />
-                </main>
-                <ReleaseNotifier />
-              </SidebarInset>
-              <AppRightSidebar />
-            </KeyboardProvider>
+            <AppLeftSidebar />
+            <SidebarInset>
+              <Header />
+              <main className="flex flex-col">
+                <div className="h-full w-full pb-6">{children}</div>
+                <AppDialogs />
+              </main>
+              <ReleaseNotifier />
+            </SidebarInset>
+            <AppRightSidebar />
           </SidebarProvider>
         </InitialClientQueries>
       </Suspense>

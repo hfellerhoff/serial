@@ -1,12 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { InfoIcon, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { type PropsWithChildren, useState } from "react";
 import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardFooter } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
@@ -17,7 +15,6 @@ import {
   AUTH_RESET_PASSWORD_URL,
   AUTH_SIGNED_OUT_URL,
 } from "~/server/auth/constants";
-import { useTRPC } from "~/trpc/react";
 import { AuthHeader } from "../AuthHeader";
 
 function AlertPane({
@@ -91,13 +88,6 @@ export function AuthResetPageComponent() {
   const [loading, setLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
 
-  const trpc = useTRPC();
-  const { data: isLegacyUser } = useQuery(
-    trpc.user.getIsLegacyUser.queryOptions({
-      email,
-    }),
-  );
-
   if (!!token && isSent) {
     return (
       <AlertPane
@@ -137,7 +127,6 @@ export function AuthResetPageComponent() {
             className="w-full"
             disabled={loading}
             onClick={async () => {
-              console.log(password);
               await authClient.resetPassword({
                 token,
                 newPassword: password,
@@ -171,16 +160,6 @@ export function AuthResetPageComponent() {
 
   return (
     <InputPane title="Reset Password">
-      {isLegacyUser && (
-        <Alert className="mb-6">
-          <InfoIcon className="h-4 w-4" />
-          <AlertTitle>Clerk Account Migration</AlertTitle>
-          <AlertDescription>
-            Due to a change in our authentication provider, you&apos;ll need to
-            reset your password.
-          </AlertDescription>
-        </Alert>
-      )}
       <div className="grid gap-4">
         <div className="grid gap-2">
           <Label htmlFor="email">Email</Label>

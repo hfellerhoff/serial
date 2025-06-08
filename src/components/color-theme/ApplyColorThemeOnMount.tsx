@@ -3,7 +3,6 @@
 import { useServerInsertedHTML } from "next/navigation";
 import { useRef } from "react";
 import { type UserConfigValues } from "~/server/api/routers/userConfigRouter";
-import { useApplyColorThemeOnClientMount } from "../ApplyColorThemeOnMount";
 
 export function ApplyColorThemeOnServerMount({
   data,

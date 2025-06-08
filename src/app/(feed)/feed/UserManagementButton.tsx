@@ -18,12 +18,15 @@ import {
 import { authClient, signOut } from "~/lib/auth-client";
 import { useClearAllUserData } from "~/lib/data/atoms";
 import { AUTH_SIGNED_OUT_URL } from "~/server/auth/constants";
+import { useDialogStore } from "./dialogStore";
 
 export function UserManagementNavItem() {
   const {
     data,
     isPending, //loading state
   } = authClient.useSession();
+
+  const { launchDialog } = useDialogStore();
 
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -66,6 +69,17 @@ export function UserManagementNavItem() {
               </p>
             </div>
           </ResponsiveDropdownLabel>
+          <ResponsiveDropdownMenuItem asChild>
+            <Button
+              variant="outline"
+              className="mb-2 w-full"
+              onClick={async () => {
+                launchDialog("edit-user-profile");
+              }}
+            >
+              Edit Profile
+            </Button>
+          </ResponsiveDropdownMenuItem>
           <ResponsiveDropdownMenuItem asChild>
             <Button
               className="w-full"

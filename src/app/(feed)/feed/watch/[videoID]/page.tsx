@@ -1,16 +1,19 @@
 "use client";
 
 import clsx from "clsx";
-import React, { use, useEffect } from "react";
-import { useKeyboard } from "~/components/KeyboardProvider";
-import { VideoDisplay } from "./VideoDisplay";
+import { use, useEffect } from "react";
 import useIsInactive from "~/lib/hooks/useIsInactive";
+import { useView } from "./useView";
+import { useZoom } from "./useZoom";
+import { VideoDisplay } from "./VideoDisplay";
 
 export default function WatchVideoPage(props: {
   params: Promise<{ videoID: string }>;
 }) {
   const params = use(props.params);
-  const { view, zoom } = useKeyboard();
+
+  const { view } = useView();
+  const { zoom } = useZoom();
 
   const isInactive = useIsInactive();
 

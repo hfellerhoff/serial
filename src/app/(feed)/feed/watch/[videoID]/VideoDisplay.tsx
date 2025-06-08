@@ -1,8 +1,10 @@
 import clsx from "clsx";
+import { useEffect, useState } from "react";
 import ResponsiveVideo from "~/components/ResponsiveVideo";
+import { useShortcut } from "~/lib/hooks/useShortcut";
+import { useView } from "./useView";
 import { VideoActions } from "./VideoActions";
-import { useState, useEffect } from "react";
-import { useKeyboard } from "~/components/KeyboardProvider";
+import { useVideoNavigationShortcuts } from "./useVideoNavigationShortcuts";
 
 export function VideoDisplay({
   id,
@@ -12,7 +14,13 @@ export function VideoDisplay({
   isInactive: boolean;
 }) {
   const [showVideo, setShowVideo] = useState(false);
-  const { view } = useKeyboard();
+
+  const { view, toggleView } = useView();
+
+  useShortcut("`", toggleView);
+  useShortcut("f", toggleView);
+
+  useVideoNavigationShortcuts();
 
   useEffect(() => {
     const timeout = setTimeout(() => {

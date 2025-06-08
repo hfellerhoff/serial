@@ -2,6 +2,7 @@ import { AddContentCategoryDialog } from "~/components/AddContentCategoryDialog"
 import { AddFeedDialog } from "~/components/AddFeedDialog";
 import { AddViewDialog } from "~/components/AddViewDialog";
 import { CustomVideoDialog } from "~/components/CustomVideoDialog";
+import { UserProfileEditDialog } from "./UserProfileEditDialog";
 
 export function AppDialogs() {
   return (
@@ -10,6 +11,7 @@ export function AppDialogs() {
       <AddViewDialog />
       <AddContentCategoryDialog />
       <CustomVideoDialog />
+      <UserProfileEditDialog />
     </>
   );
 }

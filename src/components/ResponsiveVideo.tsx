@@ -63,7 +63,9 @@ export default function ResponsiveVideo(props: IResponsiveVideoProps) {
 
   const [feedItem] = useFeedItemGlobalState(props?.videoID ?? "");
 
-  if (videoPlayer === "serial" && feedItem.platform === "youtube") {
+  const feedItemPlatform = feedItem?.platform ?? "youtube";
+
+  if (videoPlayer === "serial" && feedItemPlatform === "youtube") {
     return <CustomVideoPlayer {...props} />;
   }
 
@@ -81,10 +83,10 @@ export default function ResponsiveVideo(props: IResponsiveVideoProps) {
       >
         {props.videoID && (
           <>
-            {feedItem.platform === "youtube" && (
+            {feedItemPlatform === "youtube" && (
               <YouTubeEmbed {...props} containerRef={containerRef} />
             )}
-            {feedItem.platform === "peertube" && (
+            {feedItemPlatform === "peertube" && (
               <PeerTubeEmbed {...props} containerRef={containerRef} />
             )}
           </>
