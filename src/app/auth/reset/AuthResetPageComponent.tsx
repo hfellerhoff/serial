@@ -92,11 +92,6 @@ export function AuthResetPageComponent() {
   const [isSent, setIsSent] = useState(false);
 
   const trpc = useTRPC();
-  const { data: isLegacyUser } = useQuery(
-    trpc.user.getIsLegacyUser.queryOptions({
-      email,
-    }),
-  );
 
   if (!!token && isSent) {
     return (
@@ -171,16 +166,6 @@ export function AuthResetPageComponent() {
 
   return (
     <InputPane title="Reset Password">
-      {isLegacyUser && (
-        <Alert className="mb-6">
-          <InfoIcon className="h-4 w-4" />
-          <AlertTitle>Clerk Account Migration</AlertTitle>
-          <AlertDescription>
-            Due to a change in our authentication provider, you&apos;ll need to
-            reset your password.
-          </AlertDescription>
-        </Alert>
-      )}
       <div className="grid gap-4">
         <div className="grid gap-2">
           <Label htmlFor="email">Email</Label>

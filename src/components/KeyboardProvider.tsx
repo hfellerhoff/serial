@@ -83,7 +83,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     const processKey = (event: KeyboardEvent) => {
       const videoID = params.videoID as string;
 
-      if (doesAnyFormElementHaveFocus()) return;
+      if (doesAnyFormElementHaveFocus() || !!dialog) return;
       if (event.metaKey || event.shiftKey || event.ctrlKey || event.altKey) {
         return;
       }
