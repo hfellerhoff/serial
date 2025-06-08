@@ -4,10 +4,10 @@
 import clsx from "clsx";
 import { MaximizeIcon, MinimizeIcon, PlayIcon } from "lucide-react";
 import YouTube from "react-youtube";
+import { useView } from "~/app/(feed)/feed/watch/[videoID]/useView";
 import { useFlagState } from "~/lib/hooks/useFlagState";
 import { transformSecondsToFormattedTime } from "~/lib/transformSecondsToFormattedTime";
 import { ButtonWithShortcut } from "../ButtonWithShortcut";
-import { useKeyboard } from "../KeyboardProvider";
 import { Button } from "../ui/button";
 import { Slider } from "../ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
@@ -40,7 +40,7 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
   } = useCustomVideoPlayerContext();
   useVideoShortcuts();
 
-  const { view, toggleView } = useKeyboard();
+  const { view, toggleView } = useView();
   const [hasInlineShortcutsVisible] = useFlagState("INLINE_SHORTCUTS");
 
   const player = playerRef?.current;

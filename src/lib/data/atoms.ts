@@ -147,3 +147,6 @@ export const useClearAllUserData = () => {
     setViewsAtom([]);
   };
 };
+
+export const viewAtom = atom<"windowed" | "fullscreen">("windowed");
+export const zoomAtom = atom<number>(3);

@@ -1,16 +1,17 @@
 "use client";
 
 import { ExternalLinkIcon, MinusIcon, PlusIcon } from "lucide-react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { CustomVideoButton } from "~/components/CustomVideoButton";
-import { MAX_ZOOM, MIN_ZOOM, useKeyboard } from "~/components/KeyboardProvider";
+import { Button } from "~/components/ui/button";
+import { useSidebar } from "~/components/ui/sidebar";
+import { useFeedItemGlobalState } from "~/lib/data/atoms";
+import { useShortcut } from "~/lib/hooks/useShortcut";
 import { OpenRightSidebarButton } from "./OpenRightSidebarButton";
 import { RefetchItemsButton } from "./RefetchItemsButton";
-import { useSidebar } from "~/components/ui/sidebar";
-import Link from "next/link";
-import { Button } from "~/components/ui/button";
-import { useFeedItemGlobalState } from "~/lib/data/atoms";
+import { MAX_ZOOM, MIN_ZOOM, useZoom } from "./watch/[videoID]/useZoom";
 
 const PLATFORM_TO_FORMATTED_NAME = {
   youtube: "YouTube",
@@ -54,7 +55,10 @@ export function TopRightHeaderContent() {
   const pathname = usePathname();
 
   const { isMobile } = useSidebar();
-  const { zoom, zoomIn, zoomOut } = useKeyboard();
+  const { zoom, zoomIn, zoomOut } = useZoom();
+
+  useShortcut("=", zoomIn);
+  useShortcut("-", zoomOut);
 
   if (pathname.includes("/feed/watch/")) {
     if (isMobile) {

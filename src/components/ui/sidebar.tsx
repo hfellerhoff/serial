@@ -21,6 +21,7 @@ import {
   TooltipTrigger,
 } from "~/components/ui/tooltip";
 import { useIsMobile } from "~/hooks/use-mobile";
+import { useShortcut } from "~/lib/hooks/useShortcut";
 import { cn } from "~/lib/utils";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
@@ -106,6 +107,16 @@ function SidebarProvider({
   // We add a state so that we can do data-state="expanded" or "collapsed".
   // This makes it easier to style the sidebar with Tailwind classes.
   const state = open ? "expanded" : "collapsed";
+
+  useShortcut("\\", () => {
+    toggleSidebar("left");
+    setOpenRightMobile(false);
+  });
+
+  useShortcut("|", () => {
+    toggleSidebar("right");
+    setOpenLeftMobile(false);
+  });
 
   const contextValue = React.useMemo<SidebarContextProps>(
     () => ({

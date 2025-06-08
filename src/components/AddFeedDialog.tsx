@@ -18,6 +18,7 @@ import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { useShortcut } from "~/lib/hooks/useShortcut";
 
 export function AddFeedDialog() {
   const [feedUrl, setFeedUrl] = useState("");
@@ -29,6 +30,12 @@ export function AddFeedDialog() {
 
   const dialog = useDialogStore((store) => store.dialog);
   const onDialogOpenChange = useDialogStore((store) => store.onOpenChange);
+
+  const launchDialog = useDialogStore((store) => store.launchDialog);
+  useShortcut("a", (event) => {
+    event.preventDefault();
+    launchDialog("add-feed");
+  });
 
   const onOpenChange = (open = false) => {
     onDialogOpenChange(open);
