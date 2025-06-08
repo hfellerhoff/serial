@@ -1,10 +1,10 @@
+import clsx from "clsx";
 import { CheckIcon, Edit2Icon, Loader, XIcon } from "lucide-react";
 import { useId, useRef, useState } from "react";
+import type { z } from "zod";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { z } from "zod";
-import clsx from "clsx";
 
 function EditableSavableTextFieldNotEditingActions({
   onEdit,
@@ -73,7 +73,6 @@ export function EditableSavableTextField({
 }: EditableSavableTextFieldProps) {
   const id = useId();
 
-  const inputRef = useRef<HTMLInputElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -99,7 +98,7 @@ export function EditableSavableTextField({
         const formValues = new FormData(e.currentTarget);
         const fieldValue = formValues.get(id);
 
-        if (String(fieldValue) === initialValue) {
+        if (fieldValue === initialValue) {
           cancelEditing();
           return;
         }
@@ -109,8 +108,6 @@ export function EditableSavableTextField({
           data: validatedValue,
           error,
         } = schema.safeParse(fieldValue);
-
-        console.log(validatedValue);
 
         if (!success) {
           setErrors(error.flatten().formErrors);
@@ -133,7 +130,6 @@ export function EditableSavableTextField({
       <div className="flex items-start gap-1">
         <div className="grid flex-1">
           <Input
-            ref={inputRef}
             id={id}
             name={id}
             type="text"
@@ -161,8 +157,6 @@ export function EditableSavableTextField({
           <EditableSavableTextFieldNotEditingActions
             onEdit={() => {
               setIsEditing(true);
-              console.log(inputRef.current);
-              inputRef.current?.focus();
             }}
             isSaving={isSaving}
           />

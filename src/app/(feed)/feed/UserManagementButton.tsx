@@ -26,7 +26,7 @@ export function UserManagementNavItem() {
     isPending, //loading state
   } = authClient.useSession();
 
-  const { dialog, launchDialog } = useDialogStore();
+  const { launchDialog } = useDialogStore();
 
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);

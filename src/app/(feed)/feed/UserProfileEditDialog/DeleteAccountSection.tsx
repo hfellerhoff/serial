@@ -37,8 +37,8 @@ function DeleteAccountConfirmationSection({
   return (
     <>
       <p className="text-foreground/70 text-sm">
-        To confirm, type "{DELETE_FIELD_TARGET_VALUE}" in the field below, then
-        click "Delete Account".
+        To confirm, type &quot;{DELETE_FIELD_TARGET_VALUE}&quot; in the field
+        below, then click &quot;Delete Account&quot;.
       </p>
       <form
         className="grid gap-4"

@@ -1,12 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { InfoIcon, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { type PropsWithChildren, useState } from "react";
 import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardFooter } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
@@ -17,7 +15,6 @@ import {
   AUTH_RESET_PASSWORD_URL,
   AUTH_SIGNED_OUT_URL,
 } from "~/server/auth/constants";
-import { useTRPC } from "~/trpc/react";
 import { AuthHeader } from "../AuthHeader";
 
 function AlertPane({
@@ -91,8 +88,6 @@ export function AuthResetPageComponent() {
   const [loading, setLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
 
-  const trpc = useTRPC();
-
   if (!!token && isSent) {
     return (
       <AlertPane
@@ -132,7 +127,6 @@ export function AuthResetPageComponent() {
             className="w-full"
             disabled={loading}
             onClick={async () => {
-              console.log(password);
               await authClient.resetPassword({
                 token,
                 newPassword: password,

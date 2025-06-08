@@ -29,7 +29,6 @@ export async function fetchNewFeedDetails(
   const feedDetailList = (
     await Promise.all(
       urls.map(async (url) => {
-        console.log(url);
         if (url.includes("youtube.com")) {
           return fetchYouTubeFeedDetails(url);
         }

@@ -248,8 +248,6 @@ export function EditContentCategoryDialog({
     setUpdatedFeedIdCategorizations([]);
   }, [contentCategories, selectedContentCategoryId]);
 
-  console.log(updatedFeedIdCategorizations);
-
   return (
     <Dialog open={selectedContentCategoryId !== null} onOpenChange={onClose}>
       <DialogContent>
