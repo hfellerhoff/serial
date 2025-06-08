@@ -94,7 +94,6 @@ export function EditableSavableTextField({
       ref={formRef}
       className="grid gap-2"
       onSubmit={async (e) => {
-        console.log("asdjflkajsldf");
         e.preventDefault();
 
         const formValues = new FormData(e.currentTarget);

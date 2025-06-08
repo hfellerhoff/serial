@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { authClient } from "~/lib/auth-client";
-import { useDialogStore } from "./dialogStore";
+import { useDialogStore } from "../dialogStore";
 
 import { useUpdateEmailMutation } from "~/lib/data/user/useUpdateEmailMutation";
 import { useUpdateNameMutation } from "~/lib/data/user/useUpdateNameMutation";
@@ -17,6 +17,7 @@ import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import Link from "next/link";
 import { AUTH_RESET_PASSWORD_URL } from "~/server/auth/constants";
+import { DeleteAccountSection } from "./DeleteAccountSection";
 
 export function UserProfileEditDialog() {
   const { data, refetch: refetchUser } = authClient.useSession();
@@ -66,6 +67,8 @@ export function UserProfileEditDialog() {
               </Link>
             </Button>
           </div>
+          <hr />
+          <DeleteAccountSection />
         </div>
       </DialogContent>
     </Dialog>

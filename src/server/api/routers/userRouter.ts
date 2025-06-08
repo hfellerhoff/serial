@@ -75,4 +75,7 @@ export const userRouter = createTRPCRouter({
         })
         .where(eq(user.id, ctx.auth!.user.id));
     }),
+  delete: protectedProcedure.mutation(async ({ ctx }) => {
+    await db.delete(user).where(eq(user.id, ctx.auth!.user.id));
+  }),
 });
