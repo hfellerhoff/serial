@@ -58,21 +58,22 @@ export const useShortcut = (
       if (shortcut.includes("+")) {
         const keyArray = shortcut.split("+");
 
-        const initialModifierKey = keyArray[0]!.replace("^", "");
+        const initialModifierKey = keyArray[0]!;
+
+        const modifierKeys = Object.keys(modifierMap);
 
         // If the first key is a modifier, handle combinations
-        if (Object.keys(modifierMap).includes(initialModifierKey)) {
+        if (modifierKeys.includes(initialModifierKey)) {
           const finalKey = keyArray.pop();
 
           // Run handler if the modifier(s) + key have both been pressed
-          const doesEveryModifierMatch = keyArray.every((k) => {
-            const isNegative = k.includes("^");
-            const modifierKey = k.replace("^", "");
-
-            if (isNegative) {
-              return !modifierMap[modifierKey];
+          const doesEveryModifierMatch = modifierKeys.every((key) => {
+            // If modifier provided, expect `true`
+            if (keyArray.includes(key)) {
+              return modifierMap[key];
             }
-            return modifierMap[modifierKey];
+            // If modifier not provided, expect `false`
+            return !modifierMap[key];
           });
 
           if (doesEveryModifierMatch && finalKey === event.key) {
@@ -103,6 +104,15 @@ export const useShortcut = (
 
       // Single key shortcuts (e.g. pressing D)
       if (shortcut === event.key) {
+        // Expect all modifiers to be false
+        const isEveryModifierFalse = Object.values(modifierMap).every(
+          (value) => !value,
+        );
+
+        if (!isEveryModifierFalse) {
+          return;
+        }
+
         return callbackRef.current(event);
       }
     },
