@@ -7,6 +7,9 @@ import clsx from "clsx";
 import { useQuery } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
 import { useFetchNewFeedItemsMutation } from "~/lib/data/feed-items/mutations";
+import { useEffect } from "react";
+import { useDialogStore } from "./dialogStore";
+import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
 
 const ONE_HOUR = 1000 * 60 * 60;
 
@@ -24,6 +27,30 @@ export function RefetchItemsButton() {
     },
     staleTime: ONE_HOUR,
   });
+
+  const dialog = useDialogStore((store) => store.dialog);
+
+  useEffect(() => {
+    const processKey = (event: KeyboardEvent) => {
+      if (doesAnyFormElementHaveFocus() || !!dialog) return;
+      if (event.metaKey || event.shiftKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+
+      if (event.key === "r" && !isPending) {
+        event.preventDefault();
+
+        void fetchNewFeedItems();
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", processKey);
+
+    return () => {
+      window.removeEventListener("keydown", processKey);
+    };
+  }, [isPending, fetchNewFeedItems, dialog]);
 
   if (pathname !== "/feed") return null;
 

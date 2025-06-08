@@ -43,7 +43,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const pathname = usePathname();
 
   const [zoom, setZoom] = useState(3);
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, setOpenLeftMobile, setOpenRightMobile } = useSidebar();
 
   const feedItemsMap = useFeedItemsMap();
   const filteredFeedItemsOrder = useFilteredFeedItemsOrder();
@@ -84,6 +84,15 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       const videoID = params.videoID as string;
 
       if (doesAnyFormElementHaveFocus() || !!dialog) return;
+
+      console.log(event.shiftKey, event.key);
+
+      if (event.key === "|") {
+        setOpenLeftMobile(false);
+        toggleSidebar("right");
+        return;
+      }
+
       if (event.metaKey || event.shiftKey || event.ctrlKey || event.altKey) {
         return;
       }
@@ -187,6 +196,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       }
       if (event.key === "\\") {
         toggleSidebar("left");
+        setOpenRightMobile(false);
         return;
       }
     };
@@ -206,6 +216,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     setZoom,
     pathname,
     toggleSidebar,
+    setOpenLeftMobile,
+    setOpenRightMobile,
     zoomIn,
     zoomOut,
     filteredFeedItemsOrder,
