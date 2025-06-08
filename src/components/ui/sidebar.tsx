@@ -113,7 +113,7 @@ function SidebarProvider({
     setOpenRightMobile(false);
   });
 
-  useShortcut("|", () => {
+  useShortcut("Shift+|", () => {
     toggleSidebar("right");
     setOpenLeftMobile(false);
   });
