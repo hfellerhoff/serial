@@ -98,7 +98,7 @@ function CategoryFeedsInput({
             const isSelected = updatedIsSelected ?? fallbackIsSelected;
 
             return (
-              <li key={feed.id} className="flex w-full gap-2 text-white">
+              <li key={feed.id} className="text-foreground flex w-full gap-2">
                 <Checkbox
                   id={`category-for-${feed.id}`}
                   className="my-2"
