@@ -102,7 +102,7 @@
     --accent: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
     --accent-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
     --destructive: var(--ds-hue) var(--ds-sat) var(--ds-lgt);
-    --destructive-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --destructive-foreground: var(--bg-hue) var(--bg-sat) var(--bg-lgt);
     --border: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
     --input: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
     --ring: var(--mf-hue) var(--mf-sat) var(--rg-lgt);
