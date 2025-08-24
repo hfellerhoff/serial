@@ -15,7 +15,7 @@ import { createQueryClient } from "./query-client";
 
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import {
-  Persister,
+  type Persister,
   PersistQueryClientProvider,
 } from "@tanstack/react-query-persist-client";
 
