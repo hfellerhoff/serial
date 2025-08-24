@@ -27,13 +27,7 @@ const createSerialAsyncStoragePersister = () => {
 
 let asyncStoragePersister: Persister;
 export const getAsyncStoragePersister = () => {
-  if (typeof window === "undefined") {
-    // Server: do not use persister
-    return undefined;
-  } else {
-    // Browser: use singleton pattern to keep the same query client
-    return (asyncStoragePersister ??= createSerialAsyncStoragePersister());
-  }
+  return (asyncStoragePersister ??= createSerialAsyncStoragePersister());
 };
 
 let clientQueryClientSingleton: QueryClient | undefined = undefined;
