@@ -1,18 +1,40 @@
 "use client";
 
 import type { QueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { QueryClientProvider } from "@tanstack/react-query";
 import {
   createTRPCClient,
   loggerLink,
   unstable_httpBatchStreamLink,
 } from "@trpc/client";
 import { createTRPCContext } from "@trpc/tanstack-react-query";
+import { useState } from "react";
 import SuperJSON from "superjson";
 
-import { createQueryClient } from "./query-client";
 import type { AppRouter } from "~/server/api/root";
+import { createQueryClient } from "./query-client";
+
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import {
+  Persister,
+  PersistQueryClientProvider,
+} from "@tanstack/react-query-persist-client";
+
+const createSerialAsyncStoragePersister = () => {
+  return createAsyncStoragePersister({
+    storage: window.localStorage,
+  });
+};
+
+let asyncStoragePersister: Persister;
+export const getAsyncStoragePersister = () => {
+  if (typeof window === "undefined") {
+    // Server: do not use persister
+    return undefined;
+  } else {
+    // Browser: use singleton pattern to keep the same query client
+    return (asyncStoragePersister ??= createSerialAsyncStoragePersister());
+  }
+};
 
 let clientQueryClientSingleton: QueryClient | undefined = undefined;
 export const getQueryClient = () => {
@@ -25,7 +47,15 @@ export const getQueryClient = () => {
   }
 };
 
-export const { useTRPC, TRPCProvider } = createTRPCContext<AppRouter>();
+export const { useTRPC, useTRPCClient, TRPCProvider } =
+  createTRPCContext<AppRouter>();
+
+const getBaseUrl = () => {
+  if (typeof window !== "undefined") return window.location.origin;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  // eslint-disable-next-line no-restricted-properties
+  return `http://localhost:${process.env.PORT ?? 3000}`;
+};
 
 export function TRPCReactProvider(props: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
@@ -52,17 +82,13 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister: getAsyncStoragePersister() }}
+    >
       <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
         {props.children}
       </TRPCProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }
-
-const getBaseUrl = () => {
-  if (typeof window !== "undefined") return window.location.origin;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  // eslint-disable-next-line no-restricted-properties
-  return `http://localhost:${process.env.PORT ?? 3000}`;
-};
