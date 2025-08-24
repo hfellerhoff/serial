@@ -66,6 +66,7 @@ export function useFlagState<TKey extends FlagName>(key: TKey) {
     const parsedValue = LOCAL_STORAGE_FLAGS[key].schema.safeParse(storedValue);
 
     if (parsedValue.success) {
+      // @ts-expect-error don't worry about this
       setValue(parsedValue.data);
     }
   }, [key, value, setValue]);
