@@ -21,12 +21,15 @@ import {
 
 const createSerialAsyncStoragePersister = () => {
   return createAsyncStoragePersister({
-    storage: window.localStorage,
+    storage: typeof window === "undefined" ? undefined : window.localStorage,
   });
 };
 
 let asyncStoragePersister: Persister;
 export const getAsyncStoragePersister = () => {
+  if (typeof window === "undefined") {
+    return asyncStoragePersister;
+  }
   return (asyncStoragePersister ??= createSerialAsyncStoragePersister());
 };
 
