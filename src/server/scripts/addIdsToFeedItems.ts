@@ -39,7 +39,7 @@ async function migrate() {
       console.log(`Migrating items ${offset} to ${offset + PAGE_SIZE}...`);
       offset += PAGE_SIZE;
 
-      if (!feedItems.length) {
+      if (!feedItems.length && offset > itemCount) {
         isFinished = true;
         return;
       }
