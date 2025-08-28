@@ -1,0 +1,1 @@
+ALTER TABLE `serial_feed` ADD `image_url` text(512) DEFAULT '' NOT NULL;

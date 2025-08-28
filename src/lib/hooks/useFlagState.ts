@@ -14,6 +14,10 @@ const LOCAL_STORAGE_FLAGS = {
     key: "serial-flag-display-inline-shortcuts",
     schema: z.enum(["show-shortcuts", "hide-shortcuts"]),
   },
+  ARTICLE_STYLE: {
+    key: "serial-flag-article-style",
+    schema: z.enum(["simplified", "full"]),
+  },
 } as const;
 type FlagName = keyof typeof LOCAL_STORAGE_FLAGS;
 type FlagSchema<T extends FlagName> = (typeof LOCAL_STORAGE_FLAGS)[T]["schema"];
@@ -43,6 +47,7 @@ const flagsAtom = atom({
     parseFlagLocalStorageValue("CUSTOM_VIDEO_PLAYER") ?? "serial",
   INLINE_SHORTCUTS:
     parseFlagLocalStorageValue("INLINE_SHORTCUTS") ?? "show-shortcuts",
+  ARTICLE_STYLE: parseFlagLocalStorageValue("ARTICLE_STYLE") ?? "simplified",
 } as FlagsState);
 
 export function useFlagState<TKey extends FlagName>(key: TKey) {

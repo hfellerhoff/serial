@@ -16,12 +16,15 @@ import { MAX_ZOOM, MIN_ZOOM, useZoom } from "./watch/[videoID]/useZoom";
 const PLATFORM_TO_FORMATTED_NAME = {
   youtube: "YouTube",
   peertube: "PeerTube",
+  website: "Website",
 } as const;
 
 function OpenInYouTubeButton() {
   const pathname = usePathname();
   const videoId = pathname.split("/feed/watch/")[1]!;
-  const [feedItem] = useFeedItemGlobalState(videoId ?? "");
+  const contentId = pathname.split("/feed/read/")[1]!;
+
+  const [feedItem] = useFeedItemGlobalState(videoId || contentId || "");
 
   // If not a Serial item, assume YouTube
   if (!feedItem) {
@@ -60,7 +63,7 @@ export function TopRightHeaderContent() {
   useShortcut("=", zoomIn);
   useShortcut("-", zoomOut);
 
-  if (pathname.includes("/feed/watch/")) {
+  if (pathname.includes("/feed/watch/") || pathname.includes("/feed/read/")) {
     if (isMobile) {
       return (
         <div className="flex items-center gap-2">

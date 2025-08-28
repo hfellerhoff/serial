@@ -20,6 +20,7 @@ import {
   VIEW_READ_STATUS,
   viewReadStatusSchema,
 } from "./constants";
+import { createId } from "@paralleldrive/cuid2";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -92,6 +93,7 @@ export const feeds = sqliteTable(
     userId: text("user_id").notNull().default(""),
     name: text("name", { length: 256 }).notNull().default(""),
     url: text("url", { length: 512 }).notNull().default(""),
+    imageUrl: text("image_url", { length: 512 }).notNull().default(""),
     platform: text("platform", { length: 256 }).notNull().default("youtube"),
     createdAt: integer("created_at", { mode: "timestamp" })
       .$default(() => new Date())
@@ -102,7 +104,7 @@ export const feeds = sqliteTable(
   },
   (example) => [index("feed_name_idx").on(example.name)],
 );
-export const platformsSchema = z.enum(["youtube", "peertube"]);
+export const platformsSchema = z.enum(["youtube", "peertube", "website"]);
 export type FeedPlatform = z.infer<typeof platformsSchema>;
 
 export const feedsSchema = createSelectSchema(feeds).merge(
@@ -115,12 +117,14 @@ export type DatabaseFeed = typeof feeds.$inferSelect;
 export const feedItems = sqliteTable(
   "feed_item",
   {
+    id: text("id").$defaultFn(() => createId()),
     feedId: integer("feed_id").references(() => feeds.id),
     contentId: text("content_id", { length: 512 }).notNull(),
     title: text("title", { length: 512 }).notNull(),
     author: text("author", { length: 512 }).notNull(),
     url: text("url", { length: 512 }).notNull(),
     thumbnail: text("thumbnail", { length: 512 }).notNull().default(""),
+    content: text("content").notNull().default(""),
     isWatched: integer("is_watched", { mode: "boolean" })
       .notNull()
       .default(false),

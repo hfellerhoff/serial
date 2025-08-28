@@ -126,21 +126,6 @@ function TodayItemsFeedEmptyState() {
       </div>
     </>
   );
-
-  return (
-    <button
-      className="w-full cursor-pointer px-6 md:py-6"
-      onClick={() => launchDialog("add-feed")}
-    >
-      <div className="bg-muted flex w-full flex-col items-center justify-center rounded p-12">
-        <PlusIcon size={40} />
-        <h2 className="pt-2 text-lg font-semibold">Add a feed</h2>
-        <p className="max-w-xs pt-1 text-center text-sm opacity-80">
-          It all starts with a feed! Click here to add one.
-        </p>
-      </div>
-    </button>
-  );
 }
 
 function LoaderDisplay() {
@@ -169,12 +154,17 @@ function LoaderDisplay() {
 }
 
 function ItemDisplay({ contentId }: { contentId: string }) {
+  const { feeds } = useFeeds();
   const [item] = useFeedItemGlobalState(contentId);
 
   const { mutateAsync: setWatchedValue } =
     useFeedItemsSetWatchedValueMutation(contentId);
   const { mutateAsync: setWatchLaterValue } =
     useFeedItemsSetWatchLaterValueMutation(contentId);
+
+  const feed = feeds.find((f) => f.id === item.feedId);
+
+  const itemDestination = item.platform === "website" ? "read" : "watch";
 
   return (
     <article
@@ -186,15 +176,28 @@ function ItemDisplay({ contentId }: { contentId: string }) {
       )}
     >
       <Link
-        href={`/feed/watch/${item.contentId}`}
+        href={`/feed/${itemDestination}/${item.contentId}`}
         className="sm:hover:bg-muted flex w-full flex-1 flex-col gap-4 py-4 pr-4 pl-6 text-left transition-colors md:h-20 md:flex-row md:items-center md:rounded md:py-0 md:pr-0"
         prefetch
       >
-        <img
-          src={item.thumbnail}
-          alt={item.title}
-          className="aspect-video w-16 rounded object-cover"
-        />
+        {!!item.thumbnail ? (
+          <img
+            src={item.thumbnail}
+            alt={item.title}
+            className="aspect-video w-16 rounded object-cover"
+          />
+        ) : !!feed?.imageUrl ? (
+          <div className="grid aspect-video w-16 place-items-center rounded object-cover">
+            <img
+              src={feed.imageUrl}
+              alt={item.title}
+              className="aspect-square h-9 rounded object-cover"
+            />
+          </div>
+        ) : (
+          <div className="bg-muted aspect-video w-16 rounded object-cover" />
+        )}
+
         <div className="flex h-full flex-1 flex-col justify-center">
           <h3 className="line-clamp-1 w-full text-xs font-semibold md:text-sm">
             {item.title}

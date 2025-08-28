@@ -102,6 +102,7 @@ export const feedRouter = createTRPCRouter({
             name: channel.title,
             platform: "youtube",
             url: channel.feedUrl,
+            imageUrl: "",
           }));
       if (!feedsToAdd.length) return;
 

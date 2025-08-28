@@ -1,0 +1,1 @@
+ALTER TABLE `serial_feed_item` ADD `content` text DEFAULT '' NOT NULL;
