@@ -1,7 +1,7 @@
 import "dotenv/config";
 
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import * as schema from "~/server/db/schema";
-import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "../db";
 
 import { createId } from "@paralleldrive/cuid2";
@@ -33,13 +33,12 @@ async function migrate() {
         .where(isNull(schema.feedItems.id))
         .orderBy(desc(schema.feedItems.createdAt))
         .limit(PAGE_SIZE)
-        .offset(offset)
         .all();
 
       console.log(`Migrating items ${offset} to ${offset + PAGE_SIZE}...`);
       offset += PAGE_SIZE;
 
-      if (!feedItems.length && offset > itemCount) {
+      if (!feedItems.length) {
         isFinished = true;
         return;
       }
