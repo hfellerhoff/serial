@@ -18,18 +18,22 @@ async function migrate() {
 
     return await Promise.all(
       feedItems.map(async (feedItem) => {
-        feedItemsMigrated += 1;
-        return await tx
-          .update(schema.feedItems)
-          .set({
-            id: createId(),
-          })
-          .where(
-            and(
-              eq(schema.feedItems.contentId, feedItem.contentId),
-              eq(schema.feedItems.feedId, feedItem.feedId ?? 0),
-            ),
-          );
+        try {
+          const res = await tx
+            .update(schema.feedItems)
+            .set({
+              id: createId(),
+            })
+            .where(
+              and(
+                eq(schema.feedItems.contentId, feedItem.contentId),
+                eq(schema.feedItems.feedId, feedItem.feedId ?? 0),
+              ),
+            );
+          feedItemsMigrated += 1;
+          return res;
+        } catch {}
+        return true;
       }),
     );
   });
