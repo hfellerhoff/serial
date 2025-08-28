@@ -13,7 +13,7 @@ async function migrate() {
 
   const countQuery = await db
     .select({
-      count: sql`COUNT(${schema.feedItems.id})`,
+      count: sql`COUNT(${schema.feedItems.contentId})`,
     })
     .from(schema.feedItems)
     .where(isNull(schema.feedItems.id))
@@ -31,9 +31,9 @@ async function migrate() {
         .select()
         .from(schema.feedItems)
         .where(isNull(schema.feedItems.id))
+        .orderBy(desc(schema.feedItems.createdAt))
         .limit(PAGE_SIZE)
         .offset(offset)
-        .orderBy(desc(schema.feedItems.contentId))
         .all();
 
       console.log(`Migrating items ${offset} to ${offset + PAGE_SIZE}...`);
