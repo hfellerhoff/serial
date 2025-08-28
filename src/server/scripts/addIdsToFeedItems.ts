@@ -16,7 +16,7 @@ async function migrate() {
       count: sql`COUNT(${schema.feedItems.id})`,
     })
     .from(schema.feedItems)
-    .where(isNotNull(schema.feedItems.id))
+    .where(isNull(schema.feedItems.id))
     .all();
 
   const itemCount = countQuery[0]!.count as number;
@@ -30,7 +30,7 @@ async function migrate() {
       const feedItems = await tx
         .select()
         .from(schema.feedItems)
-        .where(isNotNull(schema.feedItems.id))
+        .where(isNull(schema.feedItems.id))
         .limit(PAGE_SIZE)
         .offset(offset)
         .orderBy(desc(schema.feedItems.contentId))
