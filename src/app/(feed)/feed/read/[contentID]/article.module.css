@@ -1,0 +1,90 @@
+.article {
+}
+
+.article h1 {
+  font-size: 1.5rem;
+  font-weight: 900;
+}
+
+.article h2 {
+  font-size: 1.2rem;
+  font-weight: 900;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.article h3 {
+  font-size: 1.1rem;
+  font-weight: 900;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.article h4 {
+  font-size: 1rem;
+  font-weight: 900;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.article h5 {
+  font-size: 1rem;
+  font-weight: 800;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.article h6 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-foreground);
+  margin-block: 0.5rem;
+}
+
+.article p {
+  margin-block: 1rem;
+  line-height: 1.7rem;
+}
+
+.article a {
+  background: var(--color-sidebar-accent);
+  color: var(--color-sidebar-accent-foreground);
+  text-decoration: none;
+}
+
+.article a:hover {
+  background: var(--color-sidebar-primary);
+  color: var(--color-sidebar-primary-foreground);
+  text-decoration: none;
+}
+
+.article img {
+  margin-block: 1.5rem;
+}
+
+.article ul {
+  padding-left: 1.5rem;
+  list-style: disc;
+}
+
+.article ol {
+  padding-left: 1.5rem;
+  list-style: decimal;
+}
+
+.article li {
+  margin-block: 0.25rem;
+}
+
+.article blockquote {
+  border-left: 2px solid var(--color-sidebar-accent);
+  padding-left: 1rem;
+}
+
+.article u {
+  text-decoration: none;
+}
+
+.article img {
+  width: 100%;
+}

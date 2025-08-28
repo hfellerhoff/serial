@@ -12,13 +12,16 @@ import {
   useDeleteFeedMutation,
   useEditFeedMutation,
 } from "~/lib/data/feeds/mutations";
-import { validateFeedUrl } from "~/server/rss/validateFeedUrl";
+import { useShortcut } from "~/lib/hooks/useShortcut";
+import {
+  FEED_PLATFORM_LABEL_MAP,
+  getAssumedFeedPlatform,
+} from "~/server/rss/validateFeedUrl";
 import { ViewCategoriesInput } from "./AddViewDialog";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { useShortcut } from "~/lib/hooks/useShortcut";
 
 export function AddFeedDialog() {
   const [feedUrl, setFeedUrl] = useState("");
@@ -46,6 +49,8 @@ export function AddFeedDialog() {
     }
   };
 
+  const feedPlatform = getAssumedFeedPlatform(feedUrl);
+
   return (
     <Dialog open={dialog === "add-feed"} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -70,7 +75,7 @@ export function AddFeedDialog() {
             setSelectedCategories={setSelectedCategories}
           />
           <Button
-            disabled={!validateFeedUrl(feedUrl) || isAddingFeed}
+            disabled={isAddingFeed}
             onClick={async () => {
               setIsAddingFeed(true);
 
@@ -95,7 +100,9 @@ export function AddFeedDialog() {
               setIsAddingFeed(false);
             }}
           >
-            {isAddingFeed ? "Adding..." : "Add Feed"}
+            {isAddingFeed
+              ? "Adding..."
+              : `Add ${FEED_PLATFORM_LABEL_MAP[feedPlatform]} Feed`}
           </Button>
           <div className="py-4">
             <hr />

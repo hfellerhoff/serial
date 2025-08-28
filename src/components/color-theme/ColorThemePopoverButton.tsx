@@ -14,6 +14,7 @@ import { Slider } from "../ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 import { EnableCustomVideoPlayerToggle } from "./EnableCustomVideoPlayerToggle";
 import { ShowShortcutsToggle } from "./ShowShortcutsToggle";
+import { ShowArticleStyleToggle } from "./ShowArticleStyleToggle";
 
 function getCssVariable(name: string) {
   const value = window
@@ -208,6 +209,8 @@ export function ColorThemePopoverButton({
             <EnableCustomVideoPlayerToggle />
             <div className="h-4" />
             <ShowShortcutsToggle />
+            <div className="h-4" />
+            <ShowArticleStyleToggle />
           </>
         )}
       </PopoverContent>
@@ -229,6 +232,8 @@ export function ColorThemeDropdownSidebar({
       <EnableCustomVideoPlayerToggle />
       <div className="h-4" />
       <ShowShortcutsToggle />
+      <div className="h-4" />
+      <ShowArticleStyleToggle />
     </ResponsiveDropdown>
   );
 }

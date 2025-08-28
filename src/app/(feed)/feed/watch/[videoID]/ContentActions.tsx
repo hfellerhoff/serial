@@ -10,15 +10,15 @@ import { useMediaQuery } from "~/lib/hooks/use-media-query";
 import { useView } from "./useView";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 
-export function VideoActions({ videoID }: { videoID: string }) {
+export function ContentActions({ contentID }: { contentID: string }) {
   const { view } = useView();
 
-  const [video] = useFeedItemGlobalState(videoID);
+  const [video] = useFeedItemGlobalState(contentID);
 
   const { mutateAsync: setWatchedValue } =
-    useFeedItemsSetWatchedValueMutation(videoID);
+    useFeedItemsSetWatchedValueMutation(contentID);
   const { mutateAsync: setWatchLaterValue } =
-    useFeedItemsSetWatchLaterValueMutation(videoID);
+    useFeedItemsSetWatchLaterValueMutation(contentID);
 
   const isWatched = video?.isWatched;
   const isWatchLater = video?.isWatchLater;

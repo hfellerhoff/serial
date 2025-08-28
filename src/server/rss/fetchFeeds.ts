@@ -1,6 +1,7 @@
 import type { DatabaseFeed } from "../db/schema";
 import { fetchPeerTubeFeedData } from "./parsers/peertube";
 import { fetchUnknownRssFeed } from "./parsers/unknown";
+import { fetchWebsiteFeedData } from "./parsers/website";
 import {
   fetchYouTubeFeedData,
   fetchYouTubeFeedDetails,
@@ -52,6 +53,9 @@ export async function fetchFeedData(
         }
         if (feed.platform === "peertube") {
           return fetchPeerTubeFeedData(feed);
+        }
+        if (feed.platform === "website") {
+          return fetchWebsiteFeedData(feed);
         }
         return null;
       }),

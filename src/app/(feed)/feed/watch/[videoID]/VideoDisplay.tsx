@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import ResponsiveVideo from "~/components/ResponsiveVideo";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 import { useView } from "./useView";
-import { VideoActions } from "./VideoActions";
+import { ContentActions } from "./ContentActions";
 import { useVideoNavigationShortcuts } from "./useVideoNavigationShortcuts";
 
 export function VideoDisplay({
@@ -60,7 +60,7 @@ export function VideoDisplay({
           <ResponsiveVideo videoID={id} isInactive={isInactive} />
         </div>
       </div>
-      <VideoActions videoID={id} />
+      <ContentActions contentID={id} />
     </>
   );
 }

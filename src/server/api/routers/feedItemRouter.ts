@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import { and, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
+import { escape } from "querystring";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
@@ -58,6 +59,7 @@ export const feedItemRouter = createTRPCRouter({
           return {
             feedId: feed.id,
             contentId: item.id,
+            content: item.content ?? "",
             title: item.title ?? "",
             author: item.author ?? "",
             thumbnail: item.thumbnail ?? "",
