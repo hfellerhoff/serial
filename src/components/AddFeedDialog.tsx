@@ -50,6 +50,7 @@ export function AddFeedDialog() {
   };
 
   const feedPlatform = getAssumedFeedPlatform(feedUrl);
+  const TEMPORARY_isDisabled = feedPlatform === "website";
 
   return (
     <Dialog open={dialog === "add-feed"} onOpenChange={onOpenChange}>
@@ -75,7 +76,7 @@ export function AddFeedDialog() {
             setSelectedCategories={setSelectedCategories}
           />
           <Button
-            disabled={isAddingFeed}
+            disabled={isAddingFeed || TEMPORARY_isDisabled}
             onClick={async () => {
               setIsAddingFeed(true);
 
