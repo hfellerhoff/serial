@@ -1,4 +1,4 @@
-import { FeedPlatform } from "../db/schema";
+import type { FeedPlatform } from "../db/schema";
 
 const YOUTUBE_URL_SEGMENTS = [
   "https://youtube.com/@",

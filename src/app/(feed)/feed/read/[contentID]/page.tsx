@@ -59,7 +59,7 @@ export default function WatchVideoPage(props: {
         />
         <span className="font-mono text-sm">{feed?.name}</span>
       </div>
-      <div className={`h-full w-full px-6 sm:pb-6 ${classes["article"]}`}>
+      <div className={`h-full w-full px-6 sm:pb-6 ${classes.article}`}>
         <h1>{feedItem.title}</h1>
         <h6>{feedItem.author || feed?.name || ""}</h6>
         <div

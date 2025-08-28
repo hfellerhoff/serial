@@ -1,13 +1,8 @@
+import Parser from "rss-parser";
 import { z } from "zod";
 import type { DatabaseFeed } from "~/server/db/schema";
-import type { NewFeedDetails, RSSContent, RSSFeed } from "../types";
-import Parser from "rss-parser";
 import { isWithinDays } from "../rssUtils";
-
-import rehypeSanitize from "rehype-sanitize";
-import rehypeStringify from "rehype-stringify";
-import rehypeParse from "rehype-parse";
-import { unified } from "unified";
+import type { NewFeedDetails, RSSContent, RSSFeed } from "../types";
 
 const parser = new Parser({
   customFields: {
