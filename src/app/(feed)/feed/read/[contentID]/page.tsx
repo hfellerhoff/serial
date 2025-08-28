@@ -23,7 +23,7 @@ const parser = unified()
 export default function WatchVideoPage(props: {
   params: Promise<{ contentID: string }>;
 }) {
-  const [articleStyle, setArticleStyle] = useFlagState("ARTICLE_STYLE");
+  const [articleStyle] = useFlagState("ARTICLE_STYLE");
   const params = use(props.params);
 
   const [feedItem] = useFeedItemGlobalState(params?.contentID ?? "");
