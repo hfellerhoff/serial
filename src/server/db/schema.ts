@@ -20,6 +20,7 @@ import {
   VIEW_READ_STATUS,
   viewReadStatusSchema,
 } from "./constants";
+import { createId } from "@paralleldrive/cuid2";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -116,6 +117,7 @@ export type DatabaseFeed = typeof feeds.$inferSelect;
 export const feedItems = sqliteTable(
   "feed_item",
   {
+    id: text("id").$defaultFn(() => createId()),
     feedId: integer("feed_id").references(() => feeds.id),
     contentId: text("content_id", { length: 512 }).notNull(),
     title: text("title", { length: 512 }).notNull(),
