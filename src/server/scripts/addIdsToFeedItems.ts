@@ -1,7 +1,7 @@
 import "dotenv/config";
 
 import * as schema from "~/server/db/schema";
-import { eq, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../db";
 
 import { createId } from "@paralleldrive/cuid2";
@@ -24,7 +24,12 @@ async function migrate() {
           .set({
             id: createId(),
           })
-          .where(eq(schema.feedItems.contentId, feedItem.contentId));
+          .where(
+            and(
+              eq(schema.feedItems.contentId, feedItem.contentId),
+              eq(schema.feedItems.feedId, feedItem.feedId ?? 0),
+            ),
+          );
       }),
     );
   });
