@@ -61,7 +61,7 @@ export default function WatchVideoPage(props: {
       </div>
       <div className={`h-full w-full px-6 sm:pb-6 ${classes["article"]}`}>
         <h1>{feedItem.title}</h1>
-        <h6>{feedItem.author}</h6>
+        <h6>{feedItem.author || feed?.name || ""}</h6>
         <div
           dangerouslySetInnerHTML={{
             __html: content,
