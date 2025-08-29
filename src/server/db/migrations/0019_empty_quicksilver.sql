@@ -1,0 +1,1 @@
+ALTER TABLE `serial_feed` ADD `open_location` text(64) DEFAULT 'serial' NOT NULL;

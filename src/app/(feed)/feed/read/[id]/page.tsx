@@ -4,7 +4,7 @@ import clsx from "clsx";
 import { use } from "react";
 
 import { useFeedItemGlobalState } from "~/lib/data/atoms";
-import { useZoom } from "../../watch/[videoID]/useZoom";
+import { useZoom } from "../../watch/[id]/useZoom";
 
 import classes from "./article.module.css";
 import { useFeeds } from "~/lib/data/feeds";
@@ -13,20 +13,30 @@ import rehypeParse from "rehype-parse";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeStringify from "rehype-stringify";
 import { useFlagState } from "~/lib/hooks/useFlagState";
-import { ContentActions } from "../../watch/[videoID]/ContentActions";
+import { ContentActions } from "../../watch/[id]/ContentActions";
 
 const parser = unified()
   .use(rehypeParse, { fragment: true })
   .use(rehypeSanitize)
   .use(rehypeStringify);
 
+const MAX_WIDTH_MAP: Record<number, string> = {
+  [0]: "container-xl",
+  [1]: "container-2xl",
+  [2]: "container-3xl",
+  [3]: "container-4xl",
+  [4]: "container-5xl",
+  [5]: "container-6xl",
+  [6]: "container-7xl",
+};
+
 export default function WatchVideoPage(props: {
-  params: Promise<{ contentID: string }>;
+  params: Promise<{ id: string }>;
 }) {
   const [articleStyle] = useFlagState("ARTICLE_STYLE");
   const params = use(props.params);
 
-  const [feedItem] = useFeedItemGlobalState(params?.contentID ?? "");
+  const [feedItem] = useFeedItemGlobalState(params?.id ?? "");
   const { feeds } = useFeeds();
 
   const feed = feeds.find((f) => f.id === feedItem.feedId);
@@ -50,13 +60,21 @@ export default function WatchVideoPage(props: {
         "max-w-6xl": zoom === 5,
         "max-w-7xl": zoom === 6,
       })}
+      style={{
+        // @ts-expect-error This is fine and works
+        [`--article-max-width`]: `var(--${MAX_WIDTH_MAP[zoom]})`,
+      }}
     >
       <div className="mb-4 flex w-full items-center gap-2 px-6 sm:pt-6">
-        <img
-          src={feed?.imageUrl}
-          alt={feedItem.title}
-          className="aspect-square h-6 rounded object-cover"
-        />
+        {!!feed?.imageUrl ? (
+          <img
+            src={feed?.imageUrl}
+            alt={feedItem.title}
+            className="aspect-square h-6 rounded object-cover"
+          />
+        ) : (
+          <div className="bg-muted aspect-square size-6 rounded object-cover" />
+        )}
         <span className="font-mono text-sm">{feed?.name}</span>
       </div>
       <div className={`h-full w-full px-6 sm:pb-6 ${classes.article}`}>
@@ -69,7 +87,7 @@ export default function WatchVideoPage(props: {
         />
       </div>
       <div className="sticky inset-x-0 bottom-0 left-0 grid place-items-center">
-        <ContentActions contentID={params.contentID ?? ""} />
+        <ContentActions contentID={params.id ?? ""} />
       </div>
     </div>
   );

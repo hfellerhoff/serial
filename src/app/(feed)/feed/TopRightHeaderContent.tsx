@@ -1,6 +1,11 @@
 "use client";
 
-import { ExternalLinkIcon, MinusIcon, PlusIcon } from "lucide-react";
+import {
+  ExternalLinkIcon,
+  MinusIcon,
+  PlusIcon,
+  SettingsIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
@@ -11,13 +16,10 @@ import { useFeedItemGlobalState } from "~/lib/data/atoms";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 import { OpenRightSidebarButton } from "./OpenRightSidebarButton";
 import { RefetchItemsButton } from "./RefetchItemsButton";
-import { MAX_ZOOM, MIN_ZOOM, useZoom } from "./watch/[videoID]/useZoom";
-
-const PLATFORM_TO_FORMATTED_NAME = {
-  youtube: "YouTube",
-  peertube: "PeerTube",
-  website: "Website",
-} as const;
+import { MAX_ZOOM, MIN_ZOOM, useZoom } from "./watch/[id]/useZoom";
+import { useState } from "react";
+import { EditFeedDialog } from "~/components/AddFeedDialog";
+import { PLATFORM_TO_FORMATTED_NAME_MAP } from "~/lib/data/feeds/utils";
 
 function OpenInYouTubeButton() {
   const pathname = usePathname();
@@ -46,11 +48,41 @@ function OpenInYouTubeButton() {
     <Link href={feedItem.url} target="_blank" rel="noopener noreferrer">
       <Button variant="outline" size="icon md:default">
         <span className="hidden pr-1.5 md:block">
-          {PLATFORM_TO_FORMATTED_NAME[feedItem.platform]}
+          {PLATFORM_TO_FORMATTED_NAME_MAP[feedItem.platform]}
         </span>
         <ExternalLinkIcon size={16} />
       </Button>
     </Link>
+  );
+}
+
+function EditFeedButton() {
+  const pathname = usePathname();
+  const videoId = pathname.split("/feed/watch/")[1]!;
+  const contentId = pathname.split("/feed/read/")[1]!;
+
+  const [feedItem] = useFeedItemGlobalState(videoId || contentId || "");
+
+  const [selectedFeedForEditing, setSelectedFeedForEditing] = useState<
+    null | number
+  >(null);
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => {
+          setSelectedFeedForEditing(feedItem.feedId);
+        }}
+      >
+        <SettingsIcon size={16} />
+      </Button>
+      <EditFeedDialog
+        selectedFeedId={selectedFeedForEditing}
+        onClose={() => setSelectedFeedForEditing(null)}
+      />
+    </>
   );
 }
 
@@ -67,6 +99,7 @@ export function TopRightHeaderContent() {
     if (isMobile) {
       return (
         <div className="flex items-center gap-2">
+          <EditFeedButton />
           <OpenInYouTubeButton />
         </div>
       );
@@ -92,6 +125,7 @@ export function TopRightHeaderContent() {
         >
           <PlusIcon size={16} />
         </ButtonWithShortcut>
+        <EditFeedButton />
         <OpenInYouTubeButton />
       </div>
     );

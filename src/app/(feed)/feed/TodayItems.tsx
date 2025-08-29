@@ -166,6 +166,15 @@ function ItemDisplay({ contentId }: { contentId: string }) {
 
   const itemDestination = item.platform === "website" ? "read" : "watch";
 
+  const shouldOpenInSerial = feed?.openLocation === "serial";
+
+  const href = shouldOpenInSerial
+    ? `/feed/${itemDestination}/${item.id}`
+    : item.url;
+
+  const target = shouldOpenInSerial ? undefined : "_blank";
+  const rel = shouldOpenInSerial ? undefined : "noopener noreferrer";
+
   return (
     <article
       className={clsx(
@@ -176,7 +185,9 @@ function ItemDisplay({ contentId }: { contentId: string }) {
       )}
     >
       <Link
-        href={`/feed/${itemDestination}/${item.contentId}`}
+        href={href}
+        target={target}
+        rel={rel}
         className="sm:hover:bg-muted flex w-full flex-1 flex-col gap-4 py-4 pr-4 pl-6 text-left transition-colors md:h-20 md:flex-row md:items-center md:rounded md:py-0 md:pr-0"
         prefetch
       >
@@ -195,15 +206,16 @@ function ItemDisplay({ contentId }: { contentId: string }) {
             />
           </div>
         ) : (
-          <div className="bg-muted aspect-video w-16 rounded object-cover" />
+          <div className="grid aspect-video w-16 place-items-center rounded object-cover">
+            <div className="bg-muted aspect-square h-9 rounded object-cover" />
+          </div>
         )}
-
         <div className="flex h-full flex-1 flex-col justify-center">
           <h3 className="line-clamp-1 w-full text-xs font-semibold md:text-sm">
             {item.title}
           </h3>
           <p className="w-full text-xs opacity-80 md:text-sm">
-            {item.author} • {timeAgo(item.postedAt)}
+            {item.author || feed?.name} • {timeAgo(item.postedAt)}
           </p>
         </div>
       </Link>
@@ -213,7 +225,7 @@ function ItemDisplay({ contentId }: { contentId: string }) {
           variant="ghost"
           onClick={() => {
             void setWatchLaterValue({
-              contentId: item.contentId,
+              id: item.id,
               feedId: item.feedId!,
               isWatchLater: !item.isWatchLater,
             });
@@ -230,7 +242,7 @@ function ItemDisplay({ contentId }: { contentId: string }) {
           variant="ghost"
           onClick={() => {
             void setWatchedValue({
-              contentId: item.contentId,
+              id: item.id,
               feedId: item.feedId!,
               isWatched: !item.isWatched,
             });

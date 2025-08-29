@@ -109,6 +109,9 @@ export function useEditFeedMutation() {
     api.feeds.update.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries({
+          queryKey: api.feeds.getAll.queryKey(),
+        });
+        await queryClient.invalidateQueries({
           queryKey: api.feedCategories.getAll.queryKey(),
         });
       },

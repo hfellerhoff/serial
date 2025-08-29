@@ -165,12 +165,9 @@ export function useFeedItemsQuery() {
     if (query.isSuccess && hasUpdatedBasedOnQueryRef.current === false) {
       hasUpdatedBasedOnQueryRef.current = true;
       setHasFetchedFeedItems(true);
-      setFeedItemsOrder(query.data.map((item) => item.contentId));
+      setFeedItemsOrder(query.data.map((item) => item.id));
       setFeedItemsMap(
-        query.data.reduce(
-          (acc, item) => ({ ...acc, [item.contentId]: item }),
-          {},
-        ),
+        query.data.reduce((acc, item) => ({ ...acc, [item.id]: item }), {}),
       );
     } else if (query.isFetching) {
       hasUpdatedBasedOnQueryRef.current = false;

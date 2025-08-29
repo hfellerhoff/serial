@@ -1,5 +1,6 @@
 "use client";
 import { DialogTitle } from "@radix-ui/react-dialog";
+import { ToggleGroup } from "@radix-ui/react-toggle-group";
 import { ImportIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -12,16 +13,16 @@ import {
   useDeleteFeedMutation,
   useEditFeedMutation,
 } from "~/lib/data/feeds/mutations";
+import { PLATFORM_TO_FORMATTED_NAME_MAP } from "~/lib/data/feeds/utils";
 import { useShortcut } from "~/lib/hooks/useShortcut";
-import {
-  FEED_PLATFORM_LABEL_MAP,
-  getAssumedFeedPlatform,
-} from "~/server/rss/validateFeedUrl";
+import { FeedOpenLocation, FeedPlatform } from "~/server/db/schema";
+import { getAssumedFeedPlatform } from "~/server/rss/validateFeedUrl";
 import { ViewCategoriesInput } from "./AddViewDialog";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { ToggleGroupItem } from "./ui/toggle-group";
 
 export function AddFeedDialog() {
   const [feedUrl, setFeedUrl] = useState("");
@@ -50,7 +51,6 @@ export function AddFeedDialog() {
   };
 
   const feedPlatform = getAssumedFeedPlatform(feedUrl);
-  const TEMPORARY_isDisabled = feedPlatform === "website";
 
   return (
     <Dialog open={dialog === "add-feed"} onOpenChange={onOpenChange}>
@@ -76,7 +76,7 @@ export function AddFeedDialog() {
             setSelectedCategories={setSelectedCategories}
           />
           <Button
-            disabled={isAddingFeed || TEMPORARY_isDisabled}
+            disabled={isAddingFeed}
             onClick={async () => {
               setIsAddingFeed(true);
 
@@ -103,7 +103,7 @@ export function AddFeedDialog() {
           >
             {isAddingFeed
               ? "Adding..."
-              : `Add ${FEED_PLATFORM_LABEL_MAP[feedPlatform]} Feed`}
+              : `Add ${PLATFORM_TO_FORMATTED_NAME_MAP[feedPlatform]} Feed`}
           </Button>
           <div className="py-4">
             <hr />
@@ -127,6 +127,39 @@ export function AddFeedDialog() {
   );
 }
 
+export function FeedOpenLocationToggleGroup({
+  feedPlatform,
+  openLocation,
+  setOpenLocation,
+}: {
+  feedPlatform: FeedPlatform;
+  openLocation: FeedOpenLocation;
+  setOpenLocation: (location: FeedOpenLocation) => void;
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor="categories">Open items in</Label>
+      <ToggleGroup
+        id="categories"
+        type="single"
+        value={openLocation}
+        onValueChange={(value) => {
+          if (!value) return;
+          setOpenLocation(value as FeedOpenLocation);
+        }}
+        className="flex w-fit flex-wrap justify-start gap-1"
+      >
+        <ToggleGroupItem size="sm" variant="outline" value="serial">
+          Serial
+        </ToggleGroupItem>
+        <ToggleGroupItem size="sm" variant="outline" value="origin">
+          {PLATFORM_TO_FORMATTED_NAME_MAP[feedPlatform]}
+        </ToggleGroupItem>
+      </ToggleGroup>
+    </div>
+  );
+}
+
 export function EditFeedDialog({
   selectedFeedId,
   onClose,
@@ -142,6 +175,8 @@ export function EditFeedDialog({
 
   const [name, setName] = useState<string>("");
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [selectedOpenLocation, setSelectedOpenLocation] =
+    useState<FeedOpenLocation>("serial");
 
   const isFormDisabled = !name;
 
@@ -149,7 +184,7 @@ export function EditFeedDialog({
   const { feedCategories } = useFeedCategories();
 
   useEffect(() => {
-    if (!feeds || !selectedFeedId) return;
+    if (!feeds || selectedFeedId == null) return;
 
     const feed = feeds.find((v) => v.id === selectedFeedId);
     if (!feed) return;
@@ -161,7 +196,10 @@ export function EditFeedDialog({
 
     setName(feed.name);
     setSelectedCategories(_feedCategories);
+    setSelectedOpenLocation(feed.openLocation);
   }, [feedCategories, selectedFeedId, feeds]);
+
+  const feed = feeds.find((v) => v.id === selectedFeedId);
 
   return (
     <Dialog open={selectedFeedId !== null} onOpenChange={onClose}>
@@ -185,6 +223,11 @@ export function EditFeedDialog({
           <ViewCategoriesInput
             selectedCategories={selectedCategories}
             setSelectedCategories={setSelectedCategories}
+          />
+          <FeedOpenLocationToggleGroup
+            feedPlatform={feed?.platform ?? "youtube"}
+            openLocation={selectedOpenLocation}
+            setOpenLocation={setSelectedOpenLocation}
           />
           <div className="flex gap-2">
             <Button
@@ -224,6 +267,7 @@ export function EditFeedDialog({
                   await editFeed({
                     feedId: selectedFeedId,
                     categoryIds: selectedCategories,
+                    openLocation: selectedOpenLocation,
                   });
                   toast.success("Feed updated!");
                   onClose();

@@ -11,7 +11,7 @@ const parser = new Parser({
 });
 
 export const websiteItemSchema = z.object({
-  creator: z.string(),
+  creator: z.string().optional(),
   title: z.string(),
   link: z.string(),
   pubDate: z.string().optional(),
@@ -46,15 +46,11 @@ export async function getWebsiteFeedIfMatches(
 ): Promise<NewFeedDetails | null> {
   const rssData = await parser.parseString(rssString); //as unknown as RSSPeerTubeData;
 
-  console.log(rssData);
   const {
     data: websiteData,
     success: websiteSuccess,
     error,
   } = websiteSchema.safeParse(rssData);
-
-  console.log(error?.flatten().formErrors);
-  console.log(error?.flatten().fieldErrors);
 
   if (websiteSuccess) {
     return {

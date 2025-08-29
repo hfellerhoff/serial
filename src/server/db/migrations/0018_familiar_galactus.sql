@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `serial_feed_item_url_feed_id_unique` ON `serial_feed_item` (`url`,`feed_id`);

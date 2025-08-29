@@ -1,6 +1,7 @@
 import type { inferRouterOutputs } from "@trpc/server";
 import { and, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
+import { parseArrayOfSchema } from "~/lib/schemas/utils";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import {
@@ -9,6 +10,8 @@ import {
   feedCategories,
   feedItems,
   feeds,
+  feedsSchema,
+  openLocationSchema,
 } from "~/server/db/schema";
 import { fetchFeedData, fetchNewFeedDetails } from "~/server/rss/fetchFeeds";
 
@@ -103,6 +106,7 @@ export const feedRouter = createTRPCRouter({
             platform: "youtube",
             url: channel.feedUrl,
             imageUrl: "",
+            openLocation: "serial",
           }));
       if (!feedsToAdd.length) return;
 
@@ -183,7 +187,7 @@ export const feedRouter = createTRPCRouter({
             .insert(feedItems)
             .values(item)
             .onConflictDoUpdate({
-              target: [feedItems.contentId, feedItems.feedId],
+              target: [feedItems.url, feedItems.feedId],
               set: item,
             });
         }),
@@ -219,17 +223,32 @@ export const feedRouter = createTRPCRouter({
       where: sql`user_id = ${ctx.auth!.user.id}`,
     });
 
-    return feedsList;
+    return parseArrayOfSchema(feedsList, feedsSchema);
   }),
   update: protectedProcedure
     .input(
       z.object({
         feedId: z.number(),
         categoryIds: z.number().array(),
+        openLocation: openLocationSchema,
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.transaction(async (tx) => {
+      return await ctx.db.transaction(async (tx) => {
+        // Feed open location
+        await tx
+          .update(feeds)
+          .set({
+            openLocation: input.openLocation,
+          })
+          .where(
+            and(
+              eq(feeds.userId, ctx.auth!.user.id),
+              eq(feeds.id, input.feedId),
+            ),
+          );
+
+        // Feed categories
         await tx
           .delete(feedCategories)
           .where(
