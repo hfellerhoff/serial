@@ -1,6 +1,3 @@
-.article {
-}
-
 .article h1 {
   font-size: 1.5rem;
   font-weight: 900;
@@ -47,14 +44,24 @@
 }
 
 .article a {
+  text-decoration: none;
+}
+
+.article a:not(:has(p)):not(:has(img)):not(:empty) {
   background: var(--color-sidebar-accent);
   color: var(--color-sidebar-accent-foreground);
   border-radius: var(--radius-sm);
   padding-inline: 0.125rem;
-  text-decoration: none;
+
+  -ms-word-break: break-word;
+  word-break: break-word;
+
+  -webkit-hyphens: auto;
+  -moz-hyphens: auto;
+  hyphens: auto;
 }
 
-.article a:hover {
+.article a:not(:has(p)):not(:has(img)):not(:empty):hover {
   background: var(--color-sidebar-primary);
   color: var(--color-sidebar-primary-foreground);
   text-decoration: none;

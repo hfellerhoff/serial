@@ -30,23 +30,21 @@ const MAX_WIDTH_MAP: Record<number, string> = {
   [6]: "container-7xl",
 };
 
-export default function WatchVideoPage(props: {
-  params: Promise<{ id: string }>;
-}) {
+export default function ReadPage(props: { params: Promise<{ id: string }> }) {
   const [articleStyle] = useFlagState("ARTICLE_STYLE");
   const params = use(props.params);
 
   const [feedItem] = useFeedItemGlobalState(params?.id ?? "");
   const { feeds } = useFeeds();
 
-  const feed = feeds.find((f) => f.id === feedItem.feedId);
+  const feed = feeds.find((f) => f.id === feedItem?.feedId);
 
   const { zoom } = useZoom();
 
-  let content = feedItem.content;
+  let content = feedItem?.content ?? "";
 
   if (articleStyle === "simplified") {
-    content = String(parser.processSync(feedItem.content ?? ""));
+    content = String(parser.processSync(feedItem?.content ?? ""));
   }
 
   return (
@@ -69,7 +67,7 @@ export default function WatchVideoPage(props: {
         {!!feed?.imageUrl ? (
           <img
             src={feed?.imageUrl}
-            alt={feedItem.title}
+            alt={feedItem?.title}
             className="aspect-square h-6 rounded object-cover"
           />
         ) : (
@@ -78,8 +76,8 @@ export default function WatchVideoPage(props: {
         <span className="font-mono text-sm">{feed?.name}</span>
       </div>
       <div className={`h-full w-full px-6 sm:pb-6 ${classes.article}`}>
-        <h1>{feedItem.title}</h1>
-        <h6>{feedItem.author || feed?.name || ""}</h6>
+        <h1>{feedItem?.title}</h1>
+        <h6>{feedItem?.author || feed?.name || ""}</h6>
         <div
           dangerouslySetInnerHTML={{
             __html: content,

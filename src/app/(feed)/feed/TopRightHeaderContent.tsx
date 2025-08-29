@@ -73,7 +73,7 @@ function EditFeedButton() {
         variant="outline"
         size="icon"
         onClick={() => {
-          setSelectedFeedForEditing(feedItem.feedId);
+          setSelectedFeedForEditing(feedItem?.feedId ?? 0);
         }}
       >
         <SettingsIcon size={16} />
