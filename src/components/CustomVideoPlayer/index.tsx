@@ -4,7 +4,7 @@
 import clsx from "clsx";
 import { MaximizeIcon, MinimizeIcon, PlayIcon } from "lucide-react";
 import YouTube from "react-youtube";
-import { useView } from "~/app/(feed)/feed/watch/[videoID]/useView";
+import { useView } from "~/app/(feed)/feed/watch/[id]/useView";
 import { useFlagState } from "~/lib/hooks/useFlagState";
 import { transformSecondsToFormattedTime } from "~/lib/transformSecondsToFormattedTime";
 import { ButtonWithShortcut } from "../ButtonWithShortcut";

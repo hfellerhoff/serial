@@ -8,7 +8,7 @@ import { useZoom } from "./useZoom";
 import { VideoDisplay } from "./VideoDisplay";
 
 export default function WatchVideoPage(props: {
-  params: Promise<{ videoID: string }>;
+  params: Promise<{ id: string }>;
 }) {
   const params = use(props.params);
 
@@ -47,7 +47,7 @@ export default function WatchVideoPage(props: {
           "sm:py-6": view === "windowed",
         })}
       >
-        <VideoDisplay id={params.videoID} isInactive={isInactive} />
+        <VideoDisplay id={params.id} isInactive={isInactive} />
       </div>
     </div>
   );

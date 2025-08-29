@@ -7,6 +7,7 @@ import {
   primaryKey,
   sqliteTableCreator,
   text,
+  unique,
 } from "drizzle-orm/sqlite-core";
 import {
   createInsertSchema,
@@ -95,6 +96,9 @@ export const feeds = sqliteTable(
     url: text("url", { length: 512 }).notNull().default(""),
     imageUrl: text("image_url", { length: 512 }).notNull().default(""),
     platform: text("platform", { length: 256 }).notNull().default("youtube"),
+    openLocation: text("open_location", { length: 64 })
+      .notNull()
+      .default("serial"),
     createdAt: integer("created_at", { mode: "timestamp" })
       .$default(() => new Date())
       .notNull(),
@@ -107,17 +111,24 @@ export const feeds = sqliteTable(
 export const platformsSchema = z.enum(["youtube", "peertube", "website"]);
 export type FeedPlatform = z.infer<typeof platformsSchema>;
 
+export const openLocationSchema = z.enum(["serial", "origin"]);
+export type FeedOpenLocation = z.infer<typeof openLocationSchema>;
+
 export const feedsSchema = createSelectSchema(feeds).merge(
   z.object({
     platform: platformsSchema,
+    openLocation: openLocationSchema,
   }),
 );
 export type DatabaseFeed = typeof feeds.$inferSelect;
+export type ApplicationFeed = z.infer<typeof feedsSchema>;
 
 export const feedItems = sqliteTable(
   "feed_item",
   {
-    id: text("id").$defaultFn(() => createId()),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
     feedId: integer("feed_id").references(() => feeds.id),
     contentId: text("content_id", { length: 512 }).notNull(),
     title: text("title", { length: 512 }).notNull(),
@@ -141,8 +152,8 @@ export const feedItems = sqliteTable(
       .notNull(),
   },
   (example) => [
-    primaryKey({ columns: [example.feedId, example.contentId] }),
-    index("feed_item_feed_id_idx").on(example.feedId),
+    index("feed_item_id_idx").on(example.id),
+    unique().on(example.url, example.feedId),
   ],
 );
 export const feedItemSchema = createSelectSchema(feedItems);

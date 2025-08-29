@@ -28,7 +28,7 @@ export function ContentActions({ contentID }: { contentID: string }) {
   const toggleWatchLater = async () => {
     if (!video) return;
     await setWatchLaterValue({
-      contentId: video.contentId,
+      id: video.id,
       feedId: video.feedId!,
       isWatchLater: !video.isWatchLater,
     });
@@ -41,7 +41,7 @@ export function ContentActions({ contentID }: { contentID: string }) {
   const toggleWatched = async () => {
     if (!video) return;
     await setWatchedValue({
-      contentId: video.contentId,
+      id: video.id,
       feedId: video.feedId!,
       isWatched: !video.isWatched,
     });

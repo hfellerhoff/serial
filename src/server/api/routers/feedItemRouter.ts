@@ -71,13 +71,20 @@ export const feedItemRouter = createTRPCRouter({
     await ctx.db.transaction(async (tx) => {
       return await Promise.all(
         feedItemList.map(async (item) => {
-          return await tx
-            .insert(feedItems)
-            .values(item)
-            .onConflictDoUpdate({
-              target: [feedItems.contentId, feedItems.feedId],
-              set: item,
-            });
+          try {
+            return await tx
+              .insert(feedItems)
+              .values(item)
+              .onConflictDoUpdate({
+                target: [feedItems.url, feedItems.feedId],
+                set: item,
+              });
+          } catch (error) {
+            // For local testing
+            // console.dir({ ...error }, { depth: null });
+          }
+
+          return null;
         }),
       );
     });
@@ -120,7 +127,7 @@ export const feedItemRouter = createTRPCRouter({
             .insert(feedItems)
             .values(item)
             .onConflictDoUpdate({
-              target: [feedItems.contentId, feedItems.feedId],
+              target: [feedItems.url, feedItems.feedId],
               set: item,
             });
         }),
@@ -130,8 +137,8 @@ export const feedItemRouter = createTRPCRouter({
   setWatchedValue: protectedProcedure
     .input(
       z.object({
+        id: z.string(),
         feedId: z.number(),
-        contentId: z.string(),
         isWatched: z.boolean(),
       }),
     )
@@ -142,17 +149,14 @@ export const feedItemRouter = createTRPCRouter({
           isWatched: input.isWatched,
         })
         .where(
-          and(
-            eq(feedItems.feedId, input.feedId),
-            eq(feedItems.contentId, input.contentId),
-          ),
+          and(eq(feedItems.feedId, input.feedId), eq(feedItems.id, input.id)),
         );
     }),
   setWatchLaterValue: protectedProcedure
     .input(
       z.object({
+        id: z.string(),
         feedId: z.number(),
-        contentId: z.string(),
         isWatchLater: z.boolean(),
       }),
     )
@@ -163,10 +167,7 @@ export const feedItemRouter = createTRPCRouter({
           isWatchLater: input.isWatchLater,
         })
         .where(
-          and(
-            eq(feedItems.feedId, input.feedId),
-            eq(feedItems.contentId, input.contentId),
-          ),
+          and(eq(feedItems.feedId, input.feedId), eq(feedItems.id, input.id)),
         );
     }),
 });
