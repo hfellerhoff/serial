@@ -1,4 +1,4 @@
-import { FeedPlatform } from "~/server/db/schema";
+import type { FeedPlatform } from "~/server/db/schema";
 
 export const PLATFORM_TO_FORMATTED_NAME_MAP = {
   youtube: "YouTube",

@@ -15,7 +15,7 @@ import {
 } from "~/lib/data/feeds/mutations";
 import { PLATFORM_TO_FORMATTED_NAME_MAP } from "~/lib/data/feeds/utils";
 import { useShortcut } from "~/lib/hooks/useShortcut";
-import { FeedOpenLocation, FeedPlatform } from "~/server/db/schema";
+import type { FeedOpenLocation, FeedPlatform } from "~/server/db/schema";
 import { getAssumedFeedPlatform } from "~/server/rss/validateFeedUrl";
 import { ViewCategoriesInput } from "./AddViewDialog";
 import { Button } from "./ui/button";

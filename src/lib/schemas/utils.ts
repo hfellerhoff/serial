@@ -1,4 +1,4 @@
-import { ZodSchema } from "zod";
+import type { ZodSchema } from "zod";
 
 export function parseArrayOfSchema<TSchema extends ZodSchema>(
   array: unknown[],

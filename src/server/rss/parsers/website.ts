@@ -91,7 +91,7 @@ export async function fetchWebsiteFeedData(
           title: item.title,
           publishedDate: item?.pubDate || item?.isoDate || item?.updated || "",
           url: item.link,
-          author: item.creator,
+          author: item.creator ?? "",
           content: item["content:encoded"],
         } satisfies RSSContent;
       });

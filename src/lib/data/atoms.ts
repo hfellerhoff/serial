@@ -2,12 +2,12 @@ import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { focusAtom } from "jotai-optics";
 import { useMemo } from "react";
 import { z } from "zod";
-import {
+import type {
   ApplicationFeed,
-  type ApplicationFeedItem,
-  type ApplicationView,
-  type DatabaseContentCategory,
-  type DatabaseFeedCategory,
+  ApplicationFeedItem,
+  ApplicationView,
+  DatabaseContentCategory,
+  DatabaseFeedCategory,
 } from "~/server/db/schema";
 
 export const hasFetchedFeedsAtom = atom(false);
