@@ -166,7 +166,8 @@ function ItemDisplay({ contentId }: { contentId: string }) {
 
   const itemDestination = item.platform === "website" ? "read" : "watch";
 
-  const shouldOpenInSerial = feed?.openLocation === "serial";
+  const shouldOpenInSerial =
+    feed?.openLocation === "serial" || !feed.openLocation;
 
   const href = shouldOpenInSerial
     ? `/feed/${itemDestination}/${item.id}`
