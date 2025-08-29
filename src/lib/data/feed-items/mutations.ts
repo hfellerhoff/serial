@@ -10,7 +10,22 @@ export function useFetchNewFeedItemsMutation() {
     api.feedItems.fetchNewItems.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries({
+          queryKey: api.feeds.getAll.queryKey(),
+        });
+        await queryClient.invalidateQueries({
           queryKey: api.feedItems.getAll.queryKey(),
+        });
+        await queryClient.invalidateQueries({
+          queryKey: api.feedCategories.getAll.queryKey(),
+        });
+        await queryClient.invalidateQueries({
+          queryKey: api.contentCategories.getAll.queryKey(),
+        });
+        await queryClient.invalidateQueries({
+          queryKey: api.views.getAll.queryKey(),
+        });
+        await queryClient.invalidateQueries({
+          queryKey: api.userConfig.getConfig.queryKey(),
         });
       },
     }),
