@@ -4,6 +4,14 @@ import type { DatabaseFeed } from "~/server/db/schema";
 import { isWithinDays } from "../rssUtils";
 import type { NewFeedDetails, RSSContent, RSSFeed } from "../types";
 
+function getLongestString(...strings: (string | undefined)[]) {
+  return strings.reduce((acc: string, cur) => {
+    if (!cur) return acc;
+    if (cur.length > acc.length) return cur;
+    return acc;
+  }, "");
+}
+
 const parser = new Parser({
   customFields: {
     item: ["description"],
@@ -19,9 +27,11 @@ export const websiteItemSchema = z.object({
   description: z.string().optional(),
   content: z.string().optional(),
   contentSnippet: z.string().optional(),
-  guid: z.string(),
   isoDate: z.string().optional(),
   updated: z.string().optional(),
+  // ID fields
+  guid: z.string().optional(),
+  id: z.string().optional(),
 });
 
 export const websiteSchema = z.object({
@@ -45,7 +55,7 @@ export async function getWebsiteFeedIfMatches(
   rssString: string,
   url: string,
 ): Promise<NewFeedDetails | null> {
-  const rssData = await parser.parseString(rssString); //as unknown as RSSPeerTubeData;
+  const rssData = await parser.parseString(rssString);
 
   const {
     data: websiteData,
@@ -82,8 +92,7 @@ export async function fetchWebsiteFeedData(
         isWithinDays(item?.pubDate || item?.isoDate || item?.updated || "", 60),
       )
       .map(async (item) => {
-        const idParts = item.guid.split("/");
-        const id = idParts[idParts.length - 1];
+        const id = item.guid || item.id;
 
         if (!id) return null;
 
@@ -93,7 +102,11 @@ export async function fetchWebsiteFeedData(
           publishedDate: item?.pubDate || item?.isoDate || item?.updated || "",
           url: item.link,
           author: item.creator ?? "",
-          content: item["content:encoded"] || item.description,
+          content: getLongestString(
+            item["content:encoded"],
+            item.content,
+            item.description,
+          ),
         } satisfies RSSContent;
       });
 
