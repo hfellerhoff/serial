@@ -6,7 +6,7 @@ import type { NewFeedDetails, RSSContent, RSSFeed } from "../types";
 
 const parser = new Parser({
   customFields: {
-    item: [],
+    item: ["description"],
   },
 });
 
@@ -16,7 +16,8 @@ export const websiteItemSchema = z.object({
   link: z.string(),
   pubDate: z.string().optional(),
   "content:encoded": z.string().optional(),
-  content: z.string(),
+  description: z.string().optional(),
+  content: z.string().optional(),
   contentSnippet: z.string().optional(),
   guid: z.string(),
   isoDate: z.string().optional(),
@@ -92,7 +93,7 @@ export async function fetchWebsiteFeedData(
           publishedDate: item?.pubDate || item?.isoDate || item?.updated || "",
           url: item.link,
           author: item.creator ?? "",
-          content: item["content:encoded"],
+          content: item["content:encoded"] ?? item.des,
         } satisfies RSSContent;
       });
 
