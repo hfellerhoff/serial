@@ -79,7 +79,7 @@ export const feedItemRouter = createTRPCRouter({
                 target: [feedItems.url, feedItems.feedId],
                 set: item,
               });
-          } catch (error) {
+          } catch {
             // For local testing
             // console.dir({ ...error }, { depth: null });
           }
