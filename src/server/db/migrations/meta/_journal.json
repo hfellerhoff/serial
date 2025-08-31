@@ -141,6 +141,20 @@
       "when": 1756437060753,
       "tag": "0019_empty_quicksilver",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1756616147155,
+      "tag": "0020_misty_cannonball",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1756616154059,
+      "tag": "0021_legal_warbird",
+      "breakpoints": true
     }
   ]
 }

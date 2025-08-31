@@ -223,7 +223,7 @@ export const views = sqliteTable(
     orientation: text("orientation", { length: 16 })
       .notNull()
       .default(FEED_ITEM_ORIENTATION.HORIZONTAL),
-    placement: integer("read_status", { mode: "number" }).notNull().default(-1),
+    placement: integer("placement", { mode: "number" }).notNull().default(-1),
     createdAt: integer("created_at", { mode: "timestamp" })
       .$default(() => new Date())
       .notNull(),

@@ -122,7 +122,7 @@ export function useViewsQuery() {
     const inboxView: ApplicationView = {
       id: INBOX_VIEW_ID,
       name: "Inbox",
-      daysWindow: 7,
+      daysWindow: 30,
       orientation: FEED_ITEM_ORIENTATION.HORIZONTAL,
       readStatus: VIEW_READ_STATUS.UNREAD,
       placement: INBOX_VIEW_PLACEMENT,
