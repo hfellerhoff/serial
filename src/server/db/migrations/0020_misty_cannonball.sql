@@ -1,0 +1,1 @@
+ALTER TABLE `serial_views` RENAME COLUMN "read_status" TO "placement";

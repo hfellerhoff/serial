@@ -1,0 +1,1 @@
+ALTER TABLE `serial_views` ADD `read_status` integer DEFAULT 0 NOT NULL;
