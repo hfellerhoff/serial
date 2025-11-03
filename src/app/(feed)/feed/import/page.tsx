@@ -206,7 +206,7 @@ export default function EditFeedsPage() {
                 }}
                 disabled={isPending || channelImportCount === 0}
               >
-                Import {channelImportCount} channels
+                Import {channelImportCount} feeds
               </Button>
             </div>
           </div>
