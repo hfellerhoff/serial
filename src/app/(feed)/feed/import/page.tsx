@@ -130,57 +130,64 @@ export default function EditFeedsPage() {
             <div className="mt-4 space-y-2">
               {importedChannels
                 ?.sort((a, b) => {
+                  if (!a.title && !b.title) return 0;
+                  if (!a.title) return -1;
+                  if (!b.title) return -1;
                   return a.title.localeCompare(b.title);
                 })
-                .map((channel, i) => (
-                  <div
-                    key={channel.channelId}
-                    className="border-muted/50 flex items-center justify-between border-0 border-t border-solid py-4"
-                  >
-                    <label htmlFor={`channel ${channel.title}`}>
-                      {channel.title}
-                    </label>
-                    <div
-                      key={channel.channelId}
-                      className="flex items-center justify-between gap-2"
-                    >
-                      {channel.disabledReason === "added-already" && (
-                        <Badge variant="outline">
-                          <CheckIcon size={8} /> Already added
-                        </Badge>
-                      )}
-                      {channel.disabledReason === "not-supported" && (
-                        <Badge variant="outline">
-                          <XIcon size={8} /> Not supported
-                        </Badge>
-                      )}
-                      {!channel.disabledReason && (
-                        <Checkbox
-                          id={`channel ${channel.title}`}
-                          checked={channel.shouldImport}
-                          onCheckedChange={(value) => {
-                            setImportedChannels((prevChannels) => {
-                              if (!prevChannels?.[i]) {
-                                return prevChannels;
-                              }
+                .map((channel, i) => {
+                  const displayTitle = channel.title ?? channel.feedUrl;
 
-                              prevChannels[i] = {
-                                ...prevChannels[i],
-                                shouldImport: value.valueOf() as boolean,
-                              };
-                              return [...prevChannels];
-                            });
-                          }}
-                          disabled={
-                            !!feeds?.find(
-                              (feed) => feed.url === channel.feedUrl,
-                            )
-                          }
-                        />
-                      )}
+                  return (
+                    <div
+                      key={displayTitle}
+                      className="border-muted/50 flex items-center justify-between border-0 border-t border-solid py-4"
+                    >
+                      <label
+                        className="line-clamp-1"
+                        htmlFor={`channel ${displayTitle}`}
+                      >
+                        {displayTitle}
+                      </label>
+                      <div className="flex items-center justify-between gap-2">
+                        {channel.disabledReason === "added-already" && (
+                          <Badge variant="outline">
+                            <CheckIcon size={8} /> Already added
+                          </Badge>
+                        )}
+                        {channel.disabledReason === "not-supported" && (
+                          <Badge variant="outline">
+                            <XIcon size={8} /> Not supported
+                          </Badge>
+                        )}
+                        {!channel.disabledReason && (
+                          <Checkbox
+                            id={`channel ${displayTitle}`}
+                            checked={channel.shouldImport}
+                            onCheckedChange={(value) => {
+                              setImportedChannels((prevChannels) => {
+                                if (!prevChannels?.[i]) {
+                                  return prevChannels;
+                                }
+
+                                prevChannels[i] = {
+                                  ...prevChannels[i],
+                                  shouldImport: value.valueOf() as boolean,
+                                };
+                                return [...prevChannels];
+                              });
+                            }}
+                            disabled={
+                              !!feeds?.find(
+                                (feed) => feed.url === channel.feedUrl,
+                              )
+                            }
+                          />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           </div>
           <div className="fixed inset-x-0 bottom-0">

@@ -26,7 +26,7 @@ type OPMLFeed = {
 type OPMLCategory = {
   text: string;
   title: string;
-  outline: OPMLFeed[];
+  outline: OPMLFeed | OPMLFeed[];
 };
 
 type OPMLResult = {
@@ -97,9 +97,13 @@ export async function parseOPMLSubscriptionInput(
   const channels: SubscriptionImportChannel[] =
     opmlData.opml.body.outline.flatMap((entry) => {
       if ("outline" in entry) {
-        return entry.outline.map((feed) =>
-          parseOPMLFeed(feed, feeds, [entry.title]),
-        );
+        if (entry.outline instanceof Array) {
+          return entry.outline.map((feed) =>
+            parseOPMLFeed(feed, feeds, [entry.title]),
+          );
+        }
+
+        return [parseOPMLFeed(entry.outline, feeds, [entry.title])];
       } else {
         return parseOPMLFeed(entry, feeds, [entry.title]);
       }
