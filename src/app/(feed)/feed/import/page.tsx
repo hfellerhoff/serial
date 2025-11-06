@@ -10,10 +10,22 @@ import { useFeeds } from "~/lib/data/feeds";
 import { useCreateFeedsFromSubscriptionImportMutation } from "~/lib/data/feeds/mutations";
 import { PLATFORM_TO_FORMATTED_NAME_MAP } from "~/lib/data/feeds/utils";
 import { ImportDropzone } from "./ImportDropzone";
-import {
-  getInitialFeedDataFromFileInputElement,
-  ImportFeedDataItem,
-} from "./utils/getInitialFeedDataFromFileInputElement";
+import { getInitialFeedDataFromFileInputElement } from "./utils/getInitialFeedDataFromFileInputElement";
+import { ImportFeedDataItem } from "./utils/shared";
+import { FeedPlatform } from "~/server/db/schema";
+import { GlobeIcon, PlayCircleIcon, YoutubeIcon } from "lucide-react";
+
+function PlatformIcon({ platform }: { platform: FeedPlatform }) {
+  switch (platform) {
+    case "youtube":
+      return <YoutubeIcon size={16} />;
+    case "peertube":
+      return <PlayCircleIcon size={16} />;
+    case "website":
+    default:
+      return <GlobeIcon size={16} />;
+  }
+}
 
 export default function EditFeedsPage() {
   const inputElementRef = useRef<HTMLInputElement | null>(null);
@@ -42,8 +54,6 @@ export default function EditFeedsPage() {
     );
     inputElementRef.current.value = "";
 
-    console.log(feedResult);
-
     if (feedResult.success) {
       setFeedsFoundFromFile(feedResult.data);
     }
@@ -54,7 +64,7 @@ export default function EditFeedsPage() {
       <div className="mx-auto max-w-2xl p-6">
         <h2 className="font-mono text-lg">Import Feeds</h2>
         <div className="my-4">Import success! Channels added successfully.</div>
-        <Link href="/feed/edit">
+        <Link href="/feed">
           <Button>Back to feeds</Button>
         </Link>
       </div>
@@ -68,18 +78,20 @@ export default function EditFeedsPage() {
       <p className="mt-2">Serial supports importing:</p>
       <ul className="mb-6 list-disc pl-4">
         <li>
-          <code className="rounded bg-stone-200 px-1 py-0.5">
+          <code className="bg-muted text-foreground rounded px-1 py-0.5">
             subscriptions.csv
           </code>{" "}
           files from a Google Takeout export
         </li>
         <li>
-          <code className="rounded bg-stone-200 px-1 py-0.5">*.opml</code> files
-          from another RSS reader's export
+          <code className="bg-muted text-foreground rounded px-1 py-0.5">
+            *.opml
+          </code>{" "}
+          files from another RSS reader's export
         </li>
       </ul>
       <ImportDropzone
-        inputElement={inputElementRef.current}
+        inputElementRef={inputElementRef}
         onSelectFile={onSelectFiles}
       />
       <input
@@ -89,12 +101,12 @@ export default function EditFeedsPage() {
         className="hidden"
         multiple={false}
         onChange={onSelectFiles}
-      ></input>
+      />
       {!!feedsFoundFromFile && (
         <>
           <div className="mt-12">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold">Channels To Import</h3>
+              <h3 className="font-semibold">Feeds To Import</h3>
               <Button
                 variant="outline"
                 size="sm"
@@ -137,16 +149,23 @@ export default function EditFeedsPage() {
                       key={displayTitle}
                       className="border-muted/50 flex items-center justify-between border-0 border-t border-solid py-4"
                     >
+                      <span className="bg-background border-foreground/30 text-foreground/50 mr-3 grid size-7 place-items-center rounded border border-solid">
+                        <PlatformIcon platform={channel.platform} />
+                      </span>
                       <label
-                        className="line-clamp-1"
+                        className="line-clamp-1 flex-1"
                         htmlFor={`channel ${displayTitle}`}
                       >
                         {displayTitle}
                       </label>
+                      <span className="space-x-1 px-2">
+                        {channel.categories.map((category) => (
+                          <Badge key={category} variant="outline">
+                            {category}
+                          </Badge>
+                        ))}
+                      </span>
                       <div className="flex items-center justify-between gap-2">
-                        <Badge variant="outline">
-                          {PLATFORM_TO_FORMATTED_NAME_MAP[channel.platform]}
-                        </Badge>
                         <Checkbox
                           id={`channel ${displayTitle}`}
                           checked={channel.shouldImport}
@@ -180,14 +199,17 @@ export default function EditFeedsPage() {
               <Button
                 className="w-full"
                 size="lg"
-                onClick={() => {
+                onClick={async () => {
                   const channelsToImport = feedsFoundFromFile.filter(
                     (channel) => channel.shouldImport,
                   );
 
-                  void createFeedsFromSubscriptionImportMutation({
-                    channels: channelsToImport,
-                  });
+                  const errors =
+                    await createFeedsFromSubscriptionImportMutation({
+                      feeds: channelsToImport,
+                    });
+
+                  console.log(errors);
                 }}
                 disabled={isPending || channelImportCount === 0}
               >

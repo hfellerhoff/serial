@@ -1,13 +1,13 @@
 import clsx from "clsx";
-import { type DragEvent, useRef, useState } from "react";
+import { type DragEvent, RefObject, useRef, useState } from "react";
 
 type ImportDropzoneProps = {
-  inputElement: HTMLInputElement | null;
+  inputElementRef: RefObject<HTMLInputElement | null> | null;
   onSelectFile: () => void;
 };
 
 export function ImportDropzone({
-  inputElement,
+  inputElementRef,
   onSelectFile,
 }: ImportDropzoneProps) {
   const dropzoneRef = useRef<HTMLDivElement | null>(null);
@@ -19,7 +19,7 @@ export function ImportDropzone({
     e.stopPropagation();
   };
 
-  if (!!inputElement?.files?.length) {
+  if (!!inputElementRef?.current?.files?.length) {
     return null;
   }
 
@@ -43,7 +43,7 @@ export function ImportDropzone({
         e.stopPropagation();
         setIsDraggingOverDropzone(false);
 
-        if (!inputElement) return;
+        if (!inputElementRef?.current) return;
 
         const files = e.dataTransfer.files;
         const dataTransfer = new DataTransfer();
@@ -52,11 +52,11 @@ export function ImportDropzone({
           dataTransfer.items.add(file);
         });
 
-        inputElement.files = dataTransfer.files;
+        inputElementRef.current.files = dataTransfer.files;
         onSelectFile();
       }}
       onClick={() => {
-        inputElement?.click();
+        inputElementRef?.current?.click();
       }}
       className={clsx(
         "hover:bg-muted/30 border-foreground/40 grid h-64 w-full cursor-pointer place-items-center rounded-xl border border-dashed transition-colors",

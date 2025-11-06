@@ -56,12 +56,12 @@ function parseOPMLFeed(
     feedUrl: opmlFeed.xmlUrl,
     title: opmlFeed.title,
     shouldImport: true,
-    categories: categories ?? [],
+    categories: categories?.filter(Boolean) ?? [],
     platform: getAssumedFeedPlatform(opmlFeed.xmlUrl),
   };
 }
 
-export async function getInitialFeedDataFromOPMLInput(
+export function getInitialFeedDataFromOPMLInput(
   fileContent: string,
 ): ImportFeedDataFromFileResult {
   const opmlData = parser.parse(fileContent) as OPMLResult;
