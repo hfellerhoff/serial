@@ -6,7 +6,6 @@ import { parseArrayOfSchema } from "~/lib/schemas/utils";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import {
   contentCategories,
-  type DatabaseFeed,
   feedCategories,
   feedItems,
   feeds,
@@ -14,10 +13,20 @@ import {
   openLocationSchema,
 } from "~/server/db/schema";
 import { fetchFeedData, fetchNewFeedDetails } from "~/server/rss/fetchFeeds";
+import { findExistingFeedThatMatches } from "./utils";
 
-const importUrlSchema = z
-  .string()
-  .startsWith("https://www.youtube.com/feeds/videos.xml?channel_id=");
+type BulkImportFromFileSuccess = {
+  feedUrl: string;
+  success: true;
+};
+type BulkImportFromFileError = {
+  feedUrl: string;
+  success: false;
+  error: string;
+};
+export type BulkImportFromFileResult =
+  | BulkImportFromFileError
+  | BulkImportFromFileSuccess;
 
 export const feedRouter = createTRPCRouter({
   create: protectedProcedure
@@ -36,11 +45,9 @@ export const feedRouter = createTRPCRouter({
             newFeeds.map(async (newFeed) => {
               if (!newFeed.url) return "No feed url found.";
 
-              const existingFeed = await tx.query.feeds.findFirst({
-                where: and(
-                  eq(feeds.url, newFeed.url),
-                  eq(feeds.userId, ctx.auth!.user.id),
-                ),
+              const existingFeed = await findExistingFeedThatMatches(tx, {
+                feedUrl: newFeed.url,
+                userId: ctx.auth!.user.id,
               });
 
               if (existingFeed) {
@@ -81,55 +88,136 @@ export const feedRouter = createTRPCRouter({
   createFeedsFromSubscriptionImport: protectedProcedure
     .input(
       z.object({
-        channels: z
+        feeds: z
           .object({
-            channelId: z.string(),
             feedUrl: z.string(),
-            title: z.string(),
-            shouldImport: z.boolean(),
+            categories: z.string().array(),
           })
           .array(),
       }),
     )
-    .mutation(async ({ ctx, input }) => {
-      if (!input.channels.length) return;
+    .mutation(async ({ ctx, input }): Promise<BulkImportFromFileResult[]> => {
+      if (!input.feeds.length) {
+        return [];
+      }
 
-      const feedsToAdd: Omit<DatabaseFeed, "id" | "createdAt" | "updatedAt">[] =
-        input.channels
-          .filter((channel) => channel.shouldImport)
-          .filter(
-            (channel) => importUrlSchema.safeParse(channel.feedUrl).success,
-          )
-          .map((channel) => ({
-            userId: ctx.auth!.user.id,
-            name: channel.title,
-            platform: "youtube",
-            url: channel.feedUrl,
-            imageUrl: "",
-            openLocation: "serial",
-          }));
-      if (!feedsToAdd.length) return;
+      const promiseResults = await Promise.allSettled(
+        input.feeds.map(async (feed) => {
+          return await ctx.db.transaction(async (tx) => {
+            const newFeedDetails = await fetchNewFeedDetails(feed.feedUrl);
+            const newFeed = newFeedDetails?.[0];
 
-      await ctx.db.transaction(async (tx) => {
-        return await Promise.all(
-          feedsToAdd.map(async (newFeed) => {
-            if (!newFeed.url) return "No feed url found.";
+            if (!newFeed?.url) {
+              return {
+                feedUrl: feed.feedUrl,
+                success: false,
+                error: "Unsupported feed URL",
+              };
+            }
 
-            const existingFeed = await tx.query.feeds.findFirst({
-              where: and(
-                eq(feeds.url, newFeed.url),
-                eq(feeds.userId, ctx.auth!.user.id),
-              ),
+            const existingFeed = await findExistingFeedThatMatches(tx, {
+              feedUrl: newFeed.url,
+              userId: ctx.auth!.user.id,
             });
 
             if (existingFeed) {
-              return "Feed already exists";
+              return {
+                feedUrl: newFeed.url,
+                success: false,
+                error: "Feed already exists",
+              };
             }
 
-            await tx.insert(feeds).values(newFeed);
-          }),
-        );
-      });
+            const newFeeds = await tx
+              .insert(feeds)
+              .values({
+                userId: ctx.auth!.user.id,
+                ...newFeed,
+              })
+              .returning();
+            const newFeedRow = newFeeds?.[0];
+
+            if (!newFeedRow) {
+              return {
+                feedUrl: newFeed.url,
+                success: false,
+                error: "Couldn't find new feed",
+              };
+            }
+
+            const matchingCategories = await tx
+              .select()
+              .from(contentCategories)
+              .where(
+                and(
+                  inArray(contentCategories.name, feed.categories),
+                  eq(contentCategories.userId, ctx.auth!.user.id),
+                ),
+              )
+              .all();
+            const matchingCategoryNames = matchingCategories.map(
+              (category) => category.name,
+            );
+
+            const nonMatchingCategories = feed.categories.filter(
+              (category) => !matchingCategoryNames.includes(category),
+            );
+
+            const matchingCategoryPromises = matchingCategories.map(
+              async (matchingCategory) => {
+                const categoryId = matchingCategory.id;
+
+                return await tx.insert(feedCategories).values({
+                  feedId: newFeedRow.id,
+                  categoryId: categoryId,
+                });
+              },
+            );
+
+            const nonMatchingCategoryPromises = nonMatchingCategories.map(
+              async (nonMatchingCategory) => {
+                const newContentCategoryList = await tx
+                  .insert(contentCategories)
+                  .values({
+                    name: nonMatchingCategory,
+                    userId: ctx.auth!.user.id,
+                  })
+                  .returning();
+                const newContentCategory = newContentCategoryList?.[0];
+
+                if (!newContentCategory?.id) return;
+
+                await tx.insert(feedCategories).values({
+                  feedId: newFeedRow.id,
+                  categoryId: newContentCategory?.id,
+                });
+              },
+            );
+
+            await Promise.allSettled([
+              ...matchingCategoryPromises,
+              ...nonMatchingCategoryPromises,
+            ]);
+
+            return {
+              feedUrl: newFeed.url,
+              success: true,
+            };
+          });
+        }),
+      );
+
+      const results: BulkImportFromFileResult[] = promiseResults
+        .map((result) => {
+          if (result.status === "fulfilled") {
+            return result.value;
+          }
+
+          return null;
+        })
+        .filter(Boolean);
+
+      return results;
     }),
   delete: protectedProcedure
     .input(z.number())

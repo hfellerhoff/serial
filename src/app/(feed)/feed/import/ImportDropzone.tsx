@@ -1,16 +1,14 @@
 import clsx from "clsx";
-import { type DragEvent, useRef, useState } from "react";
+import { type DragEvent, type RefObject, useRef, useState } from "react";
 
 type ImportDropzoneProps = {
-  inputElement: HTMLInputElement | null;
+  inputElementRef: RefObject<HTMLInputElement | null> | null;
   onSelectFile: () => void;
-  filename: string;
 };
 
 export function ImportDropzone({
-  inputElement,
+  inputElementRef,
   onSelectFile,
-  filename,
 }: ImportDropzoneProps) {
   const dropzoneRef = useRef<HTMLDivElement | null>(null);
 
@@ -20,10 +18,6 @@ export function ImportDropzone({
     e.preventDefault();
     e.stopPropagation();
   };
-
-  if (!!inputElement?.files?.length) {
-    return null;
-  }
 
   return (
     <div
@@ -45,7 +39,7 @@ export function ImportDropzone({
         e.stopPropagation();
         setIsDraggingOverDropzone(false);
 
-        if (!inputElement) return;
+        if (!inputElementRef?.current) return;
 
         const files = e.dataTransfer.files;
         const dataTransfer = new DataTransfer();
@@ -54,21 +48,21 @@ export function ImportDropzone({
           dataTransfer.items.add(file);
         });
 
-        inputElement.files = dataTransfer.files;
+        inputElementRef.current.files = dataTransfer.files;
         onSelectFile();
       }}
       onClick={() => {
-        inputElement?.click();
+        inputElementRef?.current?.click();
       }}
       className={clsx(
-        "hover:bg-muted/30 border-muted grid h-64 w-full cursor-pointer place-items-center rounded-xl border border-dashed transition-colors",
+        "hover:bg-muted/30 border-foreground/40 grid h-64 w-full cursor-pointer place-items-center rounded-xl border border-dashed transition-colors",
         {
           "bg-muted/50": isDraggingOverDropzone,
         },
       )}
     >
       <div className="max-w-sm text-center">
-        Drag and drop your {filename} file here, or click/tap to upload
+        Drag and drop your file here, or click/tap to upload
       </div>
     </div>
   );
