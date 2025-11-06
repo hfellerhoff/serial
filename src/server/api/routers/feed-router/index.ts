@@ -6,13 +6,11 @@ import { parseArrayOfSchema } from "~/lib/schemas/utils";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import {
   contentCategories,
-  type DatabaseFeed,
   feedCategories,
   feedItems,
   feeds,
   feedsSchema,
   openLocationSchema,
-  platformsSchema,
 } from "~/server/db/schema";
 import { fetchFeedData, fetchNewFeedDetails } from "~/server/rss/fetchFeeds";
 import { findExistingFeedThatMatches } from "./utils";

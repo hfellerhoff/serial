@@ -1,6 +1,6 @@
 import { getInitialFeedDataFromCSVInput } from "./getInitialFeedDataFromCSVInput";
 import { getInitialFeedDataFromOPMLInput } from "./getInitialFeedDataFromOPMLInput";
-import { formError, ImportFeedDataFromFileResult } from "./shared";
+import { formError, type ImportFeedDataFromFileResult } from "./shared";
 
 export async function getInitialFeedDataFromFileInputElement(
   inputElement: HTMLInputElement,
@@ -15,7 +15,7 @@ export async function getInitialFeedDataFromFileInputElement(
   }
 
   const fileContent = await file.text();
-  const [_fileName, fileExtension] = file.name.split(".");
+  const [, fileExtension] = file.name.split(".");
 
   // subscriptions.csv
   if (fileExtension === "csv") {

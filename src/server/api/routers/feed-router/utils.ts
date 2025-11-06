@@ -1,6 +1,6 @@
-import { ResultSet } from "@libsql/client";
-import { and, eq, ExtractTablesWithRelations } from "drizzle-orm";
-import { SQLiteTransaction } from "drizzle-orm/sqlite-core";
+import type { ResultSet } from "@libsql/client";
+import { and, eq, type ExtractTablesWithRelations } from "drizzle-orm";
+import type { SQLiteTransaction } from "drizzle-orm/sqlite-core";
 
 import * as schema from "~/server/db/schema";
 type SerialSchema = typeof schema;

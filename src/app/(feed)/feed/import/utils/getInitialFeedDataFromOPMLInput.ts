@@ -2,8 +2,8 @@ import { XMLParser } from "fast-xml-parser";
 import { getAssumedFeedPlatform } from "~/server/rss/validateFeedUrl";
 import {
   formSuccess,
-  ImportFeedDataFromFileResult,
-  ImportFeedDataItem,
+  type ImportFeedDataFromFileResult,
+  type ImportFeedDataItem,
 } from "./shared";
 
 const parser = new XMLParser({

@@ -23,10 +23,10 @@ import {
 import { useFeeds } from "~/lib/data/feeds";
 import { useCreateFeedsFromSubscriptionImportMutation } from "~/lib/data/feeds/mutations";
 import type { BulkImportFromFileResult } from "~/server/api/routers/feed-router";
-import { FeedPlatform } from "~/server/db/schema";
+import type { FeedPlatform } from "~/server/db/schema";
 import { ImportDropzone } from "./ImportDropzone";
 import { getInitialFeedDataFromFileInputElement } from "./utils/getInitialFeedDataFromFileInputElement";
-import { ImportFeedDataItem } from "./utils/shared";
+import type { ImportFeedDataItem } from "./utils/shared";
 
 function PlatformIcon({ platform }: { platform: FeedPlatform }) {
   switch (platform) {
@@ -120,7 +120,7 @@ export default function EditFeedsPage() {
               <code className="bg-muted text-foreground rounded px-1 py-0.5">
                 *.opml
               </code>{" "}
-              files from another RSS reader's export
+              files from another RSS reader&apos;s export
             </li>
           </ul>
           <ImportDropzone
@@ -274,9 +274,9 @@ export default function EditFeedsPage() {
                                 <CircleQuestionMarkIcon size={20} />
                               </TooltipTrigger>
                               <TooltipContent>
-                                We don't know what happened with this import.
-                                Feel free to file a bug report with this feed
-                                URL!
+                                We don&apos;t know what happened with this
+                                import. Feel free to file a bug report with this
+                                feed URL!
                               </TooltipContent>
                             </Tooltip>
                           )}

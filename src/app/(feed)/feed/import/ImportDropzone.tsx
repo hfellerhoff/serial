@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { type DragEvent, RefObject, useRef, useState } from "react";
+import { type DragEvent, type RefObject, useRef, useState } from "react";
 
 type ImportDropzoneProps = {
   inputElementRef: RefObject<HTMLInputElement | null> | null;
