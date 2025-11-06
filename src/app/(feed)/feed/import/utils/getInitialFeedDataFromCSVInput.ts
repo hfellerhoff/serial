@@ -6,6 +6,10 @@ import {
   type ImportFeedDataItem,
 } from "./shared";
 
+const YT_CHANNEL_ID_COLUMN_LOWERCASE_NAME = "channel id";
+const YT_CHANNEL_URL_COLUMN_LOWERCASE_NAME = "channel url";
+const YT_CHANNEL_TITLE_COLUMN_LOWERCASE_NAME = "channel title";
+
 export function getInitialFeedDataFromCSVInput(
   fileContent: string,
 ): ImportFeedDataFromFileResult {
@@ -19,9 +23,9 @@ export function getInitialFeedDataFromCSVInput(
   const [idTitle, urlTitle, titleTitle] = headerRow.split(",");
 
   if (
-    idTitle !== "Channel Id" ||
-    urlTitle !== "Channel Url" ||
-    titleTitle !== "Channel Title"
+    idTitle?.toLowerCase() !== YT_CHANNEL_ID_COLUMN_LOWERCASE_NAME ||
+    urlTitle?.toLowerCase() !== YT_CHANNEL_URL_COLUMN_LOWERCASE_NAME ||
+    titleTitle?.toLowerCase() !== YT_CHANNEL_TITLE_COLUMN_LOWERCASE_NAME
   ) {
     return formError(
       'File doesn\'t match expected format. Ensure your CSV has the "Channel Id", "Channel Url", and "Channel Title" column headers.',

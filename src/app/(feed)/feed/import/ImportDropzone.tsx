@@ -19,10 +19,6 @@ export function ImportDropzone({
     e.stopPropagation();
   };
 
-  if (!!inputElementRef?.current?.files?.length) {
-    return null;
-  }
-
   return (
     <div
       ref={dropzoneRef}

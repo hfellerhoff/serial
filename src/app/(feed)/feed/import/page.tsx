@@ -1,19 +1,32 @@
 "use client";
 
+import {
+  CheckIcon,
+  CircleQuestionMarkIcon,
+  GlobeIcon,
+  MinusIcon,
+  PlayCircleIcon,
+  TriangleAlertIcon,
+  YoutubeIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import FeedLoading from "~/app/loading";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 import { useFeeds } from "~/lib/data/feeds";
 import { useCreateFeedsFromSubscriptionImportMutation } from "~/lib/data/feeds/mutations";
-import { PLATFORM_TO_FORMATTED_NAME_MAP } from "~/lib/data/feeds/utils";
+import type { BulkImportFromFileResult } from "~/server/api/routers/feed-router";
+import { FeedPlatform } from "~/server/db/schema";
 import { ImportDropzone } from "./ImportDropzone";
 import { getInitialFeedDataFromFileInputElement } from "./utils/getInitialFeedDataFromFileInputElement";
 import { ImportFeedDataItem } from "./utils/shared";
-import { FeedPlatform } from "~/server/db/schema";
-import { GlobeIcon, PlayCircleIcon, YoutubeIcon } from "lucide-react";
 
 function PlatformIcon({ platform }: { platform: FeedPlatform }) {
   switch (platform) {
@@ -33,11 +46,15 @@ export default function EditFeedsPage() {
   const [feedsFoundFromFile, setFeedsFoundFromFile] = useState<
     ImportFeedDataItem[] | null
   >(null);
+  const [feedResults, setFeedResults] = useState<BulkImportFromFileResult[]>(
+    [],
+  );
 
   const {
     mutateAsync: createFeedsFromSubscriptionImportMutation,
     isPending,
     isSuccess,
+    reset: resetCreateFeedsMutation,
   } = useCreateFeedsFromSubscriptionImportMutation();
 
   const channelImportCount = feedsFoundFromFile?.filter(
@@ -59,41 +76,75 @@ export default function EditFeedsPage() {
     }
   };
 
-  if (isSuccess) {
-    return (
-      <div className="mx-auto max-w-2xl p-6">
-        <h2 className="font-mono text-lg">Import Feeds</h2>
-        <div className="my-4">Import success! Channels added successfully.</div>
-        <Link href="/feed">
-          <Button>Back to feeds</Button>
-        </Link>
-      </div>
-    );
+  const onFeedImport = async () => {
+    if (!feedsFoundFromFile?.length) return;
+
+    const channelsToImport = feedsFoundFromFile
+      .filter((channel) => channel.shouldImport)
+      .map((feed) => ({
+        categories: feed.categories,
+        feedUrl: feed.feedUrl,
+      }));
+
+    const results = await createFeedsFromSubscriptionImportMutation({
+      feeds: channelsToImport,
+    });
+
+    setFeedResults(results);
+  };
+
+  const onReset = () => {
+    setFeedsFoundFromFile(null);
+    setFeedResults([]);
+    resetCreateFeedsMutation();
+  };
+
+  if (isPending) {
+    return <FeedLoading />;
   }
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      {isPending && <FeedLoading />}
       <h2 className="font-mono text-lg">Import Feeds</h2>
-      <p className="mt-2">Serial supports importing:</p>
-      <ul className="mb-6 list-disc pl-4">
-        <li>
-          <code className="bg-muted text-foreground rounded px-1 py-0.5">
-            subscriptions.csv
-          </code>{" "}
-          files from a Google Takeout export
-        </li>
-        <li>
-          <code className="bg-muted text-foreground rounded px-1 py-0.5">
-            *.opml
-          </code>{" "}
-          files from another RSS reader's export
-        </li>
-      </ul>
-      <ImportDropzone
-        inputElementRef={inputElementRef}
-        onSelectFile={onSelectFiles}
-      />
+      {!isSuccess && (
+        <>
+          <p className="mt-2">Serial supports importing:</p>
+          <ul className="mb-6 list-disc pl-4">
+            <li>
+              <code className="bg-muted text-foreground rounded px-1 py-0.5">
+                subscriptions.csv
+              </code>{" "}
+              files from a Google Takeout export
+            </li>
+            <li>
+              <code className="bg-muted text-foreground rounded px-1 py-0.5">
+                *.opml
+              </code>{" "}
+              files from another RSS reader's export
+            </li>
+          </ul>
+          <ImportDropzone
+            inputElementRef={inputElementRef}
+            onSelectFile={onSelectFiles}
+          />
+        </>
+      )}
+      {isSuccess && (
+        <>
+          <p className="mt-2 mb-4">
+            Imported finished! Check below to see the status of specific feed
+            imports.
+          </p>
+          <div className="flex gap-2">
+            <Link href="/feed">
+              <Button>Back to feeds</Button>
+            </Link>
+            <Button variant="outline" onClick={onReset}>
+              Try again
+            </Button>
+          </div>
+        </>
+      )}
       <input
         ref={inputElementRef}
         type="file"
@@ -105,35 +156,37 @@ export default function EditFeedsPage() {
       {!!feedsFoundFromFile && (
         <>
           <div className="mt-12">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">Feeds To Import</h3>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (channelImportCount === 0) {
-                    setFeedsFoundFromFile((prevChannels) => {
-                      if (!prevChannels) return prevChannels;
-                      return prevChannels.map((channel) => {
-                        channel.shouldImport = true;
-                        return channel;
+            {!isSuccess && (
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">Feeds To Import</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (channelImportCount === 0) {
+                      setFeedsFoundFromFile((prevChannels) => {
+                        if (!prevChannels) return prevChannels;
+                        return prevChannels.map((channel) => {
+                          channel.shouldImport = true;
+                          return channel;
+                        });
                       });
-                    });
-                  } else {
-                    setFeedsFoundFromFile((prevChannels) => {
-                      if (!prevChannels) return prevChannels;
-                      return prevChannels.map((channel) => {
-                        channel.shouldImport = false;
-                        return channel;
+                    } else {
+                      setFeedsFoundFromFile((prevChannels) => {
+                        if (!prevChannels) return prevChannels;
+                        return prevChannels.map((channel) => {
+                          channel.shouldImport = false;
+                          return channel;
+                        });
                       });
-                    });
-                  }
-                }}
-              >
-                {channelImportCount === 0 ? "Select All" : "Deselect All"}
-              </Button>
-            </div>
-            <div className="mt-4 space-y-2">
+                    }
+                  }}
+                >
+                  {channelImportCount === 0 ? "Select All" : "Deselect All"}
+                </Button>
+              </div>
+            )}
+            <div className="mt-4">
               {feedsFoundFromFile
                 ?.sort((a, b) => {
                   if (!a.title && !b.title) return 0;
@@ -143,6 +196,9 @@ export default function EditFeedsPage() {
                 })
                 .map((channel, i) => {
                   const displayTitle = channel.title ?? channel.feedUrl;
+                  const result = feedResults.find(
+                    (result) => result.feedUrl === channel.feedUrl,
+                  );
 
                   return (
                     <div
@@ -158,65 +214,104 @@ export default function EditFeedsPage() {
                       >
                         {displayTitle}
                       </label>
-                      <span className="space-x-1 px-2">
-                        {channel.categories.map((category) => (
-                          <Badge key={category} variant="outline">
-                            {category}
-                          </Badge>
-                        ))}
-                      </span>
+                      {!isSuccess && (
+                        <span className="space-x-1 px-2">
+                          {channel.categories.map((category) => (
+                            <Badge key={category} variant="outline">
+                              {category}
+                            </Badge>
+                          ))}
+                        </span>
+                      )}
                       <div className="flex items-center justify-between gap-2">
-                        <Checkbox
-                          id={`channel ${displayTitle}`}
-                          checked={channel.shouldImport}
-                          onCheckedChange={(value) => {
-                            setFeedsFoundFromFile((prevChannels) => {
-                              if (!prevChannels?.[i]) {
-                                return prevChannels;
-                              }
+                        {!isSuccess && (
+                          <Checkbox
+                            id={`channel ${displayTitle}`}
+                            checked={channel.shouldImport}
+                            onCheckedChange={(value) => {
+                              setFeedsFoundFromFile((prevChannels) => {
+                                if (!prevChannels?.[i]) {
+                                  return prevChannels;
+                                }
 
-                              prevChannels[i] = {
-                                ...prevChannels[i],
-                                shouldImport: value.valueOf() as boolean,
-                              };
-                              return [...prevChannels];
-                            });
-                          }}
-                          disabled={
-                            !!feeds?.find(
-                              (feed) => feed.url === channel.feedUrl,
-                            )
-                          }
-                        />
+                                prevChannels[i] = {
+                                  ...prevChannels[i],
+                                  shouldImport: value.valueOf() as boolean,
+                                };
+                                return [...prevChannels];
+                              });
+                            }}
+                            disabled={
+                              !!feeds?.find(
+                                (feed) => feed.url === channel.feedUrl,
+                              )
+                            }
+                          />
+                        )}
+                        {!!result &&
+                          (result.success ? (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <CheckIcon size={20} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Imported Successfully!
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <TriangleAlertIcon size={20} />
+                              </TooltipTrigger>
+                              <TooltipContent>{result.error}</TooltipContent>
+                            </Tooltip>
+                          ))}
+                        {!result &&
+                          !!feedResults.length &&
+                          channel.shouldImport && (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <CircleQuestionMarkIcon size={20} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                We don't know what happened with this import.
+                                Feel free to file a bug report with this feed
+                                URL!
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        {!result &&
+                          !!feedResults.length &&
+                          !channel.shouldImport && (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <MinusIcon size={20} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                This feed was excluded from the import.
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                       </div>
                     </div>
                   );
                 })}
             </div>
           </div>
-          <div className="fixed inset-x-0 bottom-0">
-            <div className="mx-auto box-border max-w-2xl p-6">
-              <Button
-                className="w-full"
-                size="lg"
-                onClick={async () => {
-                  const channelsToImport = feedsFoundFromFile.filter(
-                    (channel) => channel.shouldImport,
-                  );
-
-                  const errors =
-                    await createFeedsFromSubscriptionImportMutation({
-                      feeds: channelsToImport,
-                    });
-
-                  console.log(errors);
-                }}
-                disabled={isPending || channelImportCount === 0}
-              >
-                Import {channelImportCount} feeds
-              </Button>
+          {!isSuccess && (
+            <div className="fixed inset-x-0 bottom-0">
+              <div className="mx-auto box-border max-w-2xl p-6">
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={onFeedImport}
+                  disabled={isPending || channelImportCount === 0}
+                >
+                  Import {channelImportCount} feeds
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
           <div className="h-12" />
         </>
       )}

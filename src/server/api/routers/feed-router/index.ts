@@ -26,7 +26,7 @@ type BulkImportFromFileError = {
   success: false;
   error: string;
 };
-type BulkImportFromFileResult =
+export type BulkImportFromFileResult =
   | BulkImportFromFileError
   | BulkImportFromFileSuccess;
 
@@ -93,9 +93,7 @@ export const feedRouter = createTRPCRouter({
         feeds: z
           .object({
             feedUrl: z.string(),
-            title: z.string().optional(),
             categories: z.string().array(),
-            platform: platformsSchema,
           })
           .array(),
       }),
@@ -105,7 +103,7 @@ export const feedRouter = createTRPCRouter({
         return [];
       }
 
-      const results: BulkImportFromFileResult[] = await Promise.all(
+      const promiseResults = await Promise.allSettled(
         input.feeds.map(async (feed) => {
           return await ctx.db.transaction(async (tx) => {
             const newFeedDetails = await fetchNewFeedDetails(feed.feedUrl);
@@ -198,7 +196,7 @@ export const feedRouter = createTRPCRouter({
               },
             );
 
-            await Promise.all([
+            await Promise.allSettled([
               ...matchingCategoryPromises,
               ...nonMatchingCategoryPromises,
             ]);
@@ -210,6 +208,16 @@ export const feedRouter = createTRPCRouter({
           });
         }),
       );
+
+      const results: BulkImportFromFileResult[] = promiseResults
+        .map((result) => {
+          if (result.status === "fulfilled") {
+            return result.value;
+          }
+
+          return null;
+        })
+        .filter(Boolean);
 
       return results;
     }),
