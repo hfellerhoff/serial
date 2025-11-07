@@ -3,13 +3,12 @@ import "~/styles/globals.css";
 import { Inter } from "next/font/google";
 
 import { type Metadata, type Viewport } from "next";
+import { Suspense } from "react";
+import { ApplyColorTheme } from "~/components/color-theme/ApplyColorTheme";
 import { ThemeProvider } from "~/components/ThemeProvider";
+import { Toaster } from "~/components/ui/sonner";
 import { cn } from "~/lib/utils";
 import { TRPCReactProvider } from "~/trpc/react";
-import { Toaster } from "~/components/ui/sonner";
-import { ApplyColorTheme } from "~/components/color-theme/ApplyColorTheme";
-import { Suspense } from "react";
-import { PostHogProvider } from "~/components/PostHogProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -121,21 +120,19 @@ export default function RootLayout({
       <body
         className={cn(`min-h-screen font-sans antialiased ${inter.variable}`)}
       >
-        <PostHogProvider>
-          <TRPCReactProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
-              <ApplyColorTheme>
-                <Suspense>{children}</Suspense>
-                <Toaster />
-              </ApplyColorTheme>
-            </ThemeProvider>
-          </TRPCReactProvider>
-        </PostHogProvider>
+        <TRPCReactProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <ApplyColorTheme>
+              <Suspense>{children}</Suspense>
+              <Toaster />
+            </ApplyColorTheme>
+          </ThemeProvider>
+        </TRPCReactProvider>
       </body>
     </html>
   );
