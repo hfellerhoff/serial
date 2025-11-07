@@ -77,6 +77,7 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
               className={clsx("transition-all", {
                 "opacity-0":
                   manualPlayerState === YOUTUBE_PLAYER_STATES.PLAYING ||
+                  manualPlayerState === YOUTUBE_PLAYER_STATES.HELD ||
                   isSeeking,
               })}
             >

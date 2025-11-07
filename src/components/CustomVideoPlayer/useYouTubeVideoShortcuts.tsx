@@ -1,13 +1,19 @@
 const SEEK_KEYS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
-import { YOUTUBE_FASTEST_SPEED, YOUTUBE_PLAYBACK_SPEEDS } from "./constants";
+import {
+  YOUTUBE_FASTEST_SPEED,
+  YOUTUBE_PLAYBACK_SPEEDS,
+  YOUTUBE_PLAYER_STATES,
+} from "./constants";
 import { useCustomVideoPlayerContext } from "./CustomVideoPlayerProvider";
 
 export function useVideoShortcuts() {
   const {
     toggleVideoPlayback,
+    startVideoHold,
+    stopVideoHold,
     playerState,
     playbackSpeed,
     changeVideoPlaybackSpeed,
@@ -16,14 +22,36 @@ export function useVideoShortcuts() {
     videoProgress,
   } = useCustomVideoPlayerContext();
 
+  const keypressTimeRef = useRef<Record<string, number | null>>({});
+
   useEffect(() => {
-    const processKey = (event: KeyboardEvent) => {
+    const processKeyDown = (event: KeyboardEvent) => {
+      if (typeof keypressTimeRef.current[event.key] === "number") {
+        return;
+      }
+
+      keypressTimeRef.current[event.key] = Date.now();
+
+      if (playerState === YOUTUBE_PLAYER_STATES.PLAYING && event.key === " ") {
+        startVideoHold();
+      }
+    };
+
+    const processKeyUp = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) {
         return;
       }
       if (doesAnyFormElementHaveFocus()) return;
 
+      let timePressed = 0;
+      const keypressStartTime = keypressTimeRef.current[event.key];
+      if (keypressStartTime) {
+        timePressed = Date.now() - keypressStartTime;
+      }
+      keypressTimeRef.current[event.key] = null;
+
       if (event.key === " ") {
+        stopVideoHold();
         event.preventDefault();
         toggleVideoPlayback();
         return;
@@ -68,10 +96,13 @@ export function useVideoShortcuts() {
         return;
       }
     };
-    window.addEventListener("keydown", processKey);
+
+    window.addEventListener("keydown", processKeyDown);
+    window.addEventListener("keyup", processKeyUp);
 
     return () => {
-      window.removeEventListener("keydown", processKey);
+      window.removeEventListener("keydown", processKeyDown);
+      window.removeEventListener("keyup", processKeyUp);
     };
   }, [
     playerState,
