@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm schema:migrate && next dev --turbopack",
-    "dev:email": "email dev --port 4000",
+    "dev:email": "email dev --dir ./src/emails --port 4000",
     "build": "next build --turbopack && pnpm schema:migrate && node --import=tsx ./src/server/scripts/addIdsToFeedItems.ts",
     "build:atomic": "next build --turbopack",
     "schema:generate": "drizzle-kit generate",
@@ -99,6 +99,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@react-email/preview-server": "5.0.1",
     "@tailwindcss/postcss": "^4.1.12",
     "@tailwindcss/typography": "^0.5.16",
     "@total-typescript/ts-reset": "^0.6.1",
@@ -118,7 +119,7 @@
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
-    "react-email": "^4.2.8",
+    "react-email": "^5.0.1",
     "tailwindcss": "^4.1.12",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.5",
