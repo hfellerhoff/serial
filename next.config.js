@@ -28,9 +28,7 @@ const config = {
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
   output: "standalone",
   transpilePackages: ["next-mdx-remote"],
-  experimental: {
-    reactCompiler: true,
-  },
+  reactCompiler: true,
 };
 
 const isProd = process.env.NODE_ENV === "production";
