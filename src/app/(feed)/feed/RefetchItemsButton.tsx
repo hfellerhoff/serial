@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { RefreshCwIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { Button } from "~/components/ui/button";
 import { FETCH_NEW_FEED_ITEMS_KEY } from "~/lib/data/feed-items";
 import { useFetchNewFeedItemsMutation } from "~/lib/data/feed-items/mutations";
@@ -33,13 +34,14 @@ export function RefetchItemsButton() {
   if (pathname !== "/feed") return null;
 
   return (
-    <Button
+    <ButtonWithShortcut
       size="icon md:default"
       variant="outline"
       onClick={async () => {
         await fetchNewFeedItems();
       }}
       disabled={isPending}
+      shortcut="r"
     >
       <RefreshCwIcon
         size={16}
@@ -48,6 +50,6 @@ export function RefetchItemsButton() {
         })}
       />
       <span className="hidden pl-1.5 md:block">Refresh</span>
-    </Button>
+    </ButtonWithShortcut>
   );
 }

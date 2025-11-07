@@ -272,7 +272,11 @@
   }
 
   .prose kbd {
-    @apply bg-muted rounded px-1.5 py-0.5 text-sm;
+    @apply bg-muted border-muted-foreground/20 rounded border border-b-2 border-solid px-1.5 py-0.5 text-sm;
+  }
+
+  .prose code {
+    @apply bg-muted rounded px-px py-px text-sm;
   }
 
   .prose img {

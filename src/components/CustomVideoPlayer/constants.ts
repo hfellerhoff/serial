@@ -1,9 +1,13 @@
 export const YOUTUBE_PLAYER_STATES = {
+  // youtube states
   ENDED: 0,
   PLAYING: 1,
   PAUSED: 2,
   BUFFERING: 3,
   CUED: 5,
+
+  // custom states
+  HELD: 6,
 } as const;
 
 export const YOUTUBE_PLAYBACK_SPEEDS = [

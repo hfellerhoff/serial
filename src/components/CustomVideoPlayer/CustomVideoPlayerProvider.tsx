@@ -24,6 +24,8 @@ type CustomVideoPlayerContext = {
   seekToSecond: (second: number) => void;
   videoProgress: number;
   videoType: YouTubeVideoType;
+  startVideoHold: () => void;
+  stopVideoHold: () => void;
 };
 
 const CustomVideoPlayerContext = createContext<CustomVideoPlayerContext | null>(
@@ -50,6 +52,67 @@ export function CustomVideoPlayerProvider({ children }: PropsWithChildren) {
 
     setPlaybackSpeed(speed);
     void player?.internalPlayer?.setPlaybackRate(speed);
+  }, []);
+
+  // In an effort to prevent YouTube suggestions from playing in the embed,
+  // we "pause" the video manually
+  const videoHoldLocationRef = useRef<number | null>(null);
+  const videoHoldSpeedRef = useRef<number | null>(null);
+  const videoHoldTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const setHoldTimeout = () => {
+    if (!playerRef?.current) return null;
+    const player = playerRef.current;
+
+    return setTimeout(async () => {
+      await player?.internalPlayer?.seekTo(videoHoldLocationRef.current);
+      videoHoldTimeoutRef.current = setHoldTimeout();
+    }, 0);
+  };
+
+  // in order to "hold" the video, we want to
+  // - mute the video
+  // - drop the playback speed super low
+  // - rewind the video every X period of time back to the hold location
+  const startVideoHold = useCallback(async () => {
+    if (!playerRef?.current) return;
+    const player = playerRef.current;
+
+    setManualPlayerState(YOUTUBE_PLAYER_STATES.HELD);
+
+    videoHoldLocationRef.current =
+      await player?.internalPlayer?.getCurrentTime();
+
+    videoHoldSpeedRef.current = await player?.internalPlayer?.getPlaybackRate();
+    void player?.internalPlayer?.setPlaybackRate(0);
+
+    player.internalPlayer.mute();
+
+    videoHoldTimeoutRef.current = setHoldTimeout();
+  }, []);
+
+  const stopVideoHold = useCallback(() => {
+    if (!playerRef?.current) return;
+    const player = playerRef.current;
+
+    player.internalPlayer.unMute();
+
+    if (videoHoldSpeedRef.current) {
+      void player?.internalPlayer?.setPlaybackRate(videoHoldSpeedRef.current);
+      videoHoldSpeedRef.current = null;
+    }
+
+    if (videoHoldTimeoutRef.current) {
+      clearTimeout(videoHoldTimeoutRef.current);
+      videoHoldTimeoutRef.current = null;
+    }
+
+    if (videoHoldLocationRef.current) {
+      void player?.internalPlayer?.seekTo(videoHoldLocationRef.current);
+      videoHoldLocationRef.current = null;
+    }
+
+    setManualPlayerState(YOUTUBE_PLAYER_STATES.PLAYING);
   }, []);
 
   const firstPlayTimestampRef = useRef<number | null>(null);
@@ -128,20 +191,27 @@ export function CustomVideoPlayerProvider({ children }: PropsWithChildren) {
     }
   }, [playerState]);
 
-  const onStateChange = useCallback((event: YouTubeEvent) => {
-    setVideoDuration(event.target.getDuration());
-    setVideoProgress(event.target.getCurrentTime());
-    setPlayerState(event.data);
+  const onStateChange = useCallback(
+    (event: YouTubeEvent) => {
+      setVideoDuration(event.target.getDuration());
+      setVideoProgress(event.target.getCurrentTime());
+      setPlayerState(event.data);
 
-    if (event.data === YOUTUBE_PLAYER_STATES.PLAYING) {
-      setTimeout(() => {
+      if (manualPlayerState === YOUTUBE_PLAYER_STATES.HELD) {
+        return;
+      }
+
+      if (event.data === YOUTUBE_PLAYER_STATES.PLAYING) {
+        setTimeout(() => {
+          setManualPlayerState(event.data);
+          setIsSeeking(false);
+        }, 50);
+      } else {
         setManualPlayerState(event.data);
-        setIsSeeking(false);
-      }, 50);
-    } else {
-      setManualPlayerState(event.data);
-    }
-  }, []);
+      }
+    },
+    [manualPlayerState],
+  );
 
   return (
     <CustomVideoPlayerContext.Provider
@@ -158,6 +228,8 @@ export function CustomVideoPlayerProvider({ children }: PropsWithChildren) {
         seekToSecond,
         videoProgress,
         videoType,
+        startVideoHold,
+        stopVideoHold,
       }}
     >
       {children}
