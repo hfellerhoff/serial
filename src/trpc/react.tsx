@@ -1,13 +1,12 @@
 "use client";
 
-import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
+import { type QueryClient } from "@tanstack/react-query";
 import {
   createTRPCClient,
   httpBatchStreamLink,
   httpSubscriptionLink,
   loggerLink,
   splitLink,
-  unstable_httpBatchStreamLink,
 } from "@trpc/client";
 import { createTRPCContext } from "@trpc/tanstack-react-query";
 import { useState } from "react";
@@ -18,8 +17,8 @@ import { createQueryClient } from "./query-client";
 
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import {
-  type Persister,
   PersistQueryClientProvider,
+  type Persister,
 } from "@tanstack/react-query-persist-client";
 
 const createSerialAsyncStoragePersister = () => {
@@ -99,15 +98,13 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
   );
 
   return (
-    // <PersistQueryClientProvider
-    //   client={queryClient}
-    //   persistOptions={{ persister: getAsyncStoragePersister() }}
-    // >
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister: getAsyncStoragePersister() }}
+    >
       <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
         {props.children}
       </TRPCProvider>
-    </QueryClientProvider>
-    // </PersistQueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }
