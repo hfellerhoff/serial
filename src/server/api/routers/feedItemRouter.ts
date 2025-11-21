@@ -1,15 +1,11 @@
 import dayjs from "dayjs";
-import { and, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray } from "drizzle-orm";
 import { z } from "zod";
+import { prepareArrayChunks } from "~/lib/iterators";
 
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { checkFeedItemIsVerticalFromThumbnail } from "~/server/checkFeedItemIsVertical";
-import {
-  type ApplicationFeedItem,
-  type DatabaseFeedItem,
-  feedItems,
-  feeds,
-} from "~/server/db/schema";
+import { checkFeedItemIsVerticalFromUrl } from "~/server/checkFeedItemIsVertical";
+import { type ApplicationFeedItem, feedItems, feeds } from "~/server/db/schema";
+import { protectedProcedure } from "~/server/orpc/base";
 import { fetchFeedData } from "~/server/rss/fetchFeeds";
 
 const isWithinLastMonth = gte(
@@ -17,58 +13,56 @@ const isWithinLastMonth = gte(
   dayjs().subtract(32, "days").toDate(),
 );
 
-export const feedItemRouter = createTRPCRouter({
-  getAll: protectedProcedure.query(async ({ ctx }) => {
-    const feedsData = await ctx.db.query.feeds.findMany({
-      where: eq(feeds.userId, ctx.auth!.user.id),
-    });
-    const feedIds = feedsData.map((feed) => feed.id);
+export const getAll = protectedProcedure.handler(async function* ({ context }) {
+  // Get existing items, yield
+  const feedsList = await context.db.query.feeds.findMany({
+    where: eq(feeds.userId, context.user.id),
+  });
+  const feedIds = feedsList.map((feed) => feed.id);
 
-    const itemsData = await ctx.db.query.feedItems.findMany({
-      where: and(inArray(feedItems.feedId, feedIds), isWithinLastMonth),
-      orderBy: desc(feedItems.postedAt),
-    });
+  const itemsData = await context.db.query.feedItems.findMany({
+    where: and(inArray(feedItems.feedId, feedIds), isWithinLastMonth),
+    orderBy: desc(feedItems.postedAt),
+  });
 
-    return itemsData.map((item) => {
-      const feed = feedsData.find((feed) => feed.id === item.feedId);
+  const existingApplicationFeedItems = itemsData.map((item) => {
+    const feed = feedsList.find((feed) => feed.id === item.feedId);
 
-      return {
-        ...item,
-        platform: feed?.platform ?? "youtube",
-      } as ApplicationFeedItem;
-    });
-  }),
-  fetchNewItems: protectedProcedure.mutation(async ({ ctx }) => {
-    const feedsList = await ctx.db.query.feeds.findMany({
-      where: sql`user_id = ${ctx.auth!.user.id}`,
-    });
+    return {
+      ...item,
+      platform: feed?.platform ?? "youtube",
+    } as ApplicationFeedItem;
+  });
 
-    if (!feedsList) {
-      return;
-    }
+  for (const chunk of prepareArrayChunks(existingApplicationFeedItems, 50)) {
+    yield chunk;
+  }
 
-    const feedData = await fetchFeedData(feedsList);
-    if (!feedData) {
-      return;
-    }
+  // Get new items, yield
+  const feedData = await fetchFeedData(feedsList);
+  if (!feedData) {
+    return;
+  }
 
-    const feedItemList: (typeof feedItems.$inferInsert)[] =
-      feedData?.flatMap((feed) => {
-        return feed.items.map((item) => {
-          return {
-            feedId: feed.id,
-            contentId: item.id,
-            content: item.content ?? "",
-            title: item.title ?? "",
-            author: item.author ?? "",
-            thumbnail: item.thumbnail ?? "",
-            url: item.url ?? "",
-            postedAt: new Date(item.publishedDate),
-          } satisfies typeof feedItems.$inferInsert;
-        });
-      }) ?? [];
+  const feedItemList: (typeof feedItems.$inferInsert)[] =
+    feedData?.flatMap((feed) => {
+      return feed.items.map((item) => {
+        return {
+          feedId: feed.id,
+          contentId: item.id,
+          content: item.content ?? "",
+          title: item.title ?? "",
+          author: item.author ?? "",
+          thumbnail: item.thumbnail ?? "",
+          url: item.url ?? "",
+          postedAt: new Date(item.publishedDate),
+          orientation: checkFeedItemIsVerticalFromUrl(item.url),
+        } satisfies typeof feedItems.$inferInsert;
+      });
+    }) ?? [];
 
-    await ctx.db.transaction(async (tx) => {
+  const feedItemsList = (
+    await context.db.transaction(async (tx) => {
       return await Promise.all(
         feedItemList.map(async (item) => {
           try {
@@ -78,7 +72,8 @@ export const feedItemRouter = createTRPCRouter({
               .onConflictDoUpdate({
                 target: [feedItems.url, feedItems.feedId],
                 set: item,
-              });
+              })
+              .returning();
           } catch {
             // For local testing
             // console.dir({ ...error }, { depth: null });
@@ -87,87 +82,61 @@ export const feedItemRouter = createTRPCRouter({
           return null;
         }),
       );
-    });
+    })
+  )
+    .filter(Boolean)
+    .flat();
 
-    // check if items are vertical
-    const uncategorizedFeedItems = await ctx.db
-      .select()
-      .from(feedItems)
-      .where(and(isNull(feedItems.orientation), isWithinLastMonth));
+  const newApplicationFeedItems = feedItemsList.map((item) => {
+    const feed = feedsList.find((feed) => feed.id === item.feedId);
 
-    if (uncategorizedFeedItems.length === 0) {
-      return;
-    }
+    return {
+      ...item,
+      platform: feed?.platform ?? "youtube",
+    } as ApplicationFeedItem;
+  });
 
-    const categorizedFeedItems: (typeof feedItems.$inferInsert)[] = (
-      await Promise.all(
-        uncategorizedFeedItems.map(async (item) => {
-          const feed = feedsList.find((feed) => feed.id === item.feedId);
-          let orientation: DatabaseFeedItem["orientation"] = "horizontal";
-          if (feed?.platform === "youtube") {
-            orientation = await checkFeedItemIsVerticalFromThumbnail(
-              item.thumbnail,
-            );
-          }
+  for (const chunk of prepareArrayChunks(newApplicationFeedItems, 50)) {
+    yield chunk;
+  }
 
-          if (orientation !== null) {
-            return {
-              ...item,
-              orientation,
-            };
-          }
-        }),
-      )
-    ).filter(Boolean);
-
-    await ctx.db.transaction(async (tx) => {
-      return await Promise.all(
-        categorizedFeedItems.map(async (item) => {
-          return await tx
-            .insert(feedItems)
-            .values(item)
-            .onConflictDoUpdate({
-              target: [feedItems.url, feedItems.feedId],
-              set: item,
-            });
-        }),
-      );
-    });
-  }),
-  setWatchedValue: protectedProcedure
-    .input(
-      z.object({
-        id: z.string(),
-        feedId: z.number(),
-        isWatched: z.boolean(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      await ctx.db
-        .update(feedItems)
-        .set({
-          isWatched: input.isWatched,
-        })
-        .where(
-          and(eq(feedItems.feedId, input.feedId), eq(feedItems.id, input.id)),
-        );
-    }),
-  setWatchLaterValue: protectedProcedure
-    .input(
-      z.object({
-        id: z.string(),
-        feedId: z.number(),
-        isWatchLater: z.boolean(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      await ctx.db
-        .update(feedItems)
-        .set({
-          isWatchLater: input.isWatchLater,
-        })
-        .where(
-          and(eq(feedItems.feedId, input.feedId), eq(feedItems.id, input.id)),
-        );
-    }),
+  return;
 });
+
+export const setWatchedValue = protectedProcedure
+  .input(
+    z.object({
+      id: z.string(),
+      feedId: z.number(),
+      isWatched: z.boolean(),
+    }),
+  )
+  .handler(async ({ context, input }) => {
+    await context.db
+      .update(feedItems)
+      .set({
+        isWatched: input.isWatched,
+      })
+      .where(
+        and(eq(feedItems.feedId, input.feedId), eq(feedItems.id, input.id)),
+      );
+  });
+
+export const setWatchLaterValue = protectedProcedure
+  .input(
+    z.object({
+      id: z.string(),
+      feedId: z.number(),
+      isWatchLater: z.boolean(),
+    }),
+  )
+  .handler(async ({ context, input }) => {
+    await context.db
+      .update(feedItems)
+      .set({
+        isWatchLater: input.isWatchLater,
+      })
+      .where(
+        and(eq(feedItems.feedId, input.feedId), eq(feedItems.id, input.id)),
+      );
+  });

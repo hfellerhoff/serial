@@ -1,13 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { atom, useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useRef } from "react";
+import { assembleIteratorResult } from "~/lib/iterators";
+import { orpc } from "~/lib/orpc";
 import type {
   ApplicationFeedItem,
   ApplicationView,
   DatabaseFeed,
   DatabaseFeedCategory,
 } from "~/server/db/schema";
-import { useTRPC } from "~/trpc/react";
 import {
   categoryFilterAtom,
   dateFilterAtom,
@@ -149,6 +150,8 @@ export function useDoesFeedItemMatchAllFilters(item: ApplicationFeedItem) {
 export const useFilteredFeedItemsOrder = () =>
   useAtomValue(filteredFeedItemsOrderAtom);
 
+const ONE_HOUR = 1000 * 60 * 60;
+
 export function useFeedItemsQuery() {
   const setHasFetchedFeedItems = useSetAtom(hasFetchedFeedItemsAtom);
   const setFeedItemsOrder = useSetAtom(feedItemsOrderAtom);
@@ -156,18 +159,45 @@ export function useFeedItemsQuery() {
 
   const hasUpdatedBasedOnQueryRef = useRef(false);
   const query = useQuery(
-    useTRPC().feedItems.getAll.queryOptions(undefined, {
-      staleTime: Infinity,
+    orpc.feedItem.getAll.experimental_streamedOptions({
+      staleTime: ONE_HOUR,
     }),
   );
 
   useEffect(() => {
-    if (query.isSuccess && hasUpdatedBasedOnQueryRef.current === false) {
+    if (query.fetchStatus === "fetching") {
+      const data = assembleIteratorResult(query.data ?? []).sort((a, b) => {
+        if (a.postedAt <= b.postedAt) return 1;
+        return -1;
+      });
+
+      setFeedItemsOrder((prevItemsOrder) =>
+        data.reduce((acc, item) => {
+          if (acc.find((id) => id === item.id)) {
+            return acc;
+          }
+          acc.push(item.id);
+          return acc;
+        }, prevItemsOrder),
+      );
+      setFeedItemsMap((prevItemsMap) =>
+        data.reduce((acc, item) => ({ ...acc, [item.id]: item }), prevItemsMap),
+      );
+    } else if (
+      query.isSuccess &&
+      query.fetchStatus === "idle" &&
+      hasUpdatedBasedOnQueryRef.current === false
+    ) {
+      const data = assembleIteratorResult(query.data).sort((a, b) => {
+        if (a.postedAt <= b.postedAt) return 1;
+        return -1;
+      });
+
       hasUpdatedBasedOnQueryRef.current = true;
       setHasFetchedFeedItems(true);
-      setFeedItemsOrder(query.data.map((item) => item.id));
+      setFeedItemsOrder(data.map((item) => item.id));
       setFeedItemsMap(
-        query.data.reduce((acc, item) => ({ ...acc, [item.id]: item }), {}),
+        data.reduce((acc, item) => ({ ...acc, [item.id]: item }), {}),
       );
     } else if (query.isFetching) {
       hasUpdatedBasedOnQueryRef.current = false;
@@ -175,6 +205,7 @@ export function useFeedItemsQuery() {
   }, [
     query.isSuccess,
     query.isFetching,
+    query.fetchStatus,
     query.data,
     setFeedItemsOrder,
     setFeedItemsMap,

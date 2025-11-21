@@ -3,27 +3,24 @@ import { useTRPC } from "~/trpc/react";
 import { useFeeds } from ".";
 import { useAtom } from "jotai";
 import { feedItemsMapAtom, feedItemsOrderAtom } from "../atoms";
-import { useFetchNewFeedItemsMutation } from "../feed-items/mutations";
+import { orpc } from "~/lib/orpc";
 
 export function useCreateFeedMutation() {
   const api = useTRPC();
   const queryClient = useQueryClient();
 
-  const { mutateAsync: fetchNewFeedItems } = useFetchNewFeedItemsMutation();
-
   return useMutation(
-    api.feeds.create.mutationOptions({
+    orpc.feed.create.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries({
-          queryKey: api.feeds.getAll.queryKey(),
+          queryKey: orpc.feed.getAll.queryKey(),
         });
         await queryClient.invalidateQueries({
-          queryKey: api.feedItems.getAll.queryKey(),
+          queryKey: orpc.feedItem.getAll.queryKey(),
         });
         await queryClient.invalidateQueries({
           queryKey: api.feedCategories.getAll.queryKey(),
         });
-        await fetchNewFeedItems();
       },
     }),
   );
@@ -33,28 +30,24 @@ export function useCreateFeedsFromSubscriptionImportMutation() {
   const api = useTRPC();
   const queryClient = useQueryClient();
 
-  const { mutateAsync: fetchNewFeedItems } = useFetchNewFeedItemsMutation();
-
   return useMutation(
-    api.feeds.createFeedsFromSubscriptionImport.mutationOptions({
+    orpc.feed.createFromSubscriptionImport.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries({
-          queryKey: api.feeds.getAll.queryKey(),
+          queryKey: orpc.feed.getAll.queryKey(),
         });
         await queryClient.invalidateQueries({
-          queryKey: api.feedItems.getAll.queryKey(),
+          queryKey: orpc.feedItem.getAll.queryKey(),
         });
         await queryClient.invalidateQueries({
           queryKey: api.feedCategories.getAll.queryKey(),
         });
-        await fetchNewFeedItems();
       },
     }),
   );
 }
 
 export function useDeleteFeedMutation() {
-  const api = useTRPC();
   const queryClient = useQueryClient();
 
   const { feeds, setFeeds } = useFeeds();
@@ -62,7 +55,7 @@ export function useDeleteFeedMutation() {
   const [feedItemsMap, setFeedItemsMap] = useAtom(feedItemsMapAtom);
 
   return useMutation(
-    api.feeds.delete.mutationOptions({
+    orpc.feed.delete.mutationOptions({
       onSuccess: async (_, feedId) => {
         setFeeds(feeds.filter((feed) => feed.id !== feedId));
 
@@ -91,10 +84,10 @@ export function useDeleteFeedMutation() {
         setFeedItemsMap(updatedFeedItemsMap);
 
         await queryClient.invalidateQueries({
-          queryKey: api.feeds.getAll.queryKey(),
+          queryKey: orpc.feed.getAll.queryKey(),
         });
         await queryClient.invalidateQueries({
-          queryKey: api.feedItems.getAll.queryKey(),
+          queryKey: orpc.feedItem.getAll.queryKey(),
         });
       },
     }),
@@ -106,10 +99,10 @@ export function useEditFeedMutation() {
   const queryClient = useQueryClient();
 
   return useMutation(
-    api.feeds.update.mutationOptions({
+    orpc.feed.update.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries({
-          queryKey: api.feeds.getAll.queryKey(),
+          queryKey: orpc.feed.getAll.queryKey(),
         });
         await queryClient.invalidateQueries({
           queryKey: api.feedCategories.getAll.queryKey(),

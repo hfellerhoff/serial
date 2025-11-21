@@ -1,4 +1,5 @@
 {
+  "id": "serial",
   "name": "Serial",
   "short_name": "Serial",
   "theme_color": "#fafaf9",
@@ -6,7 +7,7 @@
   "display": "standalone",
   "orientation": "any",
   "scope": "/",
-  "start_url": "/",
+  "start_url": "/feed",
   "icons": [
     {
       "src": "/icon-192.png",

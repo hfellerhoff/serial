@@ -15,6 +15,7 @@ import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 import { EnableCustomVideoPlayerToggle } from "./EnableCustomVideoPlayerToggle";
 import { ShowShortcutsToggle } from "./ShowShortcutsToggle";
 import { ShowArticleStyleToggle } from "./ShowArticleStyleToggle";
+import { orpc } from "~/lib/orpc";
 
 function getCssVariable(name: string) {
   const value = window
@@ -47,9 +48,9 @@ function FormSection({
 
 function EditColorsForm() {
   const { data } = authClient.useSession();
-  const api = useTRPC();
+
   const { mutate: saveThemeHSLToDatabase } = useMutation(
-    api.userConfig.setThemeHSL.mutationOptions(),
+    orpc.userConfig.setThemeHSL.mutationOptions(),
   );
 
   const { resolvedTheme } = useTheme();

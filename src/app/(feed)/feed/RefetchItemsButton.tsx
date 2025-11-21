@@ -1,52 +1,41 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { RefreshCwIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
-import { Button } from "~/components/ui/button";
-import { FETCH_NEW_FEED_ITEMS_KEY } from "~/lib/data/feed-items";
-import { useFetchNewFeedItemsMutation } from "~/lib/data/feed-items/mutations";
+import { useFeedItemsQuery } from "~/lib/data/feed-items";
 import { useShortcut } from "~/lib/hooks/useShortcut";
-
-const ONE_HOUR = 1000 * 60 * 60;
 
 export function RefetchItemsButton() {
   const pathname = usePathname();
 
-  const { mutateAsync: fetchNewFeedItems, isPending } =
-    useFetchNewFeedItemsMutation();
-
-  useQuery({
-    queryKey: [FETCH_NEW_FEED_ITEMS_KEY],
-    queryFn: async () => {
-      await fetchNewFeedItems();
-      return true;
-    },
-    staleTime: ONE_HOUR,
-  });
+  const queryClient = useQueryClient();
+  const { fetchStatus } = useFeedItemsQuery();
 
   useShortcut("r", () => {
-    void fetchNewFeedItems();
+    queryClient.invalidateQueries();
   });
 
   if (pathname !== "/feed") return null;
+
+  const isLoading = fetchStatus === "fetching";
 
   return (
     <ButtonWithShortcut
       size="icon md:default"
       variant="outline"
-      onClick={async () => {
-        await fetchNewFeedItems();
+      onClick={() => {
+        queryClient.invalidateQueries();
       }}
-      disabled={isPending}
+      disabled={isLoading}
       shortcut="r"
     >
       <RefreshCwIcon
         size={16}
         className={clsx({
-          "animate-spin": isPending,
+          "animate-spin": isLoading,
         })}
       />
       <span className="hidden pl-1.5 md:block">Refresh</span>

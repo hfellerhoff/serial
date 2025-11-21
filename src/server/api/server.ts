@@ -1,16 +1,25 @@
-import { appRouter } from "./root";
 import { headers as getNextHeaders } from "next/headers";
-import { db } from "../db";
 import { auth } from "../auth";
+import { db } from "../db";
+
+import { createRouterClient } from "@orpc/server";
+import { orpcRouter } from "../orpc/router";
 
 export const getServerApi = async () => {
   const headers = await getNextHeaders();
 
-  return appRouter.createCaller({
+  const authData = await auth.api.getSession({
     headers,
-    auth: await auth.api.getSession({
-      headers,
-    }),
-    db,
   });
+
+  const client = createRouterClient(orpcRouter, {
+    context: {
+      headers,
+      session: authData?.session,
+      user: authData?.user,
+      db,
+    },
+  });
+
+  return client;
 };

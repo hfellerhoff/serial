@@ -163,6 +163,7 @@ export const applicationFeedItemSchema = feedItemSchema
   .merge(
     z.object({
       platform: platformsSchema,
+      orientation: feedItemOrientationSchema.optional(),
     }),
   )
   .required();
