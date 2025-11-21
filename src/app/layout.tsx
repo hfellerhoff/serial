@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
   generator: "Next.js",
-  manifest: "/manifest.json",
+  manifest: "/app.webmanifest",
   keywords: ["video", "rss", "newsletter", "content", "youtube", "podcast"],
   authors: [
     {
@@ -116,6 +116,10 @@ export default function RootLayout({
             />
           </>
         )}
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content="black-translucent"
+        />
       </head>
       <body
         className={cn(`min-h-screen font-sans antialiased ${inter.variable}`)}

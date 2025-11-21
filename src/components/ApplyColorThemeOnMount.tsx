@@ -5,6 +5,7 @@ import { useTRPC } from "~/trpc/react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useSession } from "~/lib/auth-client";
+import { orpc } from "~/lib/orpc";
 
 const setVariable = (name: string, value: string) => {
   document.documentElement.style.setProperty(name, value);
@@ -15,7 +16,7 @@ export function useApplyColorThemeOnClientMount() {
   const { data: auth } = useSession();
 
   const { data } = useQuery(
-    api.userConfig.getConfig.queryOptions(undefined, {
+    orpc.userConfig.getConfig.queryOptions({
       enabled: !!auth?.session.id ? true : false,
     }),
   );

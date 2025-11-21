@@ -1,11 +1,17 @@
 import { Jimp } from "jimp";
-import type { DatabaseFeedItem } from "./db/schema";
+import type { ApplicationFeedItem, DatabaseFeedItem } from "./db/schema";
 
 const WIDTH = 480;
 const HEIGHT = 360;
 
 function isBlackPixel(value: number) {
   return value === 255;
+}
+
+export function checkFeedItemIsVerticalFromUrl(
+  url: string,
+): ApplicationFeedItem["orientation"] {
+  return url.includes("/shorts/") ? "vertical" : "horizontal";
 }
 
 export async function checkFeedItemIsVerticalFromThumbnail(

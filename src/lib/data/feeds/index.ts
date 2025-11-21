@@ -1,26 +1,54 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { useEffect } from "react";
-import { useTRPC } from "~/trpc/react";
+import { useEffect, useRef } from "react";
+import { orpc } from "~/lib/orpc";
 import { feedsAtom, hasFetchedFeedsAtom } from "../atoms";
+import { assembleIteratorResult } from "~/lib/iterators";
 
 export function useFeedsQuery() {
   const setHasFetchedFeeds = useSetAtom(hasFetchedFeedsAtom);
   const setFeeds = useSetAtom(feedsAtom);
 
   const query = useQuery(
-    useTRPC().feeds.getAll.queryOptions(undefined, {
+    orpc.feed.getAll.experimental_streamedOptions({
       staleTime: Infinity,
     }),
   );
 
+  const hasUpdatedBasedOnQueryRef = useRef(false);
   useEffect(() => {
-    if (query.isSuccess) {
+    if (query.fetchStatus === "fetching") {
+      setFeeds((prevFeeds) =>
+        assembleIteratorResult([prevFeeds, ...(query.data ?? [])]).sort(
+          (a, b) => {
+            if (a.updatedAt <= b.updatedAt) return 1;
+            return -1;
+          },
+        ),
+      );
+    } else if (
+      query.isSuccess &&
+      query.fetchStatus === "idle" &&
+      hasUpdatedBasedOnQueryRef.current === false
+    ) {
+      const data = assembleIteratorResult(query.data).sort((a, b) => {
+        if (a.updatedAt <= b.updatedAt) return 1;
+        return -1;
+      });
+
       setHasFetchedFeeds(true);
-      setFeeds(query.data);
+      hasUpdatedBasedOnQueryRef.current = true;
+      setFeeds(data);
     }
-  }, [query, setHasFetchedFeeds, setFeeds]);
+  }, [
+    query.isSuccess,
+    query.isFetching,
+    query.fetchStatus,
+    query.data,
+    setHasFetchedFeeds,
+    setFeeds,
+  ]);
 
   return query;
 }

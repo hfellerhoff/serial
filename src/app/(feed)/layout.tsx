@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
   generator: "Next.js",
-  manifest: "/manifest.json",
+  manifest: "/app.webmanifest",
   keywords: ["video", "rss", "newsletter", "content", "youtube", "podcast"],
   authors: [
     {
