@@ -7,6 +7,7 @@ import {
   httpSubscriptionLink,
   loggerLink,
   splitLink,
+  unstable_httpBatchStreamLink,
 } from "@trpc/client";
 import { createTRPCContext } from "@trpc/tanstack-react-query";
 import { useState } from "react";
@@ -67,31 +68,14 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
             process.env.NODE_ENV === "development" ||
             (op.direction === "down" && op.result instanceof Error),
         }),
-        splitLink({
-          // uses the httpSubscriptionLink for subscriptions
-          condition: (op) => op.type === "subscription",
-          true: httpSubscriptionLink({
-            transformer: SuperJSON,
-            url: `/api/trpc`,
-            eventSourceOptions: async ({ op }) => {
-              return {
-                // If not on the same domain
-                // withCredentials: true,
-                headers: {
-                  "x-trpc-source": "nextjs-react",
-                },
-              };
-            },
-          }),
-          false: httpBatchStreamLink({
-            transformer: SuperJSON,
-            url: `/api/trpc`,
-            headers() {
-              const headers = new Headers();
-              headers.set("x-trpc-source", "nextjs-react");
-              return headers;
-            },
-          }),
+        unstable_httpBatchStreamLink({
+          transformer: SuperJSON,
+          url: getBaseUrl() + "/api/trpc",
+          headers() {
+            const headers = new Headers();
+            headers.set("x-trpc-source", "nextjs-react");
+            return headers;
+          },
         }),
       ],
     }),
