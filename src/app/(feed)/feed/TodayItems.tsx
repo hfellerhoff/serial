@@ -156,111 +156,108 @@ function LoaderDisplay() {
   );
 }
 
-const ItemDisplay = memo(
-  function ItemDisplay({ contentId }: { contentId: string }) {
-    const { feeds } = useFeeds();
-    const [item] = useFeedItemGlobalState(contentId);
+function ItemDisplay({ contentId }: { contentId: string }) {
+  const { feeds } = useFeeds();
+  const [item] = useFeedItemGlobalState(contentId);
 
-    const { mutateAsync: setWatchedValue } =
-      useFeedItemsSetWatchedValueMutation(contentId);
-    const { mutateAsync: setWatchLaterValue } =
-      useFeedItemsSetWatchLaterValueMutation(contentId);
+  const { mutateAsync: setWatchedValue } =
+    useFeedItemsSetWatchedValueMutation(contentId);
+  const { mutateAsync: setWatchLaterValue } =
+    useFeedItemsSetWatchLaterValueMutation(contentId);
 
-    const feed = feeds.find((f) => f.id === item.feedId);
+  const feed = feeds.find((f) => f.id === item.feedId);
 
-    const itemDestination = item.platform === "website" ? "read" : "watch";
+  const itemDestination = item.platform === "website" ? "read" : "watch";
 
-    const shouldOpenInSerial =
-      feed?.openLocation === "serial" || !feed?.openLocation;
+  const shouldOpenInSerial =
+    feed?.openLocation === "serial" || !feed?.openLocation;
 
-    const href = shouldOpenInSerial
-      ? `/feed/${itemDestination}/${item.id}`
-      : item.url;
+  const href = shouldOpenInSerial
+    ? `/feed/${itemDestination}/${item.id}`
+    : item.url;
 
-    const target = shouldOpenInSerial ? undefined : "_blank";
-    const rel = shouldOpenInSerial ? undefined : "noopener noreferrer";
+  const target = shouldOpenInSerial ? undefined : "_blank";
+  const rel = shouldOpenInSerial ? undefined : "noopener noreferrer";
 
-    return (
-      <article
-        className={clsx(
-          "group relative flex w-full flex-1 items-center justify-stretch gap-2 md:h-20",
-          {
-            "opacity-50": item.isWatched,
-          },
-        )}
+  return (
+    <article
+      className={clsx(
+        "group relative flex w-full flex-1 items-center justify-stretch gap-2 md:h-20",
+        {
+          "opacity-50": item.isWatched,
+        },
+      )}
+    >
+      <Link
+        href={href}
+        target={target}
+        rel={rel}
+        className="sm:hover:bg-muted flex w-full flex-1 flex-col gap-4 py-4 pr-4 pl-6 text-left transition-colors md:h-20 md:flex-row md:items-center md:rounded md:py-0 md:pr-0"
+        prefetch
       >
-        <Link
-          href={href}
-          target={target}
-          rel={rel}
-          className="sm:hover:bg-muted flex w-full flex-1 flex-col gap-4 py-4 pr-4 pl-6 text-left transition-colors md:h-20 md:flex-row md:items-center md:rounded md:py-0 md:pr-0"
-          prefetch
-        >
-          {!!item.thumbnail ? (
+        {!!item.thumbnail ? (
+          <img
+            src={item.thumbnail}
+            alt={item.title}
+            className="aspect-video w-16 rounded object-cover"
+          />
+        ) : !!feed?.imageUrl ? (
+          <div className="grid aspect-video w-16 place-items-center rounded object-cover">
             <img
-              src={item.thumbnail}
+              src={feed.imageUrl}
               alt={item.title}
-              className="aspect-video w-16 rounded object-cover"
+              className="aspect-square h-9 rounded object-cover"
             />
-          ) : !!feed?.imageUrl ? (
-            <div className="grid aspect-video w-16 place-items-center rounded object-cover">
-              <img
-                src={feed.imageUrl}
-                alt={item.title}
-                className="aspect-square h-9 rounded object-cover"
-              />
-            </div>
-          ) : (
-            <div className="grid aspect-video w-16 place-items-center rounded object-cover">
-              <div className="bg-muted aspect-square h-9 rounded object-cover" />
-            </div>
-          )}
-          <div className="flex h-full flex-1 flex-col justify-center">
-            <h3 className="line-clamp-1 w-full text-xs font-semibold md:text-sm">
-              {item.title}
-            </h3>
-            <p className="w-full text-xs opacity-80 md:text-sm">
-              {item.author || feed?.name} • {timeAgo(item.postedAt)}
-            </p>
           </div>
-        </Link>
-        <div className="flex h-full flex-row flex-wrap items-center justify-center pr-6 md:pr-0">
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => {
-              void setWatchLaterValue({
-                id: item.id,
-                feedId: item.feedId!,
-                isWatchLater: !item.isWatchLater,
-              });
-            }}
-          >
-            {item.isWatchLater ? (
-              <CheckIcon size={16} />
-            ) : (
-              <ClockIcon size={16} />
-            )}
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => {
-              void setWatchedValue({
-                id: item.id,
-                feedId: item.feedId!,
-                isWatched: !item.isWatched,
-              });
-            }}
-          >
-            <EyeIcon size={16} />
-          </Button>
+        ) : (
+          <div className="grid aspect-video w-16 place-items-center rounded object-cover">
+            <div className="bg-muted aspect-square h-9 rounded object-cover" />
+          </div>
+        )}
+        <div className="flex h-full flex-1 flex-col justify-center">
+          <h3 className="line-clamp-1 w-full text-xs font-semibold md:text-sm">
+            {item.title}
+          </h3>
+          <p className="w-full text-xs opacity-80 md:text-sm">
+            {item.author || feed?.name} • {timeAgo(item.postedAt)}
+          </p>
         </div>
-      </article>
-    );
-  },
-  (prevProps, nextProps) => prevProps.contentId === nextProps.contentId,
-);
+      </Link>
+      <div className="flex h-full flex-row flex-wrap items-center justify-center pr-6 md:pr-0">
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={() => {
+            void setWatchLaterValue({
+              id: item.id,
+              feedId: item.feedId!,
+              isWatchLater: !item.isWatchLater,
+            });
+          }}
+        >
+          {item.isWatchLater ? (
+            <CheckIcon size={16} />
+          ) : (
+            <ClockIcon size={16} />
+          )}
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={() => {
+            void setWatchedValue({
+              id: item.id,
+              feedId: item.feedId!,
+              isWatched: !item.isWatched,
+            });
+          }}
+        >
+          <EyeIcon size={16} />
+        </Button>
+      </div>
+    </article>
+  );
+}
 
 export function TodayItems() {
   const { feeds, hasFetchedFeeds } = useFeeds();
