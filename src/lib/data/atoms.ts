@@ -9,7 +9,7 @@ import type {
   DatabaseContentCategory,
   DatabaseFeedCategory,
 } from "~/server/db/schema";
-import { useFeedItemsStore } from "./store";
+import { feedItemsStore } from "./store";
 
 export const hasFetchedFeedsAtom = atom(false);
 export const feedsAtom = atom<ApplicationFeed[]>([]);
@@ -48,7 +48,7 @@ export const viewFilterAtom = atom<ApplicationView | null>((get) => {
 
 export const useClearAllUserData = () => {
   const setFeedsAtom = useSetAtom(feedsAtom);
-  const resetFeedItems = useFeedItemsStore((store) => store.reset);
+  const resetFeedItems = feedItemsStore.useReset();
   const setContentCategoriesAtom = useSetAtom(contentCategoriesAtom);
   const setFeedCategoriesAtom = useSetAtom(feedCategoriesAtom);
   const setViewsAtom = useSetAtom(viewsAtom);

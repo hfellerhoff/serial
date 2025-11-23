@@ -34,6 +34,7 @@ import { useViews } from "~/lib/data/views";
 import { useDialogStore } from "./dialogStore";
 import { memo } from "react";
 import {
+  feedItemsStore,
   useFeedItemsLastFetchedAt,
   useFeedItemValue,
   useFetchFeedItemsStatus,
@@ -136,8 +137,8 @@ function LoaderDisplay() {
   const feedItemsFetchStatus = useFetchFeedItemsStatus();
 
   if (
-    feedItemsFetchStatus === "idle" ||
-    (feedItemsFetchStatus === "fetching" && feedItemsLastFetchedAt === null)
+    feedItemsFetchStatus !== "fetching" ||
+    (feedItemsFetchStatus === "fetching" && feedItemsLastFetchedAt !== null)
   ) {
     return null;
   }

@@ -6,12 +6,10 @@ import { hasSetInitialViewAtom } from "./atoms";
 import { useContentCategoriesQuery } from "./content-categories";
 import { useFeedsQuery } from "./feeds";
 import { useUpdateViewFilter, useViews } from "./views";
-import { useFeedItemsStore } from "./store";
+import { useFetchFeedItems } from "./store";
 
 export function InitialClientQueries({ children }: PropsWithChildren) {
-  const fetchFeedItems = useFeedItemsStore(
-    (store) => store.fetchItemsAction.fetch,
-  );
+  const fetchFeedItems = useFetchFeedItems();
 
   useEffect(() => {
     fetchFeedItems();

@@ -1,127 +1,130 @@
-import { create } from "zustand";
+import { createStore, useStore } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import { ApplicationFeedItem } from "~/server/db/schema";
 import { orpcRouterClient } from "../orpc";
+import { createSelectorHooks } from "./createSelectorHooks";
 
-type FeedItemsStore = {
+type ApplicationStore = {
   reset: () => void;
-  itemsOrder: string[];
-  setItemsOrder: (itemsOrder: string[]) => void;
-  itemsDict: Record<string, ApplicationFeedItem>;
-  setItemsDict: (itemsDict: Record<string, ApplicationFeedItem>) => void;
-  setItem: (id: string, item: ApplicationFeedItem) => void;
-  fetchItemsAction: {
-    fetch: () => Promise<void>;
-    lastFetchedAt: number | null;
-    status: "idle" | "fetching" | "success";
-  };
+  feedItemsOrder: string[];
+  setFeedItemsOrder: (itemsOrder: string[]) => void;
+  feedItemsDict: Record<string, ApplicationFeedItem>;
+  setFeedItemsDict: (itemsDict: Record<string, ApplicationFeedItem>) => void;
+  setFeedItem: (id: string, item: ApplicationFeedItem) => void;
+  fetchFeedItems: () => Promise<void>;
+  fetchFeedItemsLastFetchedAt: number | null;
+  fetchFeedItemsStatus: "idle" | "fetching" | "success";
 };
 
-function sortFeedItem(a: ApplicationFeedItem, b: ApplicationFeedItem) {
-  if (a.postedAt <= b.postedAt) return 1;
-  return -1;
-}
-
-export const useFeedItemsStore = create<FeedItemsStore>(
-  // )(persist(
+const vanillaApplicationStore = createStore<ApplicationStore>()(
+  // persist(
   (set, get) => ({
     reset: () =>
       set({
-        itemsOrder: [],
-        itemsDict: {},
-        fetchItemsAction: {
-          ...get().fetchItemsAction,
-          lastFetchedAt: null,
-          status: "idle",
-        },
+        feedItemsOrder: [],
+        feedItemsDict: {},
+        fetchFeedItemsLastFetchedAt: null,
+        fetchFeedItemsStatus: "idle",
       }),
-    itemsOrder: [],
-    setItemsOrder: (itemsOrder) => set({ itemsOrder }),
-    itemsDict: {},
-    setItemsDict: (itemsDict) => set({ itemsDict }),
-    setItem: (id, item) =>
+    feedItemsOrder: [],
+    setFeedItemsOrder: (itemsOrder) => set({ feedItemsOrder: itemsOrder }),
+    feedItemsDict: {},
+    setFeedItemsDict: (itemsDict) => set({ feedItemsDict: itemsDict }),
+    setFeedItem: (id, item) =>
       set({
-        itemsDict: {
-          ...get().itemsDict,
+        feedItemsDict: {
+          ...get().feedItemsDict,
           [id]: item,
         },
       }),
-    fetchItemsAction: {
-      lastFetchedAt: null,
-      status: "idle",
-      fetch: async () => {
-        if (get().fetchItemsAction.status === "fetching") return;
+    fetchFeedItemsLastFetchedAt: null,
+    fetchFeedItemsStatus: "idle",
 
-        set((prevStore) => {
-          return {
-            fetchItemsAction: {
-              ...prevStore.fetchItemsAction,
-              status: "fetching",
+    fetchFeedItems: async () => {
+      if (get().fetchFeedItemsStatus === "fetching") return;
+
+      set({
+        fetchFeedItemsStatus: "fetching",
+      });
+
+      let lastUpdateTime = 0;
+      for await (const incomingFeedItems of await orpcRouterClient.feedItem.getAll()) {
+        // const DEBOUNCE_TIME = 50;
+        // const timeSinceLastUpdate = Date.now() - lastUpdateTime;
+        // const timeToWait = DEBOUNCE_TIME - timeSinceLastUpdate;
+
+        // if (timeToWait > 0) {
+        //   await new Promise((res) => setTimeout(res, timeToWait));
+        // }
+
+        // console.log("updating");
+
+        // TODO: create date sorting
+        const { updatedItemsDict, updatedItemsOrder } =
+          incomingFeedItems.reduce(
+            ({ updatedItemsDict, updatedItemsOrder }, item) => {
+              updatedItemsDict[item.id] = item;
+
+              if (!updatedItemsOrder.find((id) => id === item.id)) {
+                updatedItemsOrder.push(item.id);
+              }
+
+              return {
+                updatedItemsDict,
+                updatedItemsOrder,
+              };
             },
-          };
-        });
-        for await (const incomingFeedItems of await orpcRouterClient.feedItem.getAll()) {
-          // TODO: create date sorting
-          const { updatedItemsDict, updatedItemsOrder } =
-            incomingFeedItems.reduce(
-              ({ updatedItemsDict, updatedItemsOrder }, item) => {
-                updatedItemsDict[item.id] = item;
-
-                if (!updatedItemsOrder.find((id) => id === item.id)) {
-                  updatedItemsOrder.push(item.id);
-                }
-
-                return {
-                  updatedItemsDict,
-                  updatedItemsOrder,
-                };
-              },
-              {
-                updatedItemsDict: get().itemsDict,
-                updatedItemsOrder: get().itemsOrder,
-              },
-            );
-
-          set({
-            itemsDict: updatedItemsDict,
-            itemsOrder: updatedItemsOrder,
-          });
-        }
-        set((prevStore) => {
-          return {
-            fetchItemsAction: {
-              ...prevStore.fetchItemsAction,
-              status: "success",
-              lastFetchedAt: Date.now(),
+            {
+              updatedItemsDict: { ...get().feedItemsDict },
+              updatedItemsOrder: [...get().feedItemsOrder],
             },
-          };
+          );
+
+        set({
+          feedItemsDict: updatedItemsDict,
+          feedItemsOrder: updatedItemsOrder,
         });
-      },
+        lastUpdateTime = Date.now();
+      }
+      set({
+        fetchFeedItemsStatus: "success",
+        fetchFeedItemsLastFetchedAt: Date.now(),
+      });
     },
   }),
-  //     {
-  //       name: "serial-feed-items-store", // name of the item in the storage (must be unique)
-  //     },
-  //   ),
+  //   {
+  //     name: "serial", // name of the item in the storage (must be unique)
+  //     version: 0,
+  //     partialize: (state) => ({
+  //       itemsOrder: state.feedItemsOrder,
+  //       itemsDict: state.feedItemsDict,
+  //       fetchItemsLastFetchedAt: state.fetchFeedItemsLastFetchedAt,
+  //     }),
+  //   },
+  // ),
 );
 
-export const useFeedItemsOrder = () =>
-  useFeedItemsStore((store) => store.itemsOrder);
-export const useFeedItemsDict = () =>
-  useFeedItemsStore((store) => store.itemsDict);
+export const feedItemsStore = createSelectorHooks(vanillaApplicationStore);
 
-export const useFeedItemsLastFetchedAt = () =>
-  useFeedItemsStore((store) => store.fetchItemsAction.lastFetchedAt);
-export const useFetchFeedItemsStatus = () =>
-  useFeedItemsStore((store) => store.fetchItemsAction.status);
-export const useFetchFeedItems = () =>
-  useFeedItemsStore((store) => store.fetchItemsAction.fetch);
+export const useFeedItemsDict = feedItemsStore.useFeedItemsDict;
+export const useFeedItemsOrder = feedItemsStore.useFeedItemsOrder;
 
-export const useFeedItemValue = (id: string) =>
-  useFeedItemsStore((store) => store.itemsDict?.[id]);
-export const useSetFeedItemValue = (id: string) =>
-  useFeedItemsStore(
-    (store) => (item: ApplicationFeedItem) => store.setItem(id, item),
+export const useFeedItemsLastFetchedAt =
+  feedItemsStore.useFetchFeedItemsLastFetchedAt;
+export const useFetchFeedItemsStatus = feedItemsStore.useFetchFeedItemsStatus;
+export const useFetchFeedItems = feedItemsStore.useFetchFeedItems;
+
+export const useFeedItemValue = (id: string) => {
+  return useStore(
+    feedItemsStore,
+    useShallow((store) => store.feedItemsDict?.[id]),
   );
+};
+export const useSetFeedItemValue = (id: string) => {
+  const setter = useStore(feedItemsStore, (store) => store.setFeedItem);
+
+  return (item: ApplicationFeedItem) => setter(id, item);
+};
 
 export const useFeedItemState = (id: string) => {
   const value = useFeedItemValue(id);

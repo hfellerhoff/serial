@@ -3,9 +3,9 @@ import { useTRPC } from "~/trpc/react";
 import { useFeeds } from ".";
 import { orpc } from "~/lib/orpc";
 import {
+  feedItemsStore,
   useFeedItemsDict,
   useFeedItemsOrder,
-  useFeedItemsStore,
   useFetchFeedItems,
 } from "../store";
 
@@ -57,8 +57,8 @@ export function useDeleteFeedMutation() {
   const feedItemsOrder = useFeedItemsOrder();
   const feedItemsDict = useFeedItemsDict();
 
-  const setFeedItemsOrder = useFeedItemsStore((store) => store.setItemsOrder);
-  const setFeedItemsDict = useFeedItemsStore((store) => store.setItemsDict);
+  const setFeedItemsOrder = feedItemsStore.useSetFeedItemsOrder();
+  const setFeedItemsDict = feedItemsStore.useSetFeedItemsDict();
 
   const refetchFeedItems = useFetchFeedItems();
 

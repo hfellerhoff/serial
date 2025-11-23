@@ -15,7 +15,7 @@ import {
   type VisibilityFilter,
   visibilityFilterAtom,
 } from "../atoms";
-import { useFeedItemsDict, useFeedItemsOrder } from "../store";
+import { feedItemsStore } from "../store";
 import { INBOX_VIEW_ID } from "../views";
 
 export function doesFeedItemPassFilters(
@@ -94,22 +94,22 @@ export function doesFeedItemPassFilters(
   return true;
 }
 
-const filteredFeedItemsOrderAtom = atom((get) => {
-  const dateFilter = get(dateFilterAtom);
-  const visibilityFilter = get(visibilityFilterAtom);
-  const categoryFilter = get(categoryFilterAtom);
-  const feedItemsOrder = useFeedItemsOrder();
-  const feedItemsDict = useFeedItemsDict();
-  const feedCategories = get(feedCategoriesAtom);
-  const feedFilter = get(feedFilterAtom);
-  const feeds = get(feedsAtom);
-  const viewFilter = get(viewFilterAtom);
+export const useFilteredFeedItemsOrder = () => {
+  const dateFilter = useAtomValue(dateFilterAtom);
+  const visibilityFilter = useAtomValue(visibilityFilterAtom);
+  const categoryFilter = useAtomValue(categoryFilterAtom);
+  const feedItemsOrder = feedItemsStore.useFeedItemsOrder();
+  const feedItemsDict = feedItemsStore.useFeedItemsDict();
+  const feedCategories = useAtomValue(feedCategoriesAtom);
+  const feedFilter = useAtomValue(feedFilterAtom);
+  const feeds = useAtomValue(feedsAtom);
+  const viewFilter = useAtomValue(viewFilterAtom);
 
-  return feedItemsOrder.filter(
-    (item) =>
-      feedItemsDict[item] &&
+  return feedItemsOrder.filter((id) => {
+    return (
+      feedItemsDict[id] &&
       doesFeedItemPassFilters(
-        feedItemsDict[item],
+        feedItemsDict[id],
         dateFilter,
         visibilityFilter,
         categoryFilter,
@@ -117,9 +117,10 @@ const filteredFeedItemsOrderAtom = atom((get) => {
         feedFilter,
         feeds,
         viewFilter,
-      ),
-  );
-});
+      )
+    );
+  });
+};
 
 export function useDoesFeedItemMatchAllFilters(item: ApplicationFeedItem) {
   const dateFilter = useAtomValue(dateFilterAtom);
@@ -141,5 +142,3 @@ export function useDoesFeedItemMatchAllFilters(item: ApplicationFeedItem) {
     viewFilter,
   );
 }
-export const useFilteredFeedItemsOrder = () =>
-  useAtomValue(filteredFeedItemsOrderAtom);
