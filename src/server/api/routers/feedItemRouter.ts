@@ -39,6 +39,9 @@ export const getAll = protectedProcedure.handler(async function* ({ context }) {
   }
 
   // Get new items, yield
+
+  // TODO: split this out such that we can return data from
+  // each feed as it comes in
   const feedData = await fetchFeedData(feedsList);
   if (!feedData) {
     return;

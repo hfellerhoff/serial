@@ -1,11 +1,11 @@
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import ResponsiveVideo from "~/components/ResponsiveVideo";
+import { useFeedItemValue } from "~/lib/data/store";
 import { useShortcut } from "~/lib/hooks/useShortcut";
-import { useView } from "./useView";
 import { ContentActions } from "./ContentActions";
 import { useVideoNavigationShortcuts } from "./useVideoNavigationShortcuts";
-import { useFeedItemGlobalState } from "~/lib/data/atoms";
+import { useView } from "./useView";
 
 export function VideoDisplay({
   id,
@@ -14,7 +14,7 @@ export function VideoDisplay({
   id: string;
   isInactive: boolean;
 }) {
-  const [item] = useFeedItemGlobalState(id);
+  const item = useFeedItemValue(id);
   const [showVideo, setShowVideo] = useState(false);
 
   const { view, toggleView } = useView();
@@ -33,6 +33,8 @@ export function VideoDisplay({
       clearTimeout(timeout);
     };
   }, []);
+
+  if (!item) return null;
 
   return (
     <>

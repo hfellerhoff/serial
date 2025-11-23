@@ -3,7 +3,6 @@ import { DialogTitle } from "@radix-ui/react-dialog";
 import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
-import { useFeedItemsMap, useFeedItemsOrder } from "~/lib/data/atoms";
 import { useContentCategories } from "~/lib/data/content-categories";
 import {
   useCreateContentCategoryMutation,
@@ -20,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { ScrollArea } from "./ui/scroll-area";
+import { useFeedItemsDict, useFeedItemsOrder } from "~/lib/data/store";
 
 function CategoryNameInput({
   name,
@@ -47,9 +47,11 @@ function CategoryNameInput({
 function useMostRecentlyAppearingFeeds() {
   const { feeds } = useFeeds();
   const order = useFeedItemsOrder();
-  const items = useFeedItemsMap();
+  const itemsDict = useFeedItemsDict();
 
-  const feedIdsInOrder = order.map((id) => items[id]?.feedId).filter(Boolean);
+  const feedIdsInOrder = order
+    .map((id) => itemsDict[id]?.feedId)
+    .filter(Boolean);
   const orderSet = new Set(feedIdsInOrder);
 
   const foundFeeds: DatabaseFeed[] = [];

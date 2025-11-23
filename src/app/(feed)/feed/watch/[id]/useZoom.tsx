@@ -3,11 +3,8 @@
 import { useAtom } from "jotai";
 import { usePathname } from "next/navigation";
 import { useCallback, useMemo } from "react";
-import {
-  articleZoomAtom,
-  useFeedItemGlobalState,
-  videoZoomAtom,
-} from "~/lib/data/atoms";
+import { articleZoomAtom, videoZoomAtom } from "~/lib/data/atoms";
+import { useFeedItemValue } from "~/lib/data/store";
 import type { FeedPlatform } from "~/server/db/schema";
 
 export const MIN_ZOOM = 0;
@@ -21,9 +18,9 @@ export function useZoom() {
   const videoId = pathname.split("/feed/watch/")[1]!;
   const contentId = pathname.split("/feed/read/")[1]!;
 
-  const [feedItem] = useFeedItemGlobalState(videoId || contentId || "");
+  const feedItem = useFeedItemValue(videoId || contentId || "");
 
-  const platform = feedItem?.platform;
+  const platform = feedItem?.platform ?? "";
 
   const [videoZoom, setVideoZoom] = useAtom(videoZoomAtom);
   const [articleZoom, setArticleZoom] = useAtom(articleZoomAtom);

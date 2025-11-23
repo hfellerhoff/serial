@@ -3,17 +3,17 @@
 import clsx from "clsx";
 import { use } from "react";
 
-import { useFeedItemGlobalState } from "~/lib/data/atoms";
 import { useZoom } from "../../watch/[id]/useZoom";
 
-import classes from "./article.module.css";
-import { useFeeds } from "~/lib/data/feeds";
-import { unified } from "unified";
 import rehypeParse from "rehype-parse";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeStringify from "rehype-stringify";
+import { unified } from "unified";
+import { useFeeds } from "~/lib/data/feeds";
+import { useFeedItemValue } from "~/lib/data/store";
 import { useFlagState } from "~/lib/hooks/useFlagState";
 import { ContentActions } from "../../watch/[id]/ContentActions";
+import classes from "./article.module.css";
 
 const parser = unified()
   .use(rehypeParse, { fragment: true })
@@ -34,7 +34,7 @@ export default function ReadPage(props: { params: Promise<{ id: string }> }) {
   const [articleStyle] = useFlagState("ARTICLE_STYLE");
   const params = use(props.params);
 
-  const [feedItem] = useFeedItemGlobalState(params?.id ?? "");
+  const feedItem = useFeedItemValue(params?.id ?? "");
   const { feeds } = useFeeds();
 
   const feed = feeds.find((f) => f.id === feedItem?.feedId);

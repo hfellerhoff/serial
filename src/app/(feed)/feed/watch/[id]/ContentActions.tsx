@@ -1,7 +1,6 @@
 import { CheckIcon, ClockIcon, EyeIcon, EyeOffIcon } from "lucide-react";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { Button } from "~/components/ui/button";
-import { useFeedItemGlobalState } from "~/lib/data/atoms";
 import {
   useFeedItemsSetWatchedValueMutation,
   useFeedItemsSetWatchLaterValueMutation,
@@ -9,11 +8,12 @@ import {
 import { useMediaQuery } from "~/lib/hooks/use-media-query";
 import { useView } from "./useView";
 import { useShortcut } from "~/lib/hooks/useShortcut";
+import { useFeedItemValue } from "~/lib/data/store";
 
 export function ContentActions({ contentID }: { contentID: string }) {
   const { view } = useView();
 
-  const [video] = useFeedItemGlobalState(contentID);
+  const video = useFeedItemValue(contentID);
 
   const { mutateAsync: setWatchedValue } =
     useFeedItemsSetWatchedValueMutation(contentID);
