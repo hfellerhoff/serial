@@ -11,8 +11,6 @@ import {
   feedFilterAtom,
   hasFetchedViewsAtom,
   UNSELECTED_VIEW_ID,
-  useFeedItemsMap,
-  useFeedItemsOrder,
   viewFilterIdAtom,
   viewsAtom,
 } from "../atoms";
@@ -21,6 +19,7 @@ import { useFeedCategories } from "../feed-categories";
 import { doesFeedItemPassFilters } from "../feed-items";
 import { useFeeds } from "../feeds";
 import { sortViewsByPlacement } from "./utils";
+import { useFeedItemsDict, useFeedItemsOrder } from "../store";
 
 export const INBOX_VIEW_ID = -1;
 export const INBOX_VIEW_PLACEMENT = -1;
@@ -60,7 +59,7 @@ export function useUpdateViewFilter() {
 
 export function useCheckFilteredFeedItemsForView() {
   const feedItemsOrder = useFeedItemsOrder();
-  const feedItemsMap = useFeedItemsMap();
+  const feedItemsDict = useFeedItemsDict();
   const { feedCategories } = useFeedCategories();
   const { feeds } = useFeeds();
   const { views } = useViews();
@@ -72,9 +71,9 @@ export function useCheckFilteredFeedItemsForView() {
 
       return feedItemsOrder.filter(
         (item) =>
-          feedItemsMap[item] &&
+          feedItemsDict[item] &&
           doesFeedItemPassFilters(
-            feedItemsMap[item],
+            feedItemsDict[item],
             viewFilter?.daysWindow ?? 1,
             "unread",
             -1,
@@ -85,7 +84,7 @@ export function useCheckFilteredFeedItemsForView() {
           ),
       );
     },
-    [feedItemsOrder, feedItemsMap, feedCategories, feeds, views],
+    [feedItemsOrder, feedItemsDict, feedCategories, feeds, views],
   );
 }
 

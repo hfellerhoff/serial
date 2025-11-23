@@ -1,16 +1,16 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useTRPC } from "~/trpc/react";
-import { useFeedItemGlobalState } from "../atoms";
 import { orpc } from "~/lib/orpc";
+import { useFeedItemState } from "../store";
 
 export function useFeedItemsSetWatchedValueMutation(contentId: string) {
-  const [feedItem, setFeedItem] = useFeedItemGlobalState(contentId);
+  const [feedItem, setFeedItem] = useFeedItemState(contentId);
 
   // We're not refetching on success here, as the frequency of
   // toggling this value makes it very wasteful
   return useMutation(
     orpc.feedItem.setWatchedValue.mutationOptions({
       onMutate: ({ isWatched }) => {
+        if (!feedItem) return;
         setFeedItem({
           ...feedItem,
           isWatched,
@@ -21,13 +21,14 @@ export function useFeedItemsSetWatchedValueMutation(contentId: string) {
 }
 
 export function useFeedItemsSetWatchLaterValueMutation(contentId: string) {
-  const [feedItem, setFeedItem] = useFeedItemGlobalState(contentId);
+  const [feedItem, setFeedItem] = useFeedItemState(contentId);
 
   // We're not refetching on success here, as the frequency of
   // toggling this value makes it very wasteful
   return useMutation(
     orpc.feedItem.setWatchLaterValue.mutationOptions({
       onMutate: ({ isWatchLater }) => {
+        if (!feedItem) return;
         setFeedItem({
           ...feedItem,
           isWatchLater,

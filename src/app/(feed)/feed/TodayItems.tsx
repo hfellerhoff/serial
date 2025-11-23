@@ -22,15 +22,9 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import {
-  useFeedItemGlobalState,
-  useHasFetchedFeedItems,
-} from "~/lib/data/atoms";
+
 import { useFeedCategories } from "~/lib/data/feed-categories";
-import {
-  useFeedItemsQuery,
-  useFilteredFeedItemsOrder,
-} from "~/lib/data/feed-items";
+import { useFilteredFeedItemsOrder } from "~/lib/data/feed-items";
 import {
   useFeedItemsSetWatchedValueMutation,
   useFeedItemsSetWatchLaterValueMutation,
@@ -39,6 +33,12 @@ import { useFeeds } from "~/lib/data/feeds";
 import { useViews } from "~/lib/data/views";
 import { useDialogStore } from "./dialogStore";
 import { memo } from "react";
+import {
+  feedItemsStore,
+  useFeedItemsLastFetchedAt,
+  useFeedItemValue,
+  useFetchFeedItemsStatus,
+} from "~/lib/data/store";
 
 function timeAgo(date: string | Date) {
   const diff = dayjs().diff(date);
@@ -133,10 +133,13 @@ function TodayItemsFeedEmptyState() {
 }
 
 function LoaderDisplay() {
-  const hasFetchedFeedItems = useHasFetchedFeedItems();
-  const { fetchStatus: feedItemsFetchStatus } = useFeedItemsQuery();
+  const feedItemsLastFetchedAt = useFeedItemsLastFetchedAt();
+  const feedItemsFetchStatus = useFetchFeedItemsStatus();
 
-  if (feedItemsFetchStatus === "idle" || hasFetchedFeedItems) {
+  if (
+    feedItemsFetchStatus !== "fetching" ||
+    (feedItemsFetchStatus === "fetching" && feedItemsLastFetchedAt !== null)
+  ) {
     return null;
   }
 
@@ -158,12 +161,14 @@ function LoaderDisplay() {
 
 function ItemDisplay({ contentId }: { contentId: string }) {
   const { feeds } = useFeeds();
-  const [item] = useFeedItemGlobalState(contentId);
+  const item = useFeedItemValue(contentId);
 
   const { mutateAsync: setWatchedValue } =
     useFeedItemsSetWatchedValueMutation(contentId);
   const { mutateAsync: setWatchLaterValue } =
     useFeedItemsSetWatchLaterValueMutation(contentId);
+
+  if (!item) return null;
 
   const feed = feeds.find((f) => f.id === item.feedId);
 
@@ -263,7 +268,7 @@ export function TodayItems() {
   const { feeds, hasFetchedFeeds } = useFeeds();
   const { hasFetchedFeedCategories } = useFeedCategories();
   const { views } = useViews();
-  const hasFetchedFeedItems = useHasFetchedFeedItems();
+  const feedItemsLastFetchedAt = useFeedItemsLastFetchedAt();
 
   const filteredFeedItemsOrder = useFilteredFeedItemsOrder();
 
@@ -279,7 +284,7 @@ export function TodayItems() {
 
   if (
     hasFetchedFeeds &&
-    hasFetchedFeedItems &&
+    feedItemsLastFetchedAt !== null &&
     hasFetchedFeedCategories &&
     !filteredFeedItemsOrder.length
   ) {

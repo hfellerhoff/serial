@@ -2,10 +2,10 @@
 
 import clsx from "clsx";
 import { useRef } from "react";
-import { useFeedItemGlobalState } from "~/lib/data/atoms";
 import { useFlagState } from "~/lib/hooks/useFlagState";
 import { CustomVideoPlayer } from "./CustomVideoPlayer";
 import classes from "./ResponsiveVideo.module.css";
+import { useFeedItemValue } from "~/lib/data/store";
 
 interface IResponsiveVideoProps {
   videoID?: string;
@@ -35,8 +35,8 @@ function YouTubeEmbed(props: IEmbedProps) {
 }
 
 function PeerTubeEmbed(props: IEmbedProps) {
-  const [feedItem] = useFeedItemGlobalState(props?.videoID ?? "");
-  const baseUrl = feedItem.url.split("/w/")[0];
+  const feedItem = useFeedItemValue(props?.videoID ?? "");
+  const baseUrl = feedItem?.url.split("/w/")[0];
 
   return (
     <>
@@ -61,7 +61,7 @@ export default function ResponsiveVideo(props: IResponsiveVideoProps) {
   const containerRef = useRef<null | HTMLDivElement>(null);
   const [videoPlayer] = useFlagState("CUSTOM_VIDEO_PLAYER");
 
-  const [feedItem] = useFeedItemGlobalState(props?.videoID ?? "");
+  const feedItem = useFeedItemValue(props?.videoID ?? "");
 
   const feedItemPlatform = feedItem?.platform ?? "youtube";
 

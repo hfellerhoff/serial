@@ -5,16 +5,19 @@ import clsx from "clsx";
 import { RefreshCwIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
-import { useFeedItemsQuery } from "~/lib/data/feed-items";
+import { useFetchFeedItems, useFetchFeedItemsStatus } from "~/lib/data/store";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 
 export function RefetchItemsButton() {
   const pathname = usePathname();
 
   const queryClient = useQueryClient();
-  const { fetchStatus } = useFeedItemsQuery();
+
+  const fetchStatus = useFetchFeedItemsStatus();
+  const fetchFeedItems = useFetchFeedItems();
 
   useShortcut("r", () => {
+    fetchFeedItems();
     queryClient.invalidateQueries();
   });
 

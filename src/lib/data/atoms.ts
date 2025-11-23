@@ -9,33 +9,12 @@ import type {
   DatabaseContentCategory,
   DatabaseFeedCategory,
 } from "~/server/db/schema";
+import { feedItemsStore } from "./store";
 
 export const hasFetchedFeedsAtom = atom(false);
 export const feedsAtom = atom<ApplicationFeed[]>([]);
 
-export const hasFetchedFeedItemsAtom = atom(false);
-export const useHasFetchedFeedItems = () =>
-  useAtomValue(hasFetchedFeedItemsAtom);
-
 export const feedItemsOrderAtom = atom<string[]>([]);
-export const useFeedItemsOrder = () => useAtomValue(feedItemsOrderAtom);
-
-export const feedItemsMapAtom = atom<Record<string, ApplicationFeedItem>>({});
-export const useFeedItemsMap = () => useAtomValue(feedItemsMapAtom);
-
-export function useFeedItemAtom(contentId: string) {
-  return useMemo(() => {
-    return focusAtom(feedItemsMapAtom, (optic) => optic.prop(contentId));
-  }, [contentId]);
-}
-export type FeedItemAtom = ReturnType<typeof useFeedItemAtom>;
-
-export function useFeedItemGlobalState(contentId: string) {
-  const feedItemAtom = useFeedItemAtom(contentId);
-  return useAtom(feedItemAtom);
-}
-
-export type FeedItemStateSetter = ReturnType<typeof useFeedItemGlobalState>[1];
 
 export const hasFetchedContentCategoriesAtom = atom(false);
 export const contentCategoriesAtom = atom<DatabaseContentCategory[]>([]);
@@ -69,14 +48,14 @@ export const viewFilterAtom = atom<ApplicationView | null>((get) => {
 
 export const useClearAllUserData = () => {
   const setFeedsAtom = useSetAtom(feedsAtom);
-  const setFeedItemsMapAtom = useSetAtom(feedItemsMapAtom);
+  const resetFeedItems = feedItemsStore.useReset();
   const setContentCategoriesAtom = useSetAtom(contentCategoriesAtom);
   const setFeedCategoriesAtom = useSetAtom(feedCategoriesAtom);
   const setViewsAtom = useSetAtom(viewsAtom);
 
   return () => {
     setFeedsAtom([]);
-    setFeedItemsMapAtom({});
+    resetFeedItems();
     setContentCategoriesAtom([]);
     setFeedCategoriesAtom([]);
     setViewsAtom([]);

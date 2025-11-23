@@ -8,25 +8,25 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { EditFeedDialog } from "~/components/AddFeedDialog";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { CustomVideoButton } from "~/components/CustomVideoButton";
 import { Button } from "~/components/ui/button";
 import { useSidebar } from "~/components/ui/sidebar";
-import { useFeedItemGlobalState } from "~/lib/data/atoms";
+import { PLATFORM_TO_FORMATTED_NAME_MAP } from "~/lib/data/feeds/utils";
+import { useFeedItemValue } from "~/lib/data/store";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 import { OpenRightSidebarButton } from "./OpenRightSidebarButton";
 import { RefetchItemsButton } from "./RefetchItemsButton";
 import { MAX_ZOOM, MIN_ZOOM, useZoom } from "./watch/[id]/useZoom";
-import { useState } from "react";
-import { EditFeedDialog } from "~/components/AddFeedDialog";
-import { PLATFORM_TO_FORMATTED_NAME_MAP } from "~/lib/data/feeds/utils";
 
 function OpenInYouTubeButton() {
   const pathname = usePathname();
   const videoId = pathname.split("/feed/watch/")[1]!;
   const contentId = pathname.split("/feed/read/")[1]!;
 
-  const [feedItem] = useFeedItemGlobalState(videoId || contentId || "");
+  const feedItem = useFeedItemValue(videoId || contentId || "");
 
   // If not a Serial item, assume YouTube
   if (!feedItem) {
@@ -61,7 +61,7 @@ function EditFeedButton() {
   const videoId = pathname.split("/feed/watch/")[1]!;
   const contentId = pathname.split("/feed/read/")[1]!;
 
-  const [feedItem] = useFeedItemGlobalState(videoId || contentId || "");
+  const feedItem = useFeedItemValue(videoId || contentId || "");
 
   const [selectedFeedForEditing, setSelectedFeedForEditing] = useState<
     null | number

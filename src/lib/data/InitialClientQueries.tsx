@@ -4,13 +4,18 @@ import { useAtom } from "jotai";
 import { useEffect, type PropsWithChildren } from "react";
 import { hasSetInitialViewAtom } from "./atoms";
 import { useContentCategoriesQuery } from "./content-categories";
-import { useFeedItemsQuery } from "./feed-items";
 import { useFeedsQuery } from "./feeds";
 import { useUpdateViewFilter, useViews } from "./views";
+import { useFetchFeedItems } from "./store";
 
 export function InitialClientQueries({ children }: PropsWithChildren) {
+  const fetchFeedItems = useFetchFeedItems();
+
+  useEffect(() => {
+    fetchFeedItems();
+  }, []);
+
   useFeedsQuery();
-  useFeedItemsQuery();
   useContentCategoriesQuery();
 
   const [hasSetInitialView, setHasSetInitialView] = useAtom(

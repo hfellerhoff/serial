@@ -16,8 +16,6 @@ import {
   categoryFilterAtom,
   dateFilterAtom,
   feedFilterAtom,
-  useFeedItemsMap,
-  useFeedItemsOrder,
   visibilityFilterAtom,
 } from "~/lib/data/atoms";
 import { useContentCategories } from "~/lib/data/content-categories";
@@ -25,10 +23,11 @@ import { useFeedCategories } from "~/lib/data/feed-categories";
 import { doesFeedItemPassFilters } from "~/lib/data/feed-items";
 import { useDeselectViewFilter } from "~/lib/data/views";
 import { useDialogStore } from "./dialogStore";
+import { useFeedItemsDict, useFeedItemsOrder } from "~/lib/data/store";
 
 function useCheckFilteredFeedItemsForCategory() {
   const feedItemsOrder = useFeedItemsOrder();
-  const feedItemsMap = useFeedItemsMap();
+  const feedItemsMap = useFeedItemsDict();
   const { feedCategories } = useFeedCategories();
 
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
