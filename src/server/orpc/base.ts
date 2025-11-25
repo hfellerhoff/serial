@@ -19,7 +19,9 @@ export async function createRPCContext(opts: { headers: Headers }) {
   };
 }
 
-const o = os.$context<Awaited<ReturnType<typeof createRPCContext>>>();
+export type ORPCContext = Awaited<ReturnType<typeof createRPCContext>>;
+
+const o = os.$context<ORPCContext>();
 
 const timingMiddleware = o.middleware(async ({ next, path }) => {
   const start = Date.now();

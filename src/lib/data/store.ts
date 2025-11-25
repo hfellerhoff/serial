@@ -4,7 +4,7 @@ import { ApplicationFeedItem } from "~/server/db/schema";
 import { orpcRouterClient } from "../orpc";
 import { createSelectorHooks } from "./createSelectorHooks";
 
-type ApplicationStore = {
+export type ApplicationStore = {
   reset: () => void;
   feedItemsOrder: string[];
   setFeedItemsOrder: (itemsOrder: string[]) => void;
@@ -48,18 +48,23 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
       });
 
       let lastUpdateTime = 0;
+      const DEBOUNCE_TIME = 500;
+
       for await (const incomingFeedItems of await orpcRouterClient.feedItem.getAll()) {
-        // const DEBOUNCE_TIME = 50;
-        // const timeSinceLastUpdate = Date.now() - lastUpdateTime;
-        // const timeToWait = DEBOUNCE_TIME - timeSinceLastUpdate;
+        const timeSinceLastUpdate = Date.now() - lastUpdateTime;
+        const timeToWait = DEBOUNCE_TIME - timeSinceLastUpdate;
+        const shouldWaitToRender = timeToWait > 0;
 
-        // if (timeToWait > 0) {
-        //   await new Promise((res) => setTimeout(res, timeToWait));
-        // }
+        const initialItemsDict = shouldWaitToRender
+          ? get().feedItemsDict
+          : {
+              ...get().feedItemsDict,
+            };
 
-        // console.log("updating");
+        const initialItemsOrder = shouldWaitToRender
+          ? get().feedItemsOrder
+          : [...get().feedItemsOrder];
 
-        // TODO: create date sorting
         const { updatedItemsDict, updatedItemsOrder } =
           incomingFeedItems.reduce(
             ({ updatedItemsDict, updatedItemsOrder }, item) => {
@@ -75,8 +80,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               };
             },
             {
-              updatedItemsDict: { ...get().feedItemsDict },
-              updatedItemsOrder: [...get().feedItemsOrder],
+              updatedItemsDict: initialItemsDict,
+              updatedItemsOrder: initialItemsOrder,
             },
           );
 
@@ -84,11 +89,16 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           feedItemsDict: updatedItemsDict,
           feedItemsOrder: updatedItemsOrder,
         });
-        lastUpdateTime = Date.now();
+
+        if (!shouldWaitToRender) {
+          lastUpdateTime = Date.now();
+        }
       }
       set({
         fetchFeedItemsStatus: "success",
         fetchFeedItemsLastFetchedAt: Date.now(),
+        feedItemsDict: { ...get().feedItemsDict },
+        feedItemsOrder: [...get().feedItemsOrder],
       });
     },
   }),
