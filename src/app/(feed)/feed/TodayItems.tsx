@@ -130,33 +130,6 @@ function TodayItemsFeedEmptyState() {
   );
 }
 
-function LoaderDisplay() {
-  const feedItemsLastFetchedAt = useFetchFeedItemsLastFetchedAt();
-  const feedItemsFetchStatus = useFetchFeedItemsStatus();
-
-  if (
-    feedItemsFetchStatus !== "fetching" ||
-    (feedItemsFetchStatus === "fetching" && feedItemsLastFetchedAt !== null)
-  ) {
-    return null;
-  }
-
-  return (
-    <article
-      className={clsx(
-        "group relative mb-6 flex w-full flex-1 items-center justify-center gap-2 rounded px-6",
-      )}
-    >
-      <div className="bg-muted/50 flex w-full flex-1 items-center gap-4 rounded p-6 text-left transition-colors md:justify-center">
-        <RefreshCwIcon className="size-4 animate-spin" />
-        <h3 className="w-fit text-sm font-semibold md:text-sm">
-          Fetching data...
-        </h3>
-      </div>
-    </article>
-  );
-}
-
 function ItemDisplay({ contentId }: { contentId: string }) {
   const { feeds } = useFeeds();
   const item = useFeedItemValue(contentId);
@@ -291,7 +264,6 @@ export function TodayItems() {
 
   return (
     <div className="w-full transition-all md:pt-4 md:pr-6 md:pl-4" ref={parent}>
-      <LoaderDisplay />
       {filteredFeedItemsOrder.map((contentId) => (
         <ItemDisplay contentId={contentId} key={contentId} />
       ))}
