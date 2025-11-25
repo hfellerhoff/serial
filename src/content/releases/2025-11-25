@@ -1,0 +1,14 @@
+---
+title: "Loaders & Feed Streaming"
+description: "Serial's data fetching has been reworked, giving more clarity on loading statuses and feed errors."
+publish_date: "2025-11-25"
+public: true
+---
+
+Happy early Thanksgiving! Here are some more architectural, quality-of-life changes to make Serial more stable and reliable:
+
+## Features
+
+- Reworked data fetching to stream feed item data, shortening the time before new data is available
+- Added feed statuses, making it easy to tell when a feed is broken or doesn't have content
+- Added top loading bar, which shows the progress on fetching feed data
