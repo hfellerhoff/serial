@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { RefreshCwIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useCallback } from "react";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { useFetchFeedItems, useFetchFeedItemsStatus } from "~/lib/data/store";
 import { useShortcut } from "~/lib/hooks/useShortcut";
@@ -16,10 +17,12 @@ export function RefetchItemsButton() {
   const fetchStatus = useFetchFeedItemsStatus();
   const fetchFeedItems = useFetchFeedItems();
 
-  useShortcut("r", () => {
+  const onClick = useCallback(() => {
     fetchFeedItems();
     queryClient.invalidateQueries();
-  });
+  }, [fetchFeedItems, queryClient.invalidateQueries]);
+
+  useShortcut("r", onClick);
 
   if (pathname !== "/feed") return null;
 
@@ -29,9 +32,7 @@ export function RefetchItemsButton() {
     <ButtonWithShortcut
       size="icon md:default"
       variant="outline"
-      onClick={() => {
-        queryClient.invalidateQueries();
-      }}
+      onClick={onClick}
       disabled={isLoading}
       shortcut="r"
     >
