@@ -3,6 +3,7 @@ import { useShallow } from "zustand/react/shallow";
 import { ApplicationFeedItem } from "~/server/db/schema";
 import { orpcRouterClient } from "../orpc";
 import { createSelectorHooks } from "./createSelectorHooks";
+import { sortFeedItemsOrderByDate } from "../sortFeedItems";
 
 export type ApplicationStore = {
   reset: () => void;
@@ -87,7 +88,9 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
 
         set({
           feedItemsDict: updatedItemsDict,
-          feedItemsOrder: updatedItemsOrder,
+          feedItemsOrder: updatedItemsOrder.sort(
+            sortFeedItemsOrderByDate(get().feedItemsDict),
+          ),
         });
 
         if (!shouldWaitToRender) {
@@ -98,7 +101,9 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
         fetchFeedItemsStatus: "success",
         fetchFeedItemsLastFetchedAt: Date.now(),
         feedItemsDict: { ...get().feedItemsDict },
-        feedItemsOrder: [...get().feedItemsOrder],
+        feedItemsOrder: [...get().feedItemsOrder].sort(
+          sortFeedItemsOrderByDate(get().feedItemsDict),
+        ),
       });
     },
   }),
