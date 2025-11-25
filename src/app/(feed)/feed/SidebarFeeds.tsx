@@ -1,5 +1,12 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { CircleSmall, Edit2Icon, PlusIcon } from "lucide-react";
+import {
+  AlertCircleIcon,
+  AlertTriangleIcon,
+  CircleSmall,
+  Edit2Icon,
+  MinusIcon,
+  PlusIcon,
+} from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { EditFeedDialog } from "~/components/AddFeedDialog";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
@@ -23,7 +30,19 @@ import { doesFeedItemPassFilters } from "~/lib/data/feed-items";
 import { useFeeds } from "~/lib/data/feeds";
 import { useDeselectViewFilter } from "~/lib/data/views";
 import { useDialogStore } from "./dialogStore";
-import { useFeedItemsDict, useFeedItemsOrder } from "~/lib/data/store";
+import {
+  useFeedItemsDict,
+  useFeedItemsOrder,
+  useFeedStatusDict,
+  useFetchFeedItemsStatus,
+} from "~/lib/data/store";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
+import { error } from "node:console";
+import { ApplicationFeed } from "~/server/db/schema";
 
 function useCheckFilteredFeedItemsForFeed() {
   const feedItemsOrder = useFeedItemsOrder();
@@ -91,6 +110,10 @@ function useDebouncedState(defaultValue: string, delay: number) {
   return [searchQuery, setDebouncedQuery] as const;
 }
 
+function sortFeedOptions(a: ApplicationFeed, b: ApplicationFeed) {
+  return a.name.localeCompare(b.name);
+}
+
 export function SidebarFeeds() {
   const [searchQuery, setSearchQuery] = useDebouncedState("", 300);
 
@@ -107,52 +130,78 @@ export function SidebarFeeds() {
   const viewFilter = useAtomValue(viewFilterAtom);
   const deselectViewFilter = useDeselectViewFilter();
 
+  const feedStatusDict = useFeedStatusDict();
+  const fetchFeedItemsStatus = useFetchFeedItemsStatus();
+
   const checkFilteredFeedItemsForFeed = useCheckFilteredFeedItemsForFeed();
 
-  const feedOptions = feeds?.map((category) => ({
-    ...category,
-    hasEntries: !!checkFilteredFeedItemsForFeed(category.id).length,
+  const feedOptions = feeds?.map((feed) => ({
+    ...feed,
+    hasEntries: !!checkFilteredFeedItemsForFeed(feed.id).length,
   }));
 
-  const preferredFeedOptions = feedOptions
-    ?.filter((feedOption) => {
+  const {
+    preferredFeedOptions,
+    feedOptionsWithContent,
+    emptyFeedOptions,
+    errorFeedOptions,
+  } = feedOptions?.reduce(
+    (acc, feedOption) => {
+      const {
+        preferredFeedOptions,
+        feedOptionsWithContent,
+        emptyFeedOptions,
+        errorFeedOptions,
+      } = acc;
       if (!!searchQuery) {
         const lowercaseQuery = searchQuery.toLowerCase();
         const lowercaseName = feedOption.name.toLowerCase();
 
         if (lowercaseName.includes(lowercaseQuery)) {
-          return true;
+          preferredFeedOptions.push(feedOption);
+          preferredFeedOptions.sort(sortFeedOptions);
+          return acc;
         }
       } else {
-        if (feedOption.hasEntries) return true;
+        if (feedOption.hasEntries) {
+          preferredFeedOptions.push(feedOption);
+          preferredFeedOptions.sort(sortFeedOptions);
+          return acc;
+        }
       }
 
       if (feedOption.id === feedFilter) {
-        return true;
+        preferredFeedOptions.push(feedOption);
+        preferredFeedOptions.sort(sortFeedOptions);
+        return acc;
       }
 
-      return false;
-    })
-    .toSorted((a, b) => {
-      if (a.id === feedFilter) {
-        return -1;
-      }
-      if (b.id === feedFilter) {
-        return 1;
+      const feedStatus = !!feedStatusDict[feedOption.id]
+        ? feedStatusDict[feedOption.id]
+        : fetchFeedItemsStatus === "fetching"
+          ? "success"
+          : "empty";
+
+      if (feedStatus === "success") {
+        feedOptionsWithContent.push(feedOption);
+        feedOptionsWithContent.sort(sortFeedOptions);
+      } else if (feedStatus === "empty") {
+        emptyFeedOptions.push(feedOption);
+        emptyFeedOptions.sort(sortFeedOptions);
+      } else if (feedStatus === "error") {
+        errorFeedOptions.push(feedOption);
+        errorFeedOptions.sort(sortFeedOptions);
       }
 
-      return a.name.localeCompare(b.name);
-    });
-
-  const otherFeedOptions = feedOptions
-    ?.filter((feedOption) => {
-      return !preferredFeedOptions.some(
-        (option) => option.id === feedOption.id,
-      );
-    })
-    .toSorted((a, b) => {
-      return a.name.localeCompare(b.name);
-    });
+      return acc;
+    },
+    {
+      preferredFeedOptions: [] as typeof feedOptions,
+      feedOptionsWithContent: [] as typeof feedOptions,
+      emptyFeedOptions: [] as typeof feedOptions,
+      errorFeedOptions: [] as typeof feedOptions,
+    },
+  );
 
   const hasAnyItems = !!checkFilteredFeedItemsForFeed(-1).length;
 
@@ -207,6 +256,74 @@ export function SidebarFeeds() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           {preferredFeedOptions.map((feed) => {
+            const feedStatus = !!feedStatusDict[feed.id]
+              ? feedStatusDict[feed.id]
+              : fetchFeedItemsStatus === "fetching"
+                ? "success"
+                : "empty";
+
+            const isSuccess = feedStatus === "success";
+
+            return (
+              <SidebarMenuItem key={feed.id} className="group flex gap-1">
+                <SidebarMenuButton
+                  variant={feed.id === feedFilter ? "outline" : "default"}
+                  onClick={() => {
+                    setFeedFilter(feed.id);
+                    if (!feed.hasEntries) {
+                      deselectViewFilter();
+                    }
+                  }}
+                >
+                  {feedStatus === "error" && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <AlertCircleIcon
+                          size={16}
+                          className="text-sidebar-accent"
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-center">
+                        Something went wrong fetching content for this feed. If
+                        this continues, try deleting this feed and adding it
+                        again with the correct URL.
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {feedStatus === "empty" && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <MinusIcon size={16} className="text-sidebar-accent" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        This feed has no new content within the last 30 days.
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {isSuccess && !feed.hasEntries && (
+                    <CircleSmall size={16} className="text-sidebar-accent" />
+                  )}
+                  {isSuccess && feed.hasEntries && (
+                    <div className="grid size-4 place-items-center">
+                      <div className="bg-sidebar-accent size-2.5 rounded-full" />
+                    </div>
+                  )}
+                  <div className="line-clamp-1">{feed.name}</div>
+                </SidebarMenuButton>
+                <div className="group/button flex w-fit items-center justify-end">
+                  <SidebarMenuButton
+                    onClick={() => setSelectedFeedForEditing(feed.id)}
+                  >
+                    <Edit2Icon className="opacity-30 transition-opacity group-hover/button:opacity-100" />
+                  </SidebarMenuButton>
+                </div>
+              </SidebarMenuItem>
+            );
+          })}
+          {!!preferredFeedOptions.length && !!feedOptionsWithContent.length && (
+            <hr className="my-2 opacity-50" />
+          )}
+          {feedOptionsWithContent.map((feed) => {
             return (
               <SidebarMenuItem key={feed.id} className="group flex gap-1">
                 <SidebarMenuButton
@@ -238,10 +355,10 @@ export function SidebarFeeds() {
               </SidebarMenuItem>
             );
           })}
-          {!!preferredFeedOptions.length && !!otherFeedOptions.length && (
+          {!!feedOptionsWithContent.length && !!emptyFeedOptions.length && (
             <hr className="my-2 opacity-50" />
           )}
-          {otherFeedOptions.map((feed) => {
+          {emptyFeedOptions.map((feed) => {
             return (
               <SidebarMenuItem key={feed.id} className="group flex gap-1">
                 <SidebarMenuButton
@@ -253,14 +370,55 @@ export function SidebarFeeds() {
                     }
                   }}
                 >
-                  {!feed.hasEntries && (
-                    <CircleSmall size={16} className="text-sidebar-accent" />
-                  )}
-                  {feed.hasEntries && (
-                    <div className="grid size-4 place-items-center">
-                      <div className="bg-sidebar-accent size-2.5 rounded-full" />
-                    </div>
-                  )}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <MinusIcon size={16} className="text-sidebar-accent" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      This feed has no new content within the last 30 days.
+                    </TooltipContent>
+                  </Tooltip>
+                  <div className="line-clamp-1">{feed.name}</div>
+                </SidebarMenuButton>
+                <div className="group/button flex w-fit items-center justify-end">
+                  <SidebarMenuButton
+                    onClick={() => setSelectedFeedForEditing(feed.id)}
+                  >
+                    <Edit2Icon className="opacity-30 transition-opacity group-hover/button:opacity-100" />
+                  </SidebarMenuButton>
+                </div>
+              </SidebarMenuItem>
+            );
+          })}
+          {!!emptyFeedOptions.length && !!errorFeedOptions.length && (
+            <hr className="my-2 opacity-50" />
+          )}
+          {errorFeedOptions.map((feed) => {
+            return (
+              <SidebarMenuItem key={feed.id} className="group flex gap-1">
+                <SidebarMenuButton
+                  variant={feed.id === feedFilter ? "outline" : "default"}
+                  onClick={() => {
+                    setFeedFilter(feed.id);
+                    if (!feed.hasEntries) {
+                      deselectViewFilter();
+                    }
+                  }}
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <AlertCircleIcon
+                        size={16}
+                        className="text-sidebar-accent"
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs text-center">
+                      Something went wrong fetching content for this feed. If
+                      this continues, try deleting this feed and adding it again
+                      with the correct URL.
+                    </TooltipContent>
+                  </Tooltip>
+
                   <div className="line-clamp-1">{feed.name}</div>
                 </SidebarMenuButton>
                 <div className="group/button flex w-fit items-center justify-end">

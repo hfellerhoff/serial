@@ -11,7 +11,7 @@ export type ApplicationStore = {
   feedItemsOrder: string[];
   setFeedItemsOrder: (itemsOrder: string[]) => void;
   feedItemsDict: Record<string, ApplicationFeedItem>;
-  feedStatusDict: Record<string, FetchFeedsStatus>;
+  feedStatusDict: Record<number, FetchFeedsStatus>;
   setFeedItemsDict: (itemsDict: Record<string, ApplicationFeedItem>) => void;
   setFeedItem: (id: string, item: ApplicationFeedItem) => void;
   fetchFeedItems: () => Promise<void>;
@@ -54,7 +54,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
       });
 
       let lastUpdateTime = 0;
-      const DEBOUNCE_TIME = 500;
+      const DEBOUNCE_TIME = 1000;
 
       for await (const incomingChunk of await orpcRouterClient.feedItem.getAll()) {
         const timeSinceLastUpdate = Date.now() - lastUpdateTime;

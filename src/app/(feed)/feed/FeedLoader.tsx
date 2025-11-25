@@ -21,7 +21,7 @@ export function FeedLoader() {
         "opacity-100": isFetching,
       })}
     >
-      <Progress max={feeds.length} value={value} className="w-full" />
+      <Progress max={feeds.length || 100} value={value} className="w-full" />
     </div>
   );
 }
