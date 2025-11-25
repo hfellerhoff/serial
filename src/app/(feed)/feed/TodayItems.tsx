@@ -30,15 +30,13 @@ import {
   useFeedItemsSetWatchLaterValueMutation,
 } from "~/lib/data/feed-items/mutations";
 import { useFeeds } from "~/lib/data/feeds";
-import { useViews } from "~/lib/data/views";
-import { useDialogStore } from "./dialogStore";
-import { memo } from "react";
 import {
-  feedItemsStore,
-  useFeedItemsLastFetchedAt,
   useFeedItemValue,
+  useFetchFeedItemsLastFetchedAt,
   useFetchFeedItemsStatus,
 } from "~/lib/data/store";
+import { useViews } from "~/lib/data/views";
+import { useDialogStore } from "./dialogStore";
 
 function timeAgo(date: string | Date) {
   const diff = dayjs().diff(date);
@@ -129,33 +127,6 @@ function TodayItemsFeedEmptyState() {
         </Card>
       </div>
     </>
-  );
-}
-
-function LoaderDisplay() {
-  const feedItemsLastFetchedAt = useFeedItemsLastFetchedAt();
-  const feedItemsFetchStatus = useFetchFeedItemsStatus();
-
-  if (
-    feedItemsFetchStatus !== "fetching" ||
-    (feedItemsFetchStatus === "fetching" && feedItemsLastFetchedAt !== null)
-  ) {
-    return null;
-  }
-
-  return (
-    <article
-      className={clsx(
-        "group relative mb-6 flex w-full flex-1 items-center justify-center gap-2 rounded px-6",
-      )}
-    >
-      <div className="bg-muted/50 flex w-full flex-1 items-center gap-4 rounded p-6 text-left transition-colors md:justify-center">
-        <RefreshCwIcon className="size-4 animate-spin" />
-        <h3 className="w-fit text-sm font-semibold md:text-sm">
-          Fetching data...
-        </h3>
-      </div>
-    </article>
   );
 }
 
@@ -268,7 +239,7 @@ export function TodayItems() {
   const { feeds, hasFetchedFeeds } = useFeeds();
   const { hasFetchedFeedCategories } = useFeedCategories();
   const { views } = useViews();
-  const feedItemsLastFetchedAt = useFeedItemsLastFetchedAt();
+  const feedItemsLastFetchedAt = useFetchFeedItemsLastFetchedAt();
 
   const filteredFeedItemsOrder = useFilteredFeedItemsOrder();
 
@@ -293,7 +264,6 @@ export function TodayItems() {
 
   return (
     <div className="w-full transition-all md:pt-4 md:pr-6 md:pl-4" ref={parent}>
-      <LoaderDisplay />
       {filteredFeedItemsOrder.map((contentId) => (
         <ItemDisplay contentId={contentId} key={contentId} />
       ))}

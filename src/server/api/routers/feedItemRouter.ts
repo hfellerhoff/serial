@@ -5,7 +5,21 @@ import { prepareArrayChunks } from "~/lib/iterators";
 
 import { type ApplicationFeedItem, feedItems, feeds } from "~/server/db/schema";
 import { protectedProcedure } from "~/server/orpc/base";
-import { fetchAndInsertFeedData } from "~/server/rss/fetchFeeds";
+import {
+  fetchAndInsertFeedData,
+  FetchFeedsStatus,
+} from "~/server/rss/fetchFeeds";
+
+type GetAllItemsChunk =
+  | {
+      type: "feed-items";
+      feedItems: ApplicationFeedItem[];
+    }
+  | {
+      type: "feed-status";
+      feedId: number;
+      status: FetchFeedsStatus;
+    };
 
 const isWithinLastMonth = gte(
   feedItems.postedAt,
@@ -35,13 +49,29 @@ export const getAll = protectedProcedure.handler(async function* ({ context }) {
 
   // Send existing feed items to user
   for (const chunk of prepareArrayChunks(existingApplicationFeedItems, 50)) {
-    yield chunk;
+    yield {
+      type: "feed-items",
+      feedItems: chunk,
+    } as GetAllItemsChunk;
   }
 
   // Send new feed items to user as they come in
-  for await (const feedItems of fetchAndInsertFeedData(context, feedsList)) {
-    for (const chunk of prepareArrayChunks(feedItems, 50)) {
-      yield chunk;
+  for await (const feedResult of fetchAndInsertFeedData(context, feedsList)) {
+    yield {
+      type: "feed-status",
+      status: feedResult.status,
+      feedId: feedResult.id,
+    } as GetAllItemsChunk;
+
+    if (feedResult.status !== "success") {
+      continue;
+    }
+
+    for (const chunk of prepareArrayChunks(feedResult.feedItems, 50)) {
+      yield {
+        type: "feed-items",
+        feedItems: chunk,
+      } as GetAllItemsChunk;
     }
   }
 
