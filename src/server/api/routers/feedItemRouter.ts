@@ -3,10 +3,9 @@ import { and, desc, eq, gte, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { prepareArrayChunks } from "~/lib/iterators";
 
-import { checkFeedItemIsVerticalFromUrl } from "~/server/checkFeedItemIsVertical";
 import { type ApplicationFeedItem, feedItems, feeds } from "~/server/db/schema";
 import { protectedProcedure } from "~/server/orpc/base";
-import { fetchFeedData } from "~/server/rss/fetchFeeds";
+import { fetchAndInsertFeedData } from "~/server/rss/fetchFeeds";
 
 const isWithinLastMonth = gte(
   feedItems.postedAt,
@@ -34,73 +33,16 @@ export const getAll = protectedProcedure.handler(async function* ({ context }) {
     } as ApplicationFeedItem;
   });
 
+  // Send existing feed items to user
   for (const chunk of prepareArrayChunks(existingApplicationFeedItems, 50)) {
     yield chunk;
   }
 
-  // Get new items, yield
-
-  // TODO: split this out such that we can return data from
-  // each feed as it comes in
-  const feedData = await fetchFeedData(feedsList);
-  if (!feedData) {
-    return;
-  }
-
-  const feedItemList: (typeof feedItems.$inferInsert)[] =
-    feedData?.flatMap((feed) => {
-      return feed.items.map((item) => {
-        return {
-          feedId: feed.id,
-          contentId: item.id,
-          content: item.content ?? "",
-          title: item.title ?? "",
-          author: item.author ?? "",
-          thumbnail: item.thumbnail ?? "",
-          url: item.url ?? "",
-          postedAt: new Date(item.publishedDate),
-          orientation: checkFeedItemIsVerticalFromUrl(item.url),
-        } satisfies typeof feedItems.$inferInsert;
-      });
-    }) ?? [];
-
-  const feedItemsList = (
-    await context.db.transaction(async (tx) => {
-      return await Promise.all(
-        feedItemList.map(async (item) => {
-          try {
-            return await tx
-              .insert(feedItems)
-              .values(item)
-              .onConflictDoUpdate({
-                target: [feedItems.url, feedItems.feedId],
-                set: item,
-              })
-              .returning();
-          } catch {
-            // For local testing
-            // console.dir({ ...error }, { depth: null });
-          }
-
-          return null;
-        }),
-      );
-    })
-  )
-    .filter(Boolean)
-    .flat();
-
-  const newApplicationFeedItems = feedItemsList.map((item) => {
-    const feed = feedsList.find((feed) => feed.id === item.feedId);
-
-    return {
-      ...item,
-      platform: feed?.platform ?? "youtube",
-    } as ApplicationFeedItem;
-  });
-
-  for (const chunk of prepareArrayChunks(newApplicationFeedItems, 50)) {
-    yield chunk;
+  // Send new feed items to user as they come in
+  for await (const feedItems of fetchAndInsertFeedData(context, feedsList)) {
+    for (const chunk of prepareArrayChunks(feedItems, 50)) {
+      yield chunk;
+    }
   }
 
   return;
