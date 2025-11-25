@@ -11,6 +11,8 @@ import {
 } from "./parsers/youtube";
 import { type NewFeedDetails, type RSSFeed } from "./types";
 
+export type FetchFeedsStatus = "success" | "empty" | "error";
+
 export async function fetchNewFeedDetails(
   url: string,
 ): Promise<NewFeedDetails[]> {
@@ -49,12 +51,12 @@ export async function fetchNewFeedDetails(
 
 type FeedResult =
   | {
-      success: true;
+      status: "success";
       feedItems: ApplicationFeedItem[];
       id: number;
     }
   | {
-      success: false;
+      status: "empty" | "error";
       id: number;
     };
 
@@ -77,9 +79,15 @@ export async function* fetchAndInsertFeedData(
         feedData = await fetchWebsiteFeedData(feed);
       }
 
-      if (!feedData || !feedData.items.length) {
+      if (!feedData) {
         return {
-          success: false,
+          status: "error",
+          id: feed.id,
+        };
+      }
+      if (!feedData.items.length) {
+        return {
+          status: "empty",
           id: feed.id,
         };
       }
@@ -132,13 +140,13 @@ export async function* fetchAndInsertFeedData(
       });
 
       return {
-        success: true,
+        status: "success",
         feedItems: applicationFeedItems,
         id: feed.id,
       };
     } catch (err) {
       return {
-        success: false,
+        status: "error",
         id: feed.id,
       };
     }
@@ -151,13 +159,7 @@ export async function* fetchAndInsertFeedData(
     feedPromises.splice(resultIndex, 1);
     feedIds.splice(resultIndex, 1);
 
-    if (!result.success) {
-      continue;
-    }
-
-    if (result.success) {
-      yield result.feedItems;
-    }
+    yield result;
   }
 
   return;

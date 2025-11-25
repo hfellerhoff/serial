@@ -30,15 +30,13 @@ import {
   useFeedItemsSetWatchLaterValueMutation,
 } from "~/lib/data/feed-items/mutations";
 import { useFeeds } from "~/lib/data/feeds";
-import { useViews } from "~/lib/data/views";
-import { useDialogStore } from "./dialogStore";
-import { memo } from "react";
 import {
-  feedItemsStore,
-  useFeedItemsLastFetchedAt,
   useFeedItemValue,
+  useFetchFeedItemsLastFetchedAt,
   useFetchFeedItemsStatus,
 } from "~/lib/data/store";
+import { useViews } from "~/lib/data/views";
+import { useDialogStore } from "./dialogStore";
 
 function timeAgo(date: string | Date) {
   const diff = dayjs().diff(date);
@@ -133,7 +131,7 @@ function TodayItemsFeedEmptyState() {
 }
 
 function LoaderDisplay() {
-  const feedItemsLastFetchedAt = useFeedItemsLastFetchedAt();
+  const feedItemsLastFetchedAt = useFetchFeedItemsLastFetchedAt();
   const feedItemsFetchStatus = useFetchFeedItemsStatus();
 
   if (
@@ -268,7 +266,7 @@ export function TodayItems() {
   const { feeds, hasFetchedFeeds } = useFeeds();
   const { hasFetchedFeedCategories } = useFeedCategories();
   const { views } = useViews();
-  const feedItemsLastFetchedAt = useFeedItemsLastFetchedAt();
+  const feedItemsLastFetchedAt = useFetchFeedItemsLastFetchedAt();
 
   const filteredFeedItemsOrder = useFilteredFeedItemsOrder();
 
