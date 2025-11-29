@@ -20,6 +20,7 @@ import { doesFeedItemPassFilters } from "../feed-items";
 import { useFeeds } from "../feeds";
 import { sortViewsByPlacement } from "./utils";
 import { useFeedItemsDict, useFeedItemsOrder } from "../store";
+import "core-js/full/set/difference";
 
 export const INBOX_VIEW_ID = -1;
 export const INBOX_VIEW_PLACEMENT = -1;
@@ -114,6 +115,7 @@ export function useViewsQuery() {
       customViews.flatMap((view) => view.categoryIds),
     );
 
+    // @ts-expect-error Polyfilling this
     const inboxViewCategoryIds = allCategoryIdsSet.difference(
       customViewCategoryIdsSet,
     );
