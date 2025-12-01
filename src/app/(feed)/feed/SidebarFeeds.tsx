@@ -1,7 +1,6 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   AlertCircleIcon,
-  AlertTriangleIcon,
   CircleSmall,
   Edit2Icon,
   MinusIcon,
@@ -19,6 +18,11 @@ import {
   SidebarMenuItem,
 } from "~/components/ui/sidebar";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
+import {
   categoryFilterAtom,
   dateFilterAtom,
   feedFilterAtom,
@@ -28,21 +32,15 @@ import {
 import { useFeedCategories } from "~/lib/data/feed-categories";
 import { doesFeedItemPassFilters } from "~/lib/data/feed-items";
 import { useFeeds } from "~/lib/data/feeds";
-import { useDeselectViewFilter } from "~/lib/data/views";
-import { useDialogStore } from "./dialogStore";
 import {
   useFeedItemsDict,
   useFeedItemsOrder,
   useFeedStatusDict,
   useFetchFeedItemsStatus,
 } from "~/lib/data/store";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
-import { error } from "node:console";
+import { useDeselectViewFilter } from "~/lib/data/views";
 import { ApplicationFeed } from "~/server/db/schema";
+import { useDialogStore } from "./dialogStore";
 
 function useCheckFilteredFeedItemsForFeed() {
   const feedItemsOrder = useFeedItemsOrder();
