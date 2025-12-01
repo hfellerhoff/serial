@@ -174,12 +174,9 @@ importers:
       dayjs:
         specifier: ^1.11.19
         version: 1.11.19
-      drizzle-orm:
-        specifier: ^0.44.7
-        version: 0.44.7(@libsql/client@0.15.15)(@planetscale/database@1.19.0)(better-sqlite3@12.4.1)(gel@2.0.2)(kysely@0.28.8)(mysql2@3.15.3)
       drizzle-zod:
         specifier: ^0.8.3
-        version: 0.8.3(drizzle-orm@0.44.7(@libsql/client@0.15.15)(@planetscale/database@1.19.0)(better-sqlite3@12.4.1)(gel@2.0.2)(kysely@0.28.8)(mysql2@3.15.3))(zod@4.1.12)
+        version: 0.8.3(drizzle-orm@0.44.7(@libsql/client@0.15.15)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.4.1)(gel@2.0.2)(kysely@0.28.8)(mysql2@3.15.3))(zod@4.1.12)
       embla-carousel-react:
         specifier: ^8.6.0
         version: 8.6.0(react@19.2.0)
@@ -316,6 +313,9 @@ importers:
       drizzle-kit:
         specifier: ^0.31.6
         version: 0.31.6
+      drizzle-orm:
+        specifier: ^0.44.7
+        version: 0.44.7(@libsql/client@0.15.15)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.4.1)(gel@2.0.2)(kysely@0.28.8)(mysql2@3.15.3)
       eslint:
         specifier: ^9.39.1
         version: 9.39.1(jiti@2.6.1)
@@ -3224,6 +3224,9 @@ packages:
 
   '@tybys/wasm-util@0.10.1':
     resolution: {integrity: sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg==}
+
+  '@types/better-sqlite3@7.6.13':
+    resolution: {integrity: sha512-NMv9ASNARoKksWtsq/SHakpYAYnhBrQgGD8zkLYk/jaK8jUGn08CfEdTRgYhMypUQAfzSP8W6gNLe0q19/t4VA==}
 
   '@types/core-js@2.5.8':
     resolution: {integrity: sha512-VgnAj6tIAhJhZdJ8/IpxdatM8G4OD3VWGlp6xIxUGENZlpbob9Ty4VVdC1FIEp0aK6DBscDDjyzy5FB60TuNqg==}
@@ -10960,6 +10963,11 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
+  '@types/better-sqlite3@7.6.13':
+    dependencies:
+      '@types/node': 24.10.0
+    optional: true
+
   '@types/core-js@2.5.8': {}
 
   '@types/cors@2.8.19':
@@ -12086,18 +12094,19 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.44.7(@libsql/client@0.15.15)(@planetscale/database@1.19.0)(better-sqlite3@12.4.1)(gel@2.0.2)(kysely@0.28.8)(mysql2@3.15.3):
+  drizzle-orm@0.44.7(@libsql/client@0.15.15)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.4.1)(gel@2.0.2)(kysely@0.28.8)(mysql2@3.15.3):
     optionalDependencies:
       '@libsql/client': 0.15.15
       '@planetscale/database': 1.19.0
+      '@types/better-sqlite3': 7.6.13
       better-sqlite3: 12.4.1
       gel: 2.0.2
       kysely: 0.28.8
       mysql2: 3.15.3
 
-  drizzle-zod@0.8.3(drizzle-orm@0.44.7(@libsql/client@0.15.15)(@planetscale/database@1.19.0)(better-sqlite3@12.4.1)(gel@2.0.2)(kysely@0.28.8)(mysql2@3.15.3))(zod@4.1.12):
+  drizzle-zod@0.8.3(drizzle-orm@0.44.7(@libsql/client@0.15.15)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.4.1)(gel@2.0.2)(kysely@0.28.8)(mysql2@3.15.3))(zod@4.1.12):
     dependencies:
-      drizzle-orm: 0.44.7(@libsql/client@0.15.15)(@planetscale/database@1.19.0)(better-sqlite3@12.4.1)(gel@2.0.2)(kysely@0.28.8)(mysql2@3.15.3)
+      drizzle-orm: 0.44.7(@libsql/client@0.15.15)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.4.1)(gel@2.0.2)(kysely@0.28.8)(mysql2@3.15.3)
       zod: 4.1.12
 
   dunder-proto@1.0.1:
