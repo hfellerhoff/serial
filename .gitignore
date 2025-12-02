@@ -51,6 +51,7 @@ yarn-error.log*
 **/public/worker-*.js.map
 
 *.db
+*.db*
 .obsidian/**
 
 .env.local
