@@ -12,45 +12,48 @@ All release notes can be found at [https://serial.tube/releases](https://serial.
 
 ## Local Development
 
-> Note: Local development is only possible through the `libsql` host [Turso](https://turso.tech/) at the moment. This will change going forward, but keep in mind that your current database choices may be limited.
-
 Getting up and running with Serial is easy. Here are the steps you need to start developing locally:
 
 1. Clone the repository locally
 2. Install the Turso CLI: https://github.com/tursodatabase/turso-cli
 3. Duplicate the `.env.example` file, and rename the copy to `.env`
 4. Navigate to [Better Auth](https://www.better-auth.com/docs/installation#set-environment-variables) and generate an auth secret. Set this as `BETTER_AUTH_SECRET`
-5. (optional) Create an account on [Sendgrid](https://sendgrid.com/en-us) and set up a mailing address.
-	- This is not necessary to get up and running, but is needed if you'd like working password reset and other email-related functionality.
-6. Install your packages with `pnpm`
-	1. If you don't have it already, install [pnpm](https://pnpm.io/)
-	2. Run `pnpm i` to install packages
-7. That's it! Run `pnpm dev` to create, migrate, and run your database for the first time, then boot up the development server.
+5. Install [pnpm](https://pnpm.io/) if you don't have it already
+6. Run `pnpm i` to install packages
+7. Run `pnpm dev` to create, migrate, and run your database for the first time, then boot up the development server.
+
+If you'd like to support additional features in development, [see below!](#enabling-additional-features)
 
 ## Self Hosting
 
 > Note: Self hosting is only possible through the `libsql` host [Turso](https://turso.tech/) at the moment. This will change going forward, but keep in mind that your current database choices may be limited.
 
-Self hosting Serial is relatively easy. I'll use the platform [Vercel](https://vercel.com/) here as an example (since it's easy to deploy Next.js applications there) but many platforms should work.
+Self hosting Serial is relatively easy. Here are the current platform-specific guides available:
+- [Vercel](/docs/hosting/vercel.md)
+- Coolify
 
-If you'd like a deployment target with more ownership that's still relatively easy to use, I would recommend [Coolify](https://coolify.io/). I use it to run the main Serial instance.
+If your preferred platform doesn't have a guide, follow these rough steps:
 
-On  [Vercel](https://vercel.com/), follow these steps:
 1. Fork the `hfellerhoff/serial` respository to your own GitHub account.
-2. Login to [Vercel](https://vercel.com/) and follow the onboarding to link your GitHub account.
-3. Choose the `serial` repository and hit deploy. Your initial deployment will fail – that's okay.
-4. Within your project, navigate to `Settings > Domains`. You have a few options for project domains:
-	1. You can copy the provided domain as is
-	2. You can update the provided domain with a new name
-	3. You can link an existing domain
-5. Whichever domain you choose, copy that name and head down to `Environment Variables`. Add that domain value as `VITE_BASE_URL`, being sure to include the protocol (`https://`)
-6. Create a new database on  [Turso](https://turso.tech/)
-	1. Sign up for an account if you don't have one, and navigate to the database dashboard
-	2. Create a new database
-	3. In the top right dropdown menu, click "Create Token" 
-	4. Create a token with read and write permissions
-	5. On the success screen, save the top value as `DATABASE_AUTH_TOKEN` and the bottom as `DATABASE_URL` in your environment variables.
-7. Navigate to [Better Auth](https://www.better-auth.com/docs/installation#set-environment-variables) and generate an auth secret. Set this as `BETTER_AUTH_SECRET` in your environment variables.
-8. (optional) Create an account on [Sendgrid](https://sendgrid.com/en-us) and set up a mailing address.
-	- This is not necessary to get up and running, but is needed if you'd like working password reset and other email-related functionality.
-9. That's it! Head on over to `Deployments` in the top navigation bar, choose `Create Deployment` in the top right menu, and head on over to your project URL once it's done!
+2. Use a git-based deployment system to deploy when a new commit happens. This will make it easy to keep your deploment up to date.
+3. Set up a custom domain (if desired)
+4. Choose your database provider:
+    - (WIP) If you want to use a local sqlite database, no additional configuration is needed.
+    - If you want to use a cloud libsql database provider (like [Turso](https://turso.tech/)), set up a database and add your `DATABASE_AUTH_TOKEN` and `DATABASE_URL` to your environment variables.
+5. Navigate to [Better Auth](https://www.better-auth.com/docs/installation#set-environment-variables) and generate an auth secret. Set this as `BETTER_AUTH_SECRET` in your environment variables.
+6. Deploy your application
+
+If you'd like to support additional features, [see below!](#enabling-additional-features)
+
+## Enabling additional features
+Serial takes a model of progressive enhancement for features. The app can run with very few external dependencies, but services can be enabled whenever you want for whatever you need for your specific instance.
+
+### Email support (for password reset, etc)
+- Create an account on [Sendgrid](https://sendgrid.com/en-us)
+- Set up a mailing address
+- Add your `SENDGRID_API_KEY` to `.env` or your host's environment variables UI.
+
+### Instapaper integration
+- Register a new Instapaper OAuth application using [their form](https://www.instapaper.com/main/request_oauth_consumer_token).
+- Wait to recieve your OAuth credentials
+- Add your `INSTAPAPER_OAUTH_ID` and `INSTAPAPER_OAUTH_SECRET` to `.env` or your host's environment variables UI.
