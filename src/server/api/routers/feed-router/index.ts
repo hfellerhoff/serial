@@ -11,6 +11,7 @@ import {
   feeds,
   feedsSchema,
   openLocationSchema,
+  PLATFORM_DEFAULT_OPEN_LOCATION,
 } from "~/server/db/schema";
 import { protectedProcedure } from "~/server/orpc/base";
 import { fetchNewFeedDetails } from "~/server/rss/fetchFeeds";
@@ -56,6 +57,7 @@ export const create = protectedProcedure
             .values({
               userId: context.user.id,
               ...newFeed,
+              openLocation: PLATFORM_DEFAULT_OPEN_LOCATION[newFeed.platform],
             })
             .returning();
 
@@ -146,6 +148,7 @@ export const createFromSubscriptionImport = protectedProcedure
               .values({
                 userId: context.user.id,
                 ...newFeed,
+                openLocation: PLATFORM_DEFAULT_OPEN_LOCATION[newFeed.platform],
               })
               .returning();
             const newFeedRow = newFeeds?.[0];

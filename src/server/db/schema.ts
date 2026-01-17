@@ -108,11 +108,15 @@ export const feeds = sqliteTable(
   },
   (example) => [index("feed_name_idx").on(example.name)],
 );
-export const platformsSchema = z.enum(["youtube", "peertube", "website"]);
+export const platformsSchema = z.enum(["youtube", "peertube", "nebula", "website"]);
 export type FeedPlatform = z.infer<typeof platformsSchema>;
 
 export const openLocationSchema = z.enum(["serial", "origin"]);
 export type FeedOpenLocation = z.infer<typeof openLocationSchema>;
+
+export const PLATFORM_DEFAULT_OPEN_LOCATION: Partial<Record<FeedPlatform, FeedOpenLocation>> = {
+  nebula: "origin",
+};
 
 export const feedsSchema = createSelectSchema(feeds).merge(
   z.object({

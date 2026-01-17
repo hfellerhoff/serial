@@ -2,6 +2,7 @@ import { checkFeedItemIsVerticalFromUrl } from "../checkFeedItemIsVertical";
 import { ApplicationFeedItem, DatabaseFeed, feedItems } from "../db/schema";
 import { buildConflictUpdateColumns } from "../db/utils";
 import { ORPCContext } from "../orpc/base";
+import { fetchNebulaFeedData, fetchNebulaFeedDetails } from "./parsers/nebula";
 import { fetchPeerTubeFeedData } from "./parsers/peertube";
 import { fetchUnknownRssFeed } from "./parsers/unknown";
 import { fetchWebsiteFeedData } from "./parsers/website";
@@ -38,6 +39,9 @@ export async function fetchNewFeedDetails(
         if (url.includes("youtube.com")) {
           return fetchYouTubeFeedDetails(url);
         }
+        if (url.includes("nebula.tv") || url.includes("nebula.app")) {
+          return fetchNebulaFeedDetails(url);
+        }
         return fetchUnknownRssFeed(url);
       }),
     )
@@ -46,8 +50,6 @@ export async function fetchNewFeedDetails(
   // get feeds
   return feedDetailList;
 }
-
-// : Promise<RSSFeed[] | null>
 
 type FeedResult =
   | {
@@ -74,6 +76,9 @@ export async function* fetchAndInsertFeedData(
       }
       if (feed.platform === "peertube") {
         feedData = await fetchPeerTubeFeedData(feed);
+      }
+      if (feed.platform === "nebula") {
+        feedData = await fetchNebulaFeedData(feed);
       }
       if (feed.platform === "website") {
         feedData = await fetchWebsiteFeedData(feed);
