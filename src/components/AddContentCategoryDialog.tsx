@@ -245,7 +245,6 @@ export function EditContentCategoryDialog({
       open={selectedContentCategoryId !== null}
       onOpenChange={onClose}
       title="Edit Category"
-      description="Update your category settings"
     >
       <div className="grid gap-6">
         <CategoryNameInput name={name} setName={setName} />

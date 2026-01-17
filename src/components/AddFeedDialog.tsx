@@ -201,7 +201,6 @@ export function EditFeedDialog({
       open={selectedFeedId !== null}
       onOpenChange={onClose}
       title="Edit Feed"
-      description="Update your feed settings"
     >
       <div className="grid gap-6">
         <div className="grid gap-2">

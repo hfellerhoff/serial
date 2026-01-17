@@ -280,7 +280,6 @@ export function EditViewDialog({
       open={selectedViewId !== null}
       onOpenChange={onClose}
       title="Edit View"
-      description="Update your view settings"
     >
       <div className="grid gap-6">
         <ViewNameInput name={name} setName={setName} />
