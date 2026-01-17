@@ -177,6 +177,9 @@ importers:
       fast-xml-parser:
         specifier: ^5.3.3
         version: 5.3.3
+      feedscout:
+        specifier: ^1.1.0
+        version: 1.1.0
       gray-matter:
         specifier: ^4.0.3
         version: 4.0.3
@@ -4706,6 +4709,10 @@ packages:
     resolution: {integrity: sha512-aN97NXWF6AWBTahfVOIrB/NShkzi5H7F9r1s9mD3cDj4Ko5f2qhhVoYMibXF7GlLveb/D2ioWay8lxI97Ven3g==}
     engines: {node: '>=0.12'}
 
+  entities@7.0.0:
+    resolution: {integrity: sha512-FDWG5cmEYf2Z00IkYRhbFrwIwvdFKH07uV8dvNy0omp/Qb1xcyCWp2UDtcwJF4QZZvk0sLudP6/hAu42TaqVhQ==}
+    engines: {node: '>=0.12'}
+
   env-paths@3.0.0:
     resolution: {integrity: sha512-dtJUTepzMW3Lm/NPxRf3wP4642UWhjL2sQxc+ym2YMj1m/H2zDNQOlezafzkHwn6sMstjHTwG6iQQsctDW/b1A==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
@@ -4974,6 +4981,12 @@ packages:
     peerDependenciesMeta:
       picomatch:
         optional: true
+
+  feedscout@1.1.0:
+    resolution: {integrity: sha512-BkOoNDx6r1RtS/zqg6GPmwGemLF16bTzMBDKKbiQkUwoUAsTzUd6v4dInZdaN0ac5z9IkKaRGlQe/VollWh9oQ==}
+
+  feedsmith@2.8.0:
+    resolution: {integrity: sha512-LloQgc/Kc82PGwAsNV0AjkDGS91NRdbP1jTwJMfRHkhLu7NgGPWyi/TWz06r4PXh0ixhf+5NAgt8bL/Wg/u7/A==}
 
   fetch-blob@3.2.0:
     resolution: {integrity: sha512-7yAQpD2UMJzLi1Dqv7qFYnPbaPx7ZfFK6PiIxQ4PfkGPyNyl2Ugx+a/umUonmKqjhM4DnfbMvdX6otXq83soQQ==}
@@ -11980,6 +11993,8 @@ snapshots:
 
   entities@6.0.1: {}
 
+  entities@7.0.0: {}
+
   env-paths@3.0.0: {}
 
   error-causes@3.0.2: {}
@@ -12447,6 +12462,16 @@ snapshots:
   fdir@6.5.0(picomatch@4.0.3):
     optionalDependencies:
       picomatch: 4.0.3
+
+  feedscout@1.1.0:
+    dependencies:
+      feedsmith: 2.8.0
+      htmlparser2: 10.0.0
+
+  feedsmith@2.8.0:
+    dependencies:
+      entities: 7.0.0
+      fast-xml-parser: 5.3.3
 
   fetch-blob@3.2.0:
     dependencies:

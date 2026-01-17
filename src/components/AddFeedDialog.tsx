@@ -14,6 +14,12 @@ import { useShortcut } from "~/lib/hooks/useShortcut";
 import type { FeedOpenLocation, FeedPlatform } from "~/server/db/schema";
 import { getAssumedFeedPlatform } from "~/server/rss/validateFeedUrl";
 import { ViewCategoriesInput } from "./AddViewDialog";
+import {
+  FeedDiscoveryInput,
+  FeedDiscoveryResults,
+  SelectedFeedBadge,
+  useFeedDiscovery,
+} from "./feed-discovery";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -23,12 +29,11 @@ import { useDialogStore } from "~/components/feed/dialogStore";
 import { Link } from "@tanstack/react-router";
 
 export function AddFeedDialog() {
-  const [feedUrl, setFeedUrl] = useState("");
   const [isAddingFeed, setIsAddingFeed] = useState(false);
-
-  const { mutateAsync: createFeed } = useCreateFeedMutation();
-
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+
+  const discovery = useFeedDiscovery();
+  const { mutateAsync: createFeed } = useCreateFeedMutation();
 
   const dialog = useDialogStore((store) => store.dialog);
   const onDialogOpenChange = useDialogStore((store) => store.onOpenChange);
@@ -43,12 +48,12 @@ export function AddFeedDialog() {
     onDialogOpenChange(open);
 
     if (!open) {
-      setFeedUrl("");
       setSelectedCategories([]);
+      discovery.reset();
     }
   };
 
-  const feedPlatform = getAssumedFeedPlatform(feedUrl);
+  const feedPlatform = getAssumedFeedPlatform(discovery.feedUrl);
 
   return (
     <ControlledResponsiveDialog
@@ -58,65 +63,82 @@ export function AddFeedDialog() {
     >
       <div className="grid gap-6">
         <div className="grid gap-2">
-          <Label htmlFor="url">Channel or RSS Feed URL</Label>
-          <Input
-            id="url"
-            type="url"
-            value={feedUrl}
-            placeholder="https://www.youtube.com/@example"
-            onChange={(e) => {
-              setFeedUrl(e.target.value);
-            }}
+          <Label htmlFor="url">Website, Channel, or RSS Feed URL</Label>
+          {discovery.isLocked && discovery.selectedFeed ? (
+            <SelectedFeedBadge
+              feed={discovery.selectedFeed}
+              onClear={discovery.handleClearSelection}
+            />
+          ) : (
+            <FeedDiscoveryInput
+              url={discovery.url}
+              onUrlChange={discovery.handleUrlChange}
+              onDiscover={discovery.discoverFeeds}
+              isDiscovering={discovery.isDiscovering}
+              canDiscover={discovery.canDiscover}
+            />
+          )}
+        </div>
+        {discovery.isSelecting && (
+          <FeedDiscoveryResults
+            feeds={discovery.discoveredFeeds}
+            onSelectFeed={discovery.handleSelectFeed}
           />
-        </div>
-        <ViewCategoriesInput
-          selectedCategories={selectedCategories}
-          setSelectedCategories={setSelectedCategories}
-        />
-        <Button
-          disabled={isAddingFeed}
-          onClick={async () => {
-            setIsAddingFeed(true);
+        )}
+        {discovery.isLocked && (
+          <>
+            <ViewCategoriesInput
+              selectedCategories={selectedCategories}
+              setSelectedCategories={setSelectedCategories}
+            />
+            <Button
+              disabled={isAddingFeed}
+              onClick={async () => {
+                setIsAddingFeed(true);
 
-            try {
-              const createFeedPromise = createFeed({
-                url: feedUrl,
-                categoryIds: selectedCategories,
-              });
-              toast.promise(createFeedPromise, {
-                loading: "Adding feed...",
-                success: () => {
-                  return "Feed added!";
-                },
-                error: () => {
-                  return "Something went wrong adding your feed.";
-                },
-              });
-              setFeedUrl("");
-              onOpenChange(false);
-            } catch {}
+                try {
+                  const createFeedPromise = createFeed({
+                    url: discovery.feedUrl,
+                    categoryIds: selectedCategories,
+                  });
+                  toast.promise(createFeedPromise, {
+                    loading: "Adding feed...",
+                    success: () => {
+                      return "Feed added!";
+                    },
+                    error: () => {
+                      return "Something went wrong adding your feed.";
+                    },
+                  });
+                  discovery.reset();
+                  onOpenChange(false);
+                } catch {}
 
-            setIsAddingFeed(false);
-          }}
-        >
-          Add {PLATFORM_TO_FORMATTED_NAME_MAP[feedPlatform]} Feed
-        </Button>
-        <div className="py-4">
-          <hr />
-        </div>
-        <Label>Have a lot of feeds to add?</Label>
-        <Link to="/import">
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => {
-              onOpenChange(false);
-            }}
-          >
-            <ImportIcon size={16} />
-            <span className="pl-1.5">Bulk Import</span>
-          </Button>
-        </Link>
+                setIsAddingFeed(false);
+              }}
+            >
+              Add {PLATFORM_TO_FORMATTED_NAME_MAP[feedPlatform]} Feed
+            </Button>
+          </>
+        )}
+        {!discovery.isLocked && (
+          <>
+            <hr />
+            <Label>Have a lot of feeds to add?</Label>
+            <Link to="/import">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  onOpenChange(false);
+                }}
+              >
+                <ImportIcon size={16} />
+                <span className="pl-1.5">Bulk Import</span>
+              </Button>
+            </Link>
+          </>
+        )}
       </div>
     </ControlledResponsiveDialog>
   );

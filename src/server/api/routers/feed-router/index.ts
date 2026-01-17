@@ -1,4 +1,5 @@
 import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
+import { discoverFeeds as discoverFeedsFromUrl } from "feedscout";
 import { z } from "zod";
 import { parseArrayOfSchema } from "~/lib/schemas/utils";
 
@@ -81,9 +82,12 @@ export const create = protectedProcedure
       throw new Error(errors[0]?.error ?? "Failed to create feed");
     }
 
-    const createdFeeds = results.filter(
-      (r): r is { feed: typeof feeds.$inferSelect } => "feed" in r && !!r.feed,
-    );
+    const createdFeeds = results
+      .filter(
+        (r): r is { feed: typeof feeds.$inferSelect } =>
+          "feed" in r && !!r.feed,
+      )
+      .map((r) => r.feed);
 
     return parseArrayOfSchema(createdFeeds, feedsSchema);
   });
@@ -306,5 +310,79 @@ export const update = protectedProcedure
       const updatedFeed = updatedFeeds[0];
       if (!updatedFeed) return null;
       return feedsSchema.parse(updatedFeed);
+    });
+  });
+
+async function discoverYouTubeFeeds(url: string) {
+  if (!url.includes("youtube.com/@") && !url.includes("youtube.com/channel/")) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(url);
+    const text = await response.text();
+
+    const rssFeedUrlMatches = text.matchAll(
+      /<link rel="alternate" type="application\/rss\+xml" title="RSS" href="(https:\/\/www\.youtube\.com\/feeds\/videos\.xml\?channel_id=[^&]{24})">/gm,
+    );
+
+    const channelNameMatch = text.match(
+      /<meta property="og:title" content="([^"]+)">/,
+    );
+    const channelName = channelNameMatch?.[1];
+
+    const feedUrls = Array.from(rssFeedUrlMatches)
+      .map((match) => match?.[1])
+      .filter(Boolean);
+
+    if (feedUrls.length === 0) {
+      return null;
+    }
+
+    return feedUrls.map((feedUrl) => ({
+      url: feedUrl,
+      title: channelName,
+      format: "atom" as const,
+    }));
+  } catch {
+    return null;
+  }
+}
+
+export const discoverFeeds = protectedProcedure
+  .input(z.object({ url: z.string().url() }))
+  .handler(async ({ input }) => {
+    const [youtubeResult, feedscoutResult] = await Promise.allSettled([
+      discoverYouTubeFeeds(input.url),
+      discoverFeedsFromUrl(input.url, {
+        methods: ["platform", "html", "headers", "guess"],
+      }),
+    ]);
+
+    const feeds: { url: string; title?: string; format?: string }[] = [];
+
+    if (youtubeResult.status === "fulfilled" && youtubeResult.value) {
+      feeds.push(...youtubeResult.value);
+    }
+
+    if (feedscoutResult.status === "fulfilled") {
+      const feedscoutFeeds = feedscoutResult.value.filter((f) => f.isValid);
+      feeds.push(...feedscoutFeeds);
+    }
+
+    // Deduplicate by URL and filter out invalid YouTube feeds
+    const seen = new Set<string>();
+    return feeds.filter((feed) => {
+      if (seen.has(feed.url)) return false;
+      seen.add(feed.url);
+
+      // Filter out YouTube feeds without channel_id
+      if (
+        feed.url.includes("youtube.com") &&
+        !feed.url.includes("channel_id=")
+      ) {
+        return false;
+      }
+      return true;
     });
   });

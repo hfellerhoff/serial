@@ -76,6 +76,7 @@
     "drizzle-zod": "^0.8.3",
     "embla-carousel-react": "^8.6.0",
     "fast-xml-parser": "^5.3.3",
+    "feedscout": "^1.1.0",
     "gray-matter": "^4.0.3",
     "hast-util-to-string": "^3.0.1",
     "html-react-parser": "^5.2.11",
