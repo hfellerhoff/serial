@@ -2,7 +2,7 @@
 
 # Serial
 
-A snappy, customizable video feed. Designed to show you exactly the content you want to see and nothing else.
+A snappy, customizable RSS reader specifically designed for video content. Designed to show you exactly the content you want to see and nothing else.
 
 [Check it out →](https://serial.tube/welcome)
 
