@@ -248,11 +248,6 @@ export function EditContentCategoryDialog({
     >
       <div className="grid gap-6">
         <CategoryNameInput name={name} setName={setName} />
-        <CategoryFeedsInput
-          updatedFeedIdCategorizations={updatedFeedIdCategorizations}
-          setUpdatedFeedIdCategorizations={setUpdatedFeedIdCategorizations}
-          categoryId={selectedContentCategoryId}
-        />
         <div className="flex gap-2">
           <Button
             disabled={isDeletingContentCategory}
