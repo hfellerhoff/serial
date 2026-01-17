@@ -7,14 +7,14 @@ export const env = createEnv({
    * isn't built with invalid env vars.
    */
   server: {
-    DATABASE_URL: z
+    DATABASE_URL: z.string().url(),
+    DATABASE_AUTH_TOKEN: z
       .string()
-      .url()
+      .optional()
       .refine(
-        (str) => !str.includes("YOUR_MYSQL_URL_HERE"),
-        "You forgot to change the default URL",
+        (str) => !(!!str && process.env.DATABASE_URL?.includes("https://")),
+        "A DATABASE_AUTH_TOKEN is needed.",
       ),
-    DATABASE_AUTH_TOKEN: z.string(),
     BETTER_AUTH_SECRET: z.string(),
     SENDGRID_API_KEY: z.string().optional(),
     INSTAPAPER_OAUTH_ID: z.string().optional(),

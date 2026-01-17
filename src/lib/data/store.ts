@@ -49,6 +49,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
     fetchFeedItems: async () => {
       if (get().fetchFeedItemsStatus === "fetching") return;
 
+      console.log("FETCHING");
+
       set({
         fetchFeedItemsStatus: "fetching",
         feedStatusDict: {},
@@ -181,6 +183,7 @@ export const {
   useFetchFeedItemsStatus,
   useFetchFeedItems,
   useFetchFeedItemsForFeed,
+  useReset: useResetFeedItems,
 } = feedItemsStore;
 
 export const useFeedItemValue = (id: string) => {
