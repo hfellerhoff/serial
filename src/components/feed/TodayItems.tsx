@@ -184,16 +184,16 @@ function ItemDisplay({ contentId }: { contentId: string }) {
             className="aspect-video w-16 rounded object-cover"
           />
         ) : !!feed?.imageUrl ? (
-          <div className="grid aspect-video w-16 place-items-center rounded object-cover">
+          <div className="grid size-16 place-items-center rounded object-contain p-3">
             <img
               src={feed.imageUrl}
               alt={item.title}
-              className="aspect-square h-9 rounded object-cover"
+              className="aspect-square rounded object-contain"
             />
           </div>
         ) : (
-          <div className="grid aspect-video w-16 place-items-center rounded object-cover">
-            <div className="bg-muted aspect-square h-9 rounded object-cover" />
+          <div className="grid size-16 place-items-center rounded">
+            <div className="bg-muted aspect-square h-10 rounded" />
           </div>
         )}
         <div className="flex h-full flex-1 flex-col justify-center">
