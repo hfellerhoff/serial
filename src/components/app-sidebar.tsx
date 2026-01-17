@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { SidebarCategories } from "~/app/(feed)/feed/SidebarCategories";
-import { SidebarFeeds } from "~/app/(feed)/feed/SidebarFeeds";
-import { SidebarViews } from "~/app/(feed)/feed/SidebarViews";
-import { UserManagementNavItem } from "~/app/(feed)/feed/UserManagementButton";
+import { SidebarCategories } from "~/components/feed/SidebarCategories";
+import { SidebarFeeds } from "~/components/feed/SidebarFeeds";
+import { SidebarViews } from "~/components/feed/SidebarViews";
+import { UserManagementNavItem } from "~/components/feed/UserManagementButton";
 import { LeftSidebarBottomNav } from "~/components/LeftSidebarBottomNav";
 import {
   Sidebar,
@@ -17,6 +16,7 @@ import {
   useSidebar,
 } from "~/components/ui/sidebar";
 import { SerialLogo } from "./SerialLogo";
+import { Link } from "@tanstack/react-router";
 
 export function AppLeftSidebar() {
   const { toggleSidebar, isMobile } = useSidebar();
@@ -36,7 +36,7 @@ export function AppLeftSidebar() {
               asChild
               className="-mx-0.5 h-12 data-[slot=sidebar-menu-button]:!p-2"
             >
-              <Link href="/feed" onClick={onNavigate}>
+              <Link to="/" onClick={onNavigate}>
                 <SerialLogo className="size-8" />
                 <span className="font-mono text-base font-semibold">
                   Serial

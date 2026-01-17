@@ -55,3 +55,13 @@ yarn-error.log*
 .obsidian/**
 
 .env.local
+
+# tanstack
+dist
+.output
+
+plans
+plans/**
+
+CLAUDE.md
+.content-collections

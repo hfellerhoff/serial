@@ -1,9 +1,9 @@
 "use client";
 
 import { type ElementRef, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
+import { useLocation, useRouter } from "@tanstack/react-router";
 
 export function UnstyledDialog({
   children,
@@ -25,7 +25,7 @@ export function UnstyledDialog({
   }, []);
 
   function onDismiss() {
-    router.back();
+    router.history.back();
   }
 
   return createPortal(

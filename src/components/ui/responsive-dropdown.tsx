@@ -4,6 +4,14 @@ import type {
   DropdownMenuContentProps,
   DropdownMenuItemProps,
 } from "@radix-ui/react-dropdown-menu";
+import { ArrowLeftIcon } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
 import {
   Drawer,
   DrawerContent,
@@ -90,6 +98,69 @@ export function ResponsiveDropdown({
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="text-left">
+          <DrawerTitle>{title}</DrawerTitle>
+          <DrawerDescription>{description}</DrawerDescription>
+        </DrawerHeader>
+        <div className="px-4 pb-4">{children}</div>
+      </DrawerContent>
+    </Drawer>
+  );
+}
+
+interface ControlledResponsiveDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: React.ReactNode;
+  title?: string;
+  description?: string;
+  onBack?: () => void;
+}
+export function ControlledResponsiveDialog({
+  open,
+  onOpenChange,
+  children,
+  title,
+  description,
+  onBack,
+}: ControlledResponsiveDialogProps) {
+  const isDesktop = useMediaQuery("(min-width: 640px)");
+
+  if (isDesktop) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="text-muted-foreground hover:text-foreground mb-4 flex w-fit items-center gap-1 text-sm transition-colors"
+              >
+                <ArrowLeftIcon size={16} />
+                <span>Back</span>
+              </button>
+            )}
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
+          </DialogHeader>
+          {children}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent>
+        <DrawerHeader className="text-left">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="text-muted-foreground hover:text-foreground mb-2 flex w-fit items-center gap-1 text-sm transition-colors"
+            >
+              <ArrowLeftIcon size={16} />
+              <span>Back</span>
+            </button>
+          )}
           <DrawerTitle>{title}</DrawerTitle>
           <DrawerDescription>{description}</DrawerDescription>
         </DrawerHeader>

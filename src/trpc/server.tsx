@@ -1,6 +1,5 @@
 import type { TRPCQueryOptions } from "@trpc/tanstack-react-query";
 import { cache } from "react";
-import { headers as getNextHeaders } from "next/headers";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
 
@@ -10,14 +9,21 @@ import { appRouter } from "~/server/api/root";
 
 import { auth } from "~/server/auth";
 import { getQueryClient } from "./react";
+import {
+  getRequest,
+  setResponseHeader,
+  setResponseHeaders,
+} from "@tanstack/react-start/server";
 
 /**
  * This wraps the `createTRPCContext` helper and provides the required context for the tRPC API when
  * handling a tRPC call from a React Server Component.
  */
 const createContext = cache(async () => {
-  const headers = new Headers(await getNextHeaders());
+  const { headers } = getRequest();
+
   headers.set("x-trpc-source", "rsc");
+  setResponseHeaders(headers);
 
   return createTRPCContext({
     auth: await auth.api.getSession({

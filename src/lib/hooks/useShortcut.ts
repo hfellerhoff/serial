@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { doesAnyFormElementHaveFocus } from "../doesAnyFormElementHaveFocus";
-import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
+import { useDialogStore } from "~/components/feed/dialogStore";
 
 /**
  * Borrowed from the ever-helpful Tania Rascia:

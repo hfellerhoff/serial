@@ -1,9 +1,7 @@
-"use client";
-
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 
 const RELEASE_SLUG_KEY = "last-viewed-release";
 
@@ -20,7 +18,8 @@ export function ReleaseNotifierClient({ slug }: { slug: string | undefined }) {
         "There have been improvements to Serial since your last visit! Check out the release notes.",
         {
           action: (
-            <Link href={`/releases/${slug}`}>
+            // @ts-expect-error this is fine
+            <Link to={`/releases/${slug}`} preload="viewport">
               <Button
                 size="sm"
                 onClick={() => {

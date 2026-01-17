@@ -6,7 +6,6 @@ const config = {
   },
   plugins: ["@typescript-eslint"],
   extends: [
-    "next/core-web-vitals",
     "plugin:@typescript-eslint/recommended-type-checked",
     "plugin:@typescript-eslint/stylistic-type-checked",
   ],
@@ -32,7 +31,6 @@ const config = {
         checksVoidReturn: { attributes: false },
       },
     ],
-    "@next/next/no-img-element": "off",
     "no-empty-function": "off",
     "@typescript-eslint/no-empty-function": "off",
   },

@@ -1,4 +1,4 @@
-import { createEnv } from "@t3-oss/env-nextjs";
+import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
 export const env = createEnv({
@@ -17,18 +17,11 @@ export const env = createEnv({
     DATABASE_AUTH_TOKEN: z.string(),
     BETTER_AUTH_SECRET: z.string(),
     SENDGRID_API_KEY: z.string().optional(),
+    INSTAPAPER_OAUTH_ID: z.string().optional(),
+    INSTAPAPER_OAUTH_SECRET: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
-  },
-
-  /**
-   * Specify your client-side environment variables schema here. This way you can ensure the app
-   * isn't built with invalid env vars. To expose them to the client, prefix them with
-   * `NEXT_PUBLIC_`.
-   */
-  client: {
-    NEXT_PUBLIC_ROOT_URL: z.string(),
   },
 
   /**
@@ -39,9 +32,10 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     DATABASE_AUTH_TOKEN: process.env.DATABASE_AUTH_TOKEN,
     NODE_ENV: process.env.NODE_ENV,
-    NEXT_PUBLIC_ROOT_URL: process.env.NEXT_PUBLIC_ROOT_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
+    INSTAPAPER_OAUTH_ID: process.env.INSTAPAPER_OAUTH_ID,
+    INSTAPAPER_OAUTH_SECRET: process.env.INSTAPAPER_OAUTH_SECRET,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

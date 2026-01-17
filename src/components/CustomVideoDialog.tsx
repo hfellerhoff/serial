@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { useDialogStore } from "~/components/feed/dialogStore";
+import { Link } from "@tanstack/react-router";
 
 function getYouTubeVideoIdFromUrl(url: string) {
   const match = new RegExp(
@@ -46,7 +46,10 @@ export function CustomVideoDialog() {
           </div>
           <Link
             className="w-full"
-            href={`/feed/watch/${getYouTubeVideoIdFromUrl(videoUrl)}`}
+            to="/watch/$id"
+            params={{
+              id: getYouTubeVideoIdFromUrl(videoUrl) ?? "",
+            }}
           >
             <Button
               className="w-full"

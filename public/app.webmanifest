@@ -7,7 +7,7 @@
   "display": "standalone",
   "orientation": "any",
   "scope": "/",
-  "start_url": "/feed",
+  "start_url": "/",
   "icons": [
     {
       "src": "/icon-192.png",

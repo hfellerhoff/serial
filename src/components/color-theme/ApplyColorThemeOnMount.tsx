@@ -1,46 +1,32 @@
-"use client";
-
-import { useServerInsertedHTML } from "next/navigation";
-import { useRef } from "react";
 import { type UserConfigValues } from "~/server/api/routers/userConfigRouter";
 
 export function ApplyColorThemeOnServerMount({
   data,
 }: {
-  data: UserConfigValues;
+  data: UserConfigValues | null;
 }) {
-  const isServerInserted = useRef(false);
+  if (!data) return null;
 
-  useServerInsertedHTML(() => {
-    if (!!isServerInserted.current) {
-      return <></>;
-    }
+  const variables = [];
 
-    isServerInserted.current = true;
+  if (data.lightHSL) {
+    const [hue, sat, lgt] = data.lightHSL;
+    variables.push(["--light-hue", `${hue}`]);
+    variables.push(["--light-sat", `${sat}%`]);
+    variables.push(["--light-lgt", `${lgt}%`]);
+  }
 
-    const variables = [];
+  if (data.darkHSL) {
+    const [hue, sat, lgt] = data.darkHSL;
+    variables.push(["--dark-hue", `${hue}`]);
+    variables.push(["--dark-sat", `${sat}%`]);
+    variables.push(["--dark-lgt", `${lgt}%`]);
+  }
 
-    if (data.lightHSL) {
-      const [hue, sat, lgt] = data.lightHSL;
-      variables.push(["--light-hue", `${hue}`]);
-      variables.push(["--light-sat", `${sat}%`]);
-      variables.push(["--light-lgt", `${lgt}%`]);
-    }
+  const css = `
+    :root {
+      ${variables.map(([name, value]) => `${name}: ${value};`).join("\n\t")}
+    }`;
 
-    if (data.darkHSL) {
-      const [hue, sat, lgt] = data.darkHSL;
-      variables.push(["--dark-hue", `${hue}`]);
-      variables.push(["--dark-sat", `${sat}%`]);
-      variables.push(["--dark-lgt", `${lgt}%`]);
-    }
-
-    const css = `
-      :root {
-        ${variables.map(([name, value]) => `${name}: ${value};`).join("\n\t")}
-      }`;
-
-    return <style>{css}</style>;
-  });
-
-  return null;
+  return <style>{css}</style>;
 }

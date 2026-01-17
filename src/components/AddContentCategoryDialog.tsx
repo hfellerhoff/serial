@@ -1,8 +1,6 @@
 "use client";
-import { DialogTitle } from "@radix-ui/react-dialog";
 import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
 import { useContentCategories } from "~/lib/data/content-categories";
 import {
   useCreateContentCategoryMutation,
@@ -15,11 +13,12 @@ import type { FeedCategorization } from "~/server/api/routers/contentCategoriesR
 import type { DatabaseFeed } from "~/server/db/schema";
 import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
-import { Dialog, DialogContent, DialogHeader } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { ControlledResponsiveDialog } from "./ui/responsive-dropdown";
 import { ScrollArea } from "./ui/scroll-area";
 import { useFeedItemsDict, useFeedItemsOrder } from "~/lib/data/store";
+import { useDialogStore } from "~/components/feed/dialogStore";
 
 function CategoryNameInput({
   name,
@@ -166,51 +165,42 @@ export function AddContentCategoryDialog() {
   };
 
   return (
-    <Dialog
+    <ControlledResponsiveDialog
       open={dialog === "add-content-category"}
       onOpenChange={onOpenChange}
+      title="Add Category"
     >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-mono">Add Category</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-6">
-          <CategoryNameInput name={name} setName={setName} />
-          <CategoryFeedsInput
-            updatedFeedIdCategorizations={updatedFeedIdCategorizations}
-            setUpdatedFeedIdCategorizations={setUpdatedFeedIdCategorizations}
-            categoryId={null}
-          />
-          <Button
-            disabled={isDisabled}
-            onClick={async () => {
-              setIsAddingContentCategory(true);
+      <div className="grid gap-6">
+        <CategoryNameInput name={name} setName={setName} />
+        <Button
+          disabled={isDisabled}
+          onClick={async () => {
+            setIsAddingContentCategory(true);
 
-              try {
-                const addCategoryPromise = createContentCategory({
-                  name,
-                  feedCategorizations: updatedFeedIdCategorizations,
-                });
-                toast.promise(addCategoryPromise, {
-                  loading: "Creating category...",
-                  success: () => {
-                    return "Category created!";
-                  },
-                  error: () => {
-                    return "Something went wrong creating your category.";
-                  },
-                });
-                onOpenChange(false);
-              } catch {}
+            try {
+              const addCategoryPromise = createContentCategory({
+                name,
+                feedCategorizations: updatedFeedIdCategorizations,
+              });
+              toast.promise(addCategoryPromise, {
+                loading: "Creating category...",
+                success: () => {
+                  return "Category created!";
+                },
+                error: () => {
+                  return "Something went wrong creating your category.";
+                },
+              });
+              onOpenChange(false);
+            } catch {}
 
-              setIsAddingContentCategory(false);
-            }}
-          >
-            {isAddingContentCategory ? "Adding..." : "Add Category"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+            setIsAddingContentCategory(false);
+          }}
+        >
+          {isAddingContentCategory ? "Adding..." : "Add Category"}
+        </Button>
+      </div>
+    </ControlledResponsiveDialog>
   );
 }
 
@@ -251,83 +241,81 @@ export function EditContentCategoryDialog({
   }, [contentCategories, selectedContentCategoryId]);
 
   return (
-    <Dialog open={selectedContentCategoryId !== null} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-between font-mono">
-            Edit Category{" "}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-6">
-          <CategoryNameInput name={name} setName={setName} />
-          <CategoryFeedsInput
-            updatedFeedIdCategorizations={updatedFeedIdCategorizations}
-            setUpdatedFeedIdCategorizations={setUpdatedFeedIdCategorizations}
-            categoryId={selectedContentCategoryId}
-          />
-          <div className="flex gap-2">
-            <Button
-              disabled={isDeletingContentCategory}
-              className="flex-1"
-              variant="destructive"
-              onClick={async () => {
-                if (selectedContentCategoryId === null) return;
+    <ControlledResponsiveDialog
+      open={selectedContentCategoryId !== null}
+      onOpenChange={onClose}
+      title="Edit Category"
+      description="Update your category settings"
+    >
+      <div className="grid gap-6">
+        <CategoryNameInput name={name} setName={setName} />
+        <CategoryFeedsInput
+          updatedFeedIdCategorizations={updatedFeedIdCategorizations}
+          setUpdatedFeedIdCategorizations={setUpdatedFeedIdCategorizations}
+          categoryId={selectedContentCategoryId}
+        />
+        <div className="flex gap-2">
+          <Button
+            disabled={isDeletingContentCategory}
+            className="flex-1"
+            variant="destructive"
+            onClick={async () => {
+              if (selectedContentCategoryId === null) return;
 
-                setIsDeletingContentCategory(true);
-                try {
-                  const deleteCategoryPromise = deleteContentCategory({
-                    id: selectedContentCategoryId,
-                  });
-                  toast.promise(deleteCategoryPromise, {
-                    loading: "Deleting category...",
-                    success: () => {
-                      return "Category deleted!";
-                    },
-                    error: () => {
-                      return "Something went wrong deleting your category.";
-                    },
-                  });
-                  onClose();
-                } catch {}
+              setIsDeletingContentCategory(true);
+              try {
+                const deleteCategoryPromise = deleteContentCategory({
+                  id: selectedContentCategoryId,
+                });
+                toast.promise(deleteCategoryPromise, {
+                  loading: "Deleting category...",
+                  success: () => {
+                    return "Category deleted!";
+                  },
+                  error: () => {
+                    return "Something went wrong deleting your category.";
+                  },
+                });
+                onClose();
+              } catch {}
 
-                setIsDeletingContentCategory(false);
-              }}
-            >
-              {isDeletingContentCategory ? "Deleting..." : "Delete"}
-            </Button>
-            <Button
-              disabled={isFormDisabled || isUpdatingContentCategory}
-              onClick={async () => {
-                if (selectedContentCategoryId === null) return;
+              setIsDeletingContentCategory(false);
+            }}
+          >
+            {isDeletingContentCategory ? "Deleting..." : "Delete"}
+          </Button>
+          <Button
+            disabled={isFormDisabled || isUpdatingContentCategory}
+            onClick={async () => {
+              if (selectedContentCategoryId === null) return;
 
-                setIsUpdatingContentCategory(true);
-                try {
-                  const updateCategoryPromise = updateContentCategory({
-                    name,
-                    id: selectedContentCategoryId,
-                    feedCategorizations: updatedFeedIdCategorizations,
-                  });
-                  toast.promise(updateCategoryPromise, {
-                    loading: "Updating category...",
-                    success: () => {
-                      return "Category updated!";
-                    },
-                    error: () => {
-                      return "Something went wrong updating your category.";
-                    },
-                  });
-                  onClose();
-                } catch {}
+              setIsUpdatingContentCategory(true);
+              try {
+                const updateCategoryPromise = updateContentCategory({
+                  name,
+                  id: selectedContentCategoryId,
+                  feedCategorizations: updatedFeedIdCategorizations,
+                });
+                toast.promise(updateCategoryPromise, {
+                  loading: "Updating category...",
+                  success: () => {
+                    return "Category updated!";
+                  },
+                  error: () => {
+                    return "Something went wrong updating your category.";
+                  },
+                });
+                onClose();
+              } catch {}
 
-                setIsUpdatingContentCategory(false);
-              }}
-              className="flex-1"
-            >
-              {isUpdatingContentCategory ? "Saving..." : "Save"}
-            </Button>
-          </div>
+              setIsUpdatingContentCategory(false);
+            }}
+            className="flex-1"
+          >
+            {isUpdatingContentCategory ? "Saving..." : "Save"}
+          </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </ControlledResponsiveDialog>
   );
 }

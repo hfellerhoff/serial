@@ -4,7 +4,7 @@
 import clsx from "clsx";
 import { MaximizeIcon, MinimizeIcon, PlayIcon } from "lucide-react";
 import YouTube from "react-youtube";
-import { useView } from "~/app/(feed)/feed/watch/[id]/useView";
+import { useView } from "~/components/feed/watch/[id]/useView";
 import { useFlagState } from "~/lib/hooks/useFlagState";
 import { transformSecondsToFormattedTime } from "~/lib/transformSecondsToFormattedTime";
 import { ButtonWithShortcut } from "../ButtonWithShortcut";
@@ -84,7 +84,7 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
               <div className="absolute inset-0 h-full w-full bg-black">
                 <img
                   className="h-full w-full object-contain"
-                  src={`http://img.youtube.com/vi/${props.videoID}/maxresdefault.jpg`}
+                  src={`https://img.youtube.com/vi/${props.videoID}/maxresdefault.jpg`}
                 />
               </div>
               <button

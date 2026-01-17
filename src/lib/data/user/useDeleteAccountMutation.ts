@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@tanstack/react-router";
 import { useTRPC } from "~/trpc/react";
 
 export function useDeleteAccountMutation() {
@@ -9,7 +9,7 @@ export function useDeleteAccountMutation() {
   return useMutation(
     api.user.delete.mutationOptions({
       onSuccess: () => {
-        router.push("/");
+        router.navigate({ to: "/" });
       },
     }),
   );

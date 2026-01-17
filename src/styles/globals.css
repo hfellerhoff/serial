@@ -369,6 +369,8 @@ dialog:modal {
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-in: enter 0.15s ease-out;
+  --animate-out: exit 0.1s ease-in forwards;
 
   @keyframes accordion-down {
     from {
@@ -386,6 +388,22 @@ dialog:modal {
       height: 0;
     }
   }
+  @keyframes enter {
+    from {
+      opacity: var(--tw-enter-opacity, 1);
+      transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0)
+        scale3d(var(--tw-enter-scale, 1), var(--tw-enter-scale, 1), var(--tw-enter-scale, 1))
+        rotate(var(--tw-enter-rotate, 0));
+    }
+  }
+  @keyframes exit {
+    to {
+      opacity: var(--tw-exit-opacity, 1);
+      transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0)
+        scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), var(--tw-exit-scale, 1))
+        rotate(var(--tw-exit-rotate, 0));
+    }
+  }
 
   --color-sidebar: hsl(var(--sidebar));
   --color-sidebar-foreground: hsl(var(--sidebar-foreground));
@@ -395,6 +413,50 @@ dialog:modal {
   --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
   --color-sidebar-border: hsl(var(--sidebar-border));
   --color-sidebar-ring: hsl(var(--sidebar-ring));
+}
+
+/* Animation utilities for enter/exit animations (tailwindcss-animate equivalent for v4) */
+@utility fade-in-* {
+  --tw-enter-opacity: calc(--value(integer) / 100);
+}
+@utility fade-out-* {
+  --tw-exit-opacity: calc(--value(integer) / 100);
+}
+@utility zoom-in-* {
+  --tw-enter-scale: calc(--value(integer) / 100);
+}
+@utility zoom-out-* {
+  --tw-exit-scale: calc(--value(integer) / 100);
+}
+@utility spin-in-* {
+  --tw-enter-rotate: calc(--value(integer) * 1deg);
+}
+@utility spin-out-* {
+  --tw-exit-rotate: calc(--value(integer) * 1deg);
+}
+@utility slide-in-from-top-* {
+  --tw-enter-translate-y: calc(--value([percentage]) * -1);
+}
+@utility slide-in-from-bottom-* {
+  --tw-enter-translate-y: --value([percentage]);
+}
+@utility slide-in-from-left-* {
+  --tw-enter-translate-x: calc(--value([percentage]) * -1);
+}
+@utility slide-in-from-right-* {
+  --tw-enter-translate-x: --value([percentage]);
+}
+@utility slide-out-to-top-* {
+  --tw-exit-translate-y: calc(--value([percentage]) * -1);
+}
+@utility slide-out-to-bottom-* {
+  --tw-exit-translate-y: --value([percentage]);
+}
+@utility slide-out-to-left-* {
+  --tw-exit-translate-x: calc(--value([percentage]) * -1);
+}
+@utility slide-out-to-right-* {
+  --tw-exit-translate-x: --value([percentage]);
 }
 
 @layer base {

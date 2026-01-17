@@ -1,11 +1,7 @@
-"use client";
-import { DialogTitle } from "@radix-ui/react-dialog";
 import { ToggleGroup } from "@radix-ui/react-toggle-group";
 import { ImportIcon } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
 import { useFeedCategories } from "~/lib/data/feed-categories";
 import { useFeeds } from "~/lib/data/feeds";
 import {
@@ -19,10 +15,12 @@ import type { FeedOpenLocation, FeedPlatform } from "~/server/db/schema";
 import { getAssumedFeedPlatform } from "~/server/rss/validateFeedUrl";
 import { ViewCategoriesInput } from "./AddViewDialog";
 import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogHeader } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { ControlledResponsiveDialog } from "./ui/responsive-dropdown";
 import { ToggleGroupItem } from "./ui/toggle-group";
+import { useDialogStore } from "~/components/feed/dialogStore";
+import { Link } from "@tanstack/react-router";
 
 export function AddFeedDialog() {
   const [feedUrl, setFeedUrl] = useState("");
@@ -53,77 +51,74 @@ export function AddFeedDialog() {
   const feedPlatform = getAssumedFeedPlatform(feedUrl);
 
   return (
-    <Dialog open={dialog === "add-feed"} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-mono">Add Feed</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-6">
-          <div className="grid gap-2">
-            <Label htmlFor="url">Channel or RSS Feed URL</Label>
-            <Input
-              id="url"
-              type="url"
-              value={feedUrl}
-              placeholder="https://www.youtube.com/@example"
-              onChange={(e) => {
-                setFeedUrl(e.target.value);
-              }}
-            />
-          </div>
-          <ViewCategoriesInput
-            selectedCategories={selectedCategories}
-            setSelectedCategories={setSelectedCategories}
+    <ControlledResponsiveDialog
+      open={dialog === "add-feed"}
+      onOpenChange={onOpenChange}
+      title="Add Feed"
+    >
+      <div className="grid gap-6">
+        <div className="grid gap-2">
+          <Label htmlFor="url">Channel or RSS Feed URL</Label>
+          <Input
+            id="url"
+            type="url"
+            value={feedUrl}
+            placeholder="https://www.youtube.com/@example"
+            onChange={(e) => {
+              setFeedUrl(e.target.value);
+            }}
           />
+        </div>
+        <ViewCategoriesInput
+          selectedCategories={selectedCategories}
+          setSelectedCategories={setSelectedCategories}
+        />
+        <Button
+          disabled={isAddingFeed}
+          onClick={async () => {
+            setIsAddingFeed(true);
+
+            try {
+              const createFeedPromise = createFeed({
+                url: feedUrl,
+                categoryIds: selectedCategories,
+              });
+              toast.promise(createFeedPromise, {
+                loading: "Adding feed...",
+                success: () => {
+                  return "Feed added!";
+                },
+                error: () => {
+                  return "Something went wrong adding your feed.";
+                },
+              });
+              setFeedUrl("");
+              onOpenChange(false);
+            } catch {}
+
+            setIsAddingFeed(false);
+          }}
+        >
+          Add {PLATFORM_TO_FORMATTED_NAME_MAP[feedPlatform]} Feed
+        </Button>
+        <div className="py-4">
+          <hr />
+        </div>
+        <Label>Have a lot of feeds to add?</Label>
+        <Link to="/import">
           <Button
-            disabled={isAddingFeed}
-            onClick={async () => {
-              setIsAddingFeed(true);
-
-              try {
-                const createFeedPromise = createFeed({
-                  url: feedUrl,
-                  categoryIds: selectedCategories,
-                });
-                toast.promise(createFeedPromise, {
-                  loading: "Adding feed...",
-                  success: () => {
-                    return "Feed added!";
-                  },
-                  error: () => {
-                    return "Something went wrong adding your feed.";
-                  },
-                });
-                setFeedUrl("");
-                onOpenChange(false);
-              } catch {}
-
-              setIsAddingFeed(false);
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              onOpenChange(false);
             }}
           >
-            {isAddingFeed
-              ? "Adding..."
-              : `Add ${PLATFORM_TO_FORMATTED_NAME_MAP[feedPlatform]} Feed`}
+            <ImportIcon size={16} />
+            <span className="pl-1.5">Bulk Import</span>
           </Button>
-          <div className="py-4">
-            <hr />
-          </div>
-          <Label>Have a lot of feeds to add?</Label>
-          <Link href="/feed/import">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                onOpenChange(false);
-              }}
-            >
-              <ImportIcon size={16} />
-              <span className="pl-1.5">Bulk Import</span>
-            </Button>
-          </Link>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </Link>
+      </div>
+    </ControlledResponsiveDialog>
   );
 }
 
@@ -202,86 +197,84 @@ export function EditFeedDialog({
   const feed = feeds.find((v) => v.id === selectedFeedId);
 
   return (
-    <Dialog open={selectedFeedId !== null} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-between font-mono">
-            Edit Feed{" "}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-6">
-          <div className="grid gap-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              type="text"
-              value={name}
-              placeholder="My Feed"
-              disabled
-            />
-          </div>
-          <ViewCategoriesInput
-            selectedCategories={selectedCategories}
-            setSelectedCategories={setSelectedCategories}
+    <ControlledResponsiveDialog
+      open={selectedFeedId !== null}
+      onOpenChange={onClose}
+      title="Edit Feed"
+      description="Update your feed settings"
+    >
+      <div className="grid gap-6">
+        <div className="grid gap-2">
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            type="text"
+            value={name}
+            placeholder="My Feed"
+            disabled
           />
-          <FeedOpenLocationToggleGroup
-            feedPlatform={feed?.platform ?? "youtube"}
-            openLocation={selectedOpenLocation}
-            setOpenLocation={setSelectedOpenLocation}
-          />
-          <div className="flex gap-2">
-            <Button
-              disabled={isDeletingFeed}
-              className="flex-1"
-              variant="destructive"
-              onClick={async () => {
-                if (selectedFeedId === null) return;
-
-                setIsDeletingFeed(true);
-                try {
-                  const deleteFeedPromise = deleteFeed(selectedFeedId);
-                  toast.promise(deleteFeedPromise, {
-                    loading: "Deleting feed...",
-                    success: () => {
-                      return "Feed deleted!";
-                    },
-                    error: () => {
-                      return "Something went wrong deleting your feed.";
-                    },
-                  });
-                  onClose();
-                } catch {}
-
-                setIsDeletingFeed(false);
-              }}
-            >
-              {isDeletingFeed ? "Deleting..." : "Delete"}
-            </Button>
-            <Button
-              disabled={isFormDisabled || isUpdatingFeed}
-              onClick={async () => {
-                if (selectedFeedId === null) return;
-
-                setIsUpdatingFeed(true);
-                try {
-                  await editFeed({
-                    feedId: selectedFeedId,
-                    categoryIds: selectedCategories,
-                    openLocation: selectedOpenLocation,
-                  });
-                  toast.success("Feed updated!");
-                  onClose();
-                } catch {}
-
-                setIsUpdatingFeed(false);
-              }}
-              className="flex-1"
-            >
-              {isUpdatingFeed ? "Saving..." : "Save"}
-            </Button>
-          </div>
         </div>
-      </DialogContent>
-    </Dialog>
+        <ViewCategoriesInput
+          selectedCategories={selectedCategories}
+          setSelectedCategories={setSelectedCategories}
+        />
+        <FeedOpenLocationToggleGroup
+          feedPlatform={feed?.platform ?? "youtube"}
+          openLocation={selectedOpenLocation}
+          setOpenLocation={setSelectedOpenLocation}
+        />
+        <div className="flex gap-2">
+          <Button
+            disabled={isDeletingFeed}
+            className="flex-1"
+            variant="destructive"
+            onClick={async () => {
+              if (selectedFeedId === null) return;
+
+              setIsDeletingFeed(true);
+              try {
+                const deleteFeedPromise = deleteFeed(selectedFeedId);
+                toast.promise(deleteFeedPromise, {
+                  loading: "Deleting feed...",
+                  success: () => {
+                    return "Feed deleted!";
+                  },
+                  error: () => {
+                    return "Something went wrong deleting your feed.";
+                  },
+                });
+                onClose();
+              } catch {}
+
+              setIsDeletingFeed(false);
+            }}
+          >
+            {isDeletingFeed ? "Deleting..." : "Delete"}
+          </Button>
+          <Button
+            disabled={isFormDisabled || isUpdatingFeed}
+            onClick={async () => {
+              if (selectedFeedId === null) return;
+
+              setIsUpdatingFeed(true);
+              try {
+                await editFeed({
+                  feedId: selectedFeedId,
+                  categoryIds: selectedCategories,
+                  openLocation: selectedOpenLocation,
+                });
+                toast.success("Feed updated!");
+                onClose();
+              } catch {}
+
+              setIsUpdatingFeed(false);
+            }}
+            className="flex-1"
+          >
+            {isUpdatingFeed ? "Saving..." : "Save"}
+          </Button>
+        </div>
+      </div>
+    </ControlledResponsiveDialog>
   );
 }

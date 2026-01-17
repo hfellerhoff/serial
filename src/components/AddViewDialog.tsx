@@ -1,8 +1,6 @@
 "use client";
-import { DialogTitle } from "@radix-ui/react-dialog";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useDialogStore } from "~/app/(feed)/feed/dialogStore";
 import { useContentCategories } from "~/lib/data/content-categories";
 import { useViews } from "~/lib/data/views";
 import {
@@ -13,10 +11,11 @@ import {
 import { VIEW_READ_STATUS } from "~/server/db/constants";
 import { AddContentCategoriesButton } from "./AddContentCategoryButton";
 import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogHeader } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { ControlledResponsiveDialog } from "./ui/responsive-dropdown";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
+import { useDialogStore } from "~/components/feed/dialogStore";
 
 function AddViewToggleItem({
   value,
@@ -189,58 +188,57 @@ export function AddViewDialog() {
   };
 
   return (
-    <Dialog open={dialog === "add-view"} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-mono">Add View</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-6">
-          <ViewNameInput name={name} setName={setName} />
-          <ViewTimeInput
-            daysWindow={daysTimeWindow}
-            setDaysWindow={setDaysTimeWindow}
-          />
-          {/* TODO: Implement read status */}
-          {/* <ViewReadStatusInput
+    <ControlledResponsiveDialog
+      open={dialog === "add-view"}
+      onOpenChange={onOpenChange}
+      title="Add View"
+    >
+      <div className="grid gap-6">
+        <ViewNameInput name={name} setName={setName} />
+        <ViewTimeInput
+          daysWindow={daysTimeWindow}
+          setDaysWindow={setDaysTimeWindow}
+        />
+        {/* TODO: Implement read status */}
+        {/* <ViewReadStatusInput
             readStatus={readStatus}
             setReadStatus={setReadStatus}
           /> */}
-          <ViewCategoriesInput
-            selectedCategories={selectedCategories}
-            setSelectedCategories={setSelectedCategories}
-          />
-          <Button
-            disabled={isDisabled}
-            onClick={async () => {
-              setIsAddingView(true);
+        <ViewCategoriesInput
+          selectedCategories={selectedCategories}
+          setSelectedCategories={setSelectedCategories}
+        />
+        <Button
+          disabled={isDisabled}
+          onClick={async () => {
+            setIsAddingView(true);
 
-              try {
-                const addViewPromise = createView({
-                  name,
-                  daysWindow: daysTimeWindow,
-                  readStatus,
-                  categoryIds: selectedCategories,
-                });
-                toast.promise(addViewPromise, {
-                  loading: "Adding view...",
-                  success: () => {
-                    return "View added!";
-                  },
-                  error: () => {
-                    return "Something went wrong adding your view.";
-                  },
-                });
-                onOpenChange(false);
-              } catch {}
+            try {
+              const addViewPromise = createView({
+                name,
+                daysWindow: daysTimeWindow,
+                readStatus,
+                categoryIds: selectedCategories,
+              });
+              toast.promise(addViewPromise, {
+                loading: "Adding view...",
+                success: () => {
+                  return "View added!";
+                },
+                error: () => {
+                  return "Something went wrong adding your view.";
+                },
+              });
+              onOpenChange(false);
+            } catch {}
 
-              setIsAddingView(false);
-            }}
-          >
-            {isAddingView ? "Adding..." : "Add View"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+            setIsAddingView(false);
+          }}
+        >
+          {isAddingView ? "Adding..." : "Add View"}
+        </Button>
+      </div>
+    </ControlledResponsiveDialog>
   );
 }
 
@@ -278,93 +276,91 @@ export function EditViewDialog({
   }, [views, selectedViewId]);
 
   return (
-    <Dialog open={selectedViewId !== null} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-between font-mono">
-            Edit View{" "}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-6">
-          <ViewNameInput name={name} setName={setName} />
-          <ViewTimeInput
-            daysWindow={daysTimeWindow}
-            setDaysWindow={setDaysTimeWindow}
-          />
-          {/* TODO: Implement read status */}
-          {/* <ViewReadStatusInput
+    <ControlledResponsiveDialog
+      open={selectedViewId !== null}
+      onOpenChange={onClose}
+      title="Edit View"
+      description="Update your view settings"
+    >
+      <div className="grid gap-6">
+        <ViewNameInput name={name} setName={setName} />
+        <ViewTimeInput
+          daysWindow={daysTimeWindow}
+          setDaysWindow={setDaysTimeWindow}
+        />
+        {/* TODO: Implement read status */}
+        {/* <ViewReadStatusInput
             readStatus={readStatus}
             setReadStatus={setReadStatus}
           /> */}
-          <ViewCategoriesInput
-            selectedCategories={selectedCategories}
-            setSelectedCategories={setSelectedCategories}
-          />
-          <div className="flex gap-2">
-            <Button
-              disabled={isDeletingView}
-              className="flex-1"
-              variant="destructive"
-              onClick={async () => {
-                if (selectedViewId === null) return;
+        <ViewCategoriesInput
+          selectedCategories={selectedCategories}
+          setSelectedCategories={setSelectedCategories}
+        />
+        <div className="flex gap-2">
+          <Button
+            disabled={isDeletingView}
+            className="flex-1"
+            variant="destructive"
+            onClick={async () => {
+              if (selectedViewId === null) return;
 
-                setIsDeletingView(true);
-                try {
-                  const deleteViewPromise = deleteView({
-                    id: selectedViewId,
-                  });
-                  toast.promise(deleteViewPromise, {
-                    loading: "Deleting view...",
-                    success: () => {
-                      return "View deleted!";
-                    },
-                    error: () => {
-                      return "Something went wrong deleting your view.";
-                    },
-                  });
-                  onClose();
-                } catch {}
+              setIsDeletingView(true);
+              try {
+                const deleteViewPromise = deleteView({
+                  id: selectedViewId,
+                });
+                toast.promise(deleteViewPromise, {
+                  loading: "Deleting view...",
+                  success: () => {
+                    return "View deleted!";
+                  },
+                  error: () => {
+                    return "Something went wrong deleting your view.";
+                  },
+                });
+                onClose();
+              } catch {}
 
-                setIsDeletingView(false);
-              }}
-            >
-              {isDeletingView ? "Deleting..." : "Delete"}
-            </Button>
-            <Button
-              disabled={isFormDisabled || isUpdatingView}
-              onClick={async () => {
-                if (selectedViewId === null) return;
+              setIsDeletingView(false);
+            }}
+          >
+            {isDeletingView ? "Deleting..." : "Delete"}
+          </Button>
+          <Button
+            disabled={isFormDisabled || isUpdatingView}
+            onClick={async () => {
+              if (selectedViewId === null) return;
 
-                setIsUpdatingView(true);
-                try {
-                  const editViewPromise = editView({
-                    name,
-                    id: selectedViewId,
-                    daysWindow: daysTimeWindow,
-                    readStatus,
-                    categoryIds: selectedCategories,
-                  });
-                  toast.promise(editViewPromise, {
-                    loading: "Updating view...",
-                    success: () => {
-                      return "View updated!";
-                    },
-                    error: () => {
-                      return "Something went wrong updating your view.";
-                    },
-                  });
-                  onClose();
-                } catch {}
+              setIsUpdatingView(true);
+              try {
+                const editViewPromise = editView({
+                  name,
+                  id: selectedViewId,
+                  daysWindow: daysTimeWindow,
+                  readStatus,
+                  categoryIds: selectedCategories,
+                });
+                toast.promise(editViewPromise, {
+                  loading: "Updating view...",
+                  success: () => {
+                    return "View updated!";
+                  },
+                  error: () => {
+                    return "Something went wrong updating your view.";
+                  },
+                });
+                onClose();
+              } catch {}
 
-                setIsUpdatingView(false);
-              }}
-              className="flex-1"
-            >
-              {isUpdatingView ? "Saving..." : "Save"}
-            </Button>
-          </div>
+              setIsUpdatingView(false);
+            }}
+            className="flex-1"
+          >
+            {isUpdatingView ? "Saving..." : "Save"}
+          </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </ControlledResponsiveDialog>
   );
 }

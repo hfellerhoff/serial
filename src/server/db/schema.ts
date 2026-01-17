@@ -1,6 +1,7 @@
 // Example model schema from the Drizzle docs
 // https://orm.drizzle.team/docs/sql-schema-declaration
 
+import { createId } from "@paralleldrive/cuid2";
 import {
   index,
   integer,
@@ -21,7 +22,6 @@ import {
   VIEW_READ_STATUS,
   viewReadStatusSchema,
 } from "./constants";
-import { createId } from "@paralleldrive/cuid2";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -278,3 +278,25 @@ export const updateViewSchema = createUpdateSchema(views).merge(
 export const deleteViewSchema = z.object({
   id: z.number(),
 });
+
+// === Instapaper OAuth 1.0a Connections ===
+export const instapaperConnections = sqliteTable("instapaper_connections", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  userId: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: "cascade" }),
+  username: text("username").notNull(),
+  oauthToken: text("oauth_token").notNull(),
+  oauthTokenSecret: text("oauth_token_secret").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .$default(() => new Date())
+    .notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .$default(() => new Date())
+    .notNull(),
+});
+export type DatabaseInstapaperConnection =
+  typeof instapaperConnections.$inferSelect;

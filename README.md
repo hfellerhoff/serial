@@ -43,7 +43,7 @@ On  [Vercel](https://vercel.com/), follow these steps:
 	1. You can copy the provided domain as is
 	2. You can update the provided domain with a new name
 	3. You can link an existing domain
-5. Whichever domain you choose, copy that name and head down to `Environment Variables`. Add that domain value as `NEXT_PUBLIC_ROOT_URL`, being sure to include the protocol (`https://`)
+5. Whichever domain you choose, copy that name and head down to `Environment Variables`. Add that domain value as `VITE_BASE_URL`, being sure to include the protocol (`https://`)
 6. Create a new database on  [Turso](https://turso.tech/)
 	1. Sign up for an account if you don't have one, and navigate to the database dashboard
 	2. Create a new database

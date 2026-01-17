@@ -6,7 +6,6 @@ import {
   NotebookIcon,
   PaletteIcon,
 } from "lucide-react";
-import Link from "next/link";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -15,6 +14,7 @@ import {
   SidebarMenuItem,
 } from "~/components/ui/sidebar";
 import { ColorThemeDropdownSidebar } from "./color-theme/ColorThemePopoverButton";
+import { Link } from "@tanstack/react-router";
 
 export function LeftSidebarBottomNav() {
   return (
@@ -29,9 +29,10 @@ export function LeftSidebarBottomNav() {
               </SidebarMenuButton>
             </ColorThemeDropdownSidebar>
           </SidebarMenuItem>
+          {/*TODO*/}
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link href="/releases">
+              <Link to="/releases">
                 <NotebookIcon />
                 <span>Release Log</span>
               </Link>
@@ -39,26 +40,26 @@ export function LeftSidebarBottomNav() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link
+              <a
                 target="_blank"
                 rel="noopener noreferrer"
                 href="https://github.com/hfellerhoff/serial/issues/new?template=bug-report.md"
               >
                 <LifeBuoyIcon />
                 <span>Report Issue</span>
-              </Link>
+              </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link
+              <a
                 target="_blank"
                 rel="noopener noreferrer"
                 href="https://github.com/hfellerhoff/serial/issues/new?template=feature_request.md"
               >
                 <LightbulbIcon />
                 <span>Share Idea</span>
-              </Link>
+              </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

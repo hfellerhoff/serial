@@ -115,3 +115,28 @@ export const setWatchLaterValue = protectedProcedure
         and(eq(feedItems.feedId, input.feedId), eq(feedItems.id, input.id)),
       );
   });
+
+export const getById = protectedProcedure
+  .input(z.object({ id: z.string() }))
+  .handler(async ({ context, input }) => {
+    const item = await context.db.query.feedItems.findFirst({
+      where: eq(feedItems.id, input.id),
+    });
+
+    if (!item) {
+      return null;
+    }
+
+    const feed = await context.db.query.feeds.findFirst({
+      where: and(eq(feeds.id, item.feedId!), eq(feeds.userId, context.user.id)),
+    });
+
+    if (!feed) {
+      return null;
+    }
+
+    return {
+      ...item,
+      platform: feed.platform ?? "youtube",
+    } as ApplicationFeedItem;
+  });

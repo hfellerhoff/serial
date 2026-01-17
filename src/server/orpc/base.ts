@@ -1,11 +1,11 @@
 import { ORPCError, os } from "@orpc/server";
-import { headers as getNextHeaders } from "next/headers";
 
 import { db } from "~/server/db";
 import { auth } from "~/server/auth";
+import { getRequest } from "@tanstack/react-start/server";
 
 export async function createRPCContext(opts: { headers: Headers }) {
-  const headers = new Headers(await getNextHeaders());
+  const { headers } = getRequest();
 
   const authResponse = await auth.api.getSession({
     headers,

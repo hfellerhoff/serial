@@ -32,9 +32,9 @@ export function useVideoShortcuts() {
 
       keypressTimeRef.current[event.key] = Date.now();
 
-      if (playerState === YOUTUBE_PLAYER_STATES.PLAYING && event.key === " ") {
-        startVideoHold();
-      }
+      // if (playerState === YOUTUBE_PLAYER_STATES.PLAYING && event.key === " ") {
+      //   startVideoHold();
+      // }
     };
 
     const processKeyUp = (event: KeyboardEvent) => {
