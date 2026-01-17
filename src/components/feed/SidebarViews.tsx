@@ -137,17 +137,13 @@ export function SidebarViews() {
     useUpdateViewsPlacementMutation();
 
   useEffect(() => {
-    if (viewOptions.length === views.length) {
-      return;
-    }
-
-    setViewOptions(() => {
-      return views?.map((view) => ({
+    setViewOptions(
+      views?.map((view) => ({
         ...view,
         hasEntries: !!checkFilteredFeedItemsForView(view.id).length,
-      }));
-    });
-  }, [views, viewOptions, checkFilteredFeedItemsForView]);
+      })),
+    );
+  }, [views, checkFilteredFeedItemsForView]);
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;

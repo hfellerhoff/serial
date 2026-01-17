@@ -26,6 +26,8 @@ const isWithinLastMonth = gte(
   dayjs().subtract(32, "days").toDate(),
 );
 
+const GET_ALL_ITEMS_YIELD_BUFFER_MS = 100;
+const GET_ALL_CHUNK_SIZE = 100;
 export const getAll = protectedProcedure.handler(async function* ({ context }) {
   // Get existing items, yield
   const feedsList = await context.db.query.feeds.findMany({
@@ -48,11 +50,35 @@ export const getAll = protectedProcedure.handler(async function* ({ context }) {
   });
 
   // Send existing feed items to user
-  for (const chunk of prepareArrayChunks(existingApplicationFeedItems, 50)) {
+  let timeLastSent = 0;
+  let inProgressChunk = [];
+  for (const chunk of prepareArrayChunks(
+    existingApplicationFeedItems,
+    GET_ALL_CHUNK_SIZE,
+  )) {
+    inProgressChunk.push(...chunk);
+
+    if (inProgressChunk.length < GET_ALL_CHUNK_SIZE) {
+      continue;
+    }
+
+    const now = Date.now();
+    const timePassed = now - timeLastSent;
+
+    if (timePassed < GET_ALL_ITEMS_YIELD_BUFFER_MS) {
+      await new Promise((res) =>
+        setTimeout(res, GET_ALL_ITEMS_YIELD_BUFFER_MS - timePassed),
+      );
+    }
+
+    timeLastSent = Date.now();
+
     yield {
       type: "feed-items",
-      feedItems: chunk,
+      feedItems: inProgressChunk,
     } as GetAllItemsChunk;
+
+    inProgressChunk = [];
   }
 
   // Send new feed items to user as they come in
@@ -67,11 +93,32 @@ export const getAll = protectedProcedure.handler(async function* ({ context }) {
       continue;
     }
 
-    for (const chunk of prepareArrayChunks(feedResult.feedItems, 50)) {
+    for (const chunk of prepareArrayChunks(
+      feedResult.feedItems,
+      GET_ALL_CHUNK_SIZE,
+    )) {
+      inProgressChunk.push(...chunk);
+      if (inProgressChunk.length < GET_ALL_CHUNK_SIZE) {
+        continue;
+      }
+
+      const now = Date.now();
+      const timePassed = now - timeLastSent;
+
+      if (timePassed < GET_ALL_ITEMS_YIELD_BUFFER_MS) {
+        await new Promise((res) =>
+          setTimeout(res, GET_ALL_ITEMS_YIELD_BUFFER_MS - timePassed),
+        );
+      }
+
+      timeLastSent = Date.now();
+
       yield {
         type: "feed-items",
         feedItems: chunk,
       } as GetAllItemsChunk;
+
+      inProgressChunk = [];
     }
   }
 
@@ -139,4 +186,54 @@ export const getById = protectedProcedure
       ...item,
       platform: feed.platform ?? "youtube",
     } as ApplicationFeedItem;
+  });
+
+export const getByFeedId = protectedProcedure
+  .input(z.object({ feedId: z.number() }))
+  .handler(async function* ({ context, input }) {
+    const feed = await context.db.query.feeds.findFirst({
+      where: and(eq(feeds.id, input.feedId), eq(feeds.userId, context.user.id)),
+    });
+
+    if (!feed) {
+      return;
+    }
+
+    const itemsData = await context.db.query.feedItems.findMany({
+      where: and(eq(feedItems.feedId, input.feedId), isWithinLastMonth),
+      orderBy: desc(feedItems.postedAt),
+    });
+
+    const existingApplicationFeedItems = itemsData.map((item) => ({
+      ...item,
+      platform: feed.platform ?? "youtube",
+    })) as ApplicationFeedItem[];
+
+    for (const chunk of prepareArrayChunks(existingApplicationFeedItems, 50)) {
+      yield {
+        type: "feed-items",
+        feedItems: chunk,
+      } as GetAllItemsChunk;
+    }
+
+    for await (const feedResult of fetchAndInsertFeedData(context, [feed])) {
+      yield {
+        type: "feed-status",
+        status: feedResult.status,
+        feedId: feedResult.id,
+      } as GetAllItemsChunk;
+
+      if (feedResult.status !== "success") {
+        continue;
+      }
+
+      for (const chunk of prepareArrayChunks(feedResult.feedItems, 50)) {
+        yield {
+          type: "feed-items",
+          feedItems: chunk,
+        } as GetAllItemsChunk;
+      }
+    }
+
+    return;
   });

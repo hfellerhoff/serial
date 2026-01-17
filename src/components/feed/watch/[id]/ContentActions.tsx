@@ -124,26 +124,31 @@ export function ContentActions({ contentID }: { contentID: string }) {
           variant="outline"
           onClick={handleSaveToInstapaper}
           disabled={isSavingToInstapaper}
+          size="icon md:default"
         >
           <SendIcon size={16} />
-          <span className="pl-1.5">Instapaper</span>
+          <span className="hidden pl-1.5 md:block">Instapaper</span>
         </ButtonWithShortcut>
       )}
       <ButtonWithShortcut
         shortcut="w"
         variant={isWatchLater ? "secondary" : "outline"}
         onClick={toggleWatchLater}
+        size="icon md:default"
       >
         {isWatchLater ? <CheckIcon size={16} /> : <ClockIcon size={16} />}
-        <span className="pl-1.5">Watch Later</span>
+        <span className="hidden pl-1.5 md:block">Watch Later</span>
       </ButtonWithShortcut>
       <ButtonWithShortcut
         shortcut="e"
         variant={isWatched ? "secondary" : "outline"}
         onClick={toggleWatched}
+        size="icon md:default"
       >
         {isWatched ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
-        <span className="pl-1.5">{isWatched ? "Watched" : "Unwatched"}</span>
+        <span className="hidden pl-1.5 md:block">
+          {isWatched ? "Watched" : "Unwatched"}
+        </span>
       </ButtonWithShortcut>
     </div>
   );

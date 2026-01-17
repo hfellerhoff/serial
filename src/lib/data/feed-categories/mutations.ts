@@ -1,31 +1,26 @@
-import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { useTRPC } from "~/trpc/react";
+import { useMutation } from "@tanstack/react-query";
+import { orpc } from "~/lib/orpc";
+import { useFetchFeedCategories } from "./store";
 
 export function useAssignFeedCategoryMutation() {
-  const api = useTRPC();
-  const queryClient = useQueryClient();
+  const fetchFeedCategories = useFetchFeedCategories();
 
   return useMutation(
-    api.feedCategories.assignToFeed.mutationOptions({
+    orpc.feedCategories.assignToFeed.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: api.feedCategories.getAll.queryKey(),
-        });
+        await fetchFeedCategories();
       },
     }),
   );
 }
 
 export function useRemoveFeedCategoryMutation() {
-  const api = useTRPC();
-  const queryClient = useQueryClient();
+  const fetchFeedCategories = useFetchFeedCategories();
 
   return useMutation(
-    api.feedCategories.removeFromFeed.mutationOptions({
+    orpc.feedCategories.removeFromFeed.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: api.feedCategories.getAll.queryKey(),
-        });
+        await fetchFeedCategories();
       },
     }),
   );

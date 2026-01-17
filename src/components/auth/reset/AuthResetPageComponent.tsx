@@ -157,7 +157,7 @@ export function AuthResetPageComponent() {
           className="w-full"
           disabled={loading}
           onClick={async () => {
-            await authClient.forgetPassword({
+            await authClient.requestPasswordReset({
               email,
               redirectTo: AUTH_RESET_PASSWORD_URL,
               fetchOptions: {

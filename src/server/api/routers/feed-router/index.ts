@@ -31,56 +31,61 @@ export type BulkImportFromFileResult =
 export const create = protectedProcedure
   .input(z.object({ url: z.string().min(5), categoryIds: z.number().array() }))
   .handler(async ({ context, input }) => {
-    const newFeeds = await fetchNewFeedDetails(input.url);
-    if (!newFeeds.length) {
+    const newFeedDetails = await fetchNewFeedDetails(input.url);
+    if (!newFeedDetails.length) {
       throw new Error("Unsupported feed URL");
     }
 
-    const errors = (
-      await context.db.transaction(async (tx) => {
-        return await Promise.all(
-          newFeeds.map(async (newFeed) => {
-            if (!newFeed.url) return "No feed url found.";
+    const results = await context.db.transaction(async (tx) => {
+      return await Promise.all(
+        newFeedDetails.map(async (newFeed) => {
+          if (!newFeed.url) return { error: "No feed url found." };
 
-            const existingFeed = await findExistingFeedThatMatches(tx, {
-              feedUrl: newFeed.url,
+          const existingFeed = await findExistingFeedThatMatches(tx, {
+            feedUrl: newFeed.url,
+            userId: context.user.id,
+          });
+
+          if (existingFeed) {
+            return { error: "Feed already exists" };
+          }
+
+          const insertedFeeds = await tx
+            .insert(feeds)
+            .values({
               userId: context.user.id,
-            });
+              ...newFeed,
+            })
+            .returning();
 
-            if (existingFeed) {
-              return "Feed already exists";
-            }
+          const newFeedRow = insertedFeeds?.[0];
 
-            const newFeeds = await tx
-              .insert(feeds)
-              .values({
-                userId: context.user.id,
-                ...newFeed,
-              })
-              .returning();
+          if (!!input.categoryIds.length && !!newFeedRow) {
+            await Promise.all(
+              input.categoryIds.map(async (categoryId) => {
+                return await tx.insert(feedCategories).values({
+                  feedId: Number(newFeedRow.id),
+                  categoryId: categoryId,
+                });
+              }),
+            );
+          }
 
-            const newFeedRow = newFeeds?.[0];
+          return { feed: newFeedRow };
+        }),
+      );
+    });
 
-            if (!!input.categoryIds.length && !!newFeedRow) {
-              await Promise.all(
-                input.categoryIds.map(async (categoryId) => {
-                  return await tx.insert(feedCategories).values({
-                    feedId: Number(newFeedRow.id),
-                    categoryId: categoryId,
-                  });
-                }),
-              );
-            }
-
-            return null;
-          }),
-        );
-      })
-    ).filter(Boolean);
-
-    if (errors.length === newFeeds.length) {
-      throw new Error(errors[0]);
+    const errors = results.filter((r): r is { error: string } => "error" in r);
+    if (errors.length === newFeedDetails.length) {
+      throw new Error(errors[0]?.error ?? "Failed to create feed");
     }
+
+    const createdFeeds = results.filter(
+      (r): r is { feed: typeof feeds.$inferSelect } => "feed" in r && !!r.feed,
+    );
+
+    return parseArrayOfSchema(createdFeeds, feedsSchema);
   });
 
 export const createFromSubscriptionImport = protectedProcedure
@@ -99,123 +104,131 @@ export const createFromSubscriptionImport = protectedProcedure
       return [];
     }
 
-    const promiseResults = await Promise.allSettled(
-      input.feeds.map(async (feed) => {
-        return await context.db.transaction(async (tx) => {
-          const newFeedDetails = await fetchNewFeedDetails(feed.feedUrl);
-          const newFeed = newFeedDetails?.[0];
+    // Process feeds in small batches to avoid overwhelming the database
+    const BATCH_SIZE = 8;
+    const feedChunks = prepareArrayChunks(input.feeds, BATCH_SIZE);
+    const allResults: BulkImportFromFileResult[] = [];
 
-          if (!newFeed?.url) {
-            return {
-              feedUrl: feed.feedUrl,
-              success: false,
-              error: "Unsupported feed URL",
-            };
-          }
+    for (const chunk of feedChunks) {
+      const promiseResults = await Promise.allSettled(
+        chunk.map(async (feed) => {
+          return await context.db.transaction(async (tx) => {
+            const newFeedDetails = await fetchNewFeedDetails(feed.feedUrl);
+            const newFeed = newFeedDetails?.[0];
 
-          const existingFeed = await findExistingFeedThatMatches(tx, {
-            feedUrl: newFeed.url,
-            userId: context.user.id,
-          });
+            if (!newFeed?.url) {
+              return {
+                feedUrl: feed.feedUrl,
+                success: false,
+                error: "Unsupported feed URL",
+              };
+            }
 
-          if (existingFeed) {
-            return {
+            const existingFeed = await findExistingFeedThatMatches(tx, {
               feedUrl: newFeed.url,
-              success: false,
-              error: "Feed already exists",
-            };
-          }
-
-          const newFeeds = await tx
-            .insert(feeds)
-            .values({
               userId: context.user.id,
-              ...newFeed,
-            })
-            .returning();
-          const newFeedRow = newFeeds?.[0];
+            });
 
-          if (!newFeedRow) {
+            if (existingFeed) {
+              return {
+                feedUrl: newFeed.url,
+                success: false,
+                error: "Feed already exists",
+              };
+            }
+
+            const newFeeds = await tx
+              .insert(feeds)
+              .values({
+                userId: context.user.id,
+                ...newFeed,
+              })
+              .returning();
+            const newFeedRow = newFeeds?.[0];
+
+            if (!newFeedRow) {
+              return {
+                feedUrl: newFeed.url,
+                success: false,
+                error: "Couldn't find new feed",
+              };
+            }
+
+            const matchingCategories = await tx
+              .select()
+              .from(contentCategories)
+              .where(
+                and(
+                  inArray(contentCategories.name, feed.categories),
+                  eq(contentCategories.userId, context.user.id),
+                ),
+              )
+              .all();
+            const matchingCategoryNames = matchingCategories.map(
+              (category) => category.name,
+            );
+
+            const nonMatchingCategories = feed.categories.filter(
+              (category) => !matchingCategoryNames.includes(category),
+            );
+
+            const matchingCategoryPromises = matchingCategories.map(
+              async (matchingCategory) => {
+                const categoryId = matchingCategory.id;
+
+                return await tx.insert(feedCategories).values({
+                  feedId: newFeedRow.id,
+                  categoryId: categoryId,
+                });
+              },
+            );
+
+            const nonMatchingCategoryPromises = nonMatchingCategories.map(
+              async (nonMatchingCategory) => {
+                const newContentCategoryList = await tx
+                  .insert(contentCategories)
+                  .values({
+                    name: nonMatchingCategory,
+                    userId: context.user.id,
+                  })
+                  .returning();
+                const newContentCategory = newContentCategoryList?.[0];
+
+                if (!newContentCategory?.id) return;
+
+                await tx.insert(feedCategories).values({
+                  feedId: newFeedRow.id,
+                  categoryId: newContentCategory?.id,
+                });
+              },
+            );
+
+            await Promise.allSettled([
+              ...matchingCategoryPromises,
+              ...nonMatchingCategoryPromises,
+            ]);
+
             return {
               feedUrl: newFeed.url,
-              success: false,
-              error: "Couldn't find new feed",
+              success: true,
             };
+          });
+        }),
+      );
+
+      const chunkResults: BulkImportFromFileResult[] = promiseResults
+        .map((result) => {
+          if (result.status === "fulfilled") {
+            return result.value;
           }
+          return null;
+        })
+        .filter(Boolean);
 
-          const matchingCategories = await tx
-            .select()
-            .from(contentCategories)
-            .where(
-              and(
-                inArray(contentCategories.name, feed.categories),
-                eq(contentCategories.userId, context.user.id),
-              ),
-            )
-            .all();
-          const matchingCategoryNames = matchingCategories.map(
-            (category) => category.name,
-          );
+      allResults.push(...chunkResults);
+    }
 
-          const nonMatchingCategories = feed.categories.filter(
-            (category) => !matchingCategoryNames.includes(category),
-          );
-
-          const matchingCategoryPromises = matchingCategories.map(
-            async (matchingCategory) => {
-              const categoryId = matchingCategory.id;
-
-              return await tx.insert(feedCategories).values({
-                feedId: newFeedRow.id,
-                categoryId: categoryId,
-              });
-            },
-          );
-
-          const nonMatchingCategoryPromises = nonMatchingCategories.map(
-            async (nonMatchingCategory) => {
-              const newContentCategoryList = await tx
-                .insert(contentCategories)
-                .values({
-                  name: nonMatchingCategory,
-                  userId: context.user.id,
-                })
-                .returning();
-              const newContentCategory = newContentCategoryList?.[0];
-
-              if (!newContentCategory?.id) return;
-
-              await tx.insert(feedCategories).values({
-                feedId: newFeedRow.id,
-                categoryId: newContentCategory?.id,
-              });
-            },
-          );
-
-          await Promise.allSettled([
-            ...matchingCategoryPromises,
-            ...nonMatchingCategoryPromises,
-          ]);
-
-          return {
-            feedUrl: newFeed.url,
-            success: true,
-          };
-        });
-      }),
-    );
-
-    const results: BulkImportFromFileResult[] = promiseResults
-      .map((result) => {
-        if (result.status === "fulfilled") {
-          return result.value;
-        }
-
-        return null;
-      })
-      .filter(Boolean);
-
-    return results;
+    return allResults;
   });
 
 const deleteFeed = protectedProcedure
@@ -258,14 +271,15 @@ export const update = protectedProcedure
   .handler(async ({ context, input }) => {
     return await context.db.transaction(async (tx) => {
       // Feed open location
-      await tx
+      const updatedFeeds = await tx
         .update(feeds)
         .set({
           openLocation: input.openLocation,
         })
         .where(
           and(eq(feeds.userId, context.user.id), eq(feeds.id, input.feedId)),
-        );
+        )
+        .returning();
 
       // Feed categories
       await tx
@@ -277,7 +291,7 @@ export const update = protectedProcedure
           ),
         );
 
-      return await Promise.all(
+      await Promise.all(
         input.categoryIds.map(async (categoryId) => {
           await tx
             .insert(feedCategories)
@@ -288,5 +302,9 @@ export const update = protectedProcedure
             .onConflictDoNothing();
         }),
       );
+
+      const updatedFeed = updatedFeeds[0];
+      if (!updatedFeed) return null;
+      return feedsSchema.parse(updatedFeed);
     });
   });

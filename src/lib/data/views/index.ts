@@ -1,15 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect, useMemo } from "react";
 import { useSession } from "~/lib/auth-client";
 import { FEED_ITEM_ORIENTATION, VIEW_READ_STATUS } from "~/server/db/constants";
 import { type ApplicationView } from "~/server/db/schema";
-import { useTRPC } from "~/trpc/react";
 import {
   categoryFilterAtom,
   dateFilterAtom,
   feedFilterAtom,
-  hasFetchedViewsAtom,
   UNSELECTED_VIEW_ID,
   viewFilterIdAtom,
   viewsAtom,
@@ -20,6 +17,12 @@ import { doesFeedItemPassFilters } from "../feed-items";
 import { useFeeds } from "../feeds";
 import { sortViewsByPlacement } from "./utils";
 import { useFeedItemsDict, useFeedItemsOrder } from "../store";
+import {
+  useViews as useViewsStore,
+  useViewsFetchStatus,
+  useFetchViews,
+  useSetViews,
+} from "./store";
 import "core-js/full/set/difference";
 
 export const INBOX_VIEW_ID = -1;
@@ -92,19 +95,22 @@ export function useCheckFilteredFeedItemsForView() {
 export function useViewsQuery() {
   const { data } = useSession();
   const { contentCategories } = useContentCategories();
-  const [, setHasFetchedViews] = useAtom(hasFetchedViewsAtom);
-  const setViews = useSetAtom(viewsAtom);
+  const rawViews = useViewsStore();
+  const fetchStatus = useViewsFetchStatus();
+  const fetchViews = useFetchViews();
+  const setViewsInStore = useSetViews();
+  const setViewsAtom = useSetAtom(viewsAtom);
 
-  const query = useQuery(
-    useTRPC().views.getAll.queryOptions(undefined, {
-      staleTime: Infinity,
-    }),
-  );
+  useEffect(() => {
+    if (fetchStatus === "idle") {
+      fetchViews();
+    }
+  }, [fetchStatus, fetchViews]);
 
   const transformedData = useMemo(() => {
     const now = new Date();
 
-    const customViews: ApplicationView[] = (query.data ?? []).map((view) => ({
+    const customViews: ApplicationView[] = (rawViews ?? []).map((view) => ({
       ...view,
     }));
 
@@ -135,30 +141,35 @@ export function useViewsQuery() {
     };
 
     return sortViewsByPlacement([...customViews, inboxView]);
-  }, [query.data, contentCategories, data?.user.id]);
+  }, [rawViews, contentCategories, data?.user.id]);
 
+  // Keep the Jotai atom in sync with the computed views (including Inbox)
   useEffect(() => {
-    if (query.isSuccess) {
-      setHasFetchedViews(true);
-      setViews(transformedData);
+    if (fetchStatus === "success") {
+      setViewsAtom(transformedData);
     }
-  }, [query.isSuccess, transformedData, setHasFetchedViews, setViews]);
+  }, [fetchStatus, transformedData, setViewsAtom]);
 
   return {
-    ...query,
+    isLoading: fetchStatus === "fetching",
+    isSuccess: fetchStatus === "success",
     data: transformedData,
+    refetch: async () => {
+      // Reset and fetch again
+      setViewsInStore([]);
+      await fetchViews();
+    },
   };
 }
 
 export function useViews() {
-  const [views, setViews] = useAtom(viewsAtom);
-  const hasFetchedViews = useAtomValue(hasFetchedViewsAtom);
+  const views = useAtomValue(viewsAtom);
+  const fetchStatus = useViewsFetchStatus();
   const viewsQuery = useViewsQuery();
 
   return {
     views,
-    setViews,
     viewsQuery,
-    hasFetchedViews,
+    hasFetchedViews: fetchStatus === "success",
   };
 }

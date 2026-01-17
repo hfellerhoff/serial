@@ -1,29 +1,15 @@
-import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
-import { focusAtom } from "jotai-optics";
-import { useMemo } from "react";
+import { atom, useSetAtom } from "jotai";
 import { z } from "zod";
-import type {
-  ApplicationFeed,
-  ApplicationFeedItem,
-  ApplicationView,
-  DatabaseContentCategory,
-  DatabaseFeedCategory,
-} from "~/server/db/schema";
+import type { ApplicationView } from "~/server/db/schema";
 import { feedItemsStore } from "./store";
-
-export const hasFetchedFeedsAtom = atom(false);
-export const feedsAtom = atom<ApplicationFeed[]>([]);
+import { contentCategoriesStore } from "./content-categories/store";
+import { feedCategoriesStore } from "./feed-categories/store";
+import { viewsStore } from "./views/store";
+import { feedsStore } from "./feeds/store";
 
 export const feedItemsOrderAtom = atom<string[]>([]);
 
-export const hasFetchedContentCategoriesAtom = atom(false);
-export const contentCategoriesAtom = atom<DatabaseContentCategory[]>([]);
-
-export const hasFetchedFeedCategoriesAtom = atom(false);
-export const feedCategoriesAtom = atom<DatabaseFeedCategory[]>([]);
-
 export const hasSetInitialViewAtom = atom(false);
-export const hasFetchedViewsAtom = atom(false);
 export const viewsAtom = atom<ApplicationView[]>([]);
 
 export const dateFilterAtom = atom<number>(1);
@@ -47,17 +33,19 @@ export const viewFilterAtom = atom<ApplicationView | null>((get) => {
 });
 
 export const useClearAllUserData = () => {
-  const setFeedsAtom = useSetAtom(feedsAtom);
+  const resetFeeds = feedsStore.useReset();
   const resetFeedItems = feedItemsStore.useReset();
-  const setContentCategoriesAtom = useSetAtom(contentCategoriesAtom);
-  const setFeedCategoriesAtom = useSetAtom(feedCategoriesAtom);
+  const resetContentCategories = contentCategoriesStore.useReset();
+  const resetFeedCategories = feedCategoriesStore.useReset();
+  const resetViews = viewsStore.useReset();
   const setViewsAtom = useSetAtom(viewsAtom);
 
   return () => {
-    setFeedsAtom([]);
+    resetFeeds();
     resetFeedItems();
-    setContentCategoriesAtom([]);
-    setFeedCategoriesAtom([]);
+    resetContentCategories();
+    resetFeedCategories();
+    resetViews();
     setViewsAtom([]);
   };
 };

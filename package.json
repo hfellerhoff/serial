@@ -9,7 +9,7 @@
     "dev:atomic": "vite dev",
     "dev": "concurrently --kill-others \"pnpm dev:db\" \"pnpm dev:migrate && pnpm dev:atomic\"",
     "dev:email": "email dev --dir ./src/emails --port 4000",
-    "build": "vite build && pnpm schema:migrate && node --import=tsx ./src/server/scripts/addIdsToFeedItems.ts",
+    "build": "pnpm typecheck && vite build && pnpm schema:migrate && node --import=tsx ./src/server/scripts/addIdsToFeedItems.ts",
     "build:local": "concurrently --kill-others \"pnpm dev:db\" \"pnpm build\"",
     "build:atomic": "vite build",
     "schema:generate": "drizzle-kit generate",
@@ -17,7 +17,8 @@
     "schema:update": "pnpm schema:generate && pnpm schema:migrate",
     "db:studio": "drizzle-kit studio",
     "start": "node .output/server/index.mjs",
-    "start:local": "concurrently --kill-others \"pnpm dev:db\" \"pnpm start\""
+    "start:local": "concurrently --kill-others \"pnpm dev:db\" \"pnpm start\"",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@content-collections/core": "^0.13.1",
@@ -63,10 +64,6 @@
     "@tanstack/react-start": "1.150.0",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/zod-adapter": "1.150.0",
-    "@trpc/client": "^11.8.1",
-    "@trpc/next": "11.8.1",
-    "@trpc/server": "^11.8.1",
-    "@trpc/tanstack-react-query": "^11.8.1",
     "@types/core-js": "^2.5.8",
     "@types/mdx": "^2.0.13",
     "babel-plugin-react-compiler": "19.1.0-rc.2",
@@ -90,7 +87,6 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-fast-marquee": "^1.6.5",
-    "react-resizable-panels": "^4.4.1",
     "react-youtube": "^10.1.0",
     "recharts": "^3.6.0",
     "rehype-autolink-headings": "^7.1.0",

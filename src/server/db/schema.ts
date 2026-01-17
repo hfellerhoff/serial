@@ -129,7 +129,7 @@ export const feedItems = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => createId()),
-    feedId: integer("feed_id").references(() => feeds.id),
+    feedId: integer("feed_id").notNull().references(() => feeds.id),
     contentId: text("content_id", { length: 512 }).notNull(),
     title: text("title", { length: 512 }).notNull(),
     author: text("author", { length: 512 }).notNull(),
@@ -190,8 +190,8 @@ export type DatabaseContentCategory = typeof contentCategories.$inferSelect;
 export const feedCategories = sqliteTable(
   "feed_categories",
   {
-    feedId: integer("feed_id").references(() => feeds.id),
-    categoryId: integer("category_id").references(() => contentCategories.id),
+    feedId: integer("feed_id").notNull().references(() => feeds.id),
+    categoryId: integer("category_id").notNull().references(() => contentCategories.id),
   },
   (table) => [primaryKey({ columns: [table.feedId, table.categoryId] })],
 );

@@ -100,6 +100,7 @@ function SignUp() {
                 onSuccess: async () => {
                   router.navigate({
                     to: AUTH_SIGNED_IN_URL,
+                    reloadDocument: true,
                   });
                 },
               },

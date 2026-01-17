@@ -1,81 +1,78 @@
 import { and, eq, like } from "drizzle-orm";
 import { z } from "zod";
 
-import {
-  createTRPCRouter,
-  protectedProcedure,
-  publicProcedure,
-} from "~/server/api/trpc";
-import { db } from "~/server/db";
+import { protectedProcedure, publicProcedure } from "~/server/orpc/base";
 import { user } from "~/server/db/schema";
 import { userEmailSchema, userNameSchema } from "../schemas";
 
-export const userRouter = createTRPCRouter({
-  checkIsLegacyUser: publicProcedure
-    .input(
-      z.object({
-        email: z.string().email(),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      const users = await db
-        .select()
-        .from(user)
-        .where(and(eq(user.email, input.email), like(user.id, "user_%")));
-
-      if (users.length > 0) {
-        return true;
-      }
-
-      return false;
+export const checkIsLegacyUser = publicProcedure
+  .input(
+    z.object({
+      email: z.string().email(),
     }),
-  getIsLegacyUser: publicProcedure
-    .input(
-      z.object({
-        email: z.string().email(),
-      }),
-    )
-    .query(async ({ input }) => {
-      const users = await db
-        .select()
-        .from(user)
-        .where(and(eq(user.email, input.email), like(user.id, "user_%")));
+  )
+  .handler(async ({ context, input }) => {
+    const users = await context.db
+      .select()
+      .from(user)
+      .where(and(eq(user.email, input.email), like(user.id, "user_%")));
 
-      if (users.length > 0) {
-        return true;
-      }
+    if (users.length > 0) {
+      return true;
+    }
 
-      return false;
+    return false;
+  });
+
+export const getIsLegacyUser = publicProcedure
+  .input(
+    z.object({
+      email: z.string().email(),
     }),
-  updateName: protectedProcedure
-    .input(
-      z.object({
-        name: userNameSchema,
-      }),
-    )
-    .mutation(async ({ input, ctx }) => {
-      await db
-        .update(user)
-        .set({
-          name: input.name,
-        })
-        .where(eq(user.id, ctx.auth!.user.id));
+  )
+  .handler(async ({ context, input }) => {
+    const users = await context.db
+      .select()
+      .from(user)
+      .where(and(eq(user.email, input.email), like(user.id, "user_%")));
+
+    if (users.length > 0) {
+      return true;
+    }
+
+    return false;
+  });
+
+export const updateName = protectedProcedure
+  .input(
+    z.object({
+      name: userNameSchema,
     }),
-  updateEmail: protectedProcedure
-    .input(
-      z.object({
-        email: userEmailSchema,
-      }),
-    )
-    .mutation(async ({ input, ctx }) => {
-      await db
-        .update(user)
-        .set({
-          email: input.email,
-        })
-        .where(eq(user.id, ctx.auth!.user.id));
+  )
+  .handler(async ({ context, input }) => {
+    await context.db
+      .update(user)
+      .set({
+        name: input.name,
+      })
+      .where(eq(user.id, context.user.id));
+  });
+
+export const updateEmail = protectedProcedure
+  .input(
+    z.object({
+      email: userEmailSchema,
     }),
-  delete: protectedProcedure.mutation(async ({ ctx }) => {
-    await db.delete(user).where(eq(user.id, ctx.auth!.user.id));
-  }),
+  )
+  .handler(async ({ context, input }) => {
+    await context.db
+      .update(user)
+      .set({
+        email: input.email,
+      })
+      .where(eq(user.id, context.user.id));
+  });
+
+export const deleteUser = protectedProcedure.handler(async ({ context }) => {
+  await context.db.delete(user).where(eq(user.id, context.user.id));
 });

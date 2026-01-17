@@ -1,6 +1,6 @@
 import { ThemeProvider } from "~/components/ThemeProvider";
 import { Toaster } from "~/components/ui/sonner";
-import { TRPCReactProvider } from "~/trpc/react";
+import { QueryProvider } from "~/lib/query-provider";
 
 import {
   createRootRoute,
@@ -124,14 +124,14 @@ export function RootLayout() {
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
-        {/* {process.env.NODE_ENV !== "production" && (
+        {/*{process.env.NODE_ENV !== "production" && (
           <>
             <script
               crossOrigin="anonymous"
               src="//unpkg.com/react-scan/dist/auto.global.js"
             />
           </>
-        )} */}
+        )}*/}
         {process.env.NODE_ENV === "production" && (
           <>
             <script
@@ -152,7 +152,7 @@ export function RootLayout() {
         className="min-h-screen font-sans antialiased"
       >
         <ApplyColorThemeOnServerMount data={data.variables} />
-        <TRPCReactProvider>
+        <QueryProvider>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
@@ -164,7 +164,7 @@ export function RootLayout() {
             <Scripts />
             <Toaster />
           </ThemeProvider>
-        </TRPCReactProvider>
+        </QueryProvider>
       </body>
     </html>
   );

@@ -1,13 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
-import { useTRPC } from "~/trpc/react";
+import { orpc } from "~/lib/orpc";
 
 export function useDeleteAccountMutation() {
-  const api = useTRPC();
   const router = useRouter();
 
   return useMutation(
-    api.user.delete.mutationOptions({
+    orpc.user.deleteUser.mutationOptions({
       onSuccess: () => {
         router.navigate({ to: "/" });
       },

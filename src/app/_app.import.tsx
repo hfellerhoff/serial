@@ -3,6 +3,7 @@
 import {
   CheckIcon,
   CircleQuestionMarkIcon,
+  ExternalLinkIcon,
   GlobeIcon,
   MinusIcon,
   PlayCircleIcon,
@@ -218,6 +219,7 @@ function EditFeedsPage() {
                       >
                         {displayTitle}
                       </label>
+
                       {!isSuccess && (
                         <span className="space-x-1 px-2">
                           {channel.categories.map((category) => (
@@ -227,75 +229,93 @@ function EditFeedsPage() {
                           ))}
                         </span>
                       )}
-                      <div className="flex items-center justify-between gap-2">
-                        {!isSuccess && (
-                          <Checkbox
-                            id={`channel ${displayTitle}`}
-                            checked={channel.shouldImport}
-                            onCheckedChange={(value) => {
-                              setFeedsFoundFromFile((prevChannels) => {
-                                if (!prevChannels?.[i]) {
-                                  return prevChannels;
-                                }
-
-                                prevChannels[i] = {
-                                  ...prevChannels[i],
-                                  shouldImport: value.valueOf() as boolean,
-                                };
-                                return [...prevChannels];
-                              });
-                            }}
-                            disabled={
-                              !!feeds?.find(
-                                (feed) => feed.url === channel.feedUrl,
-                              )
-                            }
-                          />
+                      <div className="flex items-center justify-between gap-3">
+                        {channel.websiteUrl && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <a
+                                href={channel.websiteUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-muted-foreground hover:text-foreground ml-1 shrink-0 transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLinkIcon size={16} />
+                              </a>
+                            </TooltipTrigger>
+                            <TooltipContent>Open original</TooltipContent>
+                          </Tooltip>
                         )}
-                        {!!result &&
-                          (result.success ? (
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <CheckIcon size={20} />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Imported Successfully!
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <TriangleAlertIcon size={20} />
-                              </TooltipTrigger>
-                              <TooltipContent>{result.error}</TooltipContent>
-                            </Tooltip>
-                          ))}
-                        {!result &&
-                          !!feedResults.length &&
-                          channel.shouldImport && (
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <CircleQuestionMarkIcon size={20} />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                We don&apos;t know what happened with this
-                                import. Feel free to file a bug report with this
-                                feed URL!
-                              </TooltipContent>
-                            </Tooltip>
+                        <div className="flex items-center justify-between gap-2">
+                          {!isSuccess && (
+                            <Checkbox
+                              id={`channel ${displayTitle}`}
+                              checked={channel.shouldImport}
+                              onCheckedChange={(value) => {
+                                setFeedsFoundFromFile((prevChannels) => {
+                                  if (!prevChannels?.[i]) {
+                                    return prevChannels;
+                                  }
+
+                                  prevChannels[i] = {
+                                    ...prevChannels[i],
+                                    shouldImport: value.valueOf() as boolean,
+                                  };
+                                  return [...prevChannels];
+                                });
+                              }}
+                              disabled={
+                                !!feeds?.find(
+                                  (feed) => feed.url === channel.feedUrl,
+                                )
+                              }
+                            />
                           )}
-                        {!result &&
-                          !!feedResults.length &&
-                          !channel.shouldImport && (
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <MinusIcon size={20} />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                This feed was excluded from the import.
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
+                          {!!result &&
+                            (result.success ? (
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <CheckIcon size={20} />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  Imported Successfully!
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <TriangleAlertIcon size={20} />
+                                </TooltipTrigger>
+                                <TooltipContent>{result.error}</TooltipContent>
+                              </Tooltip>
+                            ))}
+                          {!result &&
+                            !!feedResults.length &&
+                            channel.shouldImport && (
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <CircleQuestionMarkIcon size={20} />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  We don&apos;t know what happened with this
+                                  import. Feel free to file a bug report with
+                                  this feed URL!
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          {!result &&
+                            !!feedResults.length &&
+                            !channel.shouldImport && (
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <MinusIcon size={20} />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  This feed was excluded from the import.
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                        </div>
                       </div>
                     </div>
                   );

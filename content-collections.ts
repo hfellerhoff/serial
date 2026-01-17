@@ -13,11 +13,11 @@ const markdownReleaseSchema = z.object({
   description: z.string().optional(),
   publish_date: z.string().date(),
   public: z.boolean(),
+  content: z.string(),
 });
 
 export const releaseSchema = markdownReleaseSchema.extend({
   slug: z.string(),
-  content: z.string(),
   excerpt: z.string(),
 });
 

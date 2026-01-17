@@ -1,58 +1,51 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useTRPC } from "~/trpc/react";
+import { useMutation } from "@tanstack/react-query";
+import { orpc } from "~/lib/orpc";
+import { useFetchContentCategories } from "./store";
+import { useFetchFeedCategories } from "../feed-categories/store";
+import { useFetchViews, useSetViews } from "../views/store";
 
 export function useCreateContentCategoryMutation() {
-  const api = useTRPC();
-  const queryClient = useQueryClient();
+  const fetchContentCategories = useFetchContentCategories();
+  const fetchFeedCategories = useFetchFeedCategories();
 
   return useMutation(
-    api.contentCategories.create.mutationOptions({
+    orpc.contentCategories.create.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: api.contentCategories.getAll.queryKey(),
-        });
-        await queryClient.invalidateQueries({
-          queryKey: api.feedCategories.getAll.queryKey(),
-        });
+        await fetchContentCategories();
+        await fetchFeedCategories();
       },
     }),
   );
 }
 
 export function useUpdateContentCategoryMutation() {
-  const api = useTRPC();
-  const queryClient = useQueryClient();
+  const fetchContentCategories = useFetchContentCategories();
+  const fetchFeedCategories = useFetchFeedCategories();
 
   return useMutation(
-    api.contentCategories.update.mutationOptions({
+    orpc.contentCategories.update.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: api.contentCategories.getAll.queryKey(),
-        });
-        await queryClient.invalidateQueries({
-          queryKey: api.feedCategories.getAll.queryKey(),
-        });
+        await fetchContentCategories();
+        await fetchFeedCategories();
       },
     }),
   );
 }
 
 export function useDeleteContentCategoryMutation() {
-  const api = useTRPC();
-  const queryClient = useQueryClient();
+  const fetchContentCategories = useFetchContentCategories();
+  const fetchFeedCategories = useFetchFeedCategories();
+  const setViews = useSetViews();
+  const fetchViews = useFetchViews();
 
   return useMutation(
-    api.contentCategories.delete.mutationOptions({
+    orpc.contentCategories.deleteCategory.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: api.contentCategories.getAll.queryKey(),
-        });
-        await queryClient.invalidateQueries({
-          queryKey: api.views.getAll.queryKey(),
-        });
-        await queryClient.invalidateQueries({
-          queryKey: api.feedCategories.getAll.queryKey(),
-        });
+        await fetchContentCategories();
+        await fetchFeedCategories();
+        // Reset views and refetch to recompute Inbox categories
+        setViews([]);
+        await fetchViews();
       },
     }),
   );

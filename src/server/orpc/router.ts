@@ -2,10 +2,18 @@ import * as feedRouter from "~/server/api/routers/feed-router";
 import * as feedItemRouter from "~/server/api/routers/feedItemRouter";
 import * as instapaperRouter from "~/server/api/routers/instapaperRouter";
 import * as userConfigRouter from "~/server/api/routers/userConfigRouter";
+import * as userRouter from "~/server/api/routers/userRouter";
+import * as feedCategoriesRouter from "~/server/api/routers/feedCategoriesRouter";
+import * as contentCategoriesRouter from "~/server/api/routers/contentCategoriesRouter";
+import * as viewRouter from "~/server/api/routers/viewRouter";
 
 export const orpcRouter = {
   feed: feedRouter,
   feedItem: feedItemRouter,
   userConfig: userConfigRouter,
   instapaper: instapaperRouter,
+  user: userRouter,
+  feedCategories: feedCategoriesRouter,
+  contentCategories: contentCategoriesRouter,
+  view: viewRouter,
 };

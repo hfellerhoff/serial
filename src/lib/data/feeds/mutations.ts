@@ -1,71 +1,69 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useTRPC } from "~/trpc/react";
-import { useFeeds } from ".";
+import { useMutation } from "@tanstack/react-query";
 import { orpc } from "~/lib/orpc";
+import { useFetchFeedCategories } from "../feed-categories/store";
 import {
   feedItemsStore,
   useFeedItemsDict,
   useFeedItemsOrder,
   useFetchFeedItems,
+  useFetchFeedItemsForFeed,
 } from "../store";
+import {
+  useAddFeed,
+  useFetchFeeds,
+  useRemoveFeed,
+  useSetFeeds,
+  useUpdateFeed,
+} from "./store";
 
 export function useCreateFeedMutation() {
-  const api = useTRPC();
-  const queryClient = useQueryClient();
-  const refetchFeedItems = useFetchFeedItems();
+  const fetchFeedItemsForFeed = useFetchFeedItemsForFeed();
+  const fetchFeedCategories = useFetchFeedCategories();
+  const addFeed = useAddFeed();
 
   return useMutation(
     orpc.feed.create.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: orpc.feed.getAll.queryKey(),
-        });
-        refetchFeedItems();
-        await queryClient.invalidateQueries({
-          queryKey: api.feedCategories.getAll.queryKey(),
-        });
+      onSuccess: async (createdFeeds) => {
+        createdFeeds.forEach((feed) => addFeed(feed));
+        await Promise.all(createdFeeds.map((feed) => fetchFeedItemsForFeed(feed.id)));
+        await fetchFeedCategories();
       },
     }),
   );
 }
 
 export function useCreateFeedsFromSubscriptionImportMutation() {
-  const api = useTRPC();
-  const queryClient = useQueryClient();
   const refetchFeedItems = useFetchFeedItems();
+  const fetchFeedCategories = useFetchFeedCategories();
+  const setFeeds = useSetFeeds();
+  const fetchFeeds = useFetchFeeds();
 
   return useMutation(
     orpc.feed.createFromSubscriptionImport.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: orpc.feed.getAll.queryKey(),
-        });
+        // Reset and refetch feeds
+        setFeeds([]);
+        fetchFeeds();
         refetchFeedItems();
-        await queryClient.invalidateQueries({
-          queryKey: api.feedCategories.getAll.queryKey(),
-        });
+        fetchFeedCategories();
       },
     }),
   );
 }
 
 export function useDeleteFeedMutation() {
-  const queryClient = useQueryClient();
-
-  const { feeds, setFeeds } = useFeeds();
-
   const feedItemsOrder = useFeedItemsOrder();
   const feedItemsDict = useFeedItemsDict();
 
   const setFeedItemsOrder = feedItemsStore.useSetFeedItemsOrder();
   const setFeedItemsDict = feedItemsStore.useSetFeedItemsDict();
 
-  const refetchFeedItems = useFetchFeedItems();
+  const removeFeed = useRemoveFeed();
 
   return useMutation(
     orpc.feed.delete.mutationOptions({
-      onSuccess: async (_, feedId) => {
-        setFeeds(feeds.filter((feed) => feed.id !== feedId));
+      onSuccess: (_, feedId) => {
+        removeFeed(feedId);
 
         const [updatedFeedItemsOrder, removedFeedItems] = feedItemsOrder.reduce(
           ([partialKeptItems, partialRemovedItems], feedItemContentId) => {
@@ -90,29 +88,22 @@ export function useDeleteFeedMutation() {
 
         setFeedItemsOrder(updatedFeedItemsOrder);
         setFeedItemsDict(updatedfeedItemsDict);
-
-        await queryClient.invalidateQueries({
-          queryKey: orpc.feed.getAll.queryKey(),
-        });
-        refetchFeedItems();
       },
     }),
   );
 }
 
 export function useEditFeedMutation() {
-  const api = useTRPC();
-  const queryClient = useQueryClient();
+  const fetchFeedCategories = useFetchFeedCategories();
+  const updateFeed = useUpdateFeed();
 
   return useMutation(
     orpc.feed.update.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: orpc.feed.getAll.queryKey(),
-        });
-        await queryClient.invalidateQueries({
-          queryKey: api.feedCategories.getAll.queryKey(),
-        });
+      onSuccess: async (updatedFeed) => {
+        if (updatedFeed) {
+          updateFeed(updatedFeed.id, updatedFeed);
+        }
+        await fetchFeedCategories();
       },
     }),
   );

@@ -1,8 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
-import { useTRPC } from "~/trpc/react";
+import { orpc } from "~/lib/orpc";
 
 export function useUpdateEmailMutation() {
-  const api = useTRPC();
-
-  return useMutation(api.user.updateEmail.mutationOptions());
+  return useMutation(orpc.user.updateEmail.mutationOptions());
 }

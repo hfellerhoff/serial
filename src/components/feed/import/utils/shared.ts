@@ -2,6 +2,7 @@ import type { FeedPlatform } from "~/server/db/schema";
 
 export type ImportFeedDataItem = {
   feedUrl: string;
+  websiteUrl?: string;
   title?: string;
   categories: string[];
   platform: FeedPlatform;

@@ -15,6 +15,7 @@ export type ApplicationStore = {
   setFeedItemsDict: (itemsDict: Record<string, ApplicationFeedItem>) => void;
   setFeedItem: (id: string, item: ApplicationFeedItem) => void;
   fetchFeedItems: () => Promise<void>;
+  fetchFeedItemsForFeed: (feedId: number) => Promise<void>;
   fetchFeedItemsLastFetchedAt: number | null;
   fetchFeedItemsStatus: "idle" | "fetching" | "success";
 };
@@ -61,11 +62,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
         const timeToWait = DEBOUNCE_TIME - timeSinceLastUpdate;
         const shouldWaitToRender = timeToWait > 0;
 
-        const feedStatusDict = shouldWaitToRender
-          ? get().feedStatusDict
-          : {
-              ...get().feedStatusDict,
-            };
+        const feedStatusDict = get().feedStatusDict;
 
         const feedItemsDict = shouldWaitToRender
           ? get().feedItemsDict
@@ -114,6 +111,49 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
         feedStatusDict: { ...get().feedStatusDict },
       });
     },
+
+    fetchFeedItemsForFeed: async (feedId: number) => {
+      set({
+        fetchFeedItemsStatus: "fetching",
+      });
+
+      for await (const incomingChunk of await orpcRouterClient.feedItem.getByFeedId(
+        { feedId },
+      )) {
+        const feedStatusDict = { ...get().feedStatusDict };
+        const feedItemsDict = { ...get().feedItemsDict };
+        const feedItemsOrder = [...get().feedItemsOrder];
+
+        if (incomingChunk.type === "feed-status") {
+          feedStatusDict[incomingChunk.feedId] = incomingChunk.status;
+        } else if (incomingChunk.type === "feed-items") {
+          const incomingFeedItems = incomingChunk.feedItems;
+
+          incomingFeedItems.forEach((item) => {
+            feedItemsDict[item.id] = item;
+
+            if (!feedItemsOrder.find((id) => id === item.id)) {
+              feedItemsOrder.push(item.id);
+            }
+          });
+        }
+
+        set({
+          feedItemsDict: feedItemsDict,
+          feedItemsOrder: feedItemsOrder.sort(
+            sortFeedItemsOrderByDate(get().feedItemsDict),
+          ),
+          feedStatusDict: feedStatusDict,
+        });
+      }
+
+      set({
+        fetchFeedItemsStatus: "success",
+        feedItemsOrder: [...get().feedItemsOrder].sort(
+          sortFeedItemsOrderByDate(get().feedItemsDict),
+        ),
+      });
+    },
   }),
   //   {
   //     name: "serial", // name of the item in the storage (must be unique)
@@ -136,6 +176,7 @@ export const {
   useFetchFeedItemsLastFetchedAt,
   useFetchFeedItemsStatus,
   useFetchFeedItems,
+  useFetchFeedItemsForFeed,
 } = feedItemsStore;
 
 export const useFeedItemValue = (id: string) => {

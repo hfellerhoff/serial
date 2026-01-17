@@ -19,7 +19,6 @@ import { Route as AuthResetRouteImport } from './app/auth.reset'
 import { Route as WebWelcomeRouteImport } from './app/_web.welcome'
 import { Route as AppImportRouteImport } from './app/_app.import'
 import { Route as WebReleasesIndexRouteImport } from './app/_web.releases.index'
-import { Route as ApiTrpcSplatRouteImport } from './app/api/trpc.$'
 import { Route as ApiRpcSplatRouteImport } from './app/api/rpc.$'
 import { Route as ApiAuthSplatRouteImport } from './app/api/auth.$'
 import { Route as WebReleasesSlugRouteImport } from './app/_web.releases.$slug'
@@ -74,11 +73,6 @@ const WebReleasesIndexRoute = WebReleasesIndexRouteImport.update({
   path: '/releases/',
   getParentRoute: () => WebRoute,
 } as any)
-const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
-  id: '/api/trpc/$',
-  path: '/api/trpc/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiRpcSplatRoute = ApiRpcSplatRouteImport.update({
   id: '/api/rpc/$',
   path: '/api/rpc/$',
@@ -118,7 +112,6 @@ export interface FileRoutesByFullPath {
   '/releases/$slug': typeof WebReleasesSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
-  '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/releases': typeof WebReleasesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -134,7 +127,6 @@ export interface FileRoutesByTo {
   '/releases/$slug': typeof WebReleasesSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
-  '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/releases': typeof WebReleasesIndexRoute
 }
 export interface FileRoutesById {
@@ -153,7 +145,6 @@ export interface FileRoutesById {
   '/_web/releases/$slug': typeof WebReleasesSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
-  '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/_web/releases/': typeof WebReleasesIndexRoute
 }
 export interface FileRouteTypes {
@@ -171,7 +162,6 @@ export interface FileRouteTypes {
     | '/releases/$slug'
     | '/api/auth/$'
     | '/api/rpc/$'
-    | '/api/trpc/$'
     | '/releases'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -187,7 +177,6 @@ export interface FileRouteTypes {
     | '/releases/$slug'
     | '/api/auth/$'
     | '/api/rpc/$'
-    | '/api/trpc/$'
     | '/releases'
   id:
     | '__root__'
@@ -205,7 +194,6 @@ export interface FileRouteTypes {
     | '/_web/releases/$slug'
     | '/api/auth/$'
     | '/api/rpc/$'
-    | '/api/trpc/$'
     | '/_web/releases/'
   fileRoutesById: FileRoutesById
 }
@@ -215,7 +203,6 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiRpcSplatRoute: typeof ApiRpcSplatRoute
-  ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -289,13 +276,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/releases'
       preLoaderRoute: typeof WebReleasesIndexRouteImport
       parentRoute: typeof WebRoute
-    }
-    '/api/trpc/$': {
-      id: '/api/trpc/$'
-      path: '/api/trpc/$'
-      fullPath: '/api/trpc/$'
-      preLoaderRoute: typeof ApiTrpcSplatRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/api/rpc/$': {
       id: '/api/rpc/$'
@@ -385,7 +365,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiRpcSplatRoute: ApiRpcSplatRoute,
-  ApiTrpcSplatRoute: ApiTrpcSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

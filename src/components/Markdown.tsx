@@ -2,6 +2,7 @@
 import { Link } from "@tanstack/react-router";
 import parse, {
   type HTMLReactParserOptions,
+  type DOMNode,
   domToReact,
   Element,
 } from "html-react-parser";
@@ -34,7 +35,7 @@ export function Markdown({ content, className }: MarkdownProps) {
           if (href?.startsWith("/")) {
             // Internal link - use your router's Link component
             return (
-              <Link to={href}>{domToReact(domNode.children, options)}</Link>
+              <Link to={href}>{domToReact(domNode.children as DOMNode[], options)}</Link>
             );
           }
         }

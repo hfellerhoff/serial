@@ -3,6 +3,7 @@ import {
   AlertCircleIcon,
   CircleSmall,
   Edit2Icon,
+  Loader2Icon,
   MinusIcon,
   PlusIcon,
 } from "lucide-react";
@@ -36,11 +37,13 @@ import {
   useFeedItemsDict,
   useFeedItemsOrder,
   useFeedStatusDict,
+  useFetchFeedItemsLastFetchedAt,
   useFetchFeedItemsStatus,
 } from "~/lib/data/store";
 import { useDeselectViewFilter } from "~/lib/data/views";
 import type { ApplicationFeed } from "~/server/db/schema";
 import { useDialogStore } from "./dialogStore";
+import { Skeleton } from "../ui/skeleton";
 
 function useCheckFilteredFeedItemsForFeed() {
   const feedItemsOrder = useFeedItemsOrder();
@@ -130,8 +133,43 @@ export function SidebarFeeds() {
 
   const feedStatusDict = useFeedStatusDict();
   const fetchFeedItemsStatus = useFetchFeedItemsStatus();
+  const fetchFeedItemsLastFetchedAt = useFetchFeedItemsLastFetchedAt();
 
   const checkFilteredFeedItemsForFeed = useCheckFilteredFeedItemsForFeed();
+
+  if (fetchFeedItemsStatus === "fetching" && !fetchFeedItemsLastFetchedAt) {
+    return (
+      <div>
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel className="pr-0 pb-2">
+            <span className="inline-block flex-1">Feeds</span>
+            <div className="flex w-fit items-center justify-end">
+              <SidebarMenuButton
+                asChild
+                onClick={() => launchDialog("add-feed")}
+              >
+                <ButtonWithShortcut shortcut="a" variant="ghost">
+                  <PlusIcon />
+                </ButtonWithShortcut>
+              </SidebarMenuButton>
+            </div>
+          </SidebarGroupLabel>
+          <div className="flex flex-col items-center gap-4 px-2 py-2">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
+        </SidebarGroup>
+      </div>
+    );
+  }
 
   const feedOptions = feeds?.map((feed) => ({
     ...feed,

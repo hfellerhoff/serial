@@ -1,38 +1,34 @@
-import { useQuery } from "@tanstack/react-query";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
-import { useTRPC } from "~/trpc/react";
-import { feedCategoriesAtom, hasFetchedFeedCategoriesAtom } from "../atoms";
+import {
+  useFeedCategories as useFeedCategoriesStore,
+  useFeedCategoriesFetchStatus,
+  useFetchFeedCategories,
+} from "./store";
 
 export function useFeedCategoriesQuery() {
-  const setHasFetchedFeedCategories = useSetAtom(hasFetchedFeedCategoriesAtom);
-  const setFeedCategories = useSetAtom(feedCategoriesAtom);
-
-  const query = useQuery(
-    useTRPC().feedCategories.getAll.queryOptions(undefined, {
-      staleTime: Infinity,
-    }),
-  );
+  const fetchFeedCategories = useFetchFeedCategories();
+  const fetchStatus = useFeedCategoriesFetchStatus();
 
   useEffect(() => {
-    if (query.isSuccess) {
-      setHasFetchedFeedCategories(true);
-      setFeedCategories(query.data);
+    if (fetchStatus === "idle") {
+      fetchFeedCategories();
     }
-  }, [query, setHasFetchedFeedCategories, setFeedCategories]);
+  }, [fetchStatus, fetchFeedCategories]);
 
-  return query;
+  return {
+    isLoading: fetchStatus === "fetching",
+    isSuccess: fetchStatus === "success",
+  };
 }
 
 export function useFeedCategories() {
-  const [feedCategories, setFeedCategories] = useAtom(feedCategoriesAtom);
-  const hasFetchedFeedCategories = useAtomValue(hasFetchedFeedCategoriesAtom);
+  const feedCategories = useFeedCategoriesStore();
+  const fetchStatus = useFeedCategoriesFetchStatus();
   const feedCategoriesQuery = useFeedCategoriesQuery();
 
   return {
     feedCategories,
-    setFeedCategories,
     feedCategoriesQuery,
-    hasFetchedFeedCategories,
+    hasFetchedFeedCategories: fetchStatus === "success",
   };
 }

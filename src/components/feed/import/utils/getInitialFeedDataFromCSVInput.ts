@@ -45,6 +45,7 @@ export function getInitialFeedDataFromCSVInput(
       return {
         title,
         feedUrl,
+        websiteUrl: channelUrl,
         categories: [],
         platform: getAssumedFeedPlatform(feedUrl),
         shouldImport: true,

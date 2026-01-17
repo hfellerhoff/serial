@@ -54,6 +54,7 @@ function parseOPMLFeed(
 ): ImportFeedDataItem {
   return {
     feedUrl: opmlFeed.xmlUrl,
+    websiteUrl: opmlFeed.htmlUrl,
     title: opmlFeed.title,
     shouldImport: true,
     categories: categories?.filter(Boolean) ?? [],

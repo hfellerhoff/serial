@@ -1,48 +1,46 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import type { ApplicationView } from "~/server/db/schema";
-import { useTRPC } from "~/trpc/react";
+import { orpc } from "~/lib/orpc";
 import { INBOX_VIEW_ID, INBOX_VIEW_PLACEMENT } from ".";
+import { useFetchViews, useSetViews } from "./store";
 
 export function useCreateViewMutation() {
-  const api = useTRPC();
-  const queryClient = useQueryClient();
+  const setViews = useSetViews();
+  const fetchViews = useFetchViews();
 
   return useMutation(
-    api.views.create.mutationOptions({
+    orpc.view.create.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: api.views.getAll.queryKey(),
-        });
+        setViews([]);
+        await fetchViews();
       },
     }),
   );
 }
 
 export function useEditViewMutation() {
-  const api = useTRPC();
-  const queryClient = useQueryClient();
+  const setViews = useSetViews();
+  const fetchViews = useFetchViews();
 
   return useMutation(
-    api.views.update.mutationOptions({
+    orpc.view.update.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: api.views.getAll.queryKey(),
-        });
+        setViews([]);
+        await fetchViews();
       },
     }),
   );
 }
 
 export function useDeleteViewMutation() {
-  const api = useTRPC();
-  const queryClient = useQueryClient();
+  const setViews = useSetViews();
+  const fetchViews = useFetchViews();
 
   return useMutation(
-    api.views.delete.mutationOptions({
+    orpc.view.deleteView.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: api.views.getAll.queryKey(),
-        });
+        setViews([]);
+        await fetchViews();
       },
     }),
   );
@@ -59,15 +57,14 @@ export function calculateViewsPlacement(views: ApplicationView[]) {
 }
 
 export function useUpdateViewsPlacementMutation() {
-  const api = useTRPC();
-  const queryClient = useQueryClient();
+  const setViews = useSetViews();
+  const fetchViews = useFetchViews();
 
   return useMutation(
-    api.views.updatePlacement.mutationOptions({
+    orpc.view.updatePlacement.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: api.views.getAll.queryKey(),
-        });
+        setViews([]);
+        await fetchViews();
       },
     }),
   );
