@@ -62,7 +62,7 @@ CREATE TABLE `__new_serial_user_config` (
 	FOREIGN KEY (`user_id`) REFERENCES `serial_user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-INSERT INTO `__new_serial_user_config`("id", "user_id", "created_at", "updated_at", "light_hsl", "dark_hsl") SELECT "id", "user_id", "created_at", "updated_at", "light_hsl", "dark_hsl" FROM `serial_user_config`;--> statement-breakpoint
+INSERT INTO `__new_serial_user_config`("id", "user_id", "created_at", "updated_at", "light_hsl", "dark_hsl") SELECT "user_id", "user_id", "created_at", "updated_at", "light_hsl", "dark_hsl" FROM `serial_user_config`;--> statement-breakpoint
 DROP TABLE `serial_user_config`;--> statement-breakpoint
 ALTER TABLE `__new_serial_user_config` RENAME TO `serial_user_config`;--> statement-breakpoint
 CREATE UNIQUE INDEX `serial_user_config_user_id_unique` ON `serial_user_config` (`user_id`);--> statement-breakpoint
