@@ -19,6 +19,7 @@ import { Route as AuthResetRouteImport } from './app/auth.reset'
 import { Route as ApiHealthRouteImport } from './app/api/health'
 import { Route as WebWelcomeRouteImport } from './app/_web.welcome'
 import { Route as AppImportRouteImport } from './app/_app.import'
+import { Route as AppFeedsRouteImport } from './app/_app.feeds'
 import { Route as WebReleasesIndexRouteImport } from './app/_web.releases.index'
 import { Route as ApiRpcSplatRouteImport } from './app/api/rpc.$'
 import { Route as ApiAuthSplatRouteImport } from './app/api/auth.$'
@@ -74,6 +75,11 @@ const AppImportRoute = AppImportRouteImport.update({
   path: '/import',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFeedsRoute = AppFeedsRouteImport.update({
+  id: '/feeds',
+  path: '/feeds',
+  getParentRoute: () => AppRoute,
+} as any)
 const WebReleasesIndexRoute = WebReleasesIndexRouteImport.update({
   id: '/releases/',
   path: '/releases/',
@@ -107,6 +113,7 @@ const AppReadIdRoute = AppReadIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
+  '/feeds': typeof AppFeedsRoute
   '/import': typeof AppImportRoute
   '/welcome': typeof WebWelcomeRoute
   '/api/health': typeof ApiHealthRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
+  '/feeds': typeof AppFeedsRoute
   '/import': typeof AppImportRoute
   '/welcome': typeof WebWelcomeRoute
   '/api/health': typeof ApiHealthRoute
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_web': typeof WebRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/_app/feeds': typeof AppFeedsRoute
   '/_app/import': typeof AppImportRoute
   '/_web/welcome': typeof WebWelcomeRoute
   '/api/health': typeof ApiHealthRoute
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/auth'
+    | '/feeds'
     | '/import'
     | '/welcome'
     | '/api/health'
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/feeds'
     | '/import'
     | '/welcome'
     | '/api/health'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_web'
     | '/auth'
+    | '/_app/feeds'
     | '/_app/import'
     | '/_web/welcome'
     | '/api/health'
@@ -290,6 +302,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppImportRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/feeds': {
+      id: '/_app/feeds'
+      path: '/feeds'
+      fullPath: '/feeds'
+      preLoaderRoute: typeof AppFeedsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_web/releases/': {
       id: '/_web/releases/'
       path: '/releases'
@@ -336,6 +355,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppFeedsRoute: typeof AppFeedsRoute
   AppImportRoute: typeof AppImportRoute
   AppIndexRoute: typeof AppIndexRoute
   AppReadIdRoute: typeof AppReadIdRoute
@@ -343,6 +363,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppFeedsRoute: AppFeedsRoute,
   AppImportRoute: AppImportRoute,
   AppIndexRoute: AppIndexRoute,
   AppReadIdRoute: AppReadIdRoute,

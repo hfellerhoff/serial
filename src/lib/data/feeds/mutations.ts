@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { orpc } from "~/lib/orpc";
+import { useFetchContentCategories } from "../content-categories/store";
 import { useFetchFeedCategories } from "../feed-categories/store";
 import {
   feedItemsStore,
@@ -35,6 +36,7 @@ export function useCreateFeedMutation() {
 export function useCreateFeedsFromSubscriptionImportMutation() {
   const refetchFeedItems = useFetchFeedItems();
   const fetchFeedCategories = useFetchFeedCategories();
+  const fetchContentCategories = useFetchContentCategories();
   const setFeeds = useSetFeeds();
   const fetchFeeds = useFetchFeeds();
 
@@ -46,6 +48,7 @@ export function useCreateFeedsFromSubscriptionImportMutation() {
         fetchFeeds();
         refetchFeedItems();
         fetchFeedCategories();
+        fetchContentCategories();
       },
     }),
   );
@@ -104,6 +107,53 @@ export function useEditFeedMutation() {
           updateFeed(updatedFeed.id, updatedFeed);
         }
         await fetchFeedCategories();
+      },
+    }),
+  );
+}
+
+export function useBulkDeleteFeedsMutation() {
+  const feedItemsOrder = useFeedItemsOrder();
+  const feedItemsDict = useFeedItemsDict();
+
+  const setFeedItemsOrder = feedItemsStore.useSetFeedItemsOrder();
+  const setFeedItemsDict = feedItemsStore.useSetFeedItemsDict();
+
+  const fetchFeeds = useFetchFeeds();
+  const fetchFeedCategories = useFetchFeedCategories();
+
+  return useMutation(
+    orpc.feed.bulkDelete.mutationOptions({
+      onSuccess: (_, { feedIds }) => {
+        // Remove feed items belonging to deleted feeds
+        const feedIdSet = new Set(feedIds);
+        const [updatedFeedItemsOrder, removedFeedItemIds] = feedItemsOrder.reduce(
+          ([keptItems, removedItems], feedItemContentId) => {
+            const feedItem = feedItemsDict[feedItemContentId];
+            if (feedItem && feedIdSet.has(feedItem.feedId)) {
+              removedItems.push(feedItemContentId);
+            } else {
+              keptItems.push(feedItemContentId);
+            }
+            return [keptItems, removedItems];
+          },
+          [[], []] as [string[], string[]],
+        );
+
+        const updatedFeedItemsDict = removedFeedItemIds.reduce(
+          (partialMap, feedItemContentId) => {
+            delete partialMap[feedItemContentId];
+            return partialMap;
+          },
+          { ...feedItemsDict },
+        );
+
+        setFeedItemsOrder(updatedFeedItemsOrder);
+        setFeedItemsDict(updatedFeedItemsDict);
+
+        // Refetch feeds to update the list
+        fetchFeeds();
+        fetchFeedCategories();
       },
     }),
   );

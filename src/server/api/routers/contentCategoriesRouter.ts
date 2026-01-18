@@ -7,6 +7,7 @@ import {
   feedCategories,
   viewCategories,
 } from "~/server/db/schema";
+import { verifyFeedsOwnedByUser } from "./feed-router/utils";
 
 const categoryNameSchema = z.string().min(2);
 const feedCategorizationSchema = z.object({
@@ -28,6 +29,22 @@ export const create = protectedProcedure
   )
   .handler(async ({ context, input }) => {
     await context.db.transaction(async (tx) => {
+      const feedIdsToCategorize = input.feedCategorizations
+        ?.filter((categorization) => categorization.selected)
+        .map((categorization) => categorization.feedId) ?? [];
+
+      if (feedIdsToCategorize.length > 0) {
+        const isOwned = await verifyFeedsOwnedByUser({
+          feedIds: feedIdsToCategorize,
+          userId: context.user.id,
+          db: tx,
+        });
+
+        if (!isOwned) {
+          throw new Error("Unauthorized: One or more feeds do not belong to user");
+        }
+      }
+
       const categories = await tx
         .insert(contentCategories)
         .values({
@@ -37,22 +54,16 @@ export const create = protectedProcedure
         .returning();
       const category = categories[0];
 
-      if (!input.feedCategorizations || !category) return;
+      if (!category || feedIdsToCategorize.length === 0) return;
 
-      const feedIdsToCategorize = input.feedCategorizations
-        .filter((categorization) => categorization.selected)
-        .map((categorization) => categorization.feedId);
-
-      if (!!feedIdsToCategorize.length) {
-        await Promise.all(
-          feedIdsToCategorize.map(async (feedId) => {
-            return await tx.insert(feedCategories).values({
-              categoryId: category.id,
-              feedId,
-            });
-          }),
-        );
-      }
+      await Promise.all(
+        feedIdsToCategorize.map(async (feedId) => {
+          return await tx.insert(feedCategories).values({
+            categoryId: category.id,
+            feedId,
+          });
+        }),
+      );
     });
   });
 
@@ -76,6 +87,20 @@ export const update = protectedProcedure
   )
   .handler(async ({ context, input }) => {
     await context.db.transaction(async (tx) => {
+      const allFeedIds = input.feedCategorizations?.map((c) => c.feedId) ?? [];
+
+      if (allFeedIds.length > 0) {
+        const isOwned = await verifyFeedsOwnedByUser({
+          feedIds: allFeedIds,
+          userId: context.user.id,
+          db: tx,
+        });
+
+        if (!isOwned) {
+          throw new Error("Unauthorized: One or more feeds do not belong to user");
+        }
+      }
+
       const categories = await tx
         .update(contentCategories)
         .set({
@@ -100,7 +125,7 @@ export const update = protectedProcedure
         .filter((categorization) => !categorization.selected)
         .map((categorization) => categorization.feedId);
 
-      if (!!feedIdsToCategorize.length) {
+      if (feedIdsToCategorize.length > 0) {
         await Promise.all(
           feedIdsToCategorize.map(async (feedId) => {
             return await tx
@@ -114,10 +139,10 @@ export const update = protectedProcedure
         );
       }
 
-      if (!!feedIdsToDecategorize.length) {
+      if (feedIdsToDecategorize.length > 0) {
         await Promise.all(
           feedIdsToDecategorize.map(async (feedId) => {
-            return await context.db
+            return await tx
               .delete(feedCategories)
               .where(
                 and(

@@ -162,6 +162,20 @@
       "when": 1768593216374,
       "tag": "0022_powerful_aaron_stack",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1768776543480,
+      "tag": "0023_curly_gwen_stacy",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1768777095518,
+      "tag": "0024_nosy_silvermane",
+      "breakpoints": true
     }
   ]
 }

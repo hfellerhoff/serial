@@ -25,3 +25,27 @@ export function useRemoveFeedCategoryMutation() {
     }),
   );
 }
+
+export function useBulkAssignFeedCategoryMutation() {
+  const fetchFeedCategories = useFetchFeedCategories();
+
+  return useMutation(
+    orpc.feedCategories.bulkAssignToFeeds.mutationOptions({
+      onSuccess: async () => {
+        await fetchFeedCategories();
+      },
+    }),
+  );
+}
+
+export function useBulkRemoveFeedCategoryMutation() {
+  const fetchFeedCategories = useFetchFeedCategories();
+
+  return useMutation(
+    orpc.feedCategories.bulkRemoveFromFeeds.mutationOptions({
+      onSuccess: async () => {
+        await fetchFeedCategories();
+      },
+    }),
+  );
+}

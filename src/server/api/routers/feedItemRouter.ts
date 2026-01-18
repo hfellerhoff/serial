@@ -9,6 +9,7 @@ import {
   fetchAndInsertFeedData,
   FetchFeedsStatus,
 } from "~/server/rss/fetchFeeds";
+import { verifyFeedsOwnedByUser } from "./feed-router/utils";
 
 type GetAllItemsChunk =
   | {
@@ -134,14 +135,26 @@ export const setWatchedValue = protectedProcedure
     }),
   )
   .handler(async ({ context, input }) => {
-    await context.db
-      .update(feedItems)
-      .set({
-        isWatched: input.isWatched,
-      })
-      .where(
-        and(eq(feedItems.feedId, input.feedId), eq(feedItems.id, input.id)),
-      );
+    await context.db.transaction(async (tx) => {
+      const isOwned = await verifyFeedsOwnedByUser({
+        feedIds: [input.feedId],
+        userId: context.user.id,
+        db: tx,
+      });
+
+      if (!isOwned) {
+        throw new Error("Unauthorized: Feed does not belong to user");
+      }
+
+      await tx
+        .update(feedItems)
+        .set({
+          isWatched: input.isWatched,
+        })
+        .where(
+          and(eq(feedItems.feedId, input.feedId), eq(feedItems.id, input.id)),
+        );
+    });
   });
 
 export const setWatchLaterValue = protectedProcedure
@@ -153,14 +166,26 @@ export const setWatchLaterValue = protectedProcedure
     }),
   )
   .handler(async ({ context, input }) => {
-    await context.db
-      .update(feedItems)
-      .set({
-        isWatchLater: input.isWatchLater,
-      })
-      .where(
-        and(eq(feedItems.feedId, input.feedId), eq(feedItems.id, input.id)),
-      );
+    await context.db.transaction(async (tx) => {
+      const isOwned = await verifyFeedsOwnedByUser({
+        feedIds: [input.feedId],
+        userId: context.user.id,
+        db: tx,
+      });
+
+      if (!isOwned) {
+        throw new Error("Unauthorized: Feed does not belong to user");
+      }
+
+      await tx
+        .update(feedItems)
+        .set({
+          isWatchLater: input.isWatchLater,
+        })
+        .where(
+          and(eq(feedItems.feedId, input.feedId), eq(feedItems.id, input.id)),
+        );
+    });
   });
 
 export const getById = protectedProcedure

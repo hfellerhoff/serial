@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   AlertCircleIcon,
@@ -6,6 +7,7 @@ import {
   Loader2Icon,
   MinusIcon,
   PlusIcon,
+  SettingsIcon,
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { EditFeedDialog } from "~/components/AddFeedDialog";
@@ -144,6 +146,11 @@ export function SidebarFeeds() {
           <SidebarGroupLabel className="pr-0 pb-2">
             <span className="inline-block flex-1">Feeds</span>
             <div className="flex w-fit items-center justify-end">
+              <SidebarMenuButton asChild>
+                <Link to="/feeds">
+                  <SettingsIcon size={16} />
+                </Link>
+              </SidebarMenuButton>
               <SidebarMenuButton
                 asChild
                 onClick={() => launchDialog("add-feed")}
@@ -251,6 +258,11 @@ export function SidebarFeeds() {
         <SidebarGroupLabel className="pr-0 pb-2">
           <span className="inline-block flex-1">Feeds</span>
           <div className="flex w-fit items-center justify-end">
+            <SidebarMenuButton asChild>
+              <Link to="/feeds">
+                <SettingsIcon size={16} />
+              </Link>
+            </SidebarMenuButton>
             <SidebarMenuButton asChild onClick={() => launchDialog("add-feed")}>
               <ButtonWithShortcut shortcut="a" variant="ghost">
                 <PlusIcon />

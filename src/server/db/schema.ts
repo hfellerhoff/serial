@@ -23,6 +23,7 @@ import {
   viewReadStatusSchema,
 } from "./constants";
 
+
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
  * database instance for multiple projects.
@@ -91,7 +92,9 @@ export const feeds = sqliteTable(
   "feed",
   {
     id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-    userId: text("user_id").notNull().default(""),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
     name: text("name", { length: 256 }).notNull().default(""),
     url: text("url", { length: 512 }).notNull().default(""),
     imageUrl: text("image_url", { length: 512 }).notNull().default(""),
@@ -133,7 +136,7 @@ export const feedItems = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => createId()),
-    feedId: integer("feed_id").notNull().references(() => feeds.id),
+    feedId: integer("feed_id").notNull().references(() => feeds.id, { onDelete: "cascade" }),
     contentId: text("content_id", { length: 512 }).notNull(),
     title: text("title", { length: 512 }).notNull(),
     author: text("author", { length: 512 }).notNull(),
@@ -177,7 +180,9 @@ export const contentCategories = sqliteTable(
   "content_categories",
   {
     id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-    userId: text("user_id").notNull().default(""),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
     name: text("name", { length: 256 }).notNull(),
     createdAt: integer("created_at", { mode: "timestamp" })
       .$default(() => new Date())
@@ -194,8 +199,8 @@ export type DatabaseContentCategory = typeof contentCategories.$inferSelect;
 export const feedCategories = sqliteTable(
   "feed_categories",
   {
-    feedId: integer("feed_id").notNull().references(() => feeds.id),
-    categoryId: integer("category_id").notNull().references(() => contentCategories.id),
+    feedId: integer("feed_id").notNull().references(() => feeds.id, { onDelete: "cascade" }),
+    categoryId: integer("category_id").notNull().references(() => contentCategories.id, { onDelete: "cascade" }),
   },
   (table) => [primaryKey({ columns: [table.feedId, table.categoryId] })],
 );
@@ -203,7 +208,13 @@ export const feedCategorySchema = createSelectSchema(feedCategories);
 export type DatabaseFeedCategory = typeof feedCategories.$inferSelect;
 
 export const userConfig = sqliteTable("user_config", {
-  userId: text("user_id").primaryKey(),
+  id: text("id")
+    .primaryKey()
+    .$default(() => createId()),
+  userId: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: "cascade" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .$default(() => new Date())
     .notNull(),
@@ -219,7 +230,9 @@ export const views = sqliteTable(
   "views",
   {
     id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-    userId: text("user_id").notNull().default(""),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
     name: text("name", { length: 256 }).notNull().default(""),
     daysWindow: integer("days_window", { mode: "number" }).notNull().default(1),
     readStatus: integer("read_status", { mode: "number" })
@@ -255,22 +268,24 @@ export type ApplicationView = z.infer<typeof applicationViewSchema>;
 export const viewCategories = sqliteTable(
   "view_categories",
   {
-    viewId: integer("view_id").references(() => views.id),
-    categoryId: integer("category_id").references(() => contentCategories.id),
+    viewId: integer("view_id").references(() => views.id, { onDelete: "cascade" }),
+    categoryId: integer("category_id").references(() => contentCategories.id, { onDelete: "cascade" }),
   },
   (table) => [primaryKey({ columns: [table.viewId, table.categoryId] })],
 );
 export type DatabaseViewCategory = typeof viewCategories.$inferSelect;
 
-export const createViewSchema = createInsertSchema(views).merge(
-  z.object({
-    readStatus: viewReadStatusSchema.optional(),
-    orientation: feedItemOrientationSchema.optional(),
-    daysWindow: z.number().lte(30).optional(),
-    placement: z.number().gte(-1).optional(),
-    categoryIds: z.array(z.number()).optional(),
-  }),
-);
+export const createViewSchema = createInsertSchema(views)
+  .omit({ userId: true })
+  .merge(
+    z.object({
+      readStatus: viewReadStatusSchema.optional(),
+      orientation: feedItemOrientationSchema.optional(),
+      daysWindow: z.number().lte(30).optional(),
+      placement: z.number().gte(-1).optional(),
+      categoryIds: z.array(z.number()).optional(),
+    }),
+  );
 
 export const updateViewSchema = createUpdateSchema(views).merge(
   z.object({
