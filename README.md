@@ -28,20 +28,22 @@ If you'd like to support additional features in development, [see below!](#enabl
 
 > Note: Self hosting is only possible through the `libsql` host [Turso](https://turso.tech/) at the moment. This will change going forward, but keep in mind that your current database choices may be limited.
 
-Self hosting Serial is relatively easy. Here are the current platform-specific guides available:
-- [Vercel](/docs/hosting/vercel.md)
-- Coolify
+Self hosting Serial is relatively easy. Here are the current step by step platform-specific guides available:
+- [Coolify](/docs/hosting/coolify.md) (supports local and cloud db)
+- [Vercel](/docs/hosting/vercel.md) (supports only cloud db)
 
 If your preferred platform doesn't have a guide, follow these rough steps:
 
 1. Fork the `hfellerhoff/serial` respository to your own GitHub account.
 2. Use a git-based deployment system to deploy when a new commit happens. This will make it easy to keep your deploment up to date.
 3. Set up a custom domain (if desired)
-4. Choose your database provider:
-    - (WIP) If you want to use a local sqlite database, no additional configuration is needed.
-    - If you want to use a cloud libsql database provider (like [Turso](https://turso.tech/)), set up a database and add your `DATABASE_AUTH_TOKEN` and `DATABASE_URL` to your environment variables.
+4. Set up your database:
+    - If you want to use a local libsql database, use the provided `docker-compose.yaml` configuration. This should require no additional configuration or environment variables.
+        - It's less common, but you can also manually provide your local libsql server URL in `DATABASE_URL`.
+    - If you want to use a cloud libsql database provider (like [Turso](https://turso.tech/)), set up a database with them and add your `DATABASE_AUTH_TOKEN` and `DATABASE_URL` to your environment variables.
 5. Navigate to [Better Auth](https://www.better-auth.com/docs/installation#set-environment-variables) and generate an auth secret. Set this as `BETTER_AUTH_SECRET` in your environment variables.
 6. Deploy your application
+7. To update Serial in the future, just sync your forked code from the main repo and the app will redeploy
 
 If you'd like to support additional features, [see below!](#enabling-additional-features)
 

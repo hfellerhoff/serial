@@ -1,28 +1,80 @@
-FROM node:20-alpine AS base
+# syntax=docker/dockerfile:1
 
-# Install dependencies
-FROM base AS deps
-RUN apk add --no-cache libc6-compat
-RUN npm install -g pnpm
-WORKDIR /
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+ARG NODE_VERSION=24.7.0
+ARG PNPM_VERSION=10.8.0
 
-# Build the nitro app
-FROM base AS builder
-RUN npm install -g pnpm
-WORKDIR /
-COPY --from=deps /node_modules ./node_modules
+################################################################################
+# Use node image for base image for all stages.
+FROM node:${NODE_VERSION}-alpine as base
+
+# Set working directory for all build stages.
+WORKDIR /usr/src/app
+
+# Install pnpm.
+RUN --mount=type=cache,target=/root/.npm \
+    npm install -g pnpm@${PNPM_VERSION}
+
+################################################################################
+# Create a stage for installing production dependecies.
+FROM base as deps
+
+# Download dependencies as a separate step to take advantage of Docker's caching.
+# Leverage a cache mount to /root/.local/share/pnpm/store to speed up subsequent builds.
+# Leverage bind mounts to package.json and pnpm-lock.yaml to avoid having to copy them
+# into this layer.
+RUN --mount=type=bind,source=package.json,target=package.json \
+    --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \
+    --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --prod --frozen-lockfile
+
+################################################################################
+# Create a stage for building the application.
+FROM deps as build
+
+# Build arguments for environment variables needed during build
+ARG DATABASE_URL
+ARG DATABASE_AUTH_TOKEN
+ARG BETTER_AUTH_SECRET
+
+# Set environment variables for the build process
+ENV DATABASE_URL=$DATABASE_URL
+ENV DATABASE_AUTH_TOKEN=$DATABASE_AUTH_TOKEN
+ENV BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
+
+# Download additional development dependencies before building, as some projects require
+# "devDependencies" to be installed to build. If you don't need this, remove this step.
+RUN --mount=type=bind,source=package.json,target=package.json \
+    --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \
+    --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
+
+# Copy the rest of the source files into the image.
 COPY . .
-RUN pnpm build
 
-# Create an optimised runner image
-FROM base AS runner
-WORKDIR /
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nitro
-COPY --from=builder /.output ./.output
-USER nitro
+# Run the build script (without migrations - those run at container startup)
+RUN pnpm typecheck && pnpm run build:atomic
+
+################################################################################
+# Create a new stage to run the application with minimal runtime dependencies
+# where the necessary files are copied from the build stage.
+FROM base as final
+
+# Copy package.json and pnpm-lock.yaml so that package manager commands can be used.
+COPY package.json pnpm-lock.yaml ./
+
+# Copy node_modules from build stage (includes all deps needed for migrations)
+COPY --from=build /usr/src/app/node_modules ./node_modules
+
+# Copy the built application from the build stage into the image.
+COPY --from=build /usr/src/app/.output ./.output
+COPY --from=build /usr/src/app/.content-collections ./.content-collections
+
+# Copy migration files and source needed for running migrations
+COPY --from=build /usr/src/app/src/server/db ./src/server/db
+COPY --from=build /usr/src/app/src/env.js ./src/env.js
+
+# Expose the port that the application listens on.
 EXPOSE 3000
-ENV PORT 3000
-CMD ["node", ".output/server/index.mjs"]
+
+# Run migrations then start the application.
+CMD node --experimental-specifier-resolution=node --loader ts-node/esm src/server/db/migrate.js 2>/dev/null || node --import=tsx src/server/db/migrate.ts && node .output/server/index.mjs

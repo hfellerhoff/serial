@@ -15,3 +15,5 @@
 	5. On the success screen, save the top value as `DATABASE_AUTH_TOKEN` and the bottom as `DATABASE_URL` in your environment variables.
 6. Navigate to [Better Auth](https://www.better-auth.com/docs/installation#set-environment-variables) and generate an auth secret. Set this as `BETTER_AUTH_SECRET` in your environment variables.
 7. That's it! Head on over to `Deployments` in the top navigation bar, choose `Create Deployment` in the top right menu, and head on over to your project URL once it's done!
+
+If you'd like to support additional features, [see this section](https://github.com/hfellerhoff/serial#enabling-additional-features)!

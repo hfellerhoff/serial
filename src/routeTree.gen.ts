@@ -16,6 +16,7 @@ import { Route as AppIndexRouteImport } from './app/_app.index'
 import { Route as AuthSignUpRouteImport } from './app/auth.sign-up'
 import { Route as AuthSignInRouteImport } from './app/auth.sign-in'
 import { Route as AuthResetRouteImport } from './app/auth.reset'
+import { Route as ApiHealthRouteImport } from './app/api/health'
 import { Route as WebWelcomeRouteImport } from './app/_web.welcome'
 import { Route as AppImportRouteImport } from './app/_app.import'
 import { Route as WebReleasesIndexRouteImport } from './app/_web.releases.index'
@@ -57,6 +58,11 @@ const AuthResetRoute = AuthResetRouteImport.update({
   id: '/reset',
   path: '/reset',
   getParentRoute: () => AuthRoute,
+} as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const WebWelcomeRoute = WebWelcomeRouteImport.update({
   id: '/welcome',
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/import': typeof AppImportRoute
   '/welcome': typeof WebWelcomeRoute
+  '/api/health': typeof ApiHealthRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/import': typeof AppImportRoute
   '/welcome': typeof WebWelcomeRoute
+  '/api/health': typeof ApiHealthRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/_app/import': typeof AppImportRoute
   '/_web/welcome': typeof WebWelcomeRoute
+  '/api/health': typeof ApiHealthRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/import'
     | '/welcome'
+    | '/api/health'
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/import'
     | '/welcome'
+    | '/api/health'
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_app/import'
     | '/_web/welcome'
+    | '/api/health'
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
@@ -201,6 +213,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   WebRoute: typeof WebRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  ApiHealthRoute: typeof ApiHealthRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiRpcSplatRoute: typeof ApiRpcSplatRoute
 }
@@ -255,6 +268,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/reset'
       preLoaderRoute: typeof AuthResetRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_web/welcome': {
       id: '/_web/welcome'
@@ -363,6 +383,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   WebRoute: WebRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  ApiHealthRoute: ApiHealthRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiRpcSplatRoute: ApiRpcSplatRoute,
 }

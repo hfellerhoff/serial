@@ -65,3 +65,6 @@ plans/**
 
 CLAUDE.md
 .content-collections
+
+
+data/libsql
