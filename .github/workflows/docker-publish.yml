@@ -4,10 +4,10 @@ on:
   push:
     branches: [main]
     paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
-      - '.gitignore'
-      - 'LICENSE'
+      - "**/*.md"
+      - "docs/**"
+      - ".gitignore"
+      - "LICENSE"
 
 jobs:
   build-and-push:

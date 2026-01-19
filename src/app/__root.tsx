@@ -15,6 +15,7 @@ import { orpcRouterClient } from "~/lib/orpc";
 import appCss from "~/styles/globals.css?url";
 import { Button } from "~/components/ui/button";
 import { AUTH_SIGNED_IN_URL } from "~/server/auth/constants";
+import { ReloadPrompt } from "~/components/pwa/ReloadPrompt";
 
 const title = "Serial";
 const description =
@@ -57,7 +58,7 @@ export const Route = createRootRoute({
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "manifest", href: "/app.webmanifest" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "icon", href: "/favicon.ico" },
       {
         rel: "icon",
@@ -163,6 +164,7 @@ export function RootLayout() {
             {/* TODO: what is happening here */}
             <Scripts />
             <Toaster />
+            <ReloadPrompt />
           </ThemeProvider>
         </QueryProvider>
       </body>

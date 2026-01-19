@@ -58,6 +58,7 @@ yarn-error.log*
 
 # tanstack
 dist
+dist-sw/
 .output
 
 .content-collections
