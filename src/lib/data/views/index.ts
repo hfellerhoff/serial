@@ -1,8 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect, useMemo } from "react";
-import { useSession } from "~/lib/auth-client";
-import { FEED_ITEM_ORIENTATION, VIEW_READ_STATUS } from "~/server/db/constants";
-import { type ApplicationView } from "~/server/db/schema";
 import {
   categoryFilterAtom,
   dateFilterAtom,
@@ -15,15 +12,17 @@ import { useContentCategories } from "../content-categories";
 import { useFeedCategories } from "../feed-categories";
 import { doesFeedItemPassFilters } from "../feed-items";
 import { useFeeds } from "../feeds";
-import { sortViewsByPlacement } from "./utils";
 import { useFeedItemsDict, useFeedItemsOrder } from "../store";
+import { sortViewsByPlacement } from "./utils";
 import {
-  useViews as useViewsStore,
-  useViewsFetchStatus,
   useFetchViews,
   useSetViews,
+  useViewsFetchStatus,
+  useViews as useViewsStore,
 } from "./store";
-import "core-js/full/set/difference";
+import type { ApplicationView } from "~/server/db/schema";
+import { FEED_ITEM_ORIENTATION, VIEW_READ_STATUS } from "~/server/db/constants";
+import { useSession } from "~/lib/auth-client";
 
 export const INBOX_VIEW_ID = -1;
 export const INBOX_VIEW_PLACEMENT = -1;
@@ -48,7 +47,7 @@ export function useUpdateViewFilter() {
     updatedViews?: ApplicationView[],
   ) => {
     const _views = updatedViews ?? views;
-    const view = _views?.find((view) => view.id === viewId);
+    const view = _views.find((v) => v.id === viewId);
 
     if (!view) return;
 
@@ -70,7 +69,6 @@ export function useCheckFilteredFeedItemsForView() {
 
   return useCallback(
     (viewId: number) => {
-      if (!feedItemsOrder || !feedCategories) return [];
       const viewFilter = views.find((view) => view.id === viewId) || null;
 
       return feedItemsOrder.filter(
@@ -103,14 +101,14 @@ export function useViewsQuery() {
 
   useEffect(() => {
     if (fetchStatus === "idle") {
-      fetchViews();
+      void fetchViews();
     }
   }, [fetchStatus, fetchViews]);
 
   const transformedData = useMemo(() => {
     const now = new Date();
 
-    const customViews: ApplicationView[] = (rawViews ?? []).map((view) => ({
+    const customViews: ApplicationView[] = rawViews.map((view) => ({
       ...view,
     }));
 
@@ -121,9 +119,8 @@ export function useViewsQuery() {
       customViews.flatMap((view) => view.categoryIds),
     );
 
-    // @ts-expect-error Polyfilling this
-    const inboxViewCategoryIds = allCategoryIdsSet.difference(
-      customViewCategoryIdsSet,
+    const inboxViewCategoryIds = new Set(
+      [...allCategoryIdsSet].filter((id) => !customViewCategoryIdsSet.has(id)),
     );
 
     const inboxView: ApplicationView = {

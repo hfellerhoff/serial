@@ -3,13 +3,13 @@
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { AUTH_SIGNED_IN_URL } from "../server/auth/constants";
 import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { signUp } from "~/lib/auth-client";
-import { AUTH_SIGNED_IN_URL } from "../server/auth/constants";
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { AuthHeader } from "~/components/auth/AuthHeader";
 
 export const Route = createFileRoute("/auth/sign-up")({
@@ -95,10 +95,10 @@ function SignUp() {
                   setLoading(true);
                 },
                 onError: (ctx) => {
-                  toast.error(ctx.error.message ?? "Something went wrong.");
+                  toast.error(ctx.error.message);
                 },
-                onSuccess: async () => {
-                  router.navigate({
+                onSuccess: () => {
+                  void router.navigate({
                     to: AUTH_SIGNED_IN_URL,
                     reloadDocument: true,
                   });

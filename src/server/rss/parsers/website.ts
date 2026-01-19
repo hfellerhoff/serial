@@ -1,10 +1,10 @@
 import Parser from "rss-parser";
 import { z } from "zod";
-import type { DatabaseFeed } from "~/server/db/schema";
 import { isWithinDays } from "../rssUtils";
+import type { DatabaseFeed } from "~/server/db/schema";
 import type { NewFeedDetails, RSSContent, RSSFeed } from "../types";
 
-function getLongestString(...strings: (string | undefined)[]) {
+function getLongestString(...strings: Array<string | undefined>) {
   return strings.reduce((acc: string, cur) => {
     if (!cur) return acc;
     if (cur.length > acc.length) return cur;
@@ -89,9 +89,9 @@ export async function fetchWebsiteFeedData(
 
     const itemPromises = data.items
       .filter((item) =>
-        isWithinDays(item?.pubDate || item?.isoDate || item?.updated || "", 60),
+        isWithinDays(item.pubDate || item.isoDate || item.updated || "", 60),
       )
-      .map(async (item) => {
+      .map((item) => {
         const id = item.guid || item.id;
 
         if (!id) return null;
@@ -99,7 +99,7 @@ export async function fetchWebsiteFeedData(
         return {
           id,
           title: item.title,
-          publishedDate: item?.pubDate || item?.isoDate || item?.updated || "",
+          publishedDate: item.pubDate || item.isoDate || item.updated || "",
           url: item.link,
           author: item.creator ?? "",
           content: getLongestString(

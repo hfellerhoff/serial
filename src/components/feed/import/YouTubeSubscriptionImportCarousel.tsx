@@ -1,5 +1,6 @@
 "use client";
 
+import type React from "react";
 import {
   Carousel,
   CarouselContent,
@@ -64,9 +65,9 @@ const STEPS = [
       </p>
     ),
   },
-] as const satisfies {
+] as const satisfies Array<{
   content: React.ReactNode;
-}[];
+}>;
 
 export function YouTubeSubscriptionImportCarousel() {
   return (

@@ -20,15 +20,15 @@
     "jsx": "react-jsx",
     "plugins": [
       {
-        "name": "next",
-      },
+        "name": "next"
+      }
     ],
     "incremental": true,
     /* Path Aliases */
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./src/*"],
-    },
+      "~/*": ["./src/*"]
+    }
   },
   "include": [".eslintrc.cjs", "**/*.ts", "**/*.tsx", "**/*.cjs", "**/*.js"],
   "exclude": [
@@ -38,6 +38,6 @@
     "**/public/worker-*.js",
     "**/public/sw.js.map",
     "**/public/workbox-*.js.map",
-    "**/public/worker-*.js.map",
-  ],
+    "**/public/worker-*.js.map"
+  ]
 }

@@ -4,16 +4,30 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   GlobeIcon,
   PlayCircleIcon,
+  PlusIcon,
   Trash2Icon,
   YoutubeIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import type { FeedPlatform } from "~/server/db/schema";
 import { ViewCategoriesInput } from "~/components/AddViewDialog";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
+import { useDialogStore } from "~/components/feed/dialogStore";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
+import { Checkbox } from "~/components/ui/checkbox";
+import { Input } from "~/components/ui/input";
+import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
+import { useContentCategories } from "~/lib/data/content-categories";
+import { useFeedCategories } from "~/lib/data/feed-categories";
+import {
+  useBulkAssignFeedCategoryMutation,
+  useBulkRemoveFeedCategoryMutation,
+} from "~/lib/data/feed-categories/mutations";
+import { useFeeds } from "~/lib/data/feeds";
+import { useBulkDeleteFeedsMutation } from "~/lib/data/feeds/mutations";
 
 function useFeedManagementShortcuts({
   onEscape,
@@ -32,17 +46,6 @@ function useFeedManagementShortcuts({
   isDialogOpen: boolean;
   hasSelection: boolean;
 }) {
-  const actionsRef = useRef({ onEscape, onSelectAll, onEditCategories, onClearCategories, onDelete });
-  const stateRef = useRef({ isDialogOpen, hasSelection });
-
-  useEffect(() => {
-    actionsRef.current = { onEscape, onSelectAll, onEditCategories, onClearCategories, onDelete };
-  }, [onEscape, onSelectAll, onEditCategories, onClearCategories, onDelete]);
-
-  useEffect(() => {
-    stateRef.current = { isDialogOpen, hasSelection };
-  }, [isDialogOpen, hasSelection]);
-
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.repeat) return;
@@ -51,9 +54,6 @@ function useFeedManagementShortcuts({
       // Check if event originated from within a dialog
       const target = event.target as HTMLElement;
       const isInDialog = target.closest('[role="dialog"]') !== null;
-
-      const { isDialogOpen, hasSelection } = stateRef.current;
-      const { onEscape, onSelectAll, onEditCategories, onClearCategories, onDelete } = actionsRef.current;
 
       switch (event.key) {
         case "Escape":
@@ -86,20 +86,16 @@ function useFeedManagementShortcuts({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [
+    hasSelection,
+    isDialogOpen,
+    onClearCategories,
+    onDelete,
+    onEditCategories,
+    onEscape,
+    onSelectAll,
+  ]);
 }
-import { Checkbox } from "~/components/ui/checkbox";
-import { Input } from "~/components/ui/input";
-import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
-import { useContentCategories } from "~/lib/data/content-categories";
-import { useFeedCategories } from "~/lib/data/feed-categories";
-import {
-  useBulkAssignFeedCategoryMutation,
-  useBulkRemoveFeedCategoryMutation,
-} from "~/lib/data/feed-categories/mutations";
-import { useFeeds } from "~/lib/data/feeds";
-import { useBulkDeleteFeedsMutation } from "~/lib/data/feeds/mutations";
-import type { FeedPlatform } from "~/server/db/schema";
 
 export const Route = createFileRoute("/_app/feeds")({
   component: ManageFeedsPage,
@@ -147,6 +143,7 @@ function ManageFeedsPage() {
   const { feeds } = useFeeds();
   const { feedCategories } = useFeedCategories();
   const { contentCategories } = useContentCategories();
+  const launchDialog = useDialogStore((store) => store.launchDialog);
 
   const [selectedFeedIds, setSelectedFeedIds] = useState<Set<number>>(
     new Set(),
@@ -198,7 +195,7 @@ function ManageFeedsPage() {
 
   const feedCategoriesMap = useMemo(() => {
     const map = new Map<number, number[]>();
-    feedCategories?.forEach((fc) => {
+    feedCategories.forEach((fc) => {
       const existing = map.get(fc.feedId) ?? [];
       existing.push(fc.categoryId);
       map.set(fc.feedId, existing);
@@ -208,14 +205,13 @@ function ManageFeedsPage() {
 
   const categoryNamesMap = useMemo(() => {
     const map = new Map<number, string>();
-    contentCategories?.forEach((c) => {
+    contentCategories.forEach((c) => {
       map.set(c.id, c.name);
     });
     return map;
   }, [contentCategories]);
 
   const filteredFeeds = useMemo(() => {
-    if (!feeds) return [];
     const sorted = [...feeds].sort((a, b) => a.name.localeCompare(b.name));
     if (!searchQuery.trim()) return sorted;
 
@@ -334,7 +330,7 @@ function ManageFeedsPage() {
       (id) => !selectedCategoryIds.includes(id),
     );
 
-    const promises: Promise<void>[] = [];
+    const promises: Array<Promise<void>> = [];
 
     categoriesToAdd.forEach((categoryId) => {
       promises.push(bulkAssignCategory({ feedIds, categoryId }));
@@ -358,11 +354,19 @@ function ManageFeedsPage() {
     });
   };
 
-  
-  if (!feeds?.length) {
+  if (!feeds.length) {
     return (
       <div className="mx-auto max-w-2xl p-6">
-        <h2 className="font-mono text-lg">Manage Feeds</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-mono text-lg">Manage Feeds</h2>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => launchDialog("add-feed")}
+          >
+            <PlusIcon size={16} />
+          </Button>
+        </div>
         <p className="text-muted-foreground mt-4">
           You don&apos;t have any feeds yet.
         </p>
@@ -376,9 +380,19 @@ function ManageFeedsPage() {
   return (
     <div>
       <div className="mx-auto max-w-2xl px-6 pt-6">
-        <h2 ref={headerRef} className="font-mono text-lg">
-          Manage Feeds
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 ref={headerRef} className="font-mono text-lg">
+            Manage Feeds
+          </h2>
+          <ButtonWithShortcut
+            variant="outline"
+            size="icon"
+            onClick={() => launchDialog("add-feed")}
+            shortcut="a"
+          >
+            <PlusIcon size={16} />
+          </ButtonWithShortcut>
+        </div>
       </div>
 
       <div
@@ -396,7 +410,6 @@ function ManageFeedsPage() {
           <div className="flex gap-2">
             <ButtonWithShortcut
               variant="outline"
-              size="sm"
               onClick={selectAll}
               disabled={allSelected}
               shortcut="s"
@@ -405,7 +418,6 @@ function ManageFeedsPage() {
             </ButtonWithShortcut>
             <ButtonWithShortcut
               variant="outline"
-              size="sm"
               onClick={deselectAll}
               disabled={selectedCount === 0}
               shortcut="esc"
@@ -423,9 +435,10 @@ function ManageFeedsPage() {
             const feedCategoryIds = feedCategoriesMap.get(feed.id) ?? [];
 
             return (
-              <div
+              <button
+                type="button"
                 key={feed.id}
-                className="hover:bg-muted/50 flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-3 transition-colors"
+                className="hover:bg-muted/50 flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-3 text-left transition-colors"
                 onClick={() => toggleFeedSelection(feed.id)}
               >
                 <Checkbox
@@ -451,7 +464,7 @@ function ManageFeedsPage() {
                     );
                   })}
                 </div>
-              </div>
+              </button>
             );
           })}
 

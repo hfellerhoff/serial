@@ -5,6 +5,7 @@ import {
   EyeOffIcon,
   SendIcon,
 } from "lucide-react";
+import { useView } from "./useView";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { Button } from "~/components/ui/button";
 import {
@@ -18,7 +19,6 @@ import {
 import { useFeedItemValue } from "~/lib/data/store";
 import { useMediaQuery } from "~/lib/hooks/use-media-query";
 import { useShortcut } from "~/lib/hooks/useShortcut";
-import { useView } from "./useView";
 
 export function ContentActions({ contentID }: { contentID: string }) {
   const { view } = useView();
@@ -43,7 +43,7 @@ export function ContentActions({ contentID }: { contentID: string }) {
     if (!video) return;
     await setWatchLaterValue({
       id: video.id,
-      feedId: video.feedId!,
+      feedId: video.feedId,
       isWatchLater: !video.isWatchLater,
     });
   };
@@ -56,7 +56,7 @@ export function ContentActions({ contentID }: { contentID: string }) {
     if (!video) return;
     await setWatchedValue({
       id: video.id,
-      feedId: video.feedId!,
+      feedId: video.feedId,
       isWatched: !video.isWatched,
     });
   };
@@ -72,7 +72,7 @@ export function ContentActions({ contentID }: { contentID: string }) {
 
   const showInstapaperAction =
     instapaperStatus?.isConfigured &&
-    instapaperStatus?.isConnected &&
+    instapaperStatus.isConnected &&
     video?.platform === "website";
 
   useShortcut("s", () => {

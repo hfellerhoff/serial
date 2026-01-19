@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 
+import { useState } from "react";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import {
@@ -17,13 +18,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "~/components/ui/popover";
-import { useState } from "react";
 
 type ComboboxProps<T extends string> = {
-  options: {
+  options: Array<{
     value: T;
     label: string;
-  }[];
+  }>;
   onSelect: (value: T | null) => void;
   onAddOption?: (value: T) => void;
   value: T | null;
@@ -45,6 +45,7 @@ export function Combobox<T extends string>({
   const triggerRef = React.useRef<HTMLButtonElement>(null);
 
   const computedWidth =
+    // eslint-disable-next-line react-hooks/refs
     width === "full" ? `${triggerRef.current?.clientWidth}px` : `${width}px`;
 
   return (
@@ -86,7 +87,7 @@ export function Combobox<T extends string>({
               <Button
                 variant="default"
                 onClick={() => {
-                  onAddOption?.(localValue as T);
+                  onAddOption(localValue as T);
                 }}
               >
                 <span

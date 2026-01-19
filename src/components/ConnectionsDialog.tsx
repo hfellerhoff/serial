@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useDialogStore } from "~/components/feed/dialogStore";
 import {
   InstapaperConnectionForm,
   InstapaperConnectionListItem,
 } from "./connections/InstapaperConnection";
 import { ControlledResponsiveDialog } from "./ui/responsive-dropdown";
+import { useDialogStore } from "~/components/feed/dialogStore";
 
 type ConnectionView = "list" | "instapaper";
 
@@ -49,11 +49,10 @@ export function ConnectionsDialog() {
       description={description}
       onBack={view !== "list" ? () => setView("list") : undefined}
     >
-      {view === "list" ? (
-        <ConnectionsList onSelectService={setView} />
-      ) : view === "instapaper" ? (
+      {view === "list" && <ConnectionsList onSelectService={setView} />}
+      {view === "instapaper" && (
         <InstapaperConnectionForm onSuccess={() => setView("list")} />
-      ) : null}
+      )}
     </ControlledResponsiveDialog>
   );
 }

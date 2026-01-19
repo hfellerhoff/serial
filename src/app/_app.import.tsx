@@ -11,6 +11,12 @@ import {
   YoutubeIcon,
 } from "lucide-react";
 import { useRef, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ImportDropzone } from "../components/feed/import/ImportDropzone";
+import { getInitialFeedDataFromFileInputElement } from "../components/feed/import/utils/getInitialFeedDataFromFileInputElement";
+import type { BulkImportFromFileResult } from "~/server/api/routers/feed-router";
+import type { FeedPlatform } from "~/server/db/schema";
+import type { ImportFeedDataItem } from "../components/feed/import/utils/shared";
 import FeedLoading from "~/components/loading";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -22,12 +28,6 @@ import {
 } from "~/components/ui/tooltip";
 import { useFeeds } from "~/lib/data/feeds";
 import { useCreateFeedsFromSubscriptionImportMutation } from "~/lib/data/feeds/mutations";
-import type { BulkImportFromFileResult } from "~/server/api/routers/feed-router";
-import type { FeedPlatform } from "~/server/db/schema";
-import { ImportDropzone } from "../components/feed/import/ImportDropzone";
-import { getInitialFeedDataFromFileInputElement } from "../components/feed/import/utils/getInitialFeedDataFromFileInputElement";
-import type { ImportFeedDataItem } from "../components/feed/import/utils/shared";
-import { createFileRoute, Link } from "@tanstack/react-router";
 import { useFetchFeedItems, useResetFeedItems } from "~/lib/data/store";
 import { useFetchFeeds, useResetFeeds } from "~/lib/data/feeds/store";
 
@@ -75,7 +75,7 @@ function EditFeedsPage() {
   const resetFeedItems = useResetFeedItems();
 
   const onSelectFiles = async () => {
-    if (!inputElementRef.current || feeds === undefined) return;
+    if (!inputElementRef.current) return;
 
     const feedResult = await getInitialFeedDataFromFileInputElement(
       inputElementRef.current,
@@ -106,8 +106,8 @@ function EditFeedsPage() {
     resetFeeds();
     resetFeedItems();
 
-    fetchFeeds();
-    fetchFeedItems();
+    void fetchFeeds();
+    void fetchFeedItems();
   };
 
   const onReset = () => {
@@ -205,7 +205,7 @@ function EditFeedsPage() {
             )}
             <div className="mt-4">
               {feedsFoundFromFile
-                ?.sort((a, b) => {
+                .sort((a, b) => {
                   if (!a.title && !b.title) return 0;
                   if (!a.title) return -1;
                   if (!b.title) return -1;
@@ -214,7 +214,7 @@ function EditFeedsPage() {
                 .map((channel, i) => {
                   const displayTitle = channel.title ?? channel.feedUrl;
                   const result = feedResults.find(
-                    (result) => result.feedUrl === channel.feedUrl,
+                    (r) => r.feedUrl === channel.feedUrl,
                   );
 
                   return (
@@ -277,7 +277,7 @@ function EditFeedsPage() {
                                 });
                               }}
                               disabled={
-                                !!feeds?.find(
+                                !!feeds.find(
                                   (feed) => feed.url === channel.feedUrl,
                                 )
                               }
@@ -341,7 +341,7 @@ function EditFeedsPage() {
                   className="w-full"
                   size="lg"
                   onClick={onFeedImport}
-                  disabled={isPending || channelImportCount === 0}
+                  disabled={channelImportCount === 0}
                 >
                   Import {channelImportCount} feeds
                 </Button>

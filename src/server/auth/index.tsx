@@ -3,15 +3,15 @@ import sendgrid from "@sendgrid/mail";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
-import ResetPasswordEmail from "~/emails/reset-password";
-import { db } from "../db";
 import { createMiddleware } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { redirect } from "@tanstack/react-router";
+import { db } from "../db";
+import ResetPasswordEmail from "~/emails/reset-password";
 
 export const authMiddleware = createMiddleware().server(
   async ({ pathname, next }) => {
-    const headers = getRequestHeaders();
+    const headers = getRequestHeaders() as Headers;
     const session = await auth.api.getSession({ headers });
     if (!session) {
       if (!pathname.includes("auth")) {
@@ -30,7 +30,7 @@ export const auth = betterAuth({
     enabled: true,
     maxPasswordLength: 64,
     async sendResetPassword(data) {
-      sendgrid.setApiKey(process.env.SENDGRID_API_KEY ?? "");
+      sendgrid.setApiKey(import.meta.env.SENDGRID_API_KEY ?? "");
 
       const forgotPasswordEmailHtml = await render(
         <ResetPasswordEmail resetUrl={data.url} />,
@@ -63,5 +63,5 @@ export async function isServerAuthed(headers: Headers) {
     headers,
   });
 
-  return !!authResult?.session.id && !!authResult?.user.id;
+  return !!authResult?.session.id && !!authResult.user.id;
 }

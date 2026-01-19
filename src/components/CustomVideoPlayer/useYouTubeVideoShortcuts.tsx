@@ -1,18 +1,13 @@
-const SEEK_KEYS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
-
 import { useEffect, useRef } from "react";
-import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
-import {
-  YOUTUBE_FASTEST_SPEED,
-  YOUTUBE_PLAYBACK_SPEEDS,
-  YOUTUBE_PLAYER_STATES,
-} from "./constants";
+import { YOUTUBE_FASTEST_SPEED, YOUTUBE_PLAYBACK_SPEEDS } from "./constants";
 import { useCustomVideoPlayerContext } from "./CustomVideoPlayerProvider";
+import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
+
+const SEEK_KEYS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
 export function useVideoShortcuts() {
   const {
     toggleVideoPlayback,
-    startVideoHold,
     stopVideoHold,
     playerState,
     playbackSpeed,
@@ -43,11 +38,6 @@ export function useVideoShortcuts() {
       }
       if (doesAnyFormElementHaveFocus()) return;
 
-      let timePressed = 0;
-      const keypressStartTime = keypressTimeRef.current[event.key];
-      if (keypressStartTime) {
-        timePressed = Date.now() - keypressStartTime;
-      }
       keypressTimeRef.current[event.key] = null;
 
       if (event.key === " ") {

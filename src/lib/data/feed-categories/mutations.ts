@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
-import { orpc } from "~/lib/orpc";
 import { useFetchFeedCategories } from "./store";
+import { orpc } from "~/lib/orpc";
 
 export function useAssignFeedCategoryMutation() {
   const fetchFeedCategories = useFetchFeedCategories();

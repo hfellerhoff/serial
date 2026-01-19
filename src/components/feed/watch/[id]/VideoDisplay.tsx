@@ -1,11 +1,11 @@
 import clsx from "clsx";
 import { useEffect, useState } from "react";
-import ResponsiveVideo from "~/components/ResponsiveVideo";
-import { useFeedItemValue } from "~/lib/data/store";
-import { useShortcut } from "~/lib/hooks/useShortcut";
 import { ContentActions } from "./ContentActions";
 import { useVideoNavigationShortcuts } from "./useVideoNavigationShortcuts";
 import { useView } from "./useView";
+import ResponsiveVideo from "~/components/ResponsiveVideo";
+import { useFeedItemValue } from "~/lib/data/store";
+import { useShortcut } from "~/lib/hooks/useShortcut";
 
 export function VideoDisplay({
   id,

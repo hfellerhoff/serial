@@ -2,17 +2,7 @@ import { ToggleGroup } from "@radix-ui/react-toggle-group";
 import { ImportIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useFeedCategories } from "~/lib/data/feed-categories";
-import { useFeeds } from "~/lib/data/feeds";
-import {
-  useCreateFeedMutation,
-  useDeleteFeedMutation,
-  useEditFeedMutation,
-} from "~/lib/data/feeds/mutations";
-import { PLATFORM_TO_FORMATTED_NAME_MAP } from "~/lib/data/feeds/utils";
-import { useShortcut } from "~/lib/hooks/useShortcut";
-import type { FeedOpenLocation, FeedPlatform } from "~/server/db/schema";
-import { getAssumedFeedPlatform } from "~/server/rss/validateFeedUrl";
+import { Link } from "@tanstack/react-router";
 import { ViewCategoriesInput } from "./AddViewDialog";
 import {
   FeedDiscoveryInput,
@@ -25,8 +15,18 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { ControlledResponsiveDialog } from "./ui/responsive-dropdown";
 import { ToggleGroupItem } from "./ui/toggle-group";
+import type { FeedOpenLocation, FeedPlatform } from "~/server/db/schema";
+import { useFeedCategories } from "~/lib/data/feed-categories";
+import { useFeeds } from "~/lib/data/feeds";
+import {
+  useCreateFeedMutation,
+  useDeleteFeedMutation,
+  useEditFeedMutation,
+} from "~/lib/data/feeds/mutations";
+import { PLATFORM_TO_FORMATTED_NAME_MAP } from "~/lib/data/feeds/utils";
+import { useShortcut } from "~/lib/hooks/useShortcut";
+import { getAssumedFeedPlatform } from "~/server/rss/validateFeedUrl";
 import { useDialogStore } from "~/components/feed/dialogStore";
-import { Link } from "@tanstack/react-router";
 
 export function AddFeedDialog() {
   const [isAddingFeed, setIsAddingFeed] = useState(false);
@@ -63,7 +63,9 @@ export function AddFeedDialog() {
     >
       <div className="grid gap-6">
         <div className="grid gap-2">
-          <Label htmlFor="url">Website, Channel, or RSS Feed URL</Label>
+          <Label htmlFor="url" className="pb-1">
+            Website, Channel, or RSS Feed URL
+          </Label>
           {discovery.isLocked && discovery.selectedFeed ? (
             <SelectedFeedBadge
               feed={discovery.selectedFeed}
@@ -112,7 +114,9 @@ export function AddFeedDialog() {
                   });
                   discovery.reset();
                   onOpenChange(false);
-                } catch {}
+                } catch {
+                  // Error handled by toast.promise
+                }
 
                 setIsAddingFeed(false);
               }}
@@ -124,19 +128,21 @@ export function AddFeedDialog() {
         {!discovery.isLocked && (
           <>
             <hr />
-            <Label>Have a lot of feeds to add?</Label>
-            <Link to="/import">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  onOpenChange(false);
-                }}
-              >
-                <ImportIcon size={16} />
-                <span className="pl-1.5">Bulk Import</span>
-              </Button>
-            </Link>
+            <div>
+              <Label className="block pb-3">Have a lot of feeds to add?</Label>
+              <Link to="/import">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    onOpenChange(false);
+                  }}
+                >
+                  <ImportIcon size={16} />
+                  <span className="pl-1.5">Bulk Import</span>
+                </Button>
+              </Link>
+            </div>
           </>
         )}
       </div>
@@ -201,7 +207,7 @@ export function EditFeedDialog({
   const { feedCategories } = useFeedCategories();
 
   useEffect(() => {
-    if (!feeds || selectedFeedId == null) return;
+    if (selectedFeedId == null) return;
 
     const feed = feeds.find((v) => v.id === selectedFeedId);
     if (!feed) return;
@@ -265,7 +271,9 @@ export function EditFeedDialog({
                   },
                 });
                 onClose();
-              } catch {}
+              } catch {
+                // Error handled by toast.promise
+              }
 
               setIsDeletingFeed(false);
             }}
@@ -286,7 +294,9 @@ export function EditFeedDialog({
                 });
                 toast.success("Feed updated!");
                 onClose();
-              } catch {}
+              } catch {
+                // Error handled by toast
+              }
 
               setIsUpdatingFeed(false);
             }}

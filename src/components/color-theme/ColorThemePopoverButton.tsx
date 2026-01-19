@@ -5,7 +5,6 @@ import clsx from "clsx";
 import { LaptopIcon, MoonIcon, PaletteIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { authClient } from "~/lib/auth-client";
 import { ResponsiveButton } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { ResponsiveDropdown } from "../ui/responsive-dropdown";
@@ -14,6 +13,8 @@ import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 import { EnableCustomVideoPlayerToggle } from "./EnableCustomVideoPlayerToggle";
 import { ShowShortcutsToggle } from "./ShowShortcutsToggle";
 import { ShowArticleStyleToggle } from "./ShowArticleStyleToggle";
+import type React from "react";
+import { authClient } from "~/lib/auth-client";
 import { orpc } from "~/lib/orpc";
 
 function getCssVariable(name: string) {
@@ -43,6 +44,15 @@ function FormSection({
       {children}
     </div>
   );
+}
+
+const themes = ["light", "dark"] as const;
+type Theme = (typeof themes)[number];
+function getThemeOrDefault(theme: string | undefined): Theme {
+  if (themes.includes(theme as Theme)) {
+    return theme as Theme;
+  }
+  return themes[0];
 }
 
 function EditColorsForm() {
@@ -85,7 +95,7 @@ function EditColorsForm() {
   const saveValuesToDatabase = () => {
     if (!data?.session.id) return;
     saveThemeHSLToDatabase({
-      theme: (resolvedTheme as "light" | "dark") ?? "light",
+      theme: getThemeOrDefault(resolvedTheme),
       hsl: [hue, saturation, lightness],
     });
   };

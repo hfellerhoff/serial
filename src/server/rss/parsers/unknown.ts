@@ -1,6 +1,6 @@
-import type { NewFeedDetails } from "../types";
 import { getPeerTubeFeedIfMatches } from "./peertube";
 import { getWebsiteFeedIfMatches } from "./website";
+import type { NewFeedDetails } from "../types";
 
 export async function fetchUnknownRssFeed(
   url: string,

@@ -1,6 +1,6 @@
 import { Label } from "../ui/label";
-import { useFlagState } from "~/lib/hooks/useFlagState";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
+import { useFlagState } from "~/lib/hooks/useFlagState";
 
 export const ShowArticleStyleToggle = () => {
   const [articleStyle, setArticleStyle] = useFlagState("ARTICLE_STYLE");

@@ -1,9 +1,9 @@
 import { and, eq, like } from "drizzle-orm";
 import { z } from "zod";
 
+import { userEmailSchema, userNameSchema } from "../schemas";
 import { protectedProcedure, publicProcedure } from "~/server/orpc/base";
 import { user } from "~/server/db/schema";
-import { userEmailSchema, userNameSchema } from "../schemas";
 
 export const checkIsLegacyUser = publicProcedure
   .input(

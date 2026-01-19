@@ -4,12 +4,14 @@ import {
   AlertCircleIcon,
   CircleSmall,
   Edit2Icon,
-  Loader2Icon,
   MinusIcon,
   PlusIcon,
   SettingsIcon,
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
+import { Skeleton } from "../ui/skeleton";
+import { useDialogStore } from "./dialogStore";
+import type { ApplicationFeed } from "~/server/db/schema";
 import { EditFeedDialog } from "~/components/AddFeedDialog";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { Input } from "~/components/ui/input";
@@ -43,9 +45,6 @@ import {
   useFetchFeedItemsStatus,
 } from "~/lib/data/store";
 import { useDeselectViewFilter } from "~/lib/data/views";
-import type { ApplicationFeed } from "~/server/db/schema";
-import { useDialogStore } from "./dialogStore";
-import { Skeleton } from "../ui/skeleton";
 
 function useCheckFilteredFeedItemsForFeed() {
   const feedItemsOrder = useFeedItemsOrder();
@@ -60,7 +59,6 @@ function useCheckFilteredFeedItemsForFeed() {
 
   return useCallback(
     (feed: number) => {
-      if (!feedItemsOrder || !feedCategories) return [];
       return feedItemsOrder.filter(
         (item) =>
           feedItemsDict[item] &&
@@ -178,7 +176,7 @@ export function SidebarFeeds() {
     );
   }
 
-  const feedOptions = feeds?.map((feed) => ({
+  const feedOptions = feeds.map((feed) => ({
     ...feed,
     hasEntries: !!checkFilteredFeedItemsForFeed(feed.id).length,
   }));
@@ -188,52 +186,46 @@ export function SidebarFeeds() {
     feedOptionsWithContent,
     emptyFeedOptions,
     errorFeedOptions,
-  } = feedOptions?.reduce(
+  } = feedOptions.reduce(
     (acc, feedOption) => {
-      const {
-        preferredFeedOptions,
-        feedOptionsWithContent,
-        emptyFeedOptions,
-        errorFeedOptions,
-      } = acc;
-      if (!!searchQuery) {
+      if (searchQuery) {
         const lowercaseQuery = searchQuery.toLowerCase();
         const lowercaseName = feedOption.name.toLowerCase();
 
         if (lowercaseName.includes(lowercaseQuery)) {
-          preferredFeedOptions.push(feedOption);
-          preferredFeedOptions.sort(sortFeedOptions);
+          acc.preferredFeedOptions.push(feedOption);
+          acc.preferredFeedOptions.sort(sortFeedOptions);
           return acc;
         }
       } else {
         if (feedOption.hasEntries) {
-          preferredFeedOptions.push(feedOption);
-          preferredFeedOptions.sort(sortFeedOptions);
+          acc.preferredFeedOptions.push(feedOption);
+          acc.preferredFeedOptions.sort(sortFeedOptions);
           return acc;
         }
       }
 
       if (feedOption.id === feedFilter) {
-        preferredFeedOptions.push(feedOption);
-        preferredFeedOptions.sort(sortFeedOptions);
+        acc.preferredFeedOptions.push(feedOption);
+        acc.preferredFeedOptions.sort(sortFeedOptions);
         return acc;
       }
 
-      const feedStatus = !!feedStatusDict[feedOption.id]
+      const feedStatus = feedStatusDict[feedOption.id]
         ? feedStatusDict[feedOption.id]
         : fetchFeedItemsStatus === "fetching"
           ? "success"
           : "empty";
 
       if (feedStatus === "success") {
-        feedOptionsWithContent.push(feedOption);
-        feedOptionsWithContent.sort(sortFeedOptions);
+        acc.feedOptionsWithContent.push(feedOption);
+        acc.feedOptionsWithContent.sort(sortFeedOptions);
       } else if (feedStatus === "empty") {
-        emptyFeedOptions.push(feedOption);
-        emptyFeedOptions.sort(sortFeedOptions);
+        acc.emptyFeedOptions.push(feedOption);
+        acc.emptyFeedOptions.sort(sortFeedOptions);
       } else if (feedStatus === "error") {
-        errorFeedOptions.push(feedOption);
-        errorFeedOptions.sort(sortFeedOptions);
+        acc.errorFeedOptions.push(feedOption);
+        acc.errorFeedOptions.sort(sortFeedOptions);
       }
 
       return acc;
@@ -256,17 +248,19 @@ export function SidebarFeeds() {
       />
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
         <SidebarGroupLabel className="pr-0 pb-2">
-          <span className="inline-block flex-1">Feeds</span>
-          <div className="flex w-fit items-center justify-end">
-            <SidebarMenuButton asChild>
+          <span className="inline-block">Feeds</span>
+          <div className="flex flex-1 items-center justify-end">
+            <SidebarMenuButton size="default-icon" asChild>
               <Link to="/feeds">
                 <SettingsIcon size={16} />
               </Link>
             </SidebarMenuButton>
-            <SidebarMenuButton asChild onClick={() => launchDialog("add-feed")}>
-              <ButtonWithShortcut shortcut="a" variant="ghost">
-                <PlusIcon />
-              </ButtonWithShortcut>
+            <SidebarMenuButton
+              size="default-icon"
+              asChild
+              onClick={() => launchDialog("add-feed")}
+            >
+              <PlusIcon />
             </SidebarMenuButton>
           </div>
         </SidebarGroupLabel>
@@ -304,7 +298,7 @@ export function SidebarFeeds() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           {preferredFeedOptions.map((feed) => {
-            const feedStatus = !!feedStatusDict[feed.id]
+            const feedStatus = feedStatusDict[feed.id]
               ? feedStatusDict[feed.id]
               : fetchFeedItemsStatus === "fetching"
                 ? "success"

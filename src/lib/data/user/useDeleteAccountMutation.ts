@@ -8,7 +8,7 @@ export function useDeleteAccountMutation() {
   return useMutation(
     orpc.user.deleteUser.mutationOptions({
       onSuccess: () => {
-        router.navigate({ to: "/" });
+        void router.navigate({ to: "/" });
       },
     }),
   );

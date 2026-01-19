@@ -23,7 +23,6 @@ import {
   viewReadStatusSchema,
 } from "./constants";
 
-
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
  * database instance for multiple projects.
@@ -111,13 +110,20 @@ export const feeds = sqliteTable(
   },
   (example) => [index("feed_name_idx").on(example.name)],
 );
-export const platformsSchema = z.enum(["youtube", "peertube", "nebula", "website"]);
+export const platformsSchema = z.enum([
+  "youtube",
+  "peertube",
+  "nebula",
+  "website",
+]);
 export type FeedPlatform = z.infer<typeof platformsSchema>;
 
 export const openLocationSchema = z.enum(["serial", "origin"]);
 export type FeedOpenLocation = z.infer<typeof openLocationSchema>;
 
-export const PLATFORM_DEFAULT_OPEN_LOCATION: Partial<Record<FeedPlatform, FeedOpenLocation>> = {
+export const PLATFORM_DEFAULT_OPEN_LOCATION: Partial<
+  Record<FeedPlatform, FeedOpenLocation>
+> = {
   nebula: "origin",
 };
 
@@ -136,7 +142,9 @@ export const feedItems = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => createId()),
-    feedId: integer("feed_id").notNull().references(() => feeds.id, { onDelete: "cascade" }),
+    feedId: integer("feed_id")
+      .notNull()
+      .references(() => feeds.id, { onDelete: "cascade" }),
     contentId: text("content_id", { length: 512 }).notNull(),
     title: text("title", { length: 512 }).notNull(),
     author: text("author", { length: 512 }).notNull(),
@@ -199,8 +207,12 @@ export type DatabaseContentCategory = typeof contentCategories.$inferSelect;
 export const feedCategories = sqliteTable(
   "feed_categories",
   {
-    feedId: integer("feed_id").notNull().references(() => feeds.id, { onDelete: "cascade" }),
-    categoryId: integer("category_id").notNull().references(() => contentCategories.id, { onDelete: "cascade" }),
+    feedId: integer("feed_id")
+      .notNull()
+      .references(() => feeds.id, { onDelete: "cascade" }),
+    categoryId: integer("category_id")
+      .notNull()
+      .references(() => contentCategories.id, { onDelete: "cascade" }),
   },
   (table) => [primaryKey({ columns: [table.feedId, table.categoryId] })],
 );
@@ -268,8 +280,12 @@ export type ApplicationView = z.infer<typeof applicationViewSchema>;
 export const viewCategories = sqliteTable(
   "view_categories",
   {
-    viewId: integer("view_id").references(() => views.id, { onDelete: "cascade" }),
-    categoryId: integer("category_id").references(() => contentCategories.id, { onDelete: "cascade" }),
+    viewId: integer("view_id").references(() => views.id, {
+      onDelete: "cascade",
+    }),
+    categoryId: integer("category_id").references(() => contentCategories.id, {
+      onDelete: "cascade",
+    }),
   },
   (table) => [primaryKey({ columns: [table.viewId, table.categoryId] })],
 );

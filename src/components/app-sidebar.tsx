@@ -1,5 +1,7 @@
 "use client";
 
+import { Link } from "@tanstack/react-router";
+import { SerialLogo } from "./SerialLogo";
 import { SidebarCategories } from "~/components/feed/SidebarCategories";
 import { SidebarFeeds } from "~/components/feed/SidebarFeeds";
 import { SidebarViews } from "~/components/feed/SidebarViews";
@@ -15,8 +17,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "~/components/ui/sidebar";
-import { SerialLogo } from "./SerialLogo";
-import { Link } from "@tanstack/react-router";
 
 export function AppLeftSidebar() {
   const { toggleSidebar, isMobile } = useSidebar();

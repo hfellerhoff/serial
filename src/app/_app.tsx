@@ -2,14 +2,15 @@ import "~/styles/globals.css";
 
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { Suspense } from "react";
+import { AppDialogs } from "../components/feed/AppDialogs";
+import { Header } from "../components/feed/Header";
+import FeedLoading from "../components/loading";
+import type React from "react";
 import { AppLeftSidebar, AppRightSidebar } from "~/components/app-sidebar";
 import { ReleaseNotifier } from "~/components/releases/ReleaseNotifier";
 import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
 import { InitialClientQueries } from "~/lib/data/InitialClientQueries";
 import { authMiddleware } from "~/server/auth";
-import { AppDialogs } from "../components/feed/AppDialogs";
-import { Header } from "../components/feed/Header";
-import FeedLoading from "../components/loading";
 import { getMostRecentRelease } from "~/lib/markdown/loaders";
 
 export const Route = createFileRoute("/_app")({
@@ -17,7 +18,7 @@ export const Route = createFileRoute("/_app")({
   server: {
     middleware: [authMiddleware],
   },
-  loader: async () => {
+  loader: () => {
     const mostRecentRelease = getMostRecentRelease();
     return { mostRecentRelease };
   },

@@ -5,7 +5,8 @@ import dayjs from "dayjs";
 export default function useIsInactive() {
   const [isDesktop, setIsDesktop] = useState(false);
   const [isInactive, setIsInactive] = useState(false);
-  const [inactivityTimeout, setInactivityTimeout] = useState<NodeJS.Timeout>();
+  const [inactivityTimeout, setInactivityTimeout] =
+    useState<ReturnType<typeof setTimeout>>();
   const [lastInteract, setLastInteract] = useState(dayjs().valueOf());
 
   useEffect(() => {
@@ -22,8 +23,6 @@ export default function useIsInactive() {
   }, []);
 
   useEffect(() => {
-    if (!window) return;
-
     const onInteract = () => {
       // "Rate limit" the number of renders to keep performance high
       const now = dayjs().valueOf();

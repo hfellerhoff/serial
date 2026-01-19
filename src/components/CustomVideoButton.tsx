@@ -1,8 +1,8 @@
 "use client";
 
 import { VideoIcon } from "@radix-ui/react-icons";
-import { useDialogStore } from "~/components/feed/dialogStore";
 import { Button } from "./ui/button";
+import { useDialogStore } from "~/components/feed/dialogStore";
 
 export function CustomVideoButton() {
   const launchDialog = useDialogStore((store) => store.launchDialog);

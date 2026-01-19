@@ -1,9 +1,11 @@
 "use client";
 
+import { Link } from "@tanstack/react-router";
+import { useDialogStore } from "../dialogStore";
+import { DeleteAccountSection } from "./DeleteAccountSection";
 import { EditableSavableTextField } from "~/components/form/EditableSavableTextField";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { authClient } from "~/lib/auth-client";
-import { useDialogStore } from "../dialogStore";
 
 import { useUpdateEmailMutation } from "~/lib/data/user/useUpdateEmailMutation";
 import { useUpdateNameMutation } from "~/lib/data/user/useUpdateNameMutation";
@@ -11,8 +13,6 @@ import { userEmailSchema, userNameSchema } from "~/server/api/schemas";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { AUTH_RESET_PASSWORD_URL } from "~/server/auth/constants";
-import { DeleteAccountSection } from "./DeleteAccountSection";
-import { Link } from "@tanstack/react-router";
 
 export function UserProfileEditDialog() {
   const { data, refetch: refetchUser } = authClient.useSession();
@@ -38,7 +38,7 @@ export function UserProfileEditDialog() {
           initialValue={data?.user.name ?? ""}
           onSave={async (updatedName) => {
             await updateName({ name: updatedName });
-            refetchUser();
+            void refetchUser();
           }}
           schema={userNameSchema}
         />
@@ -49,7 +49,7 @@ export function UserProfileEditDialog() {
           initialValue={userEmail}
           onSave={async (updatedEmail) => {
             await updateEmail({ email: updatedEmail });
-            refetchUser();
+            void refetchUser();
           }}
           schema={userEmailSchema}
         />

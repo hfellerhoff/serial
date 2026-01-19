@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import {
-  useContentCategories as useContentCategoriesStore,
   useContentCategoriesFetchStatus,
+  useContentCategories as useContentCategoriesStore,
   useFetchContentCategories,
 } from "./store";
 
@@ -11,7 +11,7 @@ export function useContentCategoriesQuery() {
 
   useEffect(() => {
     if (fetchStatus === "idle") {
-      fetchContentCategories();
+      void fetchContentCategories();
     }
   }, [fetchStatus, fetchContentCategories]);
 

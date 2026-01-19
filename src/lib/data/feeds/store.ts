@@ -1,7 +1,7 @@
 import { createStore } from "zustand";
+import { createSelectorHooks } from "../createSelectorHooks";
 import type { ApplicationFeed } from "~/server/db/schema";
 import { orpcRouterClient } from "~/lib/orpc";
-import { createSelectorHooks } from "../createSelectorHooks";
 import { assembleIteratorResult } from "~/lib/iterators";
 
 export type FeedsStore = {
@@ -105,7 +105,8 @@ const vanillaFeedsStore = createStore<FeedsStore>()((set, get) => ({
   },
 
   remove: (id) => {
-    const { [id]: _, ...rest } = get().feedsDict;
+    const { [id]: _removed, ...rest } = get().feedsDict;
+    void _removed;
     const newFeeds = get().feeds.filter((f) => f.id !== id);
 
     set({

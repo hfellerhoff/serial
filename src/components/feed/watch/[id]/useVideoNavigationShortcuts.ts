@@ -10,10 +10,10 @@ export function useVideoNavigationShortcuts() {
 
   const videoID = params.id;
 
-  const currentItemIndex = filteredFeedItemsOrder?.indexOf(videoID);
+  const currentItemIndex = filteredFeedItemsOrder.indexOf(videoID);
 
   const goToPreviousVideo = () => {
-    if (!filteredFeedItemsOrder?.length) return;
+    if (!filteredFeedItemsOrder.length) return;
 
     if (!videoID || currentItemIndex <= 0) {
       void router.navigate({ to: "/" });
@@ -32,7 +32,7 @@ export function useVideoNavigationShortcuts() {
   useShortcut("[", goToPreviousVideo);
 
   const goToNextVideo = () => {
-    if (!filteredFeedItemsOrder?.length) return;
+    if (!filteredFeedItemsOrder.length) return;
 
     if (
       !videoID ||

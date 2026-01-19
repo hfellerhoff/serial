@@ -8,5 +8,5 @@ export function ReleaseNotifier({
   };
 }) {
   if (!mostRecentRelease?.slug) return null;
-  return <ReleaseNotifierClient slug={mostRecentRelease?.slug} />;
+  return <ReleaseNotifierClient slug={mostRecentRelease.slug} />;
 }

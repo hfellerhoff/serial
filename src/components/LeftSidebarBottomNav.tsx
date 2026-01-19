@@ -6,6 +6,8 @@ import {
   NotebookIcon,
   PaletteIcon,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ColorThemeDropdownSidebar } from "./color-theme/ColorThemePopoverButton";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -13,8 +15,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "~/components/ui/sidebar";
-import { ColorThemeDropdownSidebar } from "./color-theme/ColorThemePopoverButton";
-import { Link } from "@tanstack/react-router";
 
 export function LeftSidebarBottomNav() {
   return (
@@ -29,7 +29,7 @@ export function LeftSidebarBottomNav() {
               </SidebarMenuButton>
             </ColorThemeDropdownSidebar>
           </SidebarMenuItem>
-          {/*TODO*/}
+          {/* TODO*/}
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link to="/releases">

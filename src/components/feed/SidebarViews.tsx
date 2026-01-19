@@ -1,30 +1,14 @@
 "use client";
 
-import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { DragHandleDots2Icon } from "@radix-ui/react-icons";
 import { useAtom } from "jotai";
 import { CircleSmall, Edit2Icon, PlusIcon } from "lucide-react";
-import { EditViewDialog } from "~/components/AddViewDialog";
-import {
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "~/components/ui/sidebar";
-import { viewFilterIdAtom } from "~/lib/data/atoms";
-import {
-  useCheckFilteredFeedItemsForView,
-  useUpdateViewFilter,
-  useViews,
-} from "~/lib/data/views";
-import { useDialogStore } from "./dialogStore";
 
 import {
   closestCenter,
   DndContext,
-  type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -42,12 +26,29 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useDialogStore } from "./dialogStore";
+import type { DragEndEvent } from "@dnd-kit/core";
+import type { Dispatch, SetStateAction } from "react";
 
+import type { ApplicationView } from "~/server/db/schema";
+import {
+  useCheckFilteredFeedItemsForView,
+  useUpdateViewFilter,
+  useViews,
+} from "~/lib/data/views";
+import { viewFilterIdAtom } from "~/lib/data/atoms";
+import {
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "~/components/ui/sidebar";
+import { EditViewDialog } from "~/components/AddViewDialog";
 import {
   calculateViewsPlacement,
   useUpdateViewsPlacementMutation,
 } from "~/lib/data/views/mutations";
-import type { ApplicationView } from "~/server/db/schema";
 
 type ViewOption = ApplicationView & { hasEntries: boolean };
 
@@ -138,7 +139,7 @@ export function SidebarViews() {
 
   useEffect(() => {
     setViewOptions(
-      views?.map((view) => ({
+      views.map((view) => ({
         ...view,
         hasEntries: !!checkFilteredFeedItemsForView(view.id).length,
       })),
@@ -148,7 +149,7 @@ export function SidebarViews() {
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
-    if (!!over && active.id !== over?.id) {
+    if (over && active.id !== over.id) {
       setViewOptions((options) => {
         const oldIndex = options.findIndex((view) => view.id === active.id);
         const newIndex = options.findIndex((view) => view.id === over.id);
@@ -157,7 +158,7 @@ export function SidebarViews() {
 
         const updatedViews = calculateViewsPlacement(
           updatedOptions.map((option) => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            // eslint-disable-next-line no-unused-vars
             const { hasEntries, ...restOfOption } = option;
             return restOfOption;
           }),
@@ -196,7 +197,7 @@ export function SidebarViews() {
               items={viewOptions}
               strategy={verticalListSortingStrategy}
             >
-              {viewOptions?.map((option) => {
+              {viewOptions.map((option) => {
                 return (
                   <ViewSidebarItem
                     view={option}

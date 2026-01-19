@@ -53,13 +53,13 @@ export const getConfig = publicProcedure.handler(
       return { lightHSL: undefined, darkHSL: undefined };
     }
 
-    const userConfig = await context.db.query.userConfig.findFirst({
+    const config = await context.db.query.userConfig.findFirst({
       where: sql`user_id = ${context.user.id}`,
     });
 
     return {
-      lightHSL: parseHSL(userConfig?.lightHSL),
-      darkHSL: parseHSL(userConfig?.darkHSL),
+      lightHSL: parseHSL(config?.lightHSL),
+      darkHSL: parseHSL(config?.darkHSL),
     };
   },
 );

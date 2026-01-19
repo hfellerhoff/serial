@@ -3,6 +3,11 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import {
+  AUTH_RESET_PASSWORD_URL,
+  AUTH_SIGNED_IN_URL,
+} from "../server/auth/constants";
+import { fetchIsForgotPasswordEnabled } from "~/server/auth/endpoints";
 import { AuthHeader } from "~/components/auth/AuthHeader";
 import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";
@@ -10,10 +15,6 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { signIn } from "~/lib/auth-client";
 import { orpc } from "~/lib/orpc";
-import {
-  AUTH_RESET_PASSWORD_URL,
-  AUTH_SIGNED_IN_URL,
-} from "../server/auth/constants";
 
 const ERROR_MESSAGES = {
   INVALID_LOGIN: "Invalid email or password",
@@ -22,8 +23,8 @@ const ERROR_MESSAGES = {
 export const Route = createFileRoute("/auth/sign-in")({
   component: SignIn,
   loader: async () => {
-    // const isForgotPasswordEnabled = await fetchIsForgotPasswordEnabled();
-    return { isForgotPasswordEnabled: false };
+    const isForgotPasswordEnabled = await fetchIsForgotPasswordEnabled();
+    return { isForgotPasswordEnabled };
   },
 });
 
@@ -98,15 +99,14 @@ function SignIn() {
                   onResponse: () => {
                     setLoading(false);
                   },
-                  onSuccess: async () => {
-                    router.navigate({
+                  onSuccess: () => {
+                    void router.navigate({
                       to: AUTH_SIGNED_IN_URL,
                       reloadDocument: true,
                     });
                   },
                   onError: async (ctx) => {
-                    const errorMessage =
-                      ctx.error.message ?? "Something went wrong.";
+                    const errorMessage = ctx.error.message;
 
                     if (errorMessage === ERROR_MESSAGES.INVALID_LOGIN) {
                       const isSuccessful = await getIsLegacyUser({
@@ -114,7 +114,7 @@ function SignIn() {
                       });
 
                       if (isSuccessful) {
-                        router.navigate({
+                        void router.navigate({
                           to: `${AUTH_RESET_PASSWORD_URL}?email=${encodeURIComponent(email)}`,
                         });
                       }

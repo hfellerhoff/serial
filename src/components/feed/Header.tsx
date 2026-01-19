@@ -1,10 +1,10 @@
 "use client";
 
 import { useLocation, useRouter } from "@tanstack/react-router";
-import { useShortcut } from "~/lib/hooks/useShortcut";
 import { FeedLoader } from "./FeedLoader";
 import { TopLeftButton } from "./TopLeftButton";
 import { TopRightHeaderContent } from "./TopRightHeaderContent";
+import { useShortcut } from "~/lib/hooks/useShortcut";
 
 export function Header() {
   const location = useLocation();
@@ -12,7 +12,7 @@ export function Header() {
 
   useShortcut("h", () => {
     if (location.pathname === "/") return;
-    router.navigate({
+    void router.navigate({
       to: "/",
     });
   });

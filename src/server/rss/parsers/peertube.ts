@@ -1,8 +1,8 @@
 import { z } from "zod";
-import type { DatabaseFeed } from "~/server/db/schema";
-import type { NewFeedDetails, RSSContent, RSSFeed } from "../types";
 import Parser from "rss-parser";
 import { isWithinDays } from "../rssUtils";
+import type { DatabaseFeed } from "~/server/db/schema";
+import type { NewFeedDetails, RSSContent, RSSFeed } from "../types";
 
 const parser = new Parser({
   customFields: {
@@ -47,7 +47,7 @@ export const peerTubeSchema = z.object({
 export async function getPeerTubeFeedIfMatches(
   rssString: string,
 ): Promise<NewFeedDetails | null> {
-  const rssData = await parser.parseString(rssString); //as unknown as RSSPeerTubeData;
+  const rssData = await parser.parseString(rssString); // as unknown as RSSPeerTubeData;
 
   const {
     data: peerTubeData,

@@ -1,4 +1,4 @@
-import { type DatabaseView } from "~/server/db/schema";
+import type { DatabaseView } from "~/server/db/schema";
 
 export function sortViewsByPlacement<T extends DatabaseView>(views: T[]) {
   return views.sort((a, b) => {

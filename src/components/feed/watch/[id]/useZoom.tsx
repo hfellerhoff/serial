@@ -2,10 +2,10 @@
 
 import { useLocation } from "@tanstack/react-router";
 import { useAtom } from "jotai";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import type { FeedPlatform } from "~/server/db/schema";
 import { articleZoomAtom, videoZoomAtom } from "~/lib/data/atoms";
 import { useFeedItemValue } from "~/lib/data/store";
-import type { FeedPlatform } from "~/server/db/schema";
 
 export const MIN_ZOOM = 0;
 export const MAX_ZOOM = 6;
@@ -38,6 +38,10 @@ export function useZoom() {
       if (isArticlePlatform) {
         return articleZoom;
       }
+
+      // This value should default to MIN_ZOOM, but when naviating
+      // this value is used by the UI before the new UI has rendered.
+      // Therefore, we want to maintain the previously applied value
       return prevZoom;
     });
   }, [isVideoPlatform, videoZoom, isArticlePlatform, articleZoom]);

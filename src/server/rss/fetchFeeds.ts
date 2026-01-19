@@ -1,7 +1,6 @@
 import { checkFeedItemIsVerticalFromUrl } from "../checkFeedItemIsVertical";
-import { ApplicationFeedItem, DatabaseFeed, feedItems } from "../db/schema";
+import { feedItems } from "../db/schema";
 import { buildConflictUpdateColumns } from "../db/utils";
-import { ORPCContext } from "../orpc/base";
 import { fetchNebulaFeedData, fetchNebulaFeedDetails } from "./parsers/nebula";
 import { fetchPeerTubeFeedData } from "./parsers/peertube";
 import { fetchUnknownRssFeed } from "./parsers/unknown";
@@ -10,7 +9,9 @@ import {
   fetchYouTubeFeedData,
   fetchYouTubeFeedDetails,
 } from "./parsers/youtube";
-import { type NewFeedDetails, type RSSFeed } from "./types";
+import type { ORPCContext } from "../orpc/base";
+import type { ApplicationFeedItem, DatabaseFeed } from "../db/schema";
+import type { NewFeedDetails, RSSFeed } from "./types";
 
 export type FetchFeedsStatus = "success" | "empty" | "error";
 
@@ -29,20 +30,20 @@ export async function fetchNewFeedDetails(
     );
 
     urls = Array.from(rssFeedUrlMatches)
-      .map((id) => id?.[1])
+      .map((id) => id[1])
       .filter(Boolean);
   }
 
   const feedDetailList = (
     await Promise.all(
-      urls.map(async (url) => {
-        if (url.includes("youtube.com")) {
-          return fetchYouTubeFeedDetails(url);
+      urls.map(async (feedUrl) => {
+        if (feedUrl.includes("youtube.com")) {
+          return fetchYouTubeFeedDetails(feedUrl);
         }
-        if (url.includes("nebula.tv") || url.includes("nebula.app")) {
-          return fetchNebulaFeedDetails(url);
+        if (feedUrl.includes("nebula.tv") || feedUrl.includes("nebula.app")) {
+          return fetchNebulaFeedDetails(feedUrl);
         }
-        return fetchUnknownRssFeed(url);
+        return fetchUnknownRssFeed(feedUrl);
       }),
     )
   ).filter(Boolean);
@@ -97,16 +98,16 @@ export async function* fetchAndInsertFeedData(
         };
       }
 
-      const feedItemList: (typeof feedItems.$inferInsert)[] =
+      const feedItemList: Array<typeof feedItems.$inferInsert> =
         feedData.items.map((item) => {
           return {
             feedId: feed.id,
             contentId: item.id,
-            content: item.content ?? "",
-            title: item.title ?? "",
-            author: item.author ?? "",
-            thumbnail: item.thumbnail ?? "",
-            url: item.url ?? "",
+            content: item.content,
+            title: item.title,
+            author: item.author,
+            thumbnail: item.thumbnail,
+            url: item.url,
             postedAt: new Date(item.publishedDate),
             orientation: checkFeedItemIsVerticalFromUrl(item.url),
           } satisfies typeof feedItems.$inferInsert;
@@ -136,11 +137,11 @@ export async function* fetchAndInsertFeedData(
         .flat();
 
       const applicationFeedItems = feedItemsList.map((item) => {
-        const feed = databaseFeeds.find((feed) => feed.id === item.feedId);
+        const itemFeed = databaseFeeds.find((f) => f.id === item.feedId);
 
         return {
           ...item,
-          platform: feed?.platform ?? "youtube",
+          platform: itemFeed?.platform ?? "youtube",
         } as ApplicationFeedItem;
       });
 
@@ -149,7 +150,7 @@ export async function* fetchAndInsertFeedData(
         feedItems: applicationFeedItems,
         id: feed.id,
       };
-    } catch (err) {
+    } catch {
       return {
         status: "error",
         id: feed.id,
@@ -158,10 +159,10 @@ export async function* fetchAndInsertFeedData(
   });
 
   while (feedPromises.length > 0) {
-    const result = await Promise.any(feedPromises);
+    const result = await Promise.any(Array.from(feedPromises));
 
     const resultIndex = feedIds.findIndex((id) => id === result.id);
-    feedPromises.splice(resultIndex, 1);
+    void feedPromises.splice(resultIndex, 1);
     feedIds.splice(resultIndex, 1);
 
     yield result;

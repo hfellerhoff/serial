@@ -1,7 +1,7 @@
 import { createStore } from "zustand";
+import { createSelectorHooks } from "../createSelectorHooks";
 import type { DatabaseContentCategory } from "~/server/db/schema";
 import { orpcRouterClient } from "~/lib/orpc";
-import { createSelectorHooks } from "../createSelectorHooks";
 
 export type ContentCategoriesStore = {
   reset: () => void;
@@ -86,7 +86,8 @@ const vanillaContentCategoriesStore = createStore<ContentCategoriesStore>()(
     },
 
     remove: (id) => {
-      const { [id]: _, ...rest } = get().contentCategoriesDict;
+      const { [id]: _removed, ...rest } = get().contentCategoriesDict;
+      void _removed;
 
       set({
         contentCategories: get().contentCategories.filter((c) => c.id !== id),

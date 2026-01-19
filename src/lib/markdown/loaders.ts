@@ -1,8 +1,9 @@
 import { notFound } from "@tanstack/react-router";
 // @ts-expect-error this is fine
-import { allReleases, Release } from "content-collections";
+import { allReleases } from "content-collections";
+import type { Release } from "content-collections";
 
-let releases = allReleases as Release[];
+const releases = allReleases as Release[];
 
 function sortReleases(a: Release, b: Release) {
   if (a.publish_date < b.publish_date) return 1;
@@ -14,9 +15,7 @@ export function getMostRecentRelease() {
 }
 
 export function getReleaseWithSlug(slug: string) {
-  const release = releases
-    .filter((release) => release.public)
-    .find((p) => p.slug === slug);
+  const release = releases.filter((r) => r.public).find((p) => p.slug === slug);
 
   if (!release) {
     throw notFound();

@@ -1,8 +1,8 @@
 import { createStore } from "zustand";
-import type { ApplicationView } from "~/server/db/schema";
-import { orpcRouterClient } from "~/lib/orpc";
 import { createSelectorHooks } from "../createSelectorHooks";
 import { sortViewsByPlacement } from "./utils";
+import type { ApplicationView } from "~/server/db/schema";
+import { orpcRouterClient } from "~/lib/orpc";
 
 export type ViewsStore = {
   reset: () => void;
@@ -93,7 +93,8 @@ const vanillaViewsStore = createStore<ViewsStore>()((set, get) => ({
   },
 
   remove: (id) => {
-    const { [id]: _, ...rest } = get().viewsDict;
+    const { [id]: _removed, ...rest } = get().viewsDict;
+    void _removed;
     const newViews = get().views.filter((v) => v.id !== id);
 
     set({

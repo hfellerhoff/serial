@@ -1,10 +1,17 @@
 import * as React from "react";
 
+import { ArrowLeftIcon } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "./dropdown-menu";
 import type {
   DropdownMenuContentProps,
   DropdownMenuItemProps,
 } from "@radix-ui/react-dropdown-menu";
-import { ArrowLeftIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,13 +28,6 @@ import {
   DrawerTrigger,
 } from "~/components/ui/drawer";
 import { useMediaQuery } from "~/lib/hooks/use-media-query";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "./dropdown-menu";
 
 export function ResponsiveDropdownMenuItem({
   children,

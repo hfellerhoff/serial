@@ -1,10 +1,10 @@
 import { createStore, useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
-import { ApplicationFeedItem } from "~/server/db/schema";
 import { orpcRouterClient } from "../orpc";
-import { createSelectorHooks } from "./createSelectorHooks";
 import { sortFeedItemsOrderByDate } from "../sortFeedItems";
-import { FetchFeedsStatus } from "~/server/rss/fetchFeeds";
+import { createSelectorHooks } from "./createSelectorHooks";
+import type { ApplicationFeedItem } from "~/server/db/schema";
+import type { FetchFeedsStatus } from "~/server/rss/fetchFeeds";
 
 export type ApplicationStore = {
   reset: () => void;
@@ -82,7 +82,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
 
         if (incomingChunk.type === "feed-status") {
           feedStatusDict[incomingChunk.feedId] = incomingChunk.status;
-        } else if (incomingChunk.type === "feed-items") {
+        } else {
           const incomingFeedItems = incomingChunk.feedItems;
 
           incomingFeedItems.forEach((item) => {
@@ -132,7 +132,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
 
         if (incomingChunk.type === "feed-status") {
           feedStatusDict[incomingChunk.feedId] = incomingChunk.status;
-        } else if (incomingChunk.type === "feed-items") {
+        } else {
           const incomingFeedItems = incomingChunk.feedItems;
 
           incomingFeedItems.forEach((item) => {
@@ -189,7 +189,7 @@ export const {
 export const useFeedItemValue = (id: string) => {
   return useStore(
     feedItemsStore,
-    useShallow((store) => store.feedItemsDict?.[id]),
+    useShallow((store) => store.feedItemsDict[id]),
   );
 };
 export const useSetFeedItemValue = (id: string) => {

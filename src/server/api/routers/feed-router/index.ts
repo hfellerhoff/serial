@@ -1,13 +1,13 @@
 import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { discoverFeeds as discoverFeedsFromUrl } from "feedscout";
 import { z } from "zod";
+import { findExistingFeedThatMatches } from "./utils";
 import { parseArrayOfSchema } from "~/lib/schemas/utils";
 
 import { prepareArrayChunks } from "~/lib/iterators";
 import {
   contentCategories,
   feedCategories,
-  feedItems,
   feeds,
   feedsSchema,
   openLocationSchema,
@@ -15,7 +15,6 @@ import {
 } from "~/server/db/schema";
 import { protectedProcedure } from "~/server/orpc/base";
 import { fetchNewFeedDetails } from "~/server/rss/fetchFeeds";
-import { findExistingFeedThatMatches } from "./utils";
 
 type BulkImportFromFileSuccess = {
   feedUrl: string;
@@ -61,7 +60,7 @@ export const create = protectedProcedure
             })
             .returning();
 
-          const newFeedRow = insertedFeeds?.[0];
+          const newFeedRow = insertedFeeds[0];
 
           if (!!input.categoryIds.length && !!newFeedRow) {
             await Promise.all(
@@ -120,7 +119,7 @@ export const createFromSubscriptionImport = protectedProcedure
         chunk.map(async (feed) => {
           return await context.db.transaction(async (tx) => {
             const newFeedDetails = await fetchNewFeedDetails(feed.feedUrl);
-            const newFeed = newFeedDetails?.[0];
+            const newFeed = newFeedDetails[0];
 
             if (!newFeed?.url) {
               return {
@@ -151,7 +150,7 @@ export const createFromSubscriptionImport = protectedProcedure
                 openLocation: PLATFORM_DEFAULT_OPEN_LOCATION[newFeed.platform],
               })
               .returning();
-            const newFeedRow = newFeeds?.[0];
+            const newFeedRow = newFeeds[0];
 
             if (!newFeedRow) {
               return {
@@ -199,13 +198,13 @@ export const createFromSubscriptionImport = protectedProcedure
                     userId: context.user.id,
                   })
                   .returning();
-                const newContentCategory = newContentCategoryList?.[0];
+                const newContentCategory = newContentCategoryList[0];
 
                 if (!newContentCategory?.id) return;
 
                 await tx.insert(feedCategories).values({
                   feedId: newFeedRow.id,
-                  categoryId: newContentCategory?.id,
+                  categoryId: newContentCategory.id,
                 });
               },
             );
@@ -323,13 +322,12 @@ async function discoverYouTubeFeeds(url: string) {
       /<link rel="alternate" type="application\/rss\+xml" title="RSS" href="(https:\/\/www\.youtube\.com\/feeds\/videos\.xml\?channel_id=[^&]{24})">/gm,
     );
 
-    const channelNameMatch = text.match(
-      /<meta property="og:title" content="([^"]+)">/,
-    );
+    const channelNameMatch =
+      /<meta property="og:title" content="([^"]+)">/.exec(text);
     const channelName = channelNameMatch?.[1];
 
     const feedUrls = Array.from(rssFeedUrlMatches)
-      .map((match) => match?.[1])
+      .map((match) => match[1])
       .filter(Boolean);
 
     if (feedUrls.length === 0) {
@@ -352,7 +350,10 @@ export const bulkDelete = protectedProcedure
     await context.db
       .delete(feeds)
       .where(
-        and(inArray(feeds.id, input.feedIds), eq(feeds.userId, context.user.id)),
+        and(
+          inArray(feeds.id, input.feedIds),
+          eq(feeds.userId, context.user.id),
+        ),
       );
   });
 
@@ -366,20 +367,24 @@ export const discoverFeeds = protectedProcedure
       }),
     ]);
 
-    const feeds: { url: string; title?: string; format?: string }[] = [];
+    const discoveredFeeds: Array<{
+      url: string;
+      title?: string;
+      format?: string;
+    }> = [];
 
     if (youtubeResult.status === "fulfilled" && youtubeResult.value) {
-      feeds.push(...youtubeResult.value);
+      discoveredFeeds.push(...youtubeResult.value);
     }
 
     if (feedscoutResult.status === "fulfilled") {
       const feedscoutFeeds = feedscoutResult.value.filter((f) => f.isValid);
-      feeds.push(...feedscoutFeeds);
+      discoveredFeeds.push(...feedscoutFeeds);
     }
 
     // Deduplicate by URL and filter out invalid YouTube feeds
     const seen = new Set<string>();
-    return feeds.filter((feed) => {
+    return discoveredFeeds.filter((feed) => {
       if (seen.has(feed.url)) return false;
       seen.add(feed.url);
 

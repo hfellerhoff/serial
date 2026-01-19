@@ -7,6 +7,10 @@ import {
   SettingsIcon,
 } from "lucide-react";
 import { useState } from "react";
+import { useLocation } from "@tanstack/react-router";
+import { OpenRightSidebarButton } from "./OpenRightSidebarButton";
+import { RefetchItemsButton } from "./RefetchItemsButton";
+import { MAX_ZOOM, MIN_ZOOM, useZoom } from "./watch/[id]/useZoom";
 import { EditFeedDialog } from "~/components/AddFeedDialog";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { Button } from "~/components/ui/button";
@@ -14,10 +18,6 @@ import { useSidebar } from "~/components/ui/sidebar";
 import { PLATFORM_TO_FORMATTED_NAME_MAP } from "~/lib/data/feeds/utils";
 import { useFeedItemValue } from "~/lib/data/store";
 import { useShortcut } from "~/lib/hooks/useShortcut";
-import { OpenRightSidebarButton } from "./OpenRightSidebarButton";
-import { RefetchItemsButton } from "./RefetchItemsButton";
-import { MAX_ZOOM, MIN_ZOOM, useZoom } from "./watch/[id]/useZoom";
-import { useLocation } from "@tanstack/react-router";
 
 function OpenInYouTubeButton() {
   const { pathname } = useLocation();

@@ -1,6 +1,6 @@
 import { RssIcon, XIcon } from "lucide-react";
-import { Button } from "~/components/ui/button";
 import type { DiscoveredFeed } from "./FeedDiscoveryResults";
+import { Button } from "~/components/ui/button";
 
 interface SelectedFeedBadgeProps {
   feed: DiscoveredFeed;
@@ -12,9 +12,7 @@ export function SelectedFeedBadge({ feed, onClear }: SelectedFeedBadgeProps) {
     <div className="flex min-w-0 items-center gap-3 overflow-hidden rounded-md border px-3 py-2">
       <RssIcon className="text-muted-foreground h-4 w-4 shrink-0" />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">
-          {feed.title || feed.url}
-        </p>
+        <p className="truncate text-sm font-medium">{feed.title || feed.url}</p>
         <p className="text-muted-foreground truncate text-xs">{feed.url}</p>
       </div>
       <Button

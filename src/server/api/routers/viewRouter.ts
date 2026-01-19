@@ -1,10 +1,10 @@
 import { and, asc, eq, notInArray } from "drizzle-orm";
 import { z } from "zod";
+import type { ApplicationView } from "~/server/db/schema";
 import { sortViewsByPlacement } from "~/lib/data/views/utils";
 
 import { protectedProcedure } from "~/server/orpc/base";
 import {
-  type ApplicationView,
   createViewSchema,
   deleteViewSchema,
   updateViewSchema,
@@ -28,7 +28,7 @@ export const create = protectedProcedure
         })
         .returning();
 
-      const view = viewsResult?.[0];
+      const view = viewsResult[0];
 
       if (!input.categoryIds || !view) return;
 
@@ -56,14 +56,12 @@ export const update = protectedProcedure
           orientation: input.orientation,
           placement: input.placement,
         })
-        .where(
-          and(eq(views.userId, context.user.id), eq(views.id, input.id)),
-        )
+        .where(and(eq(views.userId, context.user.id), eq(views.id, input.id)))
         .returning();
 
-      const view = viewsResult?.[0];
+      const view = viewsResult[0];
 
-      if (!input.categoryIds || !view) return;
+      if (input.categoryIds.length === 0 || !view) return;
 
       await tx
         .delete(viewCategories)
@@ -126,9 +124,7 @@ export const deleteView = protectedProcedure
 
       return await tx
         .delete(views)
-        .where(
-          and(eq(views.id, input.id), eq(views.userId, context.user.id)),
-        );
+        .where(and(eq(views.id, input.id), eq(views.userId, context.user.id)));
     });
   });
 

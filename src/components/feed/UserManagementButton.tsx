@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { EllipsisVerticalIcon, Loader2Icon, PlugIcon } from "lucide-react";
 import { useState } from "react";
+import { useDialogStore } from "./dialogStore";
 import { Button } from "~/components/ui/button";
 import { DropdownMenuSeparator } from "~/components/ui/dropdown-menu";
 import {
@@ -18,12 +19,11 @@ import {
 } from "~/components/ui/sidebar";
 import { authClient, signOut } from "~/lib/auth-client";
 import { useClearAllUserData } from "~/lib/data/atoms";
-import { useDialogStore } from "./dialogStore";
 
 export function UserManagementNavItem() {
   const {
     data,
-    isPending, //loading state
+    isPending, // loading state
   } = authClient.useSession();
 
   const { launchDialog } = useDialogStore();
@@ -104,10 +104,10 @@ export function UserManagementNavItem() {
                     onRequest: () => {
                       setIsSigningOut(true);
                     },
-                    onSuccess: async () => {
+                    onSuccess: () => {
                       queryClient.clear();
                       clearAllUserData();
-                      router.navigate({ to: "/auth/sign-in" });
+                      void router.navigate({ to: "/auth/sign-in" });
                     },
                   },
                 });

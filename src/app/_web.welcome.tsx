@@ -8,7 +8,7 @@ import { RecentReleaseBanner } from "~/components/welcome/RecentReleaseBanner";
 
 export const Route = createFileRoute("/_web/welcome")({
   component: RouteComponent,
-  loader: async () => {
+  loader: () => {
     const mostRecentRelease = getMostRecentRelease();
     return { mostRecentRelease };
   },

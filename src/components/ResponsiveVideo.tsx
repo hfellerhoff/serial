@@ -2,9 +2,10 @@
 
 import clsx from "clsx";
 import { useRef } from "react";
-import { useFlagState } from "~/lib/hooks/useFlagState";
 import { CustomVideoPlayer } from "./CustomVideoPlayer";
 import classes from "./ResponsiveVideo.module.css";
+import type React from "react";
+import { useFlagState } from "~/lib/hooks/useFlagState";
 import { useFeedItemValue } from "~/lib/data/store";
 
 interface IResponsiveVideoProps {
@@ -28,14 +29,14 @@ function YouTubeEmbed(props: IEmbedProps) {
       allowFullScreen
       className="border-none"
       onMouseMove={() => {
-        props.containerRef?.current?.focus();
+        props.containerRef.current?.focus();
       }}
     />
   );
 }
 
 function PeerTubeEmbed(props: IEmbedProps) {
-  const feedItem = useFeedItemValue(props?.videoID ?? "");
+  const feedItem = useFeedItemValue(props.videoID ?? "");
   const baseUrl = feedItem?.url.split("/w/")[0];
 
   return (
@@ -49,7 +50,7 @@ function PeerTubeEmbed(props: IEmbedProps) {
         allowFullScreen
         className="border-none"
         onMouseMove={() => {
-          props.containerRef?.current?.focus();
+          props.containerRef.current?.focus();
         }}
         sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
       />
@@ -61,7 +62,7 @@ export default function ResponsiveVideo(props: IResponsiveVideoProps) {
   const containerRef = useRef<null | HTMLDivElement>(null);
   const [videoPlayer] = useFlagState("CUSTOM_VIDEO_PLAYER");
 
-  const feedItem = useFeedItemValue(props?.videoID ?? "");
+  const feedItem = useFeedItemValue(props.videoID ?? "");
 
   const feedItemPlatform = feedItem?.platform ?? "youtube";
 
@@ -94,6 +95,7 @@ export default function ResponsiveVideo(props: IResponsiveVideoProps) {
         {props.videoSrc && (
           <video width="1600" height="900" controls>
             <source src={props.videoSrc} type="video/mp4" />
+            <track kind="captions" />
           </video>
         )}
       </div>

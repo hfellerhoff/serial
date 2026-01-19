@@ -1,13 +1,10 @@
 // src/components/Markdown.tsx
 import { Link } from "@tanstack/react-router";
-import parse, {
-  type HTMLReactParserOptions,
-  type DOMNode,
-  domToReact,
-  Element,
-} from "html-react-parser";
+import parse, { domToReact, Element } from "html-react-parser";
 import { useEffect, useState } from "react";
-import { MarkdownResult, renderMarkdown } from "~/lib/markdown";
+import type { DOMNode, HTMLReactParserOptions } from "html-react-parser";
+import type { MarkdownResult } from "~/lib/markdown";
+import { renderMarkdown } from "~/lib/markdown";
 
 type MarkdownProps = {
   content: string;
@@ -18,7 +15,7 @@ export function Markdown({ content, className }: MarkdownProps) {
   const [result, setResult] = useState<MarkdownResult | null>(null);
 
   useEffect(() => {
-    renderMarkdown(content).then(setResult);
+    void renderMarkdown(content).then(setResult);
   }, [content]);
 
   if (!result) {
@@ -35,7 +32,9 @@ export function Markdown({ content, className }: MarkdownProps) {
           if (href?.startsWith("/")) {
             // Internal link - use your router's Link component
             return (
-              <Link to={href}>{domToReact(domNode.children as DOMNode[], options)}</Link>
+              <Link to={href}>
+                {domToReact(domNode.children as DOMNode[], options)}
+              </Link>
             );
           }
         }
@@ -45,6 +44,7 @@ export function Markdown({ content, className }: MarkdownProps) {
           return (
             <img
               {...domNode.attribs}
+              alt={domNode.attribs.alt ?? ""}
               loading="lazy"
               className="rounded-lg shadow-md"
             />

@@ -1,8 +1,9 @@
 "use client";
 
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
+import { ResponsiveButton } from "./ui/button";
+import type { ButtonProps } from "./ui/button";
 import { useFlagState } from "~/lib/hooks/useFlagState";
-import { type ButtonProps, ResponsiveButton } from "./ui/button";
 
 const kbdVariants = cva("hidden rounded px-1 md:ml-1.5 md:inline-block", {
   variants: {

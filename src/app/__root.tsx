@@ -1,7 +1,3 @@
-import { ThemeProvider } from "~/components/ThemeProvider";
-import { Toaster } from "~/components/ui/sonner";
-import { QueryProvider } from "~/lib/query-provider";
-
 import {
   createRootRoute,
   HeadContent,
@@ -9,10 +5,14 @@ import {
   Outlet,
   Scripts,
 } from "@tanstack/react-router";
+import { SproutIcon } from "lucide-react";
+import { ThemeProvider } from "~/components/ThemeProvider";
+import { Toaster } from "~/components/ui/sonner";
+import { QueryProvider } from "~/lib/query-provider";
+
 import { ApplyColorThemeOnServerMount } from "~/components/color-theme/ApplyColorThemeOnMount";
 import { orpcRouterClient } from "~/lib/orpc";
 import appCss from "~/styles/globals.css?url";
-import { SproutIcon } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { AUTH_SIGNED_IN_URL } from "~/server/auth/constants";
 
@@ -108,7 +108,7 @@ export const Route = createRootRoute({
     <div className="flex h-screen w-screen flex-col items-center justify-center gap-4 text-center">
       <SproutIcon size={36} className="text-foreground" />
       <div className="max-w-xs text-2xl font-semibold">
-        Oops! We couldn't find what you're looking for.
+        Oops! We couldn&apos;t find what you&apos;re looking for.
       </div>
       <Button asChild>
         <Link to={AUTH_SIGNED_IN_URL}>Back to Home</Link>
@@ -124,7 +124,7 @@ export function RootLayout() {
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
-        {/*{process.env.NODE_ENV !== "production" && (
+        {/* {import.meta.env.NODE_ENV !== "production" && (
           <>
             <script
               crossOrigin="anonymous"
@@ -132,7 +132,7 @@ export function RootLayout() {
             />
           </>
         )}*/}
-        {process.env.NODE_ENV === "production" && (
+        {import.meta.env.NODE_ENV === "production" && (
           <>
             <script
               async
@@ -160,7 +160,7 @@ export function RootLayout() {
             disableTransitionOnChange
           >
             <Outlet />
-            {/*TODO: what is happening here*/}
+            {/* TODO: what is happening here */}
             <Scripts />
             <Toaster />
           </ThemeProvider>

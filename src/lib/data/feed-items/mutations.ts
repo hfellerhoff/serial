@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
-import { orpc } from "~/lib/orpc";
 import { useFeedItemState } from "../store";
+import { orpc } from "~/lib/orpc";
 
 export function useFeedItemsSetWatchedValueMutation(contentId: string) {
   const [feedItem, setFeedItem] = useFeedItemState(contentId);

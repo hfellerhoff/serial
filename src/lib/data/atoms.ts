@@ -1,11 +1,11 @@
 import { atom, useSetAtom } from "jotai";
 import { z } from "zod";
-import type { ApplicationView } from "~/server/db/schema";
 import { feedItemsStore } from "./store";
 import { contentCategoriesStore } from "./content-categories/store";
 import { feedCategoriesStore } from "./feed-categories/store";
 import { viewsStore } from "./views/store";
 import { feedsStore } from "./feeds/store";
+import type { ApplicationView } from "~/server/db/schema";
 
 export const feedItemsOrderAtom = atom<string[]>([]);
 

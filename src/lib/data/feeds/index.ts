@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import {
-  useFeeds as useFeedsStore,
   useFeedsFetchStatus,
+  useFeeds as useFeedsStore,
   useFetchFeeds,
   useSetFeeds,
 } from "./store";
@@ -12,7 +12,7 @@ export function useFeedsQuery() {
 
   useEffect(() => {
     if (fetchStatus === "idle") {
-      fetchFeeds();
+      void fetchFeeds();
     }
   }, [fetchStatus, fetchFeeds]);
 

@@ -1,8 +1,8 @@
 import { z } from "zod";
-import type { DatabaseFeed } from "~/server/db/schema";
-import type { NewFeedDetails, RSSContent, RSSFeed } from "../types";
 import Parser from "rss-parser";
 import { isWithinDays } from "../rssUtils";
+import type { DatabaseFeed } from "~/server/db/schema";
+import type { NewFeedDetails, RSSContent, RSSFeed } from "../types";
 
 const parser = new Parser({
   customFields: {
@@ -36,7 +36,7 @@ function extractThumbnailFromContent(
   if (!content) return undefined;
 
   // Match img src from the HTML content (handles both quoted and unquoted src)
-  const imgMatch = content.match(/<img[^>]+src=["']?([^"'\s>]+)/);
+  const imgMatch = /<img[^>]+src=["']?([^"'\s>]+)/.exec(content);
   return imgMatch?.[1];
 }
 
@@ -45,7 +45,7 @@ function convertNebulaUrlToRssUrl(url: string): string {
     return url;
   }
 
-  const match = url.match(/nebula\.tv\/([^\/\?]+)/);
+  const match = /nebula\.tv\/([^/?]+)/.exec(url);
   if (match?.[1]) {
     return `https://rss.nebula.app/video/channels/${match[1]}.rss`;
   }

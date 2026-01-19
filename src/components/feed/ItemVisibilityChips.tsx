@@ -1,8 +1,9 @@
 "use client";
 
-import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
 import { useAtom } from "jotai";
-import { type VisibilityFilter, visibilityFilterAtom } from "~/lib/data/atoms";
+import type { VisibilityFilter } from "~/lib/data/atoms";
+import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
+import { visibilityFilterAtom } from "~/lib/data/atoms";
 import {
   Select,
   SelectContent,

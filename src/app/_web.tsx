@@ -1,5 +1,4 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { authMiddleware } from "~/server/auth";
 
 export const Route = createFileRoute("/_web")({
   component: RootLayout,

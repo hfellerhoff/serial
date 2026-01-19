@@ -8,7 +8,7 @@ export function transformSecondsToFormattedTime(seconds: number): string {
   const formattedHours =
     hours > 0 ? `${hours.toString().padStart(2, "0")}:` : "";
   const formattedMinutes = `${minutes.toString().padStart(2, "0")}:`;
-  let formattedSeconds = remainingSeconds.toString().split(".")?.[0] ?? "";
+  let formattedSeconds = remainingSeconds.toString().split(".")[0] ?? "";
   formattedSeconds = formattedSeconds.padStart(2, "0");
 
   return `${formattedDays}${formattedHours}${formattedMinutes}${formattedSeconds}`;

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Release } from "content-collections";
+import type { Release } from "content-collections";
 
 export function RecentReleaseBanner({
   mostRecentRelease,

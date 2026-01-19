@@ -1,15 +1,14 @@
 import dayjs from "dayjs";
 import { and, desc, eq, gte, inArray } from "drizzle-orm";
 import { z } from "zod";
+import { verifyFeedsOwnedByUser } from "./feed-router/utils";
+import type { ApplicationFeedItem } from "~/server/db/schema";
+import type { FetchFeedsStatus } from "~/server/rss/fetchFeeds";
 import { prepareArrayChunks } from "~/lib/iterators";
 
-import { type ApplicationFeedItem, feedItems, feeds } from "~/server/db/schema";
+import { feedItems, feeds } from "~/server/db/schema";
 import { protectedProcedure } from "~/server/orpc/base";
-import {
-  fetchAndInsertFeedData,
-  FetchFeedsStatus,
-} from "~/server/rss/fetchFeeds";
-import { verifyFeedsOwnedByUser } from "./feed-router/utils";
+import { fetchAndInsertFeedData } from "~/server/rss/fetchFeeds";
 
 type GetAllItemsChunk =
   | {
@@ -42,11 +41,11 @@ export const getAll = protectedProcedure.handler(async function* ({ context }) {
   });
 
   const existingApplicationFeedItems = itemsData.map((item) => {
-    const feed = feedsList.find((feed) => feed.id === item.feedId);
+    const itemFeed = feedsList.find((f) => f.id === item.feedId);
 
     return {
       ...item,
-      platform: feed?.platform ?? "youtube",
+      platform: itemFeed?.platform ?? "youtube",
     } as ApplicationFeedItem;
   });
 
@@ -200,7 +199,7 @@ export const getById = protectedProcedure
     }
 
     const feed = await context.db.query.feeds.findFirst({
-      where: and(eq(feeds.id, item.feedId!), eq(feeds.userId, context.user.id)),
+      where: and(eq(feeds.id, item.feedId), eq(feeds.userId, context.user.id)),
     });
 
     if (!feed) {
@@ -209,7 +208,7 @@ export const getById = protectedProcedure
 
     return {
       ...item,
-      platform: feed.platform ?? "youtube",
+      platform: feed.platform,
     } as ApplicationFeedItem;
   });
 
@@ -231,7 +230,7 @@ export const getByFeedId = protectedProcedure
 
     const existingApplicationFeedItems = itemsData.map((item) => ({
       ...item,
-      platform: feed.platform ?? "youtube",
+      platform: feed.platform,
     })) as ApplicationFeedItem[];
 
     for (const chunk of prepareArrayChunks(existingApplicationFeedItems, 50)) {

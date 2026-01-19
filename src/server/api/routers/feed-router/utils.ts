@@ -1,8 +1,10 @@
+import { and, eq, inArray } from "drizzle-orm";
+import type { ExtractTablesWithRelations } from "drizzle-orm";
 import type { ResultSet } from "@libsql/client";
-import { and, eq, inArray, type ExtractTablesWithRelations } from "drizzle-orm";
 import type { SQLiteTransaction } from "drizzle-orm/sqlite-core";
 
 import * as schema from "~/server/db/schema";
+
 type SerialSchema = typeof schema;
 
 type Transaction = SQLiteTransaction<
@@ -44,10 +46,7 @@ export async function verifyFeedsOwnedByUser({
     .select({ id: schema.feeds.id })
     .from(schema.feeds)
     .where(
-      and(
-        inArray(schema.feeds.id, feedIds),
-        eq(schema.feeds.userId, userId),
-      ),
+      and(inArray(schema.feeds.id, feedIds), eq(schema.feeds.userId, userId)),
     );
 
   return userFeeds.length === feedIds.length;

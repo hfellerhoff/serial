@@ -1,6 +1,7 @@
 import { getInitialFeedDataFromCSVInput } from "./getInitialFeedDataFromCSVInput";
 import { getInitialFeedDataFromOPMLInput } from "./getInitialFeedDataFromOPMLInput";
-import { formError, type ImportFeedDataFromFileResult } from "./shared";
+import { formError } from "./shared";
+import type { ImportFeedDataFromFileResult } from "./shared";
 
 export async function getInitialFeedDataFromFileInputElement(
   inputElement: HTMLInputElement,
@@ -9,7 +10,7 @@ export async function getInitialFeedDataFromFileInputElement(
     return formError("Couldn't find a file.");
   }
 
-  const file = inputElement.files?.[0];
+  const file = inputElement.files[0];
   if (!file) {
     return formError("Couldn't find a file.");
   }

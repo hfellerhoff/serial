@@ -2,9 +2,8 @@
 name: Bug report
 about: Create a report to help us fix an issue you found
 title: "[BUG] "
-labels: ''
-assignees: ''
-
+labels: ""
+assignees: ""
 ---
 
 **Describe the bug**
@@ -12,6 +11,7 @@ A clear and concise description of what the bug is.
 
 **To Reproduce**
 Steps to reproduce the behavior:
+
 1. Go to '...'
 2. Click on '....'
 3. Scroll down to '....'
@@ -24,6 +24,7 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **System Information (please complete the following)**
+
 - Mobile/PC: [e.g. iPhone, Desktop, Laptop]
 - OS: [e.g. iOS, Linux, Windows, Android]
 - Browser: [e.g. Chrome, Safari, Firefox]

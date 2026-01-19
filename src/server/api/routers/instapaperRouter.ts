@@ -7,7 +7,7 @@ import { protectedProcedure } from "~/server/orpc/base";
 
 export const getConnectionStatus = protectedProcedure.handler(
   async ({ context }) => {
-    const connection = await context.db.query.instapaperConnections?.findFirst({
+    const connection = await context.db.query.instapaperConnections.findFirst({
       where: eq(instapaperConnections.userId, context.user.id),
     });
 
@@ -34,7 +34,7 @@ export const linkAccount = protectedProcedure
     const tokens = await getAccessToken(input.username, input.password);
 
     const existingConnection =
-      await context.db.query.instapaperConnections?.findFirst({
+      await context.db.query.instapaperConnections.findFirst({
         where: eq(instapaperConnections.userId, context.user.id),
       });
 
@@ -75,7 +75,7 @@ export const saveBookmark = protectedProcedure
     }),
   )
   .handler(async ({ context, input }) => {
-    const connection = await context.db.query.instapaperConnections?.findFirst({
+    const connection = await context.db.query.instapaperConnections.findFirst({
       where: eq(instapaperConnections.userId, context.user.id),
     });
 

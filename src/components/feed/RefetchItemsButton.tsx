@@ -18,9 +18,9 @@ export function RefetchItemsButton() {
   const fetchFeedItems = useFetchFeedItems();
 
   const onClick = useCallback(() => {
-    fetchFeedItems();
-    queryClient.invalidateQueries();
-  }, [fetchFeedItems, queryClient.invalidateQueries]);
+    void fetchFeedItems();
+    void queryClient.invalidateQueries();
+  }, [fetchFeedItems, queryClient]);
 
   useShortcut("r", onClick);
 

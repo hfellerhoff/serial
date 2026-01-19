@@ -1,10 +1,10 @@
 import { XMLParser } from "fast-xml-parser";
-import { getAssumedFeedPlatform } from "~/server/rss/validateFeedUrl";
-import {
-  formSuccess,
-  type ImportFeedDataFromFileResult,
-  type ImportFeedDataItem,
+import { formSuccess } from "./shared";
+import type {
+  ImportFeedDataFromFileResult,
+  ImportFeedDataItem,
 } from "./shared";
+import { getAssumedFeedPlatform } from "~/server/rss/validateFeedUrl";
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -43,7 +43,7 @@ type OPMLResult = {
       title: string;
     };
     body: {
-      outline: (OPMLFeed | OPMLCategory)[];
+      outline: Array<OPMLFeed | OPMLCategory>;
     };
   };
 };

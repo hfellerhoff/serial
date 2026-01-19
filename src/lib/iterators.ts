@@ -1,5 +1,5 @@
 export function prepareArrayChunks<T>(list: T[], length: number) {
-  let chunks: T[][] = [];
+  const chunks: T[][] = [];
   for (let i = 0; i < list.length; i += length) {
     const end = Math.min(i + length, list.length);
     chunks.push(list.slice(i, end));

@@ -1,8 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
+import { useFetchViews, useSetViews } from "./store";
+import { INBOX_VIEW_ID, INBOX_VIEW_PLACEMENT } from ".";
 import type { ApplicationView } from "~/server/db/schema";
 import { orpc } from "~/lib/orpc";
-import { INBOX_VIEW_ID, INBOX_VIEW_PLACEMENT } from ".";
-import { useFetchViews, useSetViews } from "./store";
 
 export function useCreateViewMutation() {
   const setViews = useSetViews();

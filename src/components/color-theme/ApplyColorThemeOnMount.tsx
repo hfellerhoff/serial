@@ -1,4 +1,4 @@
-import { type UserConfigValues } from "~/server/api/routers/userConfigRouter";
+import type { UserConfigValues } from "~/server/api/routers/userConfigRouter";
 
 export function ApplyColorThemeOnServerMount({
   data,

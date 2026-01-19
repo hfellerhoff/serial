@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import {
-  useFeedCategories as useFeedCategoriesStore,
   useFeedCategoriesFetchStatus,
+  useFeedCategories as useFeedCategoriesStore,
   useFetchFeedCategories,
 } from "./store";
 
@@ -11,7 +11,7 @@ export function useFeedCategoriesQuery() {
 
   useEffect(() => {
     if (fetchStatus === "idle") {
-      fetchFeedCategories();
+      void fetchFeedCategories();
     }
   }, [fetchStatus, fetchFeedCategories]);
 

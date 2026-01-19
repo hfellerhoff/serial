@@ -1,7 +1,7 @@
 import Parser from "rss-parser";
-import { type RSSFeed, type NewFeedDetails, type RSSContent } from "../types";
-import { type feeds } from "~/server/db/schema";
 import { isWithinDays } from "../rssUtils";
+import type { NewFeedDetails, RSSContent, RSSFeed } from "../types";
+import type { feeds } from "~/server/db/schema";
 
 const parser = new Parser({
   customFields: {
@@ -13,7 +13,7 @@ type RSSYoutubeData = {
   link: string;
   feedUrl: string;
   title: string;
-  items: {
+  items: Array<{
     title: string;
     link: string;
     pubDate: string;
@@ -21,14 +21,14 @@ type RSSYoutubeData = {
     id: string;
     isoDate: string;
     "media:group": {
-      "media:thumbnail": {
+      "media:thumbnail": Array<{
         $: {
           url: string;
         };
-      }[];
+      }>;
       "media:description": string[];
     };
-  }[];
+  }>;
 };
 
 export async function fetchYouTubeFeedDetails(

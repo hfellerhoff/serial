@@ -58,7 +58,7 @@ function DeleteAccountConfirmationSection({
 
           deleteAccount(undefined);
 
-          router.navigate({
+          void router.navigate({
             to: "/welcome",
             reloadDocument: true,
           });

@@ -1,20 +1,22 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useContentCategories } from "~/lib/data/content-categories";
-import { useViews } from "~/lib/data/views";
-import {
-  useCreateViewMutation,
-  useDeleteViewMutation,
-  useEditViewMutation,
-} from "~/lib/data/views/mutations";
-import { VIEW_READ_STATUS } from "~/server/db/constants";
 import { AddContentCategoriesButton } from "./AddContentCategoryButton";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { ControlledResponsiveDialog } from "./ui/responsive-dropdown";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
+import type React from "react";
+import { VIEW_READ_STATUS } from "~/server/db/constants";
+import {
+  useCreateViewMutation,
+  useDeleteViewMutation,
+  useEditViewMutation,
+} from "~/lib/data/views/mutations";
+import { useViews } from "~/lib/data/views";
+import { useContentCategories } from "~/lib/data/content-categories";
 import { useDialogStore } from "~/components/feed/dialogStore";
 
 function AddViewToggleItem({
@@ -143,7 +145,6 @@ export function ViewCategoriesInput({
         type="multiple"
         value={selectedCategories.map((category) => category.toString())}
         onValueChange={(value) => {
-          if (!value) return;
           setSelectedCategories(value.map((id) => parseInt(id)));
         }}
         size="sm"
@@ -230,7 +231,9 @@ export function AddViewDialog() {
                 },
               });
               onOpenChange(false);
-            } catch {}
+            } catch {
+              // Error handled by toast.promise
+            }
 
             setIsAddingView(false);
           }}
@@ -264,7 +267,7 @@ export function EditViewDialog({
 
   const { views } = useViews();
   useEffect(() => {
-    if (!views || !selectedViewId) return;
+    if (!selectedViewId) return;
 
     const view = views.find((v) => v.id === selectedViewId);
     if (!view) return;
@@ -319,7 +322,9 @@ export function EditViewDialog({
                   },
                 });
                 onClose();
-              } catch {}
+              } catch {
+                // Error handled by toast.promise
+              }
 
               setIsDeletingView(false);
             }}
@@ -350,7 +355,9 @@ export function EditViewDialog({
                   },
                 });
                 onClose();
-              } catch {}
+              } catch {
+                // Error handled by toast.promise
+              }
 
               setIsUpdatingView(false);
             }}

@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
-import { env } from "~/env";
 import { isServerAuthed } from ".";
+import { env } from "~/env";
 
 export const fetchIsForgotPasswordEnabled = createServerFn({
   method: "GET",

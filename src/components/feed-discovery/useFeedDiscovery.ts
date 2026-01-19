@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
-import { orpcRouterClient } from "~/lib/orpc";
 import type { DiscoveredFeed } from "./FeedDiscoveryResults";
+import { orpcRouterClient } from "~/lib/orpc";
 
 type DiscoveryState = "input" | "discovering" | "select" | "locked";
 
@@ -38,7 +38,9 @@ export function useFeedDiscovery() {
     setSelectedFeed(null);
 
     try {
-      const feeds = await orpcRouterClient.feed.discoverFeeds({ url: normalizedUrl });
+      const feeds = await orpcRouterClient.feed.discoverFeeds({
+        url: normalizedUrl,
+      });
 
       if (feeds.length === 0) {
         setDiscoveryState("input");

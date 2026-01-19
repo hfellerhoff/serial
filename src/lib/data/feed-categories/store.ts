@@ -1,7 +1,7 @@
 import { createStore } from "zustand";
+import { createSelectorHooks } from "../createSelectorHooks";
 import type { DatabaseFeedCategory } from "~/server/db/schema";
 import { orpcRouterClient } from "~/lib/orpc";
-import { createSelectorHooks } from "../createSelectorHooks";
 
 export type FeedCategoriesStore = {
   reset: () => void;
@@ -77,7 +77,8 @@ const vanillaFeedCategoriesStore = createStore<FeedCategoriesStore>()(
 
     remove: (feedId, categoryId) => {
       const key = getFeedCategoryKey(feedId, categoryId);
-      const { [key]: _, ...rest } = get().feedCategoriesDict;
+      const { [key]: _removed, ...rest } = get().feedCategoriesDict;
+      void _removed;
 
       set({
         feedCategories: get().feedCategories.filter(

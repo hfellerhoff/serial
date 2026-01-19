@@ -112,6 +112,7 @@ const AppReadIdRoute = AppReadIdRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof AppIndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/feeds': typeof AppFeedsRoute
   '/import': typeof AppImportRoute
@@ -120,15 +121,15 @@ export interface FileRoutesByFullPath {
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
-  '/': typeof AppIndexRoute
   '/read/$id': typeof AppReadIdRoute
   '/watch/$id': typeof AppWatchIdRoute
   '/releases/$slug': typeof WebReleasesSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
-  '/releases': typeof WebReleasesIndexRoute
+  '/releases/': typeof WebReleasesIndexRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof AppIndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/feeds': typeof AppFeedsRoute
   '/import': typeof AppImportRoute
@@ -137,7 +138,6 @@ export interface FileRoutesByTo {
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
-  '/': typeof AppIndexRoute
   '/read/$id': typeof AppReadIdRoute
   '/watch/$id': typeof AppWatchIdRoute
   '/releases/$slug': typeof WebReleasesSlugRoute
@@ -168,6 +168,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/auth'
     | '/feeds'
     | '/import'
@@ -176,15 +177,15 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
-    | '/'
     | '/read/$id'
     | '/watch/$id'
     | '/releases/$slug'
     | '/api/auth/$'
     | '/api/rpc/$'
-    | '/releases'
+    | '/releases/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/auth'
     | '/feeds'
     | '/import'
@@ -193,7 +194,6 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
-    | '/'
     | '/read/$id'
     | '/watch/$id'
     | '/releases/$slug'
@@ -242,14 +242,14 @@ declare module '@tanstack/react-router' {
     '/_web': {
       id: '/_web'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof WebRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app': {
       id: '/_app'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -312,7 +312,7 @@ declare module '@tanstack/react-router' {
     '/_web/releases/': {
       id: '/_web/releases/'
       path: '/releases'
-      fullPath: '/releases'
+      fullPath: '/releases/'
       preLoaderRoute: typeof WebReleasesIndexRouteImport
       parentRoute: typeof WebRoute
     }

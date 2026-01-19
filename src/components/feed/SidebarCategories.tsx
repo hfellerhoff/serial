@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { CircleSmall, Edit2Icon, PlusIcon } from "lucide-react";
+import { useDialogStore } from "./dialogStore";
 import { EditContentCategoryDialog } from "~/components/AddContentCategoryDialog";
 import {
   SidebarGroup,
@@ -22,7 +23,6 @@ import { useContentCategories } from "~/lib/data/content-categories";
 import { useFeedCategories } from "~/lib/data/feed-categories";
 import { doesFeedItemPassFilters } from "~/lib/data/feed-items";
 import { useDeselectViewFilter } from "~/lib/data/views";
-import { useDialogStore } from "./dialogStore";
 import { useFeedItemsDict, useFeedItemsOrder } from "~/lib/data/store";
 
 function useCheckFilteredFeedItemsForCategory() {
@@ -34,7 +34,6 @@ function useCheckFilteredFeedItemsForCategory() {
 
   return useCallback(
     (category: number) => {
-      if (!feedItemsOrder || !feedCategories) return [];
       return feedItemsOrder.filter(
         (item) =>
           feedItemsMap[item] &&
@@ -72,7 +71,7 @@ export function SidebarCategories() {
 
   const { contentCategories } = useContentCategories();
 
-  const categoryOptions = contentCategories?.map((category) => ({
+  const categoryOptions = contentCategories.map((category) => ({
     ...category,
     hasEntries: !!checkFilteredFeedItemsForCategory(category.id).length,
   }));
@@ -123,7 +122,7 @@ export function SidebarCategories() {
               All
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {categoryOptions?.map((option) => {
+          {categoryOptions.map((option) => {
             return (
               <SidebarMenuItem key={option.id} className="group flex gap-1">
                 <SidebarMenuButton

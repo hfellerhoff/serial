@@ -1,23 +1,17 @@
 "use client";
-import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useContentCategories } from "~/lib/data/content-categories";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { ControlledResponsiveDialog } from "./ui/responsive-dropdown";
+import type { FeedCategorization } from "~/server/api/routers/contentCategoriesRouter";
 import {
   useCreateContentCategoryMutation,
   useDeleteContentCategoryMutation,
   useUpdateContentCategoryMutation,
 } from "~/lib/data/content-categories/mutations";
-import { useFeedCategories } from "~/lib/data/feed-categories";
-import { useFeeds } from "~/lib/data/feeds";
-import type { FeedCategorization } from "~/server/api/routers/contentCategoriesRouter";
-import type { DatabaseFeed } from "~/server/db/schema";
-import { Button } from "./ui/button";
-import { Checkbox } from "./ui/checkbox";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { ControlledResponsiveDialog } from "./ui/responsive-dropdown";
-import { ScrollArea } from "./ui/scroll-area";
-import { useFeedItemsDict, useFeedItemsOrder } from "~/lib/data/store";
+import { useContentCategories } from "~/lib/data/content-categories";
 import { useDialogStore } from "~/components/feed/dialogStore";
 
 function CategoryNameInput({
@@ -39,103 +33,6 @@ function CategoryNameInput({
           setName(e.target.value);
         }}
       />
-    </div>
-  );
-}
-
-function useMostRecentlyAppearingFeeds() {
-  const { feeds } = useFeeds();
-  const order = useFeedItemsOrder();
-  const itemsDict = useFeedItemsDict();
-
-  const feedIdsInOrder = order
-    .map((id) => itemsDict[id]?.feedId)
-    .filter(Boolean);
-  const orderSet = new Set(feedIdsInOrder);
-
-  const foundFeeds: DatabaseFeed[] = [];
-  orderSet.forEach((entry) => {
-    const foundFeed = feeds.find((feed) => feed.id === entry);
-    if (foundFeed) {
-      foundFeeds.push(foundFeed);
-    }
-  });
-
-  return foundFeeds;
-}
-
-function CategoryFeedsInput({
-  updatedFeedIdCategorizations,
-  setUpdatedFeedIdCategorizations,
-  categoryId,
-}: {
-  updatedFeedIdCategorizations: FeedCategorization[];
-  setUpdatedFeedIdCategorizations: Dispatch<
-    SetStateAction<FeedCategorization[]>
-  >;
-  categoryId: number | null;
-}) {
-  const { feedCategories } = useFeedCategories();
-  const mostRecentlyAppearingFeeds = useMostRecentlyAppearingFeeds();
-
-  if (mostRecentlyAppearingFeeds.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor="name">Feeds</Label>
-      <ScrollArea className="h-96 w-full">
-        <ul>
-          {mostRecentlyAppearingFeeds.map((feed) => {
-            const updatedIsSelected = updatedFeedIdCategorizations.find(
-              (categorization) => categorization.feedId === feed.id,
-            )?.selected;
-            const fallbackIsSelected = !!feedCategories.find(
-              (category) =>
-                category.categoryId === categoryId &&
-                category.feedId === feed.id,
-            );
-            const isSelected = updatedIsSelected ?? fallbackIsSelected;
-
-            return (
-              <li key={feed.id} className="text-foreground flex w-full gap-2">
-                <Checkbox
-                  id={`category-for-${feed.id}`}
-                  className="my-2"
-                  checked={isSelected}
-                  onCheckedChange={(value) => {
-                    setUpdatedFeedIdCategorizations((categorizations) => {
-                      const categorizationIndex = categorizations.findIndex(
-                        (categorization) => categorization.feedId === feed.id,
-                      );
-
-                      const updatedCategorization: FeedCategorization = {
-                        feedId: feed.id,
-                        selected: Boolean(value),
-                      };
-
-                      if (categorizationIndex >= 0) {
-                        categorizations[categorizationIndex] =
-                          updatedCategorization;
-                        return [...categorizations];
-                      }
-
-                      return [...categorizations, updatedCategorization];
-                    });
-                  }}
-                />
-                <Label
-                  htmlFor={`category-for-${feed.id}`}
-                  className="w-full py-2"
-                >
-                  {feed.name}
-                </Label>
-              </li>
-            );
-          })}
-        </ul>
-      </ScrollArea>
     </div>
   );
 }
@@ -192,7 +89,9 @@ export function AddContentCategoryDialog() {
                 },
               });
               onOpenChange(false);
-            } catch {}
+            } catch {
+              // Error handled by toast.promise
+            }
 
             setIsAddingContentCategory(false);
           }}
@@ -229,7 +128,7 @@ export function EditContentCategoryDialog({
 
   const { contentCategories } = useContentCategories();
   useEffect(() => {
-    if (!contentCategories || !selectedContentCategoryId) return;
+    if (!selectedContentCategoryId) return;
 
     const category = contentCategories.find(
       (v) => v.id === selectedContentCategoryId,
@@ -271,7 +170,9 @@ export function EditContentCategoryDialog({
                   },
                 });
                 onClose();
-              } catch {}
+              } catch {
+                // Error handled by toast.promise
+              }
 
               setIsDeletingContentCategory(false);
             }}
@@ -300,7 +201,9 @@ export function EditContentCategoryDialog({
                   },
                 });
                 onClose();
-              } catch {}
+              } catch {
+                // Error handled by toast.promise
+              }
 
               setIsUpdatingContentCategory(false);
             }}

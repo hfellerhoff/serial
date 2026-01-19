@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { orpc } from "~/lib/orpc";
 import { useFeedItemValue, useSetFeedItemValue } from "../store";
+import { orpc } from "~/lib/orpc";
 
 export function useInstapaperConnectionStatus() {
   return useQuery(orpc.instapaper.getConnectionStatus.queryOptions());
@@ -22,6 +22,6 @@ export function useSaveToInstapaperMutation(contentId: string) {
       onError: (error) => {
         toast.error(error.message || "Failed to save to Instapaper");
       },
-    })
+    }),
   );
 }

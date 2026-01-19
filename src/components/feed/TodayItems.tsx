@@ -12,6 +12,8 @@ import {
   SendIcon,
   SproutIcon,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { useDialogStore } from "./dialogStore";
 import FeedLoading from "~/components/loading";
 import { Button } from "~/components/ui/button";
 import {
@@ -22,7 +24,6 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 
-import { Link } from "@tanstack/react-router";
 import { useFeedCategories } from "~/lib/data/feed-categories";
 import { useFilteredFeedItemsOrder } from "~/lib/data/feed-items";
 import {
@@ -40,7 +41,6 @@ import {
   useFetchFeedItemsLastFetchedAt,
 } from "~/lib/data/store";
 import { useViews } from "~/lib/data/views";
-import { useDialogStore } from "./dialogStore";
 
 function timeAgo(date: string | Date) {
   const diff = dayjs().diff(date);
@@ -177,13 +177,13 @@ function ItemDisplay({ contentId }: { contentId: string }) {
         preload={shouldOpenInSerial ? "viewport" : undefined}
         className="sm:hover:bg-muted flex w-full flex-1 flex-col gap-4 py-4 pr-4 pl-6 text-left transition-colors md:h-20 md:flex-row md:items-center md:rounded md:py-0 md:pr-0"
       >
-        {!!item.thumbnail ? (
+        {item.thumbnail ? (
           <img
             src={item.thumbnail}
             alt={item.title}
             className="aspect-video w-16 rounded object-cover"
           />
-        ) : !!feed?.imageUrl ? (
+        ) : feed?.imageUrl ? (
           <div className="grid size-16 place-items-center rounded object-contain p-3">
             <img
               src={feed.imageUrl}
@@ -207,7 +207,7 @@ function ItemDisplay({ contentId }: { contentId: string }) {
       </Link>
       <div className="flex h-full flex-row flex-wrap items-center justify-center pr-6 md:pr-0">
         {instapaperStatus?.isConfigured &&
-          instapaperStatus?.isConnected &&
+          instapaperStatus.isConnected &&
           item.platform === "website" && (
             <Button
               size="icon"
@@ -226,7 +226,7 @@ function ItemDisplay({ contentId }: { contentId: string }) {
           onClick={() => {
             void setWatchLaterValue({
               id: item.id,
-              feedId: item.feedId!,
+              feedId: item.feedId,
               isWatchLater: !item.isWatchLater,
             });
           }}
@@ -243,7 +243,7 @@ function ItemDisplay({ contentId }: { contentId: string }) {
           onClick={() => {
             void setWatchedValue({
               id: item.id,
-              feedId: item.feedId!,
+              feedId: item.feedId,
               isWatched: !item.isWatched,
             });
           }}

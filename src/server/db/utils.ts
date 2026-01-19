@@ -1,13 +1,14 @@
-import { SQL, getTableColumns, sql } from "drizzle-orm";
-import { PgTable } from "drizzle-orm/pg-core";
-import { SQLiteTable } from "drizzle-orm/sqlite-core";
+import { getTableColumns, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
+import type { PgTable } from "drizzle-orm/pg-core";
+import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 
 export const buildConflictUpdateColumns = <
-  T extends PgTable | SQLiteTable,
-  Q extends keyof T["_"]["columns"],
+  TTable extends PgTable | SQLiteTable,
+  TColumn extends keyof TTable["_"]["columns"],
 >(
-  table: T,
-  columns: Q[],
+  table: TTable,
+  columns: TColumn[],
 ) => {
   const cls = getTableColumns(table);
 
@@ -18,6 +19,6 @@ export const buildConflictUpdateColumns = <
 
       return acc;
     },
-    {} as Record<Q, SQL>,
+    {} as Record<TColumn, SQL>,
   );
 };

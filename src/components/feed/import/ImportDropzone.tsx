@@ -1,5 +1,6 @@
 import clsx from "clsx";
-import { type DragEvent, type RefObject, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import type { DragEvent, RefObject } from "react";
 
 type ImportDropzoneProps = {
   inputElementRef: RefObject<HTMLInputElement | null> | null;
@@ -10,17 +11,22 @@ export function ImportDropzone({
   inputElementRef,
   onSelectFile,
 }: ImportDropzoneProps) {
-  const dropzoneRef = useRef<HTMLDivElement | null>(null);
+  const dropzoneRef = useRef<HTMLButtonElement | null>(null);
 
   const [isDraggingOverDropzone, setIsDraggingOverDropzone] = useState(false);
 
-  const onDragEvent = (e: DragEvent<HTMLDivElement>) => {
+  const onDragEvent = (e: DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
   };
 
+  const handleActivate = () => {
+    inputElementRef?.current?.click();
+  };
+
   return (
-    <div
+    <button
+      type="button"
       ref={dropzoneRef}
       onDrag={onDragEvent}
       onDragStart={onDragEvent}
@@ -51,9 +57,7 @@ export function ImportDropzone({
         inputElementRef.current.files = dataTransfer.files;
         onSelectFile();
       }}
-      onClick={() => {
-        inputElementRef?.current?.click();
-      }}
+      onClick={handleActivate}
       className={clsx(
         "hover:bg-muted/30 border-foreground/40 grid h-64 w-full cursor-pointer place-items-center rounded-xl border border-dashed transition-colors",
         {
@@ -64,6 +68,6 @@ export function ImportDropzone({
       <div className="max-w-sm text-center">
         Drag and drop your file here, or click/tap to upload
       </div>
-    </div>
+    </button>
   );
 }

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { Button } from "../ui/button";
 import { Link } from "@tanstack/react-router";
+import { Button } from "../ui/button";
 
 const RELEASE_SLUG_KEY = "last-viewed-release";
 

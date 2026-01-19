@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { useAtom } from "jotai";
 import { PlusIcon } from "lucide-react";
 import { useMemo } from "react";
+import { useDialogStore } from "./dialogStore";
 import { Button } from "~/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
 import { viewFilterIdAtom } from "~/lib/data/atoms";
@@ -13,7 +14,6 @@ import {
   useUpdateViewFilter,
   useViews,
 } from "~/lib/data/views";
-import { useDialogStore } from "./dialogStore";
 
 export function ViewFilterChips() {
   const { views } = useViews();
