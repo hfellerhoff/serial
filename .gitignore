@@ -60,11 +60,9 @@ yarn-error.log*
 dist
 .output
 
-plans
-plans/**
-
-CLAUDE.md
 .content-collections
 
+CLAUDE.md
+.claude
 
 data/libsql
