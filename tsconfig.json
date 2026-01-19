@@ -28,6 +28,7 @@
   "include": [".eslintrc.cjs", "**/*.ts", "**/*.tsx", "**/*.cjs", "**/*.js"],
   "exclude": [
     "node_modules",
+    "dist",
     "**/public/sw.js",
     "**/public/workbox-*.js",
     "**/public/worker-*.js",
