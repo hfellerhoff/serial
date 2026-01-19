@@ -16,11 +16,7 @@ services:
     environment:
       SQLD_NODE: primary
   server:
-    build:
-      context: .
-      args:
-        DATABASE_URL: http://libsql:8080
-        BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+    image: ghcr.io/hfellerhoff/serial:latest
     environment:
       NODE_ENV: production
       DATABASE_URL: http://libsql:8080

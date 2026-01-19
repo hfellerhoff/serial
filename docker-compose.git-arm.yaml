@@ -3,7 +3,7 @@ volumes:
 
 services:
   libsql:
-    image: ghcr.io/tursodatabase/libsql-server:latest
+    image: ghcr.io/tursodatabase/libsql-server:latest-arm
     volumes:
       - libsql-data:/var/lib/sqld
     command: ["sqld", "--http-listen-addr", "0.0.0.0:8080"]
@@ -16,7 +16,11 @@ services:
     environment:
       SQLD_NODE: primary
   server:
-    image: ghcr.io/hfellerhoff/serial:latest
+    build:
+      context: .
+      args:
+        DATABASE_URL: http://libsql:8080
+        BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
     environment:
       NODE_ENV: production
       DATABASE_URL: http://libsql:8080
