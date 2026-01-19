@@ -7,7 +7,7 @@ export const env = createEnv({
    * isn't built with invalid env vars.
    */
   server: {
-    DATABASE_URL: z.string().url(),
+    DATABASE_URL: z.url().optional().default("http://127.0.0.1:8080"),
     DATABASE_AUTH_TOKEN: z
       .string()
       .optional()

@@ -6,31 +6,24 @@ services:
     image: ghcr.io/tursodatabase/libsql-server:latest-arm
     volumes:
       - libsql-data:/var/lib/sqld
-    environment:
-      DATABASE_URL: ${DATABASE_URL:-}
-    entrypoint:
-      - sh
-      - -c
-      - |
-        [ -z "$DATABASE_URL" ] || exit 0
-        exec sqld --http-listen-addr 0.0.0.0:8080
+    command: ["sqld", "--http-listen-addr", "0.0.0.0:8080"]
     healthcheck:
-      test: ["CMD-SHELL", '[ -n "$DATABASE_URL" ] || kill -0 1']
+      test: ["CMD-SHELL", "kill -0 1"]
       interval: 2s
       timeout: 5s
       retries: 10
       start_period: 2s
+    environment:
+      SQLD_NODE: primary
   server:
     build:
       context: .
       args:
-        DATABASE_URL: ${DATABASE_URL:-http://libsql:8080}
-        DATABASE_AUTH_TOKEN: ${DATABASE_AUTH_TOKEN}
+        DATABASE_URL: http://libsql:8080
         BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
     environment:
       NODE_ENV: production
-      DATABASE_URL: ${DATABASE_URL:-http://libsql:8080}
-      DATABASE_AUTH_TOKEN: ${DATABASE_AUTH_TOKEN}
+      DATABASE_URL: http://libsql:8080
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       SENDGRID_API_KEY: ${SENDGRID_API_KEY}
       INSTAPAPER_OAUTH_ID: ${INSTAPAPER_OAUTH_ID}

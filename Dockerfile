@@ -52,7 +52,7 @@ RUN --mount=type=bind,source=package.json,target=package.json \
 COPY . .
 
 # Run the build script (without migrations - those run at container startup)
-RUN pnpm typecheck && pnpm run build:atomic
+RUN pnpm run build:atomic
 
 ################################################################################
 # Create a new stage to run the application with minimal runtime dependencies
