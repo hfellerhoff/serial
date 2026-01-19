@@ -25,6 +25,10 @@
 10. Click deploy and wait for your app to be ready! You'll be able to access it once Coolify says it's running.
 11. Access your domain through the domain you added or through the provided links in the `Links` header item.
 
+You can access the app through the domain you added (which can always be found in the `Links` header item). To update the app in the future, hit `Redeploy` in Coolify.
+
+If you'd like to support additional features, [see this section](https://github.com/hfellerhoff/serial#enabling-additional-features)!
+
 ## Deploy using Docker Compose file
 1. If you don't have a [Coolify](https://coolify.io/) instance set up:
    1. Set up a locally hosted server, or purchase a VPS.
@@ -47,7 +51,10 @@
 9. If using a cloud database, set up your database
     - If you want to use a cloud libsql database provider (like [Turso](https://turso.tech/)), set up a database with them and add your `DATABASE_AUTH_TOKEN` and `DATABASE_URL` to your environment variables.
 10. Click deploy and wait for your app to be ready! You'll be able to access it once Coolify says it's running.
-11. Access your domain through the domain you added or through the provided links in the `Links` header item.
+
+You can access the app through the domain you added (which can always be found in the `Links` header item). To update the app in the future, hit `Redeploy` in Coolify.
+
+If you'd like to support additional features, [see this section](https://github.com/hfellerhoff/serial#enabling-additional-features)!
 
 ## Deploy using Private Repository (with GitHub App)
 1. Fork the `hfellerhoff/serial` respository to your own GitHub account.
@@ -73,6 +80,7 @@
 10. If using a cloud database, set up your database
     - If you want to use a cloud libsql database provider (like [Turso](https://turso.tech/)), set up a database with them and add your `DATABASE_AUTH_TOKEN` and `DATABASE_URL` to your environment variables.
 11. Click deploy and wait for your app to be ready! You'll be able to access it once Coolify says it's running.
-12. Access your domain through the domain you added or through the provided links in the `Links` header item.
+
+You can access the app through the domain you added (which can always be found in the `Links` header item). To update the app in the future, sync your branch with the upstream repository and Coolify will redeploy it automatically.
 
 If you'd like to support additional features, [see this section](https://github.com/hfellerhoff/serial#enabling-additional-features)!

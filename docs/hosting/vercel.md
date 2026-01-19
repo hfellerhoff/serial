@@ -1,5 +1,7 @@
 # Hosting Serial on Vercel
 
+> Note: Only cloud database hosting is available on Vercel deployments.
+
 1. Fork the `hfellerhoff/serial` respository to your own GitHub account.
 2. Login to [Vercel](https://vercel.com/) and follow the onboarding to link your GitHub account.
 3. Choose the `serial` repository and hit deploy. Your initial deployment will fail – that's okay.
