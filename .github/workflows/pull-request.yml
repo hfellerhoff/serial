@@ -1,6 +1,11 @@
 name: "Pull Request"
 on:
-  - pull_request
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
 
 jobs:
   build:
