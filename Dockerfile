@@ -5,7 +5,7 @@ ARG PNPM_VERSION=10.8.0
 
 ################################################################################
 # Use node image for base image for all stages.
-FROM node:${NODE_VERSION}-alpine as base
+FROM node:${NODE_VERSION}-alpine AS base
 
 # Set working directory for all build stages.
 WORKDIR /usr/src/app
@@ -16,7 +16,7 @@ RUN --mount=type=cache,target=/root/.npm \
 
 ################################################################################
 # Create a stage for installing production dependecies.
-FROM base as deps
+FROM base AS deps
 
 # Download dependencies as a separate step to take advantage of Docker's caching.
 # Leverage a cache mount to /root/.local/share/pnpm/store to speed up subsequent builds.
@@ -29,17 +29,7 @@ RUN --mount=type=bind,source=package.json,target=package.json \
 
 ################################################################################
 # Create a stage for building the application.
-FROM deps as build
-
-# Build arguments for environment variables needed during build
-ARG DATABASE_URL
-ARG DATABASE_AUTH_TOKEN
-ARG BETTER_AUTH_SECRET
-
-# Set environment variables for the build process
-ENV DATABASE_URL=$DATABASE_URL
-ENV DATABASE_AUTH_TOKEN=$DATABASE_AUTH_TOKEN
-ENV BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
+FROM deps AS build
 
 # Download additional development dependencies before building, as some projects require
 # "devDependencies" to be installed to build. If you don't need this, remove this step.
@@ -57,7 +47,7 @@ RUN pnpm run build:atomic
 ################################################################################
 # Create a new stage to run the application with minimal runtime dependencies
 # where the necessary files are copied from the build stage.
-FROM base as final
+FROM base AS final
 
 # Copy package.json and pnpm-lock.yaml so that package manager commands can be used.
 COPY package.json pnpm-lock.yaml ./
@@ -77,4 +67,4 @@ COPY --from=build /usr/src/app/src/env.js ./src/env.js
 EXPOSE 3000
 
 # Run migrations then start the application.
-CMD node --experimental-specifier-resolution=node --loader ts-node/esm src/server/db/migrate.js 2>/dev/null || node --import=tsx src/server/db/migrate.ts && node .output/server/index.mjs
+CMD ["sh", "-c", "node --experimental-specifier-resolution=node --loader ts-node/esm src/server/db/migrate.js 2>/dev/null || node --import=tsx src/server/db/migrate.ts && node .output/server/index.mjs"]
