@@ -8,6 +8,8 @@ import type {
   DatabaseFeedCategory,
 } from "~/server/db/schema";
 import type { FetchFeedsStatus } from "~/server/rss/fetchFeeds";
+import type { ORPCContext } from "~/server/orpc/base";
+import type { VisibilityFilter } from "~/lib/data/atoms";
 import { prepareArrayChunks } from "~/lib/iterators";
 import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
 import {
@@ -33,14 +35,11 @@ import {
 import { protectedProcedure } from "~/server/orpc/base";
 import { fetchAndInsertFeedData } from "~/server/rss/fetchFeeds";
 import { parseArrayOfSchema } from "~/lib/schemas/utils";
+import { logMessage } from "~/server/logger";
 
 export type PaginationCursor = { postedAt: Date; id: string } | null;
 
-export type GetByViewChunk =
-  | { type: "views"; views: ApplicationView[] }
-  | { type: "feeds"; feeds: ApplicationFeed[] }
-  | { type: "feed-categories"; feedCategories: DatabaseFeedCategory[] }
-  | { type: "content-categories"; contentCategories: DatabaseContentCategory[] }
+export type ViewDataChunk =
   | {
       type: "feed-items";
       viewId: number;
@@ -49,10 +48,17 @@ export type GetByViewChunk =
       hasMore?: boolean;
       nextCursor?: PaginationCursor;
     }
+  | { type: "error"; message: string; phase: string; viewId: number };
+
+export type GetByViewChunk =
+  | { type: "views"; views: ApplicationView[] }
+  | { type: "feeds"; feeds: ApplicationFeed[] }
+  | { type: "feed-categories"; feedCategories: DatabaseFeedCategory[] }
+  | { type: "content-categories"; contentCategories: DatabaseContentCategory[] }
   | { type: "feed-status"; feedId: number; status: FetchFeedsStatus }
   | { type: "view-feeds"; viewId: number; feedIds: number[] }
   | { type: "initial-data-complete" }
-  | { type: "error"; message: string; phase: string };
+  | ViewDataChunk;
 
 export type RevalidateViewChunk =
   | { type: "views"; views: ApplicationView[] }
@@ -150,6 +156,118 @@ function computeFeedsForView(
 const GET_BY_VIEW_CHUNK_SIZE = 30;
 const INITIAL_ITEMS_PER_VIEW = 30;
 
+interface FetchContentForViewParams {
+  feedIds: number[];
+  visibilityFilter: VisibilityFilter | undefined;
+  feedCategoriesList: any;
+  customViewCategoryIds: any;
+  customViews: any;
+  applicationFeeds: any;
+  feedsById: any;
+}
+
+async function fetchContentForView(
+  context: ORPCContext,
+  view: ApplicationView,
+  {
+    feedIds,
+    visibilityFilter,
+    feedCategoriesList,
+    customViewCategoryIds,
+    customViews,
+    applicationFeeds,
+    feedsById,
+  }: FetchContentForViewParams,
+): Promise<ViewDataChunk> {
+  visibilityFilter ??= "unread";
+
+  logMessage(`[Initial] Fetching items for view ${view.id}`);
+
+  try {
+    const filterConditions = [
+      inArray(feedItems.feedId, feedIds),
+      buildVisibilityFilter(visibilityFilter),
+      buildViewCategoryFilter(
+        view,
+        feedCategoriesList,
+        feedIds,
+        customViewCategoryIds,
+        customViews,
+        applicationFeeds,
+      ),
+      buildContentTypeFilter(view.contentType, applicationFeeds),
+      buildTimeWindowFilter(view.daysWindow),
+    ].filter(Boolean);
+
+    const filter =
+      filterConditions.length > 0 ? and(...filterConditions) : undefined;
+
+    const initialItems = await context.db.query.feedItems.findMany({
+      where: filter,
+      orderBy: desc(feedItems.postedAt),
+      limit: INITIAL_ITEMS_PER_VIEW,
+    });
+
+    if (initialItems.length > 0) {
+      const applicationItems = initialItems.map((item) => {
+        const itemFeed = feedsById.get(item.feedId);
+        return {
+          ...item,
+          platform: itemFeed?.platform ?? "youtube",
+        } as ApplicationFeedItem;
+      });
+
+      return {
+        type: "feed-items",
+        viewId: view.id,
+        feedItems: applicationItems,
+        visibilityFilter: visibilityFilter,
+      };
+    }
+  } catch (error) {
+    return {
+      type: "error",
+      message:
+        error instanceof Error
+          ? error.message
+          : `Failed to fetch initial items for view ${view.id}`,
+      phase: "initial-items",
+      viewId: view.id,
+    };
+    // Continue to next view instead of stopping
+  }
+
+  return {
+    type: "feed-items",
+    viewId: view.id,
+    feedItems: [],
+    visibilityFilter: visibilityFilter,
+  };
+}
+
+async function* fetchContentForViews(
+  context: ORPCContext,
+  viewList: ApplicationView[],
+  params: FetchContentForViewParams,
+) {
+  const viewIds = viewList.map((view) => view.id);
+  const viewPromises = viewList.map((view) =>
+    fetchContentForView(context, view, params),
+  );
+
+  while (viewPromises.length > 0) {
+    const result = await Promise.any(Array.from(viewPromises));
+
+    const resultIndex = viewIds.findIndex((id) => id === result.viewId);
+    void viewPromises.splice(resultIndex, 1);
+    viewIds.splice(resultIndex, 1);
+
+    yield result;
+  }
+
+  return;
+}
+
 export const getAllByView = protectedProcedure
   .input(z.object({ visibilityFilter: visibilityFilterSchema }).optional())
   .handler(async function* ({ context, input }) {
@@ -193,6 +311,12 @@ export const getAllByView = protectedProcedure
 
     const [viewsList, feedsList, contentCategoriesList] = initialData;
 
+    logMessage(`[Initial] Loaded ${viewsList.length} views`);
+    logMessage(`[Initial] Loaded ${feedsList.length} feeds`);
+    logMessage(
+      `[Initial] Loaded ${contentCategoriesList.length} content categories`,
+    );
+
     // Fetch feed categories filtered by user's content categories
     const userContentCategoryIds = contentCategoriesList.map((cc) => cc.id);
     const feedCategoriesList =
@@ -202,6 +326,8 @@ export const getAllByView = protectedProcedure
             .from(feedCategories)
             .where(inArray(feedCategories.categoryId, userContentCategoryIds))
         : [];
+
+    logMessage(`[Initial] Loaded ${feedCategoriesList.length} feed categories`);
 
     // Get view categories filtered by user's views
     const userViewIds = viewsList.map((v) => v.id);
@@ -213,6 +339,8 @@ export const getAllByView = protectedProcedure
             .where(inArray(viewCategories.viewId, userViewIds))
         : [];
 
+    logMessage(`[Initial] Loaded ${viewCategoriesList.length} view categories`);
+
     // Transform views to ApplicationView with categoryIds
     const customViews: ApplicationView[] = viewsList.map((view) => ({
       ...view,
@@ -223,6 +351,8 @@ export const getAllByView = protectedProcedure
         .filter((id): id is number => id !== null),
     }));
 
+    logMessage(`[Initial] Formed ${customViews.length} application views`);
+
     const uncategorizedView = buildUncategorizedView(
       context.user.id,
       contentCategoriesList,
@@ -231,8 +361,14 @@ export const getAllByView = protectedProcedure
 
     const allViews = sortViewsByPlacement([...customViews, uncategorizedView]);
 
+    logMessage(`[Initial] Sorted ${allViews.length} views`);
+
     // Parse feeds to ApplicationFeed
     const applicationFeeds = parseArrayOfSchema(feedsList, feedsSchema);
+
+    logMessage(
+      `[Initial] Parsed ${applicationFeeds.length} / ${feedsList.length} feeds`,
+    );
 
     // Pre-build a Map for O(1) feed lookups by ID
     const feedsById = new Map(feedsList.map((f) => [f.id, f]));
@@ -249,20 +385,28 @@ export const getAllByView = protectedProcedure
         views: allViews,
       } as GetByViewChunk;
 
+      logMessage(`[Initial] Yielded views`);
+
       yield {
         type: "feeds",
         feeds: applicationFeeds,
       } as GetByViewChunk;
+
+      logMessage(`[Initial] Yielded feeds`);
 
       yield {
         type: "content-categories",
         contentCategories: contentCategoriesList,
       } as GetByViewChunk;
 
+      logMessage(`[Initial] Yielded content categories`);
+
       yield {
         type: "feed-categories",
         feedCategories: feedCategoriesList,
       } as GetByViewChunk;
+
+      logMessage(`[Initial] Yielded feed categories`);
 
       // Step 3: Yield view-feeds chunks for each view
       for (const view of allViews) {
@@ -279,6 +423,10 @@ export const getAllByView = protectedProcedure
           viewId: view.id,
           feedIds: feedIdsForView,
         } as GetByViewChunk;
+
+        logMessage(
+          `[Initial] Yielded ${feedIdsForView.length} feeds for view ${view.id}`,
+        );
       }
     }
 
@@ -292,60 +440,26 @@ export const getAllByView = protectedProcedure
       return;
     }
 
+    const fetchContentForViewParams: FetchContentForViewParams = {
+      feedIds,
+      visibilityFilter,
+      feedCategoriesList,
+      customViewCategoryIds,
+      customViews,
+      applicationFeeds,
+      feedsById,
+    };
+
     // Step 4: Query and yield initial items (first 100) for EACH view
-    for (const view of allViews) {
-      try {
-        const filterConditions = [
-          inArray(feedItems.feedId, feedIds),
-          buildVisibilityFilter(visibilityFilter ?? "unread"),
-          buildViewCategoryFilter(
-            view,
-            feedCategoriesList,
-            feedIds,
-            customViewCategoryIds,
-            customViews,
-            applicationFeeds,
-          ),
-          buildContentTypeFilter(view.contentType, applicationFeeds),
-          buildTimeWindowFilter(view.daysWindow),
-        ].filter(Boolean);
-
-        const filter =
-          filterConditions.length > 0 ? and(...filterConditions) : undefined;
-
-        const initialItems = await context.db.query.feedItems.findMany({
-          where: filter,
-          orderBy: desc(feedItems.postedAt),
-          limit: INITIAL_ITEMS_PER_VIEW,
-        });
-
-        if (initialItems.length > 0) {
-          const applicationItems = initialItems.map((item) => {
-            const itemFeed = feedsById.get(item.feedId);
-            return {
-              ...item,
-              platform: itemFeed?.platform ?? "youtube",
-            } as ApplicationFeedItem;
-          });
-
-          yield {
-            type: "feed-items",
-            viewId: view.id,
-            feedItems: applicationItems,
-            visibilityFilter: visibilityFilter ?? "unread",
-          } as GetByViewChunk;
-        }
-      } catch (error) {
-        yield {
-          type: "error",
-          message:
-            error instanceof Error
-              ? error.message
-              : `Failed to fetch initial items for view ${view.id}`,
-          phase: "initial-items",
-        } as GetByViewChunk;
-        // Continue to next view instead of stopping
-      }
+    for await (const viewResult of fetchContentForViews(
+      context,
+      allViews,
+      fetchContentForViewParams,
+    )) {
+      logMessage(
+        `[Initial] Yielded ${viewResult.type} response for view ${viewResult.viewId}`,
+      );
+      yield viewResult;
     }
 
     // Skip initial-data-complete and RSS fetch when fetching for visibility filter

@@ -1037,7 +1037,11 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
 
           case "feed-items": {
             // Track the current view ID from the first feed-items chunk
-            if (get().currentViewId === null) {
+            const firstView = viewsStore.getState().views[0];
+            if (
+              get().currentViewId === null &&
+              incomingChunk.viewId === firstView?.id
+            ) {
               set({ currentViewId: incomingChunk.viewId });
             }
 
