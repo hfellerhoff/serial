@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
   categoryFilterAtom,
   dateFilterAtom,
@@ -7,25 +7,17 @@ import {
   UNSELECTED_VIEW_ID,
   viewFilterIdAtom,
   viewsAtom,
+  visibilityFilterAtom,
 } from "../atoms";
-import { useContentCategories } from "../content-categories";
 import { useFeedCategories } from "../feed-categories";
 import { doesFeedItemPassFilters } from "../feed-items";
 import { useFeeds } from "../feeds";
 import { useFeedItemsDict, useFeedItemsOrder } from "../store";
-import { sortViewsByPlacement } from "./utils";
-import {
-  useFetchViews,
-  useSetViews,
-  useViewsFetchStatus,
-  useViews as useViewsStore,
-} from "./store";
+import { useViewsFetchStatus } from "./store";
+import { INBOX_VIEW_ID, INBOX_VIEW_PLACEMENT } from "./constants";
 import type { ApplicationView } from "~/server/db/schema";
-import { FEED_ITEM_ORIENTATION, VIEW_READ_STATUS } from "~/server/db/constants";
-import { useSession } from "~/lib/auth-client";
 
-export const INBOX_VIEW_ID = -1;
-export const INBOX_VIEW_PLACEMENT = -1;
+export { INBOX_VIEW_ID, INBOX_VIEW_PLACEMENT };
 
 export function useDeselectViewFilter() {
   const setViewFilter = useSetAtom(viewFilterIdAtom);
@@ -66,6 +58,8 @@ export function useCheckFilteredFeedItemsForView() {
   const { feedCategories } = useFeedCategories();
   const { feeds } = useFeeds();
   const { views } = useViews();
+  const visibilityFilter = useAtomValue(visibilityFilterAtom);
+  const { customViewCategoryIds } = useCustomViewsData();
 
   return useCallback(
     (viewId: number) => {
@@ -77,96 +71,52 @@ export function useCheckFilteredFeedItemsForView() {
           doesFeedItemPassFilters(
             feedItemsDict[item],
             viewFilter?.daysWindow ?? 1,
-            "unread",
+            visibilityFilter,
             -1,
             feedCategories,
             -1,
             feeds,
             viewFilter,
+            customViewCategoryIds,
           ),
       );
     },
-    [feedItemsOrder, feedItemsDict, feedCategories, feeds, views],
+    [
+      feedItemsOrder,
+      feedItemsDict,
+      feedCategories,
+      feeds,
+      views,
+      customViewCategoryIds,
+      visibilityFilter,
+    ],
   );
-}
-
-export function useViewsQuery() {
-  const { data } = useSession();
-  const { contentCategories } = useContentCategories();
-  const rawViews = useViewsStore();
-  const fetchStatus = useViewsFetchStatus();
-  const fetchViews = useFetchViews();
-  const setViewsInStore = useSetViews();
-  const setViewsAtom = useSetAtom(viewsAtom);
-
-  useEffect(() => {
-    if (fetchStatus === "idle") {
-      void fetchViews();
-    }
-  }, [fetchStatus, fetchViews]);
-
-  const transformedData = useMemo(() => {
-    const now = new Date();
-
-    const customViews: ApplicationView[] = rawViews.map((view) => ({
-      ...view,
-    }));
-
-    const allCategoryIdsSet = new Set(
-      contentCategories.map((category) => category.id),
-    );
-    const customViewCategoryIdsSet = new Set(
-      customViews.flatMap((view) => view.categoryIds),
-    );
-
-    const inboxViewCategoryIds = new Set(
-      [...allCategoryIdsSet].filter((id) => !customViewCategoryIdsSet.has(id)),
-    );
-
-    const inboxView: ApplicationView = {
-      id: INBOX_VIEW_ID,
-      name: "Inbox",
-      daysWindow: 30,
-      orientation: FEED_ITEM_ORIENTATION.HORIZONTAL,
-      readStatus: VIEW_READ_STATUS.UNREAD,
-      placement: INBOX_VIEW_PLACEMENT,
-      userId: data?.user.id ?? "",
-      createdAt: now,
-      updatedAt: now,
-      categoryIds: Array.from(inboxViewCategoryIds),
-      isDefault: true,
-    };
-
-    return sortViewsByPlacement([...customViews, inboxView]);
-  }, [rawViews, contentCategories, data?.user.id]);
-
-  // Keep the Jotai atom in sync with the computed views (including Inbox)
-  useEffect(() => {
-    if (fetchStatus === "success") {
-      setViewsAtom(transformedData);
-    }
-  }, [fetchStatus, transformedData, setViewsAtom]);
-
-  return {
-    isLoading: fetchStatus === "fetching",
-    isSuccess: fetchStatus === "success",
-    data: transformedData,
-    refetch: async () => {
-      // Reset and fetch again
-      setViewsInStore([]);
-      await fetchViews();
-    },
-  };
 }
 
 export function useViews() {
   const views = useAtomValue(viewsAtom);
   const fetchStatus = useViewsFetchStatus();
-  const viewsQuery = useViewsQuery();
 
   return {
     views,
-    viewsQuery,
     hasFetchedViews: fetchStatus === "success",
   };
+}
+
+/**
+ * Hook to compute custom views (non-Uncategorized) and their category IDs.
+ * Use this to avoid duplicating this computation across multiple hooks.
+ */
+export function useCustomViewsData() {
+  const views = useAtomValue(viewsAtom);
+
+  const customViews = useMemo(() => {
+    return views.filter((v) => v.id !== INBOX_VIEW_ID);
+  }, [views]);
+
+  const customViewCategoryIds = useMemo(() => {
+    return new Set(customViews.flatMap((v) => v.categoryIds));
+  }, [customViews]);
+
+  return { customViews, customViewCategoryIds };
 }

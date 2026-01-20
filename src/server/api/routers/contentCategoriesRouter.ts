@@ -3,11 +3,7 @@ import { z } from "zod";
 
 import { verifyFeedsOwnedByUser } from "./feed-router/utils";
 import { protectedProcedure } from "~/server/orpc/base";
-import {
-  contentCategories,
-  feedCategories,
-  viewCategories,
-} from "~/server/db/schema";
+import { contentCategories, feedCategories } from "~/server/db/schema";
 
 const categoryNameSchema = z.string().min(2);
 const feedCategorizationSchema = z.object({
@@ -164,22 +160,13 @@ export const update = protectedProcedure
 export const deleteCategory = protectedProcedure
   .input(z.object({ id: z.number() }))
   .handler(async ({ context, input }) => {
-    await context.db.transaction(async (tx) => {
-      await tx
-        .delete(feedCategories)
-        .where(eq(feedCategories.categoryId, input.id));
-
-      await tx
-        .delete(viewCategories)
-        .where(eq(viewCategories.categoryId, input.id));
-
-      await tx
-        .delete(contentCategories)
-        .where(
-          and(
-            eq(contentCategories.id, input.id),
-            eq(contentCategories.userId, context.user.id),
-          ),
-        );
-    });
+    // feedCategories and viewCategories are automatically deleted via cascade
+    await context.db
+      .delete(contentCategories)
+      .where(
+        and(
+          eq(contentCategories.id, input.id),
+          eq(contentCategories.userId, context.user.id),
+        ),
+      );
   });

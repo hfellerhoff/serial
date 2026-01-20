@@ -4,11 +4,18 @@ import { useLocation } from "@tanstack/react-router";
 import { useAtom } from "jotai";
 import { useCallback, useEffect, useState } from "react";
 import type { FeedPlatform } from "~/server/db/schema";
-import { articleZoomAtom, videoZoomAtom } from "~/lib/data/atoms";
+import {
+  articleZoomAtom,
+  longformVideoZoomAtom,
+  shortformVideoZoomAtom,
+} from "~/lib/data/atoms";
 import { useFeedItemValue } from "~/lib/data/store";
 
 export const MIN_ZOOM = 0;
 export const MAX_ZOOM = 6;
+
+export const MIN_ZOOM_VERTICAL = 0;
+export const MAX_ZOOM_VERTICAL = 3;
 
 const VIDEO_PLATFORMS: FeedPlatform[] = ["youtube", "peertube"];
 const ARTICLE_PLATFORMS: FeedPlatform[] = ["website"];
@@ -23,8 +30,17 @@ export function useZoom() {
   const feedItem = useFeedItemValue(videoId || contentId || "");
 
   const platform = feedItem?.platform ?? "";
+  const isVertical = feedItem?.orientation === "vertical";
 
-  const [videoZoom, setVideoZoom] = useAtom(videoZoomAtom);
+  const minZoom = isVertical ? MIN_ZOOM_VERTICAL : MIN_ZOOM;
+  const maxZoom = isVertical ? MAX_ZOOM_VERTICAL : MAX_ZOOM;
+
+  const [longformVideoZoom, setLongformVideoZoom] = useAtom(
+    longformVideoZoomAtom,
+  );
+  const [shortformVideoZoom, setShortformVideoZoom] = useAtom(
+    shortformVideoZoomAtom,
+  );
   const [articleZoom, setArticleZoom] = useAtom(articleZoomAtom);
 
   const isVideoPlatform = VIDEO_PLATFORMS.includes(platform);
@@ -32,8 +48,11 @@ export function useZoom() {
 
   useEffect(() => {
     setZoom((prevZoom) => {
-      if (isVideoPlatform) {
-        return videoZoom;
+      if (isVideoPlatform && isVertical) {
+        return shortformVideoZoom;
+      }
+      if (isVideoPlatform && !isVertical) {
+        return longformVideoZoom;
       }
       if (isArticlePlatform) {
         return articleZoom;
@@ -44,12 +63,22 @@ export function useZoom() {
       // Therefore, we want to maintain the previously applied value
       return prevZoom;
     });
-  }, [isVideoPlatform, videoZoom, isArticlePlatform, articleZoom]);
+  }, [
+    isVideoPlatform,
+    longformVideoZoom,
+    shortformVideoZoom,
+    isVertical,
+    isArticlePlatform,
+    articleZoom,
+  ]);
 
   const zoomIn = useCallback(() => {
     if (isVideoPlatform) {
+      const setVideoZoom = isVertical
+        ? setShortformVideoZoom
+        : setLongformVideoZoom;
       setVideoZoom((z) => {
-        if (z >= MAX_ZOOM) {
+        if (z >= maxZoom) {
           return z;
         }
         return z + 1;
@@ -64,12 +93,23 @@ export function useZoom() {
       });
     }
     return () => {};
-  }, [isVideoPlatform, setVideoZoom, isArticlePlatform, setArticleZoom]);
+  }, [
+    isVideoPlatform,
+    isVertical,
+    setShortformVideoZoom,
+    setLongformVideoZoom,
+    maxZoom,
+    isArticlePlatform,
+    setArticleZoom,
+  ]);
 
   const zoomOut = useCallback(() => {
     if (isVideoPlatform) {
+      const setVideoZoom = isVertical
+        ? setShortformVideoZoom
+        : setLongformVideoZoom;
       setVideoZoom((z) => {
-        if (z <= MIN_ZOOM) {
+        if (z <= minZoom) {
           return z;
         }
         return z - 1;
@@ -84,11 +124,22 @@ export function useZoom() {
       });
     }
     return () => {};
-  }, [isVideoPlatform, setVideoZoom, isArticlePlatform, setArticleZoom]);
+  }, [
+    isVideoPlatform,
+    isVertical,
+    setShortformVideoZoom,
+    setLongformVideoZoom,
+    minZoom,
+    isArticlePlatform,
+    setArticleZoom,
+  ]);
 
   return {
     zoom,
     zoomIn,
     zoomOut,
+    isVertical,
+    minZoom,
+    maxZoom,
   };
 }

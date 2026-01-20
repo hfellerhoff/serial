@@ -1,6 +1,5 @@
-import { z } from "zod";
 import Parser from "rss-parser";
-import { isWithinDays } from "../rssUtils";
+import { z } from "zod";
 import type { DatabaseFeed } from "~/server/db/schema";
 import type { NewFeedDetails, RSSContent, RSSFeed } from "../types";
 
@@ -83,7 +82,6 @@ export async function fetchPeerTubeFeedData(
       title: data.title,
       url: data.link,
       items: data.items
-        .filter((item) => isWithinDays(item.pubDate, 60))
         .map((item) => {
           const idParts = item.guid.split("/");
           const id = idParts[idParts.length - 1];
@@ -98,6 +96,7 @@ export async function fetchPeerTubeFeedData(
             author: item.creator,
             thumbnail: item["media:thumbnail"].$.url,
             content: item["media:description"],
+            contentSnippet: item["media:description"],
           } satisfies RSSContent;
         })
         .filter(Boolean),

@@ -29,6 +29,7 @@
   "exclude": [
     "node_modules",
     "dist",
+    "dist-sw",
     "**/public/sw.js",
     "**/public/workbox-*.js",
     "**/public/worker-*.js",

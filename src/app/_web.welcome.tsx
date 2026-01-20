@@ -1,12 +1,18 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { DemoCarousel } from "~/components/welcome/DemoCarousel";
 import { GetStartedButton } from "~/components/welcome/GetStartedButton";
 import { GitHubButton } from "~/components/welcome/GitHubButton";
 import { ColorThemePopoverButton } from "~/components/color-theme/ColorThemePopoverButton";
 import { getMostRecentRelease } from "~/lib/markdown/loaders";
 import { RecentReleaseBanner } from "~/components/welcome/RecentReleaseBanner";
+import { BASE_SIGNED_OUT_URL, IS_MAIN_INSTANCE } from "~/lib/constants";
 
 export const Route = createFileRoute("/_web/welcome")({
+  beforeLoad: () => {
+    if (!IS_MAIN_INSTANCE) {
+      throw redirect({ to: BASE_SIGNED_OUT_URL });
+    }
+  },
   component: RouteComponent,
   loader: () => {
     const mostRecentRelease = getMostRecentRelease();

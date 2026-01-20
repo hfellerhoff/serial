@@ -1,5 +1,6 @@
 "use client";
 
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   CheckIcon,
   CircleQuestionMarkIcon,
@@ -11,7 +12,6 @@ import {
   YoutubeIcon,
 } from "lucide-react";
 import { useRef, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
 import { ImportDropzone } from "../components/feed/import/ImportDropzone";
 import { getInitialFeedDataFromFileInputElement } from "../components/feed/import/utils/getInitialFeedDataFromFileInputElement";
 import type { BulkImportFromFileResult } from "~/server/api/routers/feed-router";
@@ -28,8 +28,8 @@ import {
 } from "~/components/ui/tooltip";
 import { useFeeds } from "~/lib/data/feeds";
 import { useCreateFeedsFromSubscriptionImportMutation } from "~/lib/data/feeds/mutations";
-import { useFetchFeedItems, useResetFeedItems } from "~/lib/data/store";
-import { useFetchFeeds, useResetFeeds } from "~/lib/data/feeds/store";
+import { useResetFeeds } from "~/lib/data/feeds/store";
+import { useFetchByView, useResetFeedItems } from "~/lib/data/store";
 
 function PlatformIcon({ platform }: { platform: FeedPlatform }) {
   switch (platform) {
@@ -69,10 +69,9 @@ function EditFeedsPage() {
   ).length;
 
   const { feeds } = useFeeds();
-  const fetchFeeds = useFetchFeeds();
   const resetFeeds = useResetFeeds();
-  const fetchFeedItems = useFetchFeedItems();
   const resetFeedItems = useResetFeedItems();
+  const fetchByView = useFetchByView();
 
   const onSelectFiles = async () => {
     if (!inputElementRef.current) return;
@@ -106,8 +105,7 @@ function EditFeedsPage() {
     resetFeeds();
     resetFeedItems();
 
-    void fetchFeeds();
-    void fetchFeedItems();
+    void fetchByView();
   };
 
   const onReset = () => {

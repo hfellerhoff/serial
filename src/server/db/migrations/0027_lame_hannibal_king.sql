@@ -1,0 +1,1 @@
+ALTER TABLE `serial_views` ADD `layout` text(32) DEFAULT 'list' NOT NULL;

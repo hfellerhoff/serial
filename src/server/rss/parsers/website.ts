@@ -1,6 +1,5 @@
 import Parser from "rss-parser";
 import { z } from "zod";
-import { isWithinDays } from "../rssUtils";
 import type { DatabaseFeed } from "~/server/db/schema";
 import type { NewFeedDetails, RSSContent, RSSFeed } from "../types";
 
@@ -14,9 +13,31 @@ function getLongestString(...strings: Array<string | undefined>) {
 
 const parser = new Parser({
   customFields: {
-    item: ["description"],
+    item: [
+      "description",
+      ["media:content", "mediaContent"],
+      ["media:thumbnail", "mediaThumbnail"],
+      "enclosure",
+    ],
   },
 });
+
+const mediaObjectSchema = z
+  .object({
+    $: z.object({
+      url: z.string().optional(),
+      medium: z.string().optional(),
+      type: z.string().optional(),
+    }),
+  })
+  .optional();
+
+const enclosureSchema = z
+  .object({
+    url: z.string().optional(),
+    type: z.string().optional(),
+  })
+  .optional();
 
 export const websiteItemSchema = z.object({
   creator: z.string().optional(),
@@ -32,7 +53,44 @@ export const websiteItemSchema = z.object({
   // ID fields
   guid: z.string().optional(),
   id: z.string().optional(),
+  // Image fields
+  mediaContent: mediaObjectSchema,
+  mediaThumbnail: mediaObjectSchema,
+  enclosure: enclosureSchema,
 });
+
+function extractThumbnail(
+  item: z.infer<typeof websiteItemSchema>,
+): string | undefined {
+  // Try media:thumbnail first
+  if (item.mediaThumbnail?.$.url) {
+    return item.mediaThumbnail.$.url;
+  }
+
+  // Try media:content if it's an image
+  if (item.mediaContent?.$.url) {
+    const type = item.mediaContent.$.type ?? "";
+    const medium = item.mediaContent.$.medium ?? "";
+    if (type.startsWith("image/") || medium === "image") {
+      return item.mediaContent.$.url;
+    }
+  }
+
+  // Try enclosure if it's an image
+  if (item.enclosure?.url && item.enclosure.type?.startsWith("image/")) {
+    return item.enclosure.url;
+  }
+
+  // Try to extract first image from content:encoded or content
+  const htmlContent =
+    item["content:encoded"] || item.content || item.description || "";
+  const imgMatch = htmlContent.match(/<img[^>]+src=["']([^"']+)["']/i);
+  if (imgMatch?.[1]) {
+    return imgMatch[1];
+  }
+
+  return undefined;
+}
 
 export const websiteSchema = z.object({
   items: websiteItemSchema.array(),
@@ -87,28 +145,26 @@ export async function fetchWebsiteFeedData(
 
     const data = websiteSchema.parse(rssData);
 
-    const itemPromises = data.items
-      .filter((item) =>
-        isWithinDays(item.pubDate || item.isoDate || item.updated || "", 60),
-      )
-      .map((item) => {
-        const id = item.guid || item.id;
+    const itemPromises = data.items.map((item) => {
+      const id = item.guid || item.id;
 
-        if (!id) return null;
+      if (!id) return null;
 
-        return {
-          id,
-          title: item.title,
-          publishedDate: item.pubDate || item.isoDate || item.updated || "",
-          url: item.link,
-          author: item.creator ?? "",
-          content: getLongestString(
-            item["content:encoded"],
-            item.content,
-            item.description,
-          ),
-        } satisfies RSSContent;
-      });
+      return {
+        id,
+        title: item.title,
+        publishedDate: item.pubDate || item.isoDate || item.updated || "",
+        url: item.link,
+        author: item.creator ?? "",
+        thumbnail: extractThumbnail(item),
+        content: getLongestString(
+          item["content:encoded"],
+          item.content,
+          item.description,
+        ),
+        contentSnippet: item.contentSnippet,
+      } satisfies RSSContent;
+    });
 
     return {
       id: feed.id,

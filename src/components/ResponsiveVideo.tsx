@@ -10,6 +10,7 @@ import { useFeedItemValue } from "~/lib/data/store";
 
 interface IResponsiveVideoProps {
   videoID?: string;
+  feedItemId?: string;
   videoSrc?: string;
   isInactive: boolean;
 }
@@ -62,12 +63,18 @@ export default function ResponsiveVideo(props: IResponsiveVideoProps) {
   const containerRef = useRef<null | HTMLDivElement>(null);
   const [videoPlayer] = useFlagState("CUSTOM_VIDEO_PLAYER");
 
-  const feedItem = useFeedItemValue(props.videoID ?? "");
+  const feedItem = useFeedItemValue(props.feedItemId ?? "");
+  const isVertical = feedItem?.orientation === "vertical";
 
   const feedItemPlatform = feedItem?.platform ?? "youtube";
 
   if (videoPlayer === "serial" && feedItemPlatform === "youtube") {
-    return <CustomVideoPlayer {...props} />;
+    return (
+      <CustomVideoPlayer
+        {...props}
+        orientation={feedItem?.orientation ?? "horizontal"}
+      />
+    );
   }
 
   return (
@@ -79,7 +86,7 @@ export default function ResponsiveVideo(props: IResponsiveVideoProps) {
         className="h-full w-full"
         style={{
           // @ts-expect-error need this
-          "--aspect-ratio": "16/9",
+          "--aspect-ratio": isVertical ? "9/16" : "16/9",
         }}
       >
         {props.videoID && (

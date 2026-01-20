@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ClientDatetime } from "~/components/feed/ClientDatetime";
-import { DateFilterSelect } from "~/components/feed/DateFilterChips";
-import { ItemVisibilitySelect } from "~/components/feed/ItemVisibilityChips";
-import { TodayItems } from "~/components/feed/TodayItems";
+import { ItemVisibilityChips } from "~/components/feed/ItemVisibilityChips";
+import { RenderViewItems } from "~/components/feed/view-lists";
 import { ViewFilterChips } from "~/components/feed/ViewFilterChips";
 
 export const Route = createFileRoute("/_app/")({
@@ -18,14 +17,13 @@ function Home() {
           <ClientDatetime />
         </p>
         <div className="flex w-max gap-1 pt-1">
-          <DateFilterSelect />
-          <ItemVisibilitySelect />
+          <ItemVisibilityChips />
         </div>
         <div className="w-max pt-3">
           <ViewFilterChips />
         </div>
       </div>
-      <TodayItems />
+      <RenderViewItems />
     </div>
   );
 }

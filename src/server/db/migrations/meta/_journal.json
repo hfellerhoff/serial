@@ -176,6 +176,34 @@
       "when": 1768777095518,
       "tag": "0024_nosy_silvermane",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1768853928402,
+      "tag": "0025_typical_jackpot",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1768854379207,
+      "tag": "0026_daffy_jasper_sitwell",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1768876199996,
+      "tag": "0027_lame_hannibal_king",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "6",
+      "when": 1768878628817,
+      "tag": "0028_boring_punisher",
+      "breakpoints": true
     }
   ]
 }

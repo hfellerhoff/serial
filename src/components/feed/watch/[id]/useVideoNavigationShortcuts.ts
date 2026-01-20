@@ -1,8 +1,9 @@
+import { useCallback } from "react";
 import { useParams, useRouter } from "@tanstack/react-router";
 import { useFilteredFeedItemsOrder } from "~/lib/data/feed-items";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 
-export function useVideoNavigationShortcuts() {
+export function useVideoNavigation() {
   const params = useParams({ from: "/_app/watch/$id" });
   const router = useRouter();
 
@@ -12,7 +13,12 @@ export function useVideoNavigationShortcuts() {
 
   const currentItemIndex = filteredFeedItemsOrder.indexOf(videoID);
 
-  const goToPreviousVideo = () => {
+  const canGoToPrevious = currentItemIndex > 0;
+  const canGoToNext =
+    currentItemIndex >= 0 &&
+    currentItemIndex < filteredFeedItemsOrder.length - 1;
+
+  const goToPreviousVideo = useCallback(() => {
     if (!filteredFeedItemsOrder.length) return;
 
     if (!videoID || currentItemIndex <= 0) {
@@ -28,10 +34,9 @@ export function useVideoNavigationShortcuts() {
     }
 
     void router.navigate({ to: `/watch/${previousVideoId}` });
-  };
-  useShortcut("[", goToPreviousVideo);
+  }, [filteredFeedItemsOrder, videoID, currentItemIndex, router]);
 
-  const goToNextVideo = () => {
+  const goToNextVideo = useCallback(() => {
     if (!filteredFeedItemsOrder.length) return;
 
     if (
@@ -51,6 +56,19 @@ export function useVideoNavigationShortcuts() {
     }
 
     void router.navigate({ to: `/watch/${nextVideoId}` });
+  }, [filteredFeedItemsOrder, videoID, currentItemIndex, router]);
+
+  return {
+    goToPreviousVideo,
+    goToNextVideo,
+    canGoToPrevious,
+    canGoToNext,
   };
+}
+
+export function useVideoNavigationShortcuts() {
+  const { goToPreviousVideo, goToNextVideo } = useVideoNavigation();
+
+  useShortcut("[", goToPreviousVideo);
   useShortcut("]", goToNextVideo);
 }

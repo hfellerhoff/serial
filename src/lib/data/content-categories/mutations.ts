@@ -43,7 +43,7 @@ export function useDeleteContentCategoryMutation() {
       onSuccess: async () => {
         await fetchContentCategories();
         await fetchFeedCategories();
-        // Reset views and refetch to recompute Inbox categories
+        // Reset views and refetch to recompute Uncategorized view categories
         setViews([]);
         await fetchViews();
       },

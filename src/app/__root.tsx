@@ -14,7 +14,7 @@ import { ApplyColorThemeOnServerMount } from "~/components/color-theme/ApplyColo
 import { orpcRouterClient } from "~/lib/orpc";
 import appCss from "~/styles/globals.css?url";
 import { Button } from "~/components/ui/button";
-import { AUTH_SIGNED_IN_URL } from "~/server/auth/constants";
+import { BASE_SIGNED_OUT_URL } from "~/lib/constants";
 import { ReloadPrompt } from "~/components/pwa/ReloadPrompt";
 
 const title = "Serial";
@@ -112,7 +112,7 @@ export const Route = createRootRoute({
         Oops! We couldn&apos;t find what you&apos;re looking for.
       </div>
       <Button asChild>
-        <Link to={AUTH_SIGNED_IN_URL}>Back to Home</Link>
+        <Link to={BASE_SIGNED_OUT_URL}>Back to Home</Link>
       </Button>
     </div>
   ),

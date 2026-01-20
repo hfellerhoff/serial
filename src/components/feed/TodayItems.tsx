@@ -1,8 +1,8 @@
 "use client";
 
 import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { Link } from "@tanstack/react-router";
 import clsx from "clsx";
-import dayjs from "dayjs";
 import {
   CheckIcon,
   ClockIcon,
@@ -12,7 +12,6 @@ import {
   SendIcon,
   SproutIcon,
 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 import { useDialogStore } from "./dialogStore";
 import FeedLoading from "~/components/loading";
 import { Button } from "~/components/ui/button";
@@ -39,26 +38,9 @@ import {
 import {
   useFeedItemValue,
   useFetchFeedItemsLastFetchedAt,
+  useHasInitialData,
 } from "~/lib/data/store";
-import { useViews } from "~/lib/data/views";
-
-function timeAgo(date: string | Date) {
-  const diff = dayjs().diff(date);
-
-  if (diff < 1000 * 60) {
-    return "Just now";
-  }
-
-  if (diff < 1000 * 60 * 60) {
-    return `${Math.floor(diff / (1000 * 60))} minutes ago`;
-  }
-
-  if (diff < 1000 * 60 * 60 * 24) {
-    return `${Math.floor(diff / (1000 * 60 * 60))} hours ago`;
-  }
-
-  return `${Math.floor(diff / (1000 * 60 * 60 * 24))} days ago`;
-}
+import { timeAgo } from "~/lib/utils";
 
 function TodayItemsEmptyState() {
   return (
@@ -178,11 +160,18 @@ function ItemDisplay({ contentId }: { contentId: string }) {
         className="sm:hover:bg-muted flex w-full flex-1 flex-col gap-4 py-4 pr-4 pl-6 text-left transition-colors md:h-20 md:flex-row md:items-center md:rounded md:py-0 md:pr-0"
       >
         {item.thumbnail ? (
-          <img
-            src={item.thumbnail}
-            alt={item.title}
-            className="aspect-video w-16 rounded object-cover"
-          />
+          <div className="flex w-16 items-center justify-center">
+            <img
+              src={item.thumbnail}
+              alt={item.title}
+              className={clsx(
+                "rounded object-cover",
+                item.orientation === "vertical"
+                  ? "aspect-[9/16] h-14"
+                  : "aspect-video w-full",
+              )}
+            />
+          </div>
         ) : feed?.imageUrl ? (
           <div className="grid size-16 place-items-center rounded object-contain p-3">
             <img
@@ -258,14 +247,15 @@ function ItemDisplay({ contentId }: { contentId: string }) {
 export function TodayItems() {
   const { feeds, hasFetchedFeeds } = useFeeds();
   const { hasFetchedFeedCategories } = useFeedCategories();
-  const { views } = useViews();
+
   const feedItemsLastFetchedAt = useFetchFeedItemsLastFetchedAt();
+  const hasInitialData = useHasInitialData();
 
   const filteredFeedItemsOrder = useFilteredFeedItemsOrder();
 
   const [parent] = useAutoAnimate();
 
-  if (!views.length) {
+  if (!hasInitialData) {
     return <FeedLoading />;
   }
 

@@ -1,5 +1,6 @@
 import * as feedRouter from "~/server/api/routers/feed-router";
 import * as feedItemRouter from "~/server/api/routers/feedItemRouter";
+import * as initialRouter from "~/server/api/routers/initialRouter";
 import * as instapaperRouter from "~/server/api/routers/instapaperRouter";
 import * as userConfigRouter from "~/server/api/routers/userConfigRouter";
 import * as userRouter from "~/server/api/routers/userRouter";
@@ -10,6 +11,7 @@ import * as viewRouter from "~/server/api/routers/viewRouter";
 export const orpcRouter = {
   feed: feedRouter,
   feedItem: feedItemRouter,
+  initial: initialRouter,
   userConfig: userConfigRouter,
   instapaper: instapaperRouter,
   user: userRouter,

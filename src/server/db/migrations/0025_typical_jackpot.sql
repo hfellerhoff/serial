@@ -1,0 +1,1 @@
+ALTER TABLE `serial_views` ADD `content_type` text(32) DEFAULT 'longform' NOT NULL;

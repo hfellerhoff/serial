@@ -19,6 +19,7 @@ export type RSSContent = {
   url: string;
   thumbnail?: string;
   content?: string;
+  contentSnippet?: string;
   source?: {
     title?: string;
     description?: string;

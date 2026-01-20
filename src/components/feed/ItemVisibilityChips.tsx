@@ -27,8 +27,7 @@ export function ItemVisibilityChips() {
     >
       <ToggleGroupItem value="unread">Unread</ToggleGroupItem>
       <ToggleGroupItem value="later">Later</ToggleGroupItem>
-      <ToggleGroupItem value="videos">Videos</ToggleGroupItem>
-      <ToggleGroupItem value="shorts">Shorts</ToggleGroupItem>
+      <ToggleGroupItem value="read">Read</ToggleGroupItem>
     </ToggleGroup>
   );
 }
@@ -50,8 +49,7 @@ export function ItemVisibilitySelect() {
       <SelectContent>
         <SelectItem value="unread">Unread</SelectItem>
         <SelectItem value="later">Later</SelectItem>
-        <SelectItem value="videos">Videos</SelectItem>
-        <SelectItem value="shorts">Shorts</SelectItem>
+        <SelectItem value="read">Read</SelectItem>
       </SelectContent>
     </Select>
   );

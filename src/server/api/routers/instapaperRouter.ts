@@ -1,7 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "~/env";
-import { feedItems, instapaperConnections } from "~/server/db/schema";
+import { feedItems, feeds, instapaperConnections } from "~/server/db/schema";
 import { addBookmark, getAccessToken } from "~/server/instapaper/client";
 import { protectedProcedure } from "~/server/orpc/base";
 
@@ -88,6 +88,18 @@ export const saveBookmark = protectedProcedure
     });
 
     if (!feedItem) {
+      throw new Error("Feed item not found");
+    }
+
+    // Verify the feed item belongs to a feed owned by the current user
+    const feed = await context.db.query.feeds.findFirst({
+      where: and(
+        eq(feeds.id, feedItem.feedId),
+        eq(feeds.userId, context.user.id),
+      ),
+    });
+
+    if (!feed) {
       throw new Error("Feed item not found");
     }
 

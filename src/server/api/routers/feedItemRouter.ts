@@ -1,5 +1,4 @@
-import dayjs from "dayjs";
-import { and, desc, eq, gte, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { verifyFeedsOwnedByUser } from "./feed-router/utils";
 import type { ApplicationFeedItem } from "~/server/db/schema";
@@ -21,11 +20,6 @@ type GetAllItemsChunk =
       status: FetchFeedsStatus;
     };
 
-const isWithinLastMonth = gte(
-  feedItems.postedAt,
-  dayjs().subtract(32, "days").toDate(),
-);
-
 const GET_ALL_ITEMS_YIELD_BUFFER_MS = 100;
 const GET_ALL_CHUNK_SIZE = 100;
 export const getAll = protectedProcedure.handler(async function* ({ context }) {
@@ -36,7 +30,7 @@ export const getAll = protectedProcedure.handler(async function* ({ context }) {
   const feedIds = feedsList.map((feed) => feed.id);
 
   const itemsData = await context.db.query.feedItems.findMany({
-    where: and(inArray(feedItems.feedId, feedIds), isWithinLastMonth),
+    where: and(inArray(feedItems.feedId, feedIds)),
     orderBy: desc(feedItems.postedAt),
   });
 
@@ -224,7 +218,7 @@ export const getByFeedId = protectedProcedure
     }
 
     const itemsData = await context.db.query.feedItems.findMany({
-      where: and(eq(feedItems.feedId, input.feedId), isWithinLastMonth),
+      where: and(eq(feedItems.feedId, input.feedId)),
       orderBy: desc(feedItems.postedAt),
     });
 

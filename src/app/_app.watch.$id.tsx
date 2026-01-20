@@ -16,7 +16,7 @@ function WatchVideoPage() {
   const params = Route.useParams();
 
   const { view } = useView();
-  const { zoom } = useZoom();
+  const { zoom, isVertical } = useZoom();
 
   const isInactive = useIsInactive();
 
@@ -32,17 +32,25 @@ function WatchVideoPage() {
     };
   }, [isInactive]);
 
+  const isWindowedVertical = view === "windowed" && isVertical;
+  const isWindowedHorizontal = view === "windowed" && !isVertical;
+
   return (
     <div
       className={clsx("mx-auto grid h-full w-full place-items-center", {
         "bg-background absolute inset-0 z-30": view === "fullscreen",
-        "max-w-xl": view === "windowed" && zoom === 0,
-        "max-w-2xl": view === "windowed" && zoom === 1,
-        "max-w-3xl": view === "windowed" && zoom === 2,
-        "max-w-4xl": view === "windowed" && zoom === 3,
-        "max-w-5xl": view === "windowed" && zoom === 4,
-        "max-w-6xl": view === "windowed" && zoom === 5,
-        "max-w-7xl": view === "windowed" && zoom === 6,
+        "max-w-xl":
+          (isWindowedHorizontal && zoom === 0) ||
+          (isWindowedVertical && zoom === 3),
+        "max-w-2xl": isWindowedHorizontal && zoom === 1,
+        "max-w-3xl": isWindowedHorizontal && zoom === 2,
+        "max-w-4xl": isWindowedHorizontal && zoom === 3,
+        "max-w-5xl": isWindowedHorizontal && zoom === 4,
+        "max-w-6xl": isWindowedHorizontal && zoom === 5,
+        "max-w-7xl": isWindowedHorizontal && zoom === 6,
+        "max-w-sm": isWindowedVertical && zoom === 0,
+        "max-w-md": isWindowedVertical && zoom === 1,
+        "max-w-lg": isWindowedVertical && zoom === 2,
       })}
     >
       <div

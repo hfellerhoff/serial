@@ -21,6 +21,7 @@ import { useVideoShortcuts } from "./useYouTubeVideoShortcuts";
 interface IResponsiveVideoProps {
   videoID?: string;
   videoSrc?: string;
+  orientation: "vertical" | "horizontal";
   isInactive: boolean;
 }
 
@@ -83,7 +84,10 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
             >
               <div className="absolute inset-0 h-full w-full bg-black">
                 <img
-                  className="h-full w-full object-contain"
+                  className={clsx("h-full w-full", {
+                    "object-cover": props.orientation === "vertical",
+                    "object-contain": props.orientation === "horizontal",
+                  })}
                   src={`https://img.youtube.com/vi/${props.videoID}/maxresdefault.jpg`}
                 />
               </div>

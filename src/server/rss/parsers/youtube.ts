@@ -1,7 +1,6 @@
 import Parser from "rss-parser";
-import { isWithinDays } from "../rssUtils";
-import type { NewFeedDetails, RSSContent, RSSFeed } from "../types";
 import type { feeds } from "~/server/db/schema";
+import type { NewFeedDetails, RSSContent, RSSFeed } from "../types";
 
 const parser = new Parser({
   customFields: {
@@ -53,26 +52,25 @@ export async function fetchYouTubeFeedData(
       id: feed.id,
       title: data.title,
       url: data.link,
-      items: data.items
-        .filter((item) => isWithinDays(item.pubDate, 60))
-        .map((item) => {
-          // @ts-expect-error deal with later
-          const thumbnail = item["media:group"]["media:thumbnail"][0].$.url;
-          const description = item["media:group"]["media:description"][0];
+      items: data.items.map((item) => {
+        // @ts-expect-error deal with later
+        const thumbnail = item["media:group"]["media:thumbnail"][0].$.url;
+        const description = item["media:group"]["media:description"][0];
 
-          return {
-            id: item.id.replace("yt:video:", ""),
-            // type: "video",
-            // platform: "youtube",
-            // category: feed.category,
-            title: item.title,
-            publishedDate: item.isoDate,
-            url: item.link,
-            author: item.author,
-            thumbnail: thumbnail,
-            content: description,
-          } satisfies RSSContent;
-        }),
+        return {
+          id: item.id.replace("yt:video:", ""),
+          // type: "video",
+          // platform: "youtube",
+          // category: feed.category,
+          title: item.title,
+          publishedDate: item.isoDate,
+          url: item.link,
+          author: item.author,
+          thumbnail: thumbnail,
+          content: description,
+          contentSnippet: description,
+        } satisfies RSSContent;
+      }),
     };
   } catch {
     return null;

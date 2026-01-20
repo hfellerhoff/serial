@@ -1,10 +1,12 @@
-import { and, asc, eq, notInArray } from "drizzle-orm";
+import { and, asc, eq, inArray, notInArray } from "drizzle-orm";
 import { z } from "zod";
 import type { ApplicationView } from "~/server/db/schema";
 import { sortViewsByPlacement } from "~/lib/data/views/utils";
+import { buildUncategorizedView } from "~/server/api/utils/buildUncategorizedView";
 
 import { protectedProcedure } from "~/server/orpc/base";
 import {
+  contentCategories,
   createViewSchema,
   deleteViewSchema,
   updateViewSchema,
@@ -15,7 +17,7 @@ import {
 export const create = protectedProcedure
   .input(createViewSchema)
   .handler(async ({ context, input }) => {
-    await context.db.transaction(async (tx) => {
+    return await context.db.transaction(async (tx) => {
       const viewsResult = await tx
         .insert(views)
         .values({
@@ -24,22 +26,28 @@ export const create = protectedProcedure
           daysWindow: input.daysWindow,
           readStatus: input.readStatus,
           orientation: input.orientation,
+          contentType: input.contentType,
+          layout: input.layout,
           placement: input.placement,
         })
         .returning();
 
       const view = viewsResult[0];
 
-      if (!input.categoryIds || !view) return;
+      if (!view) return null;
 
-      return await Promise.all(
-        input.categoryIds.map(async (categoryId) => {
-          await tx.insert(viewCategories).values({
-            viewId: view.id,
-            categoryId,
-          });
-        }),
-      );
+      if (input.categoryIds) {
+        await Promise.all(
+          input.categoryIds.map(async (categoryId) => {
+            await tx.insert(viewCategories).values({
+              viewId: view.id,
+              categoryId,
+            });
+          }),
+        );
+      }
+
+      return view;
     });
   });
 
@@ -54,6 +62,8 @@ export const update = protectedProcedure
           daysWindow: input.daysWindow,
           readStatus: input.readStatus,
           orientation: input.orientation,
+          contentType: input.contentType,
+          layout: input.layout,
           placement: input.placement,
         })
         .where(and(eq(views.userId, context.user.id), eq(views.id, input.id)))
@@ -117,38 +127,48 @@ export const updatePlacement = protectedProcedure
 export const deleteView = protectedProcedure
   .input(deleteViewSchema)
   .handler(async ({ context, input }) => {
-    await context.db.transaction(async (tx) => {
-      await tx
-        .delete(viewCategories)
-        .where(eq(viewCategories.viewId, input.id));
-
-      return await tx
-        .delete(views)
-        .where(and(eq(views.id, input.id), eq(views.userId, context.user.id)));
-    });
+    return await context.db
+      .delete(views)
+      .where(and(eq(views.id, input.id), eq(views.userId, context.user.id)));
   });
 
 export const getAll = protectedProcedure.handler(async ({ context }) => {
-  const viewsList = await context.db
-    .select()
-    .from(views)
-    .where(eq(views.userId, context.user.id))
-    .orderBy(asc(views.placement));
+  const [viewsList, contentCategoriesList] = await Promise.all([
+    context.db
+      .select()
+      .from(views)
+      .where(eq(views.userId, context.user.id))
+      .orderBy(asc(views.placement)),
+    context.db
+      .select()
+      .from(contentCategories)
+      .where(eq(contentCategories.userId, context.user.id)),
+  ]);
 
-  const viewCategoriesList = await context.db.select().from(viewCategories);
+  // Fetch view categories filtered by user's views
+  const userViewIds = viewsList.map((v) => v.id);
+  const viewCategoriesList =
+    userViewIds.length > 0
+      ? await context.db
+          .select()
+          .from(viewCategories)
+          .where(inArray(viewCategories.viewId, userViewIds))
+      : [];
 
-  const zippedViews = viewsList.map((view) => {
-    const applicationView: ApplicationView = {
-      ...view,
-      isDefault: false,
-      categoryIds: viewCategoriesList
-        .filter((category) => category.viewId === view.id)
-        .map((category) => category.categoryId)
-        .filter((id) => id !== null),
-    };
+  const customViews: ApplicationView[] = viewsList.map((view) => ({
+    ...view,
+    isDefault: false,
+    categoryIds: viewCategoriesList
+      .filter((category) => category.viewId === view.id)
+      .map((category) => category.categoryId)
+      .filter((id) => id !== null),
+  }));
 
-    return applicationView;
-  });
+  const inboxView = buildUncategorizedView(
+    context.user.id,
+    contentCategoriesList,
+    customViews,
+  );
 
-  return sortViewsByPlacement(zippedViews);
+  return sortViewsByPlacement([...customViews, inboxView]);
 });

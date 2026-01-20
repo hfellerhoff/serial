@@ -1,18 +1,26 @@
 import { useMutation } from "@tanstack/react-query";
-import { useFetchViews, useSetViews } from "./store";
-import { INBOX_VIEW_ID, INBOX_VIEW_PLACEMENT } from ".";
+import { useFetchViews, useSetViews, viewsStore } from "./store";
+import { INBOX_VIEW_ID, INBOX_VIEW_PLACEMENT, useUpdateViewFilter } from ".";
 import type { ApplicationView } from "~/server/db/schema";
 import { orpc } from "~/lib/orpc";
+import { useRevalidateView } from "~/lib/data/store";
 
 export function useCreateViewMutation() {
   const setViews = useSetViews();
   const fetchViews = useFetchViews();
+  const revalidateView = useRevalidateView();
+  const updateViewFilter = useUpdateViewFilter();
 
   return useMutation(
     orpc.view.create.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: async (createdView) => {
         setViews([]);
         await fetchViews();
+
+        if (createdView) {
+          await revalidateView(createdView.id);
+          updateViewFilter(createdView.id, viewsStore.getState().views);
+        }
       },
     }),
   );
@@ -35,12 +43,14 @@ export function useEditViewMutation() {
 export function useDeleteViewMutation() {
   const setViews = useSetViews();
   const fetchViews = useFetchViews();
+  const updateViewFilter = useUpdateViewFilter();
 
   return useMutation(
     orpc.view.deleteView.mutationOptions({
       onSuccess: async () => {
         setViews([]);
         await fetchViews();
+        updateViewFilter(INBOX_VIEW_ID, viewsStore.getState().views);
       },
     }),
   );

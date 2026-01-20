@@ -41,10 +41,11 @@ import {
   useFeedItemsDict,
   useFeedItemsOrder,
   useFeedStatusDict,
-  useFetchFeedItemsLastFetchedAt,
   useFetchFeedItemsStatus,
+  useHasInitialData,
+  useViewFeedIds,
 } from "~/lib/data/store";
-import { useDeselectViewFilter } from "~/lib/data/views";
+import { useCustomViewsData } from "~/lib/data/views";
 
 function useCheckFilteredFeedItemsForFeed() {
   const feedItemsOrder = useFeedItemsOrder();
@@ -56,6 +57,7 @@ function useCheckFilteredFeedItemsForFeed() {
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
   const categoryFilter = useAtomValue(categoryFilterAtom);
   const viewFilter = useAtomValue(viewFilterAtom);
+  const { customViews, customViewCategoryIds } = useCustomViewsData();
 
   return useCallback(
     (feed: number) => {
@@ -71,6 +73,8 @@ function useCheckFilteredFeedItemsForFeed() {
             feed,
             feeds,
             viewFilter,
+            customViewCategoryIds,
+            customViews,
           ),
       );
     },
@@ -83,6 +87,8 @@ function useCheckFilteredFeedItemsForFeed() {
       feedCategories,
       feeds,
       viewFilter,
+      customViewCategoryIds,
+      customViews,
     ],
   );
 }
@@ -129,15 +135,17 @@ export function SidebarFeeds() {
   const [feedFilter, setFeedFilter] = useAtom(feedFilterAtom);
   const categoryFilter = useAtomValue(categoryFilterAtom);
   const viewFilter = useAtomValue(viewFilterAtom);
-  const deselectViewFilter = useDeselectViewFilter();
-
   const feedStatusDict = useFeedStatusDict();
   const fetchFeedItemsStatus = useFetchFeedItemsStatus();
-  const fetchFeedItemsLastFetchedAt = useFetchFeedItemsLastFetchedAt();
+  const hasInitialData = useHasInitialData();
 
   const checkFilteredFeedItemsForFeed = useCheckFilteredFeedItemsForFeed();
+  const viewFeedIds = useViewFeedIds();
+  const feedsInCurrentView = viewFilter
+    ? (viewFeedIds[viewFilter.id] ?? [])
+    : [];
 
-  if (fetchFeedItemsStatus === "fetching" && !fetchFeedItemsLastFetchedAt) {
+  if (!hasInitialData) {
     return (
       <div>
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -182,7 +190,8 @@ export function SidebarFeeds() {
   }));
 
   const {
-    preferredFeedOptions,
+    preferredFeedOptionsWithEntries,
+    preferredFeedOptionsWithoutEntries,
     feedOptionsWithContent,
     emptyFeedOptions,
     errorFeedOptions,
@@ -193,21 +202,30 @@ export function SidebarFeeds() {
         const lowercaseName = feedOption.name.toLowerCase();
 
         if (lowercaseName.includes(lowercaseQuery)) {
-          acc.preferredFeedOptions.push(feedOption);
-          acc.preferredFeedOptions.sort(sortFeedOptions);
+          acc.preferredFeedOptionsWithEntries.push(feedOption);
+          acc.preferredFeedOptionsWithEntries.sort(sortFeedOptions);
           return acc;
         }
       } else {
+        // Show in preferred section if feed has visible entries
         if (feedOption.hasEntries) {
-          acc.preferredFeedOptions.push(feedOption);
-          acc.preferredFeedOptions.sort(sortFeedOptions);
+          acc.preferredFeedOptionsWithEntries.push(feedOption);
+          acc.preferredFeedOptionsWithEntries.sort(sortFeedOptions);
+          return acc;
+        }
+
+        // Show at bottom of preferred section if feed belongs to the current view
+        // but has no visible entries (e.g., outside time window or all read)
+        if (feedsInCurrentView.includes(feedOption.id)) {
+          acc.preferredFeedOptionsWithoutEntries.push(feedOption);
+          acc.preferredFeedOptionsWithoutEntries.sort(sortFeedOptions);
           return acc;
         }
       }
 
       if (feedOption.id === feedFilter) {
-        acc.preferredFeedOptions.push(feedOption);
-        acc.preferredFeedOptions.sort(sortFeedOptions);
+        acc.preferredFeedOptionsWithEntries.push(feedOption);
+        acc.preferredFeedOptionsWithEntries.sort(sortFeedOptions);
         return acc;
       }
 
@@ -231,12 +249,19 @@ export function SidebarFeeds() {
       return acc;
     },
     {
-      preferredFeedOptions: [] as typeof feedOptions,
+      preferredFeedOptionsWithEntries: [] as typeof feedOptions,
+      preferredFeedOptionsWithoutEntries: [] as typeof feedOptions,
       feedOptionsWithContent: [] as typeof feedOptions,
       emptyFeedOptions: [] as typeof feedOptions,
       errorFeedOptions: [] as typeof feedOptions,
     },
   );
+
+  // Combine preferred options: feeds with entries first, then feeds matching view but without entries
+  const preferredFeedOptions = [
+    ...preferredFeedOptionsWithEntries,
+    ...preferredFeedOptionsWithoutEntries,
+  ];
 
   const hasAnyItems = !!checkFilteredFeedItemsForFeed(-1).length;
 
@@ -310,12 +335,7 @@ export function SidebarFeeds() {
               <SidebarMenuItem key={feed.id} className="group flex gap-1">
                 <SidebarMenuButton
                   variant={feed.id === feedFilter ? "outline" : "default"}
-                  onClick={() => {
-                    setFeedFilter(feed.id);
-                    if (!feed.hasEntries) {
-                      deselectViewFilter();
-                    }
-                  }}
+                  onClick={() => setFeedFilter(feed.id)}
                 >
                   {feedStatus === "error" && (
                     <Tooltip>
@@ -370,12 +390,7 @@ export function SidebarFeeds() {
               <SidebarMenuItem key={feed.id} className="group flex gap-1">
                 <SidebarMenuButton
                   variant={feed.id === feedFilter ? "outline" : "default"}
-                  onClick={() => {
-                    setFeedFilter(feed.id);
-                    if (!feed.hasEntries) {
-                      deselectViewFilter();
-                    }
-                  }}
+                  onClick={() => setFeedFilter(feed.id)}
                 >
                   {!feed.hasEntries && (
                     <CircleSmall size={16} className="text-sidebar-accent" />
@@ -405,12 +420,7 @@ export function SidebarFeeds() {
               <SidebarMenuItem key={feed.id} className="group flex gap-1">
                 <SidebarMenuButton
                   variant={feed.id === feedFilter ? "outline" : "default"}
-                  onClick={() => {
-                    setFeedFilter(feed.id);
-                    if (!feed.hasEntries) {
-                      deselectViewFilter();
-                    }
-                  }}
+                  onClick={() => setFeedFilter(feed.id)}
                 >
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -440,12 +450,7 @@ export function SidebarFeeds() {
               <SidebarMenuItem key={feed.id} className="group flex gap-1">
                 <SidebarMenuButton
                   variant={feed.id === feedFilter ? "outline" : "default"}
-                  onClick={() => {
-                    setFeedFilter(feed.id);
-                    if (!feed.hasEntries) {
-                      deselectViewFilter();
-                    }
-                  }}
+                  onClick={() => setFeedFilter(feed.id)}
                 >
                   <Tooltip>
                     <TooltipTrigger asChild>

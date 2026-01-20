@@ -9,7 +9,14 @@ import { Label } from "./ui/label";
 import { ControlledResponsiveDialog } from "./ui/responsive-dropdown";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 import type React from "react";
-import { VIEW_READ_STATUS } from "~/server/db/constants";
+import type { ViewContentType, ViewLayout } from "~/server/db/constants";
+import {
+  VIEW_CONTENT_TYPE,
+  VIEW_LAYOUT,
+  VIEW_READ_STATUS,
+  viewContentTypeSchema,
+  viewLayoutSchema,
+} from "~/server/db/constants";
 import {
   useCreateViewMutation,
   useDeleteViewMutation,
@@ -77,6 +84,7 @@ function ViewTimeInput({
         size="sm"
         className="w-fit"
       >
+        <AddViewToggleItem value="0">All time</AddViewToggleItem>
         <AddViewToggleItem value="1">Today</AddViewToggleItem>
         <AddViewToggleItem value="7">This Week</AddViewToggleItem>
         <AddViewToggleItem value="30">This Month</AddViewToggleItem>
@@ -85,39 +93,84 @@ function ViewTimeInput({
   );
 }
 
-// function ViewReadStatusInput({
-//   readStatus,
-//   setReadStatus,
-// }: {
-//   readStatus: number;
-//   setReadStatus: (status: number) => void;
-// }) {
-//   return (
-//     <div className="grid gap-2">
-//       <Label htmlFor="name">Read Status</Label>
-//       <ToggleGroup
-//         type="single"
-//         value={readStatus.toString()}
-//         onValueChange={(value) => {
-//           if (!value) return;
-//           setReadStatus(parseInt(value));
-//         }}
-//         size="sm"
-//         className="w-fit"
-//       >
-//         <AddViewToggleItem value={VIEW_READ_STATUS.UNREAD.toString()}>
-//           Unread
-//         </AddViewToggleItem>
-//         <AddViewToggleItem value={VIEW_READ_STATUS.READ.toString()}>
-//           Watched
-//         </AddViewToggleItem>
-//         <AddViewToggleItem value={VIEW_READ_STATUS.ANY.toString()}>
-//           Any
-//         </AddViewToggleItem>
-//       </ToggleGroup>
-//     </div>
-//   );
-// }
+const CONTENT_TYPE_HELPER_TEXT = {
+  longform: "Shows articles and longform videos",
+  "horizontal-video": "Shows longform videos",
+  "vertical-video": "Shows shortform videos",
+  all: "Shows all content",
+} as const satisfies Record<ViewContentType, string>;
+
+function ViewLayoutInput({
+  layout,
+  setLayout,
+}: {
+  layout: ViewLayout;
+  setLayout: (layout: ViewLayout) => void;
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor="layout">Layout</Label>
+      <ToggleGroup
+        id="layout"
+        type="single"
+        value={layout}
+        onValueChange={(value) => {
+          if (!value) return;
+          setLayout(value as ViewLayout);
+        }}
+        size="sm"
+        className="w-fit"
+      >
+        <AddViewToggleItem value={VIEW_LAYOUT.LIST}>List</AddViewToggleItem>
+        <AddViewToggleItem value={VIEW_LAYOUT.GRID}>Grid</AddViewToggleItem>
+        <AddViewToggleItem value={VIEW_LAYOUT.LARGE_LIST}>
+          Large List
+        </AddViewToggleItem>
+        <AddViewToggleItem value={VIEW_LAYOUT.LARGE_GRID}>
+          Large Grid
+        </AddViewToggleItem>
+      </ToggleGroup>
+    </div>
+  );
+}
+
+function ViewContentTypeInput({
+  contentType,
+  setContentType,
+}: {
+  contentType: ViewContentType;
+  setContentType: (contentType: ViewContentType) => void;
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor="content-type">Content Type</Label>
+      <ToggleGroup
+        id="content-type"
+        type="single"
+        value={contentType}
+        onValueChange={(value: ViewContentType) => {
+          setContentType(value);
+        }}
+        size="sm"
+        className="w-fit"
+      >
+        <AddViewToggleItem value={VIEW_CONTENT_TYPE.LONGFORM}>
+          Standard
+        </AddViewToggleItem>
+        <AddViewToggleItem value={VIEW_CONTENT_TYPE.HORIZONTAL_VIDEO}>
+          Videos
+        </AddViewToggleItem>
+        <AddViewToggleItem value={VIEW_CONTENT_TYPE.VERTICAL_VIDEO}>
+          Shorts
+        </AddViewToggleItem>
+        <AddViewToggleItem value={VIEW_CONTENT_TYPE.ALL}>All</AddViewToggleItem>
+      </ToggleGroup>
+      <p className="text-muted-foreground text-sm">
+        {CONTENT_TYPE_HELPER_TEXT[contentType]}
+      </p>
+    </div>
+  );
+}
 
 export function ViewCategoriesInput({
   selectedCategories,
@@ -137,19 +190,35 @@ export function ViewCategoriesInput({
     );
   }
 
+  const isAllSelected = selectedCategories.length === 0;
+
   return (
     <div className="grid gap-2">
       <Label htmlFor="categories">Categories</Label>
       <ToggleGroup
         id="categories"
         type="multiple"
-        value={selectedCategories.map((category) => category.toString())}
+        value={
+          isAllSelected
+            ? ["all"]
+            : selectedCategories.map((category) => category.toString())
+        }
         onValueChange={(value) => {
-          setSelectedCategories(value.map((id) => parseInt(id)));
+          // If "all" was just selected, clear all categories
+          if (value.includes("all") && !isAllSelected) {
+            setSelectedCategories([]);
+            return;
+          }
+          // Filter out "all" and set the selected category ids
+          const categoryIds = value
+            .filter((id) => id !== "all")
+            .map((id) => parseInt(id));
+          setSelectedCategories(categoryIds);
         }}
         size="sm"
         className="flex w-fit flex-wrap justify-start gap-1"
       >
+        <AddViewToggleItem value="all">All</AddViewToggleItem>
         {contentCategories.map((category) => {
           return (
             <AddViewToggleItem key={category.id} value={category.id.toString()}>
@@ -168,8 +237,11 @@ export function AddViewDialog() {
   const { mutateAsync: createView } = useCreateViewMutation();
 
   const [name, setName] = useState<string>("");
-  const [daysTimeWindow, setDaysTimeWindow] = useState<number>(1);
-  const [readStatus, setReadStatus] = useState<number>(VIEW_READ_STATUS.UNREAD);
+  const [daysTimeWindow, setDaysTimeWindow] = useState<number>(0);
+  const [contentType, setContentType] = useState<ViewContentType>(
+    VIEW_CONTENT_TYPE.LONGFORM,
+  );
+  const [layout, setLayout] = useState<ViewLayout>(VIEW_LAYOUT.LIST);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
 
   const dialog = useDialogStore((store) => store.dialog);
@@ -182,8 +254,9 @@ export function AddViewDialog() {
 
     if (!value) {
       setName("");
-      setDaysTimeWindow(1);
-      setReadStatus(VIEW_READ_STATUS.UNREAD);
+      setDaysTimeWindow(0);
+      setContentType(VIEW_CONTENT_TYPE.LONGFORM);
+      setLayout(VIEW_LAYOUT.LIST);
       setSelectedCategories([]);
     }
   };
@@ -196,19 +269,19 @@ export function AddViewDialog() {
     >
       <div className="grid gap-6">
         <ViewNameInput name={name} setName={setName} />
-        <ViewTimeInput
-          daysWindow={daysTimeWindow}
-          setDaysWindow={setDaysTimeWindow}
-        />
-        {/* TODO: Implement read status */}
-        {/* <ViewReadStatusInput
-            readStatus={readStatus}
-            setReadStatus={setReadStatus}
-          /> */}
         <ViewCategoriesInput
           selectedCategories={selectedCategories}
           setSelectedCategories={setSelectedCategories}
         />
+        <ViewTimeInput
+          daysWindow={daysTimeWindow}
+          setDaysWindow={setDaysTimeWindow}
+        />
+        <ViewContentTypeInput
+          contentType={contentType}
+          setContentType={setContentType}
+        />
+        <ViewLayoutInput layout={layout} setLayout={setLayout} />
         <Button
           disabled={isDisabled}
           onClick={async () => {
@@ -218,7 +291,9 @@ export function AddViewDialog() {
               const addViewPromise = createView({
                 name,
                 daysWindow: daysTimeWindow,
-                readStatus,
+                readStatus: VIEW_READ_STATUS.UNREAD,
+                contentType: contentType,
+                layout: layout,
                 categoryIds: selectedCategories,
               });
               toast.promise(addViewPromise, {
@@ -259,8 +334,11 @@ export function EditViewDialog({
   const { mutateAsync: deleteView } = useDeleteViewMutation();
 
   const [name, setName] = useState<string>("");
-  const [daysTimeWindow, setDaysTimeWindow] = useState<number>(1);
-  const [readStatus, setReadStatus] = useState<number>(VIEW_READ_STATUS.UNREAD);
+  const [daysTimeWindow, setDaysTimeWindow] = useState<number>(0);
+  const [contentType, setContentType] = useState<ViewContentType>(
+    VIEW_CONTENT_TYPE.LONGFORM,
+  );
+  const [layout, setLayout] = useState<ViewLayout>(VIEW_LAYOUT.LIST);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
 
   const isFormDisabled = !name;
@@ -274,7 +352,14 @@ export function EditViewDialog({
 
     setName(view.name);
     setDaysTimeWindow(view.daysWindow);
-    setReadStatus(view.readStatus);
+    const parsedContentType = viewContentTypeSchema.safeParse(view.contentType);
+    setContentType(
+      parsedContentType.success
+        ? parsedContentType.data
+        : VIEW_CONTENT_TYPE.LONGFORM,
+    );
+    const parsedLayout = viewLayoutSchema.safeParse(view.layout);
+    setLayout(parsedLayout.success ? parsedLayout.data : VIEW_LAYOUT.LIST);
     setSelectedCategories(view.categoryIds);
   }, [views, selectedViewId]);
 
@@ -286,19 +371,19 @@ export function EditViewDialog({
     >
       <div className="grid gap-6">
         <ViewNameInput name={name} setName={setName} />
-        <ViewTimeInput
-          daysWindow={daysTimeWindow}
-          setDaysWindow={setDaysTimeWindow}
-        />
-        {/* TODO: Implement read status */}
-        {/* <ViewReadStatusInput
-            readStatus={readStatus}
-            setReadStatus={setReadStatus}
-          /> */}
         <ViewCategoriesInput
           selectedCategories={selectedCategories}
           setSelectedCategories={setSelectedCategories}
         />
+        <ViewTimeInput
+          daysWindow={daysTimeWindow}
+          setDaysWindow={setDaysTimeWindow}
+        />
+        <ViewContentTypeInput
+          contentType={contentType}
+          setContentType={setContentType}
+        />
+        <ViewLayoutInput layout={layout} setLayout={setLayout} />
         <div className="flex gap-2">
           <Button
             disabled={isDeletingView}
@@ -342,7 +427,9 @@ export function EditViewDialog({
                   name,
                   id: selectedViewId,
                   daysWindow: daysTimeWindow,
-                  readStatus,
+                  readStatus: VIEW_READ_STATUS.UNREAD,
+                  contentType: contentType,
+                  layout: layout,
                   categoryIds: selectedCategories,
                 });
                 toast.promise(editViewPromise, {

@@ -1,0 +1,70 @@
+"use client";
+
+import { useAtomValue } from "jotai";
+import { EmptyState, FeedEmptyState } from "./EmptyStates";
+import { ViewItemGrid } from "./ViewItemGrid";
+import { ViewItemLargeGrid } from "./ViewItemLargeGrid";
+import { ViewItemLargeList } from "./ViewItemLargeList";
+import { ViewItemStandardList } from "./ViewItemStandardList";
+import FeedLoading from "~/components/loading";
+import { viewFilterAtom } from "~/lib/data/atoms";
+import { useFeedCategories } from "~/lib/data/feed-categories";
+import { useFilteredFeedItemsOrder } from "~/lib/data/feed-items";
+import { useFeeds } from "~/lib/data/feeds";
+import {
+  useFetchFeedItemsLastFetchedAt,
+  useHasInitialData,
+} from "~/lib/data/store";
+import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
+import { VIEW_LAYOUT, viewLayoutSchema } from "~/server/db/constants";
+import { useLazyVisibilityFilter } from "~/lib/hooks/useLazyVisibilityFilter";
+
+export function RenderViewItems() {
+  const { feeds, hasFetchedFeeds } = useFeeds();
+  const { hasFetchedFeedCategories } = useFeedCategories();
+
+  const feedItemsLastFetchedAt = useFetchFeedItemsLastFetchedAt();
+  const hasInitialData = useHasInitialData();
+
+  const filteredFeedItemsOrder = useFilteredFeedItemsOrder();
+
+  // Lazy load items when visibility filter changes
+  useLazyVisibilityFilter();
+
+  const currentView = useAtomValue(viewFilterAtom);
+  const isUncategorized = currentView?.id === INBOX_VIEW_ID;
+
+  const parsedLayout = viewLayoutSchema.safeParse(currentView?.layout);
+  const layout =
+    isUncategorized || !parsedLayout.success
+      ? VIEW_LAYOUT.LIST
+      : parsedLayout.data;
+
+  if (!hasInitialData) {
+    return <FeedLoading />;
+  }
+
+  if (hasFetchedFeeds && !feeds.length) {
+    return <FeedEmptyState />;
+  }
+
+  if (
+    hasFetchedFeeds &&
+    feedItemsLastFetchedAt !== null &&
+    hasFetchedFeedCategories &&
+    !filteredFeedItemsOrder.length
+  ) {
+    return <EmptyState />;
+  }
+
+  switch (layout) {
+    case VIEW_LAYOUT.LARGE_LIST:
+      return <ViewItemLargeList items={filteredFeedItemsOrder} />;
+    case VIEW_LAYOUT.GRID:
+      return <ViewItemGrid items={filteredFeedItemsOrder} />;
+    case VIEW_LAYOUT.LARGE_GRID:
+      return <ViewItemLargeGrid items={filteredFeedItemsOrder} />;
+    default:
+      return <ViewItemStandardList items={filteredFeedItemsOrder} />;
+  }
+}

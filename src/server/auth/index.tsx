@@ -8,6 +8,7 @@ import { getRequestHeaders } from "@tanstack/react-start/server";
 import { redirect } from "@tanstack/react-router";
 import { db } from "../db";
 import ResetPasswordEmail from "~/emails/reset-password";
+import { BASE_SIGNED_OUT_URL } from "~/lib/constants";
 
 export const authMiddleware = createMiddleware().server(
   async ({ pathname, next }) => {
@@ -15,7 +16,7 @@ export const authMiddleware = createMiddleware().server(
     const session = await auth.api.getSession({ headers });
     if (!session) {
       if (!pathname.includes("auth")) {
-        throw redirect({ to: "/welcome" });
+        throw redirect({ to: BASE_SIGNED_OUT_URL });
       }
     }
     return await next();

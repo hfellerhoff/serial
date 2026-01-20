@@ -9,7 +9,8 @@ import {
 import { feedItemsStore } from "../store";
 import { useFeedCategories } from "../feed-categories/store";
 import { useFeeds } from "../feeds/store";
-import { INBOX_VIEW_ID } from "../views";
+import { INBOX_VIEW_ID, useCustomViewsData } from "../views";
+import { isFeedCompatibleWithContentType } from "./filters";
 import type { VisibilityFilter } from "../atoms";
 import type {
   ApplicationFeedItem,
@@ -17,6 +18,13 @@ import type {
   DatabaseFeed,
   DatabaseFeedCategory,
 } from "~/server/db/schema";
+
+export { isFeedCompatibleWithContentType } from "./filters";
+
+function isVideoContent(item: ApplicationFeedItem): boolean {
+  const videoPlatforms = ["youtube", "peertube", "nebula"];
+  return videoPlatforms.includes(item.platform);
+}
 
 export function doesFeedItemPassFilters(
   item: ApplicationFeedItem,
@@ -27,30 +35,17 @@ export function doesFeedItemPassFilters(
   feedFilter: number,
   feeds: DatabaseFeed[],
   viewFilter: ApplicationView | null,
+  customViewCategoryIds?: Set<number>,
+  customViews?: ApplicationView[],
 ) {
-  const date = new Date(item.postedAt);
-  const now = new Date();
-  const sevenDaysAgo = new Date(
-    now.setDate(now.getDate() - (Number.isNaN(dateFilter) ? 1 : dateFilter)),
-  );
-
-  // Date filter
-  if (date <= sevenDaysAgo) {
-    return false;
-  }
-
   // Visibility filter
   if (visibilityFilter === "unread" && (item.isWatched || item.isWatchLater)) {
     return false;
   }
+  if (visibilityFilter === "read" && (!item.isWatched || item.isWatchLater)) {
+    return false;
+  }
   if (visibilityFilter === "later" && !item.isWatchLater) {
-    return false;
-  }
-
-  if (visibilityFilter === "shorts" && item.orientation !== "vertical") {
-    return false;
-  }
-  if (visibilityFilter !== "shorts" && item.orientation === "vertical") {
     return false;
   }
 
@@ -75,8 +70,37 @@ export function doesFeedItemPassFilters(
   const doesFeedHaveAnyCategories = feedCategories.some(
     (category) => category.feedId === item.feedId,
   );
-  if (viewFilter?.id === INBOX_VIEW_ID && !doesFeedHaveAnyCategories) {
-    return true;
+
+  // For Uncategorized view, exclude feeds that are in a custom view category
+  // AND whose platform is compatible with that view's content type
+  if (viewFilter?.id === INBOX_VIEW_ID) {
+    const feedCategoriesForItem = feedCategories.filter(
+      (fc) =>
+        fc.feedId === item.feedId && customViewCategoryIds?.has(fc.categoryId),
+    );
+
+    // Check if this feed would appear in any custom view
+    const wouldAppearInCustomView = feedCategoriesForItem.some((fc) => {
+      if (!customViews) return true; // Fallback to old behavior if no views provided
+
+      // Find views that include this category
+      const viewsWithCategory = customViews.filter((v) =>
+        v.categoryIds.includes(fc.categoryId),
+      );
+
+      // Check if any of those views would show this feed's content type
+      return viewsWithCategory.some((v) =>
+        isFeedCompatibleWithContentType(item.platform, v.contentType),
+      );
+    });
+
+    if (wouldAppearInCustomView) {
+      return false;
+    }
+    // Include uncategorized feeds in Uncategorized view
+    if (!doesFeedHaveAnyCategories) {
+      return true;
+    }
   }
 
   if (
@@ -85,6 +109,39 @@ export function doesFeedItemPassFilters(
     !feedsForView.includes(item.feedId)
   ) {
     return false;
+  }
+
+  // Content type filter (from view)
+  if (viewFilter?.contentType) {
+    const ct = viewFilter.contentType;
+    if (ct === "longform" && item.orientation === "vertical") {
+      return false;
+    }
+    if (ct === "horizontal-video") {
+      // Must be video content AND horizontal orientation
+      if (!isVideoContent(item) || item.orientation !== "horizontal") {
+        return false;
+      }
+    }
+    if (ct === "vertical-video") {
+      // Must be video content AND vertical orientation
+      if (!isVideoContent(item) || item.orientation !== "vertical") {
+        return false;
+      }
+    }
+    // "all" passes through
+  }
+
+  // Time window filter (from view)
+  // 0 means "All time", so skip filtering
+  if (viewFilter?.daysWindow && viewFilter.daysWindow > 0) {
+    const now = new Date();
+    const cutoffDate = new Date(now);
+    cutoffDate.setDate(cutoffDate.getDate() - viewFilter.daysWindow);
+
+    if (item.postedAt < cutoffDate) {
+      return false;
+    }
   }
 
   return true;
@@ -100,6 +157,7 @@ export const useFilteredFeedItemsOrder = () => {
   const feedFilter = useAtomValue(feedFilterAtom);
   const feeds = useFeeds();
   const viewFilter = useAtomValue(viewFilterAtom);
+  const { customViews, customViewCategoryIds } = useCustomViewsData();
 
   return feedItemsOrder.filter((id) => {
     return (
@@ -113,6 +171,8 @@ export const useFilteredFeedItemsOrder = () => {
         feedFilter,
         feeds,
         viewFilter,
+        customViewCategoryIds,
+        customViews,
       )
     );
   });
@@ -126,6 +186,7 @@ export function useDoesFeedItemMatchAllFilters(item: ApplicationFeedItem) {
   const feedFilter = useAtomValue(feedFilterAtom);
   const feeds = useFeeds();
   const viewFilter = useAtomValue(viewFilterAtom);
+  const { customViews, customViewCategoryIds } = useCustomViewsData();
 
   return doesFeedItemPassFilters(
     item,
@@ -136,5 +197,7 @@ export function useDoesFeedItemMatchAllFilters(item: ApplicationFeedItem) {
     feedFilter,
     feeds,
     viewFilter,
+    customViewCategoryIds,
+    customViews,
   );
 }

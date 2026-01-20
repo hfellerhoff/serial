@@ -19,7 +19,11 @@ import { z } from "zod";
 import {
   FEED_ITEM_ORIENTATION,
   feedItemOrientationSchema,
+  VIEW_CONTENT_TYPE,
+  VIEW_LAYOUT,
   VIEW_READ_STATUS,
+  viewContentTypeSchema,
+  viewLayoutSchema,
   viewReadStatusSchema,
 } from "./constants";
 
@@ -151,6 +155,7 @@ export const feedItems = sqliteTable(
     url: text("url", { length: 512 }).notNull(),
     thumbnail: text("thumbnail", { length: 512 }).notNull().default(""),
     content: text("content").notNull().default(""),
+    contentSnippet: text("content_snippet").notNull().default(""),
     isWatched: integer("is_watched", { mode: "boolean" })
       .notNull()
       .default(false),
@@ -246,13 +251,17 @@ export const views = sqliteTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     name: text("name", { length: 256 }).notNull().default(""),
-    daysWindow: integer("days_window", { mode: "number" }).notNull().default(1),
+    daysWindow: integer("days_window", { mode: "number" }).notNull().default(0),
     readStatus: integer("read_status", { mode: "number" })
       .notNull()
       .default(VIEW_READ_STATUS.UNREAD),
     orientation: text("orientation", { length: 16 })
       .notNull()
       .default(FEED_ITEM_ORIENTATION.HORIZONTAL),
+    contentType: text("content_type", { length: 32 })
+      .notNull()
+      .default(VIEW_CONTENT_TYPE.LONGFORM),
+    layout: text("layout", { length: 32 }).notNull().default(VIEW_LAYOUT.LIST),
     placement: integer("placement", { mode: "number" }).notNull().default(-1),
     createdAt: integer("created_at", { mode: "timestamp" })
       .$default(() => new Date())
@@ -297,6 +306,8 @@ export const createViewSchema = createInsertSchema(views)
     z.object({
       readStatus: viewReadStatusSchema.optional(),
       orientation: feedItemOrientationSchema.optional(),
+      contentType: viewContentTypeSchema.optional(),
+      layout: viewLayoutSchema.optional(),
       daysWindow: z.number().lte(30).optional(),
       placement: z.number().gte(-1).optional(),
       categoryIds: z.array(z.number()).optional(),
@@ -307,6 +318,8 @@ export const updateViewSchema = createUpdateSchema(views).merge(
   z.object({
     id: z.number(),
     categoryIds: z.array(z.number()),
+    contentType: viewContentTypeSchema.optional(),
+    layout: viewLayoutSchema.optional(),
   }),
 );
 

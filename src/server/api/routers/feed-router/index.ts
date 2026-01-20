@@ -270,7 +270,6 @@ export const update = protectedProcedure
   )
   .handler(async ({ context, input }) => {
     return await context.db.transaction(async (tx) => {
-      // Feed open location
       const updatedFeeds = await tx
         .update(feeds)
         .set({
@@ -281,7 +280,10 @@ export const update = protectedProcedure
         )
         .returning();
 
-      // Feed categories
+      const updatedFeed = updatedFeeds[0];
+      if (!updatedFeed) return null;
+
+      // Feed categories - only modify if ownership was verified above
       await tx
         .delete(feedCategories)
         .where(
@@ -303,8 +305,6 @@ export const update = protectedProcedure
         }),
       );
 
-      const updatedFeed = updatedFeeds[0];
-      if (!updatedFeed) return null;
       return feedsSchema.parse(updatedFeed);
     });
   });

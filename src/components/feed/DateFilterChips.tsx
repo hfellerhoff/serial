@@ -49,6 +49,7 @@ export function DateFilterSelect() {
         <SelectItem value="1">Today</SelectItem>
         <SelectItem value="7">This Week</SelectItem>
         <SelectItem value="30">This Month</SelectItem>
+        <SelectItem value="0">All Time</SelectItem>
       </SelectContent>
     </Select>
   );

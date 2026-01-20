@@ -48,6 +48,7 @@ export default tseslint.config(
       "node_modules/",
       ".output/",
       "dist/",
+      "dist-sw/",
       ".content-collections/",
       "public/sw.js",
       "public/workbox-*.js",
