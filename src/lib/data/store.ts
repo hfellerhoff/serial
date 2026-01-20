@@ -16,7 +16,6 @@ import type {
   GetItemsByFeedChunk,
   GetItemsByVisibilityChunk,
   PaginationCursor,
-  RevalidateViewChunk,
 } from "~/server/api/routers/initialRouter";
 
 export type PaginationState = {
@@ -952,7 +951,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
       let lastUpdateTime = 0;
       const DEBOUNCE_TIME = 1000;
 
-      for await (const incomingChunk of (await orpcRouterClient.initial.getAllByView()) as AsyncIterable<GetByViewChunk>) {
+      for await (const incomingChunk of await orpcRouterClient.initial.getAllByView()) {
         const timeSinceLastUpdate = Date.now() - lastUpdateTime;
         const timeToWait = DEBOUNCE_TIME - timeSinceLastUpdate;
         const shouldWaitToRender = timeToWait > 0;
@@ -962,11 +961,15 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           case "views":
             // Set views in views store (including Uncategorized)
             viewsStore.getState().set(incomingChunk.views);
+            viewsStore.setState({ fetchStatus: "success" });
+            // Show UI immediately when views are received
+            set({ hasInitialData: true });
             break;
 
           case "feeds":
             // Set feeds in feeds store
             feedsStore.getState().set(incomingChunk.feeds);
+            feedsStore.setState({ fetchStatus: "success" });
             break;
 
           case "content-categories":
@@ -974,11 +977,13 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             contentCategoriesStore
               .getState()
               .set(incomingChunk.contentCategories);
+            contentCategoriesStore.setState({ fetchStatus: "success" });
             break;
 
           case "feed-categories":
             // Set feed categories in feed categories store
             feedCategoriesStore.getState().set(incomingChunk.feedCategories);
+            feedCategoriesStore.setState({ fetchStatus: "success" });
             break;
 
           case "view-feeds":
@@ -1002,12 +1007,6 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           }
 
           case "initial-data-complete": {
-            // Initial data is ready - mark all stores as ready and hide loading screen
-            viewsStore.setState({ fetchStatus: "success" });
-            feedsStore.setState({ fetchStatus: "success" });
-            contentCategoriesStore.setState({ fetchStatus: "success" });
-            feedCategoriesStore.setState({ fetchStatus: "success" });
-
             // Mark "unread" visibility filter as fetched for all views
             const allViews = viewsStore.getState().views;
             const fetchedFilters: Record<number, Set<VisibilityFilter>> = {};
@@ -1030,7 +1029,6 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             }
 
             set({
-              hasInitialData: true,
               fetchedVisibilityFilters: fetchedFilters,
               viewPaginationState: paginationState,
             });
@@ -1096,9 +1094,9 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
     },
 
     revalidateView: async (viewId: number) => {
-      for await (const chunk of (await orpcRouterClient.initial.revalidateView({
+      for await (const chunk of await orpcRouterClient.initial.revalidateView({
         viewId,
-      })) as AsyncIterable<RevalidateViewChunk>) {
+      })) {
         switch (chunk.type) {
           case "views":
             // Update views in views store
