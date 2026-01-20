@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface UseInfiniteScrollOptions {
   onLoadMore: () => void;
@@ -37,48 +37,68 @@ export function useInfiniteScroll({
   threshold = 0,
   rootMargin = "200px",
 }: UseInfiniteScrollOptions) {
-  const sentinelRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const onLoadMoreRef = useRef(onLoadMore);
+  const [sentinelElement, setSentinelElement] = useState<HTMLDivElement | null>(
+    null,
+  );
 
-  // Update ref in effect to avoid updating during render
+  // Use refs for values that change frequently to avoid recreating the observer
+  const onLoadMoreRef = useRef(onLoadMore);
+  const hasMoreRef = useRef(hasMore);
+  const isLoadingRef = useRef(isLoading);
+
+  // Update refs when values change
   useEffect(() => {
     onLoadMoreRef.current = onLoadMore;
   }, [onLoadMore]);
 
-  const handleIntersection = useCallback(
-    (entries: IntersectionObserverEntry[]) => {
-      const [entry] = entries;
-      if (entry?.isIntersecting && hasMore && !isLoading) {
-        onLoadMoreRef.current();
-      }
-    },
-    [hasMore, isLoading],
-  );
+  useEffect(() => {
+    hasMoreRef.current = hasMore;
+  }, [hasMore]);
 
   useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
+
+  // Callback ref to track when sentinel element changes
+  const sentinelRef = useCallback((node: HTMLDivElement | null) => {
+    setSentinelElement(node);
+  }, []);
+
+  useEffect(() => {
+    if (!sentinelElement) return;
 
     // Disconnect existing observer
     if (observerRef.current) {
       observerRef.current.disconnect();
     }
 
-    // Create new observer
-    observerRef.current = new IntersectionObserver(handleIntersection, {
-      threshold,
-      rootMargin,
-    });
+    // Create observer with stable callback that reads from refs
+    observerRef.current = new IntersectionObserver(
+      (entries: IntersectionObserverEntry[]) => {
+        const [entry] = entries;
+        if (
+          entry?.isIntersecting &&
+          hasMoreRef.current &&
+          !isLoadingRef.current
+        ) {
+          onLoadMoreRef.current();
+        }
+      },
+      {
+        threshold,
+        rootMargin,
+      },
+    );
 
-    observerRef.current.observe(sentinel);
+    observerRef.current.observe(sentinelElement);
 
     return () => {
       if (observerRef.current) {
         observerRef.current.disconnect();
       }
     };
-  }, [handleIntersection, threshold, rootMargin]);
+  }, [sentinelElement, threshold, rootMargin]);
 
   return { sentinelRef };
 }

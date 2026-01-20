@@ -36,7 +36,7 @@ function RouteComponent() {
                   // @ts-expect-error this is fine
                   to={`/releases/${slug}`}
                   className="text-lg"
-                  preload="viewport"
+                  preload="intent"
                 >
                   {title}
                 </Link>

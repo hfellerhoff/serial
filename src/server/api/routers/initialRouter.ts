@@ -1,5 +1,11 @@
 import { z } from "zod";
 import { and, asc, desc, eq, inArray, lt, or } from "drizzle-orm";
+import {
+  GET_BY_VIEW_CHUNK_SIZE,
+  INITIAL_ITEMS_PER_VIEW,
+  ITEMS_BY_VISIBILITY_CHUNK_SIZE,
+  ITEMS_PER_PAGE,
+} from "../constants";
 import type {
   ApplicationFeed,
   ApplicationFeedItem,
@@ -152,9 +158,6 @@ function computeFeedsForView(
 
   return feedIds;
 }
-
-const GET_BY_VIEW_CHUNK_SIZE = 30;
-const INITIAL_ITEMS_PER_VIEW = 30;
 
 interface FetchContentForViewParams {
   feedIds: number[];
@@ -317,28 +320,26 @@ export const getAllByView = protectedProcedure
       `[Initial] Loaded ${contentCategoriesList.length} content categories`,
     );
 
-    // Fetch feed categories filtered by user's content categories
+    // Fetch feed categories and view categories in parallel
     const userContentCategoryIds = contentCategoriesList.map((cc) => cc.id);
-    const feedCategoriesList =
+    const userViewIds = viewsList.map((v) => v.id);
+
+    const [feedCategoriesList, viewCategoriesList] = await Promise.all([
       userContentCategoryIds.length > 0
-        ? await context.db
+        ? context.db
             .select()
             .from(feedCategories)
             .where(inArray(feedCategories.categoryId, userContentCategoryIds))
-        : [];
-
-    logMessage(`[Initial] Loaded ${feedCategoriesList.length} feed categories`);
-
-    // Get view categories filtered by user's views
-    const userViewIds = viewsList.map((v) => v.id);
-    const viewCategoriesList =
+        : Promise.resolve([]),
       userViewIds.length > 0
-        ? await context.db
+        ? context.db
             .select()
             .from(viewCategories)
             .where(inArray(viewCategories.viewId, userViewIds))
-        : [];
+        : Promise.resolve([]),
+    ]);
 
+    logMessage(`[Initial] Loaded ${feedCategoriesList.length} feed categories`);
     logMessage(`[Initial] Loaded ${viewCategoriesList.length} view categories`);
 
     // Transform views to ApplicationView with categoryIds
@@ -686,8 +687,6 @@ export const revalidateView = protectedProcedure
     return;
   });
 
-const ITEMS_PER_PAGE = 30;
-
 /**
  * Cursor schema for pagination
  */
@@ -800,25 +799,24 @@ export const getItemsByVisibility = protectedProcedure
 
     const [viewsList, feedsList, contentCategoriesList] = initialData;
 
-    // Fetch feed categories
+    // Fetch feed categories and view categories in parallel
     const userContentCategoryIds = contentCategoriesList.map((cc) => cc.id);
-    const feedCategoriesList =
+    const userViewIds = viewsList.map((v) => v.id);
+
+    const [feedCategoriesList, viewCategoriesList] = await Promise.all([
       userContentCategoryIds.length > 0
-        ? await context.db
+        ? context.db
             .select()
             .from(feedCategories)
             .where(inArray(feedCategories.categoryId, userContentCategoryIds))
-        : [];
-
-    // Get view categories
-    const userViewIds = viewsList.map((v) => v.id);
-    const viewCategoriesList =
+        : Promise.resolve([]),
       userViewIds.length > 0
-        ? await context.db
+        ? context.db
             .select()
             .from(viewCategories)
             .where(inArray(viewCategories.viewId, userViewIds))
-        : [];
+        : Promise.resolve([]),
+    ]);
 
     // Build application views
     const customViews: ApplicationView[] = viewsList.map((view) => ({
@@ -926,7 +924,7 @@ export const getItemsByVisibility = protectedProcedure
       // Yield items in chunks for large result sets
       for (const chunk of prepareArrayChunks(
         applicationFeedItems,
-        GET_BY_VIEW_CHUNK_SIZE,
+        ITEMS_BY_VISIBILITY_CHUNK_SIZE,
       )) {
         yield {
           type: "feed-items",

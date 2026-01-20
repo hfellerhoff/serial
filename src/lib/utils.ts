@@ -36,7 +36,7 @@ export function timeAgo(date: string | Date) {
   }
 
   const days = now.diff(then, "day");
-  if (days < 30) {
+  if (days < now.daysInMonth()) {
     return `${days} ${pluralize(days, "day", "days")} ago`;
   }
 

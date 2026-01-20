@@ -156,7 +156,7 @@ function ItemDisplay({ contentId }: { contentId: string }) {
         to={href}
         target={target}
         rel={rel}
-        preload={shouldOpenInSerial ? "viewport" : undefined}
+        preload={shouldOpenInSerial ? "intent" : undefined}
         className="sm:hover:bg-muted flex w-full flex-1 flex-col gap-4 py-4 pr-4 pl-6 text-left transition-colors md:h-20 md:flex-row md:items-center md:rounded md:py-0 md:pr-0"
       >
         {item.thumbnail ? (

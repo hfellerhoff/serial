@@ -951,6 +951,9 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
       let lastUpdateTime = 0;
       const DEBOUNCE_TIME = 1000;
 
+      // Track the oldest item (by postedAt) for each view to initialize pagination cursors
+      const lastItemByView = new Map<number, ApplicationFeedItem>();
+
       for await (const incomingChunk of await orpcRouterClient.initial.getAllByView()) {
         const timeSinceLastUpdate = Date.now() - lastUpdateTime;
         const timeToWait = DEBOUNCE_TIME - timeSinceLastUpdate;
@@ -1019,10 +1022,17 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               fetchedFilters[view.id] = new Set([
                 "unread",
               ] as VisibilityFilter[]);
+
+              // Compute cursor from the oldest item we received for this view
+              const lastItem = lastItemByView.get(view.id);
+              const cursor = lastItem
+                ? { postedAt: lastItem.postedAt, id: lastItem.id }
+                : null;
+
               paginationState[view.id] = {
                 unread: {
-                  cursor: null,
-                  hasMore: true, // Will be updated if we implement unread pagination
+                  cursor,
+                  hasMore: lastItem !== undefined, // Only has more if we received items
                   isFetching: false,
                 },
               };
@@ -1064,6 +1074,18 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 existingIds.add(item.id);
               }
             });
+
+            // Track the oldest item (by postedAt) for this view to use as cursor
+            const viewId = incomingChunk.viewId;
+            for (const item of incomingFeedItems) {
+              const currentOldest = lastItemByView.get(viewId);
+              if (
+                !currentOldest ||
+                item.postedAt.getTime() < currentOldest.postedAt.getTime()
+              ) {
+                lastItemByView.set(viewId, item);
+              }
+            }
 
             set({
               feedItemsDict,

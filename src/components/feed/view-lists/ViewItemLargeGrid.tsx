@@ -1,13 +1,10 @@
 "use client";
 
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { useAtomValue } from "jotai";
 import { GridItemDisplay } from "./ItemDisplay";
-import { viewFilterAtom, visibilityFilterAtom } from "~/lib/data/atoms";
-import { useFetchMoreItems, useViewPaginationState } from "~/lib/data/store";
-import { useInfiniteScroll } from "~/lib/hooks/useInfiniteScroll";
-import { useLazyFeedFilter } from "~/lib/hooks/useLazyFeedFilter";
-import { useLazyCategoryFilter } from "~/lib/hooks/useLazyCategoryFilter";
+import { PaginationEnd } from "./PaginationEnd";
+import { PaginationLoader } from "./PaginationLoader";
+import { useViewListScroll } from "./useViewListScroll";
 
 interface ViewItemLargeGridProps {
   items: string[];
@@ -16,32 +13,8 @@ interface ViewItemLargeGridProps {
 export function ViewItemLargeGrid({ items }: ViewItemLargeGridProps) {
   const [parent] = useAutoAnimate();
 
-  // Lazy load items when feed or category filter changes
-  useLazyFeedFilter();
-  useLazyCategoryFilter();
-
-  const currentView = useAtomValue(viewFilterAtom);
-  const visibilityFilter = useAtomValue(visibilityFilterAtom);
-  const viewPaginationState = useViewPaginationState();
-  const fetchMoreItems = useFetchMoreItems();
-
-  const viewId = currentView?.id;
-  const paginationState = viewId
-    ? viewPaginationState[viewId]?.[visibilityFilter]
-    : undefined;
-
-  const { sentinelRef } = useInfiniteScroll({
-    onLoadMore: () => {
-      if (viewId) {
-        fetchMoreItems(viewId, visibilityFilter);
-      }
-    },
-    hasMore: paginationState?.hasMore ?? false,
-    isLoading: paginationState?.isFetching ?? false,
-  });
-
-  // Calculate position for sentinel (at 70% of items)
-  const sentinelPosition = Math.floor(items.length * 0.7);
+  const { sentinelRef, sentinelIndex, paginationState } =
+    useViewListScroll(items);
 
   return (
     <div className="w-full">
@@ -52,10 +25,14 @@ export function ViewItemLargeGrid({ items }: ViewItemLargeGridProps) {
         {items.map((contentId, index) => (
           <div key={contentId}>
             <GridItemDisplay contentId={contentId} size="large" />
-            {index === sentinelPosition && <div ref={sentinelRef} />}
+            {index === sentinelIndex && (
+              <div ref={sentinelRef} key={sentinelIndex} />
+            )}
           </div>
         ))}
       </div>
+      {paginationState?.isFetching && <PaginationLoader />}
+      {!paginationState?.hasMore && <PaginationEnd />}
     </div>
   );
 }

@@ -406,7 +406,7 @@ export function ItemDisplay({
         to={href}
         target={target}
         rel={rel}
-        preload={shouldOpenInSerial ? "viewport" : undefined}
+        preload={shouldOpenInSerial ? "intent" : undefined}
         className={clsx(
           "sm:hover:bg-muted flex w-full flex-1 flex-col gap-4 pt-4 pr-4 pl-6 text-left transition-colors md:flex-row md:items-center md:rounded md:py-4 md:pr-0",
           isLarge ? "pb-1 md:pb-4" : "pb-4 md:h-20 md:py-0",
@@ -491,7 +491,7 @@ export function GridItemDisplay({
         to={href}
         target={target}
         rel={rel}
-        preload={shouldOpenInSerial ? "viewport" : undefined}
+        preload={shouldOpenInSerial ? "intent" : undefined}
         className={clsx(
           "sm:hover:bg-muted flex flex-col rounded p-2 text-left transition-colors",
           {
