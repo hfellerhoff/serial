@@ -1,0 +1,22 @@
+{
+  "id": "serial",
+  "name": "Serial",
+  "short_name": "Serial",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c0a09",
+  "theme_color": "#fafaf9",
+  "lang": "en",
+  "scope": "/",
+  "orientation": "any",
+  "icons": [
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-256.png", "type": "image/png", "sizes": "256x256" },
+    {
+      "src": "/android-chrome-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ]
+}
