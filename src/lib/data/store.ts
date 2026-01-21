@@ -1291,38 +1291,9 @@ export function useLoadingProgress(): number {
     return 0;
   }
 
-  const {
-    fetchType,
-    metadataLoaded,
-    totalViews,
-    viewsWithFeedItems,
-    totalFeeds,
-  } = progressState;
+  const { totalFeeds } = progressState;
 
-  if (fetchType === "refresh") {
-    // Refresh: 100% based on feed status
-    if (totalFeeds === 0) return 0;
-    return (Object.keys(feedStatusDict).length / totalFeeds) * 100;
-  }
-
-  // Initial fetch
-  if (!metadataLoaded) {
-    return 10; // Partial progress during metadata loading
-  }
-
-  let progress = 20; // Metadata complete = 20%
-
-  // View feed-items progress (20-60%)
-  if (totalViews > 0) {
-    const viewsProgress = viewsWithFeedItems.size / totalViews;
-    progress += viewsProgress * 40;
-  }
-
-  // Feed status progress (60-100%)
-  if (totalFeeds > 0) {
-    const feedStatusProgress = Object.keys(feedStatusDict).length / totalFeeds;
-    progress += feedStatusProgress * 40;
-  }
-
-  return Math.min(progress, 100);
+  // Both initial and refresh: 0-100% based on feed status
+  if (totalFeeds === 0) return 0;
+  return (Object.keys(feedStatusDict).length / totalFeeds) * 100;
 }
