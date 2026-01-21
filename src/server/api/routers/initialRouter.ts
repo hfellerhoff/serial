@@ -434,8 +434,6 @@ export const requestInitialData = protectedProcedure
     const visibilityFilter = input?.visibilityFilter;
     const isVisibilityFilterFetch = !!visibilityFilter;
 
-    await delay(500);
-
     // Step 1: Fetch all prerequisite data using helper
     let prerequisiteData: PrerequisiteData;
     try {
@@ -565,8 +563,6 @@ export const requestInitialData = protectedProcedure
       return { status: "completed" };
     }
 
-    await delay(2000);
-
     const fetchContentForViewParams: FetchContentForViewParams = {
       feedIds,
       visibilityFilter,
@@ -599,8 +595,6 @@ export const requestInitialData = protectedProcedure
         source: "initial",
         chunk: { type: "initial-data-complete" },
       });
-
-      await delay(2000);
 
       // Step 5: Run fetch and insert for fresh RSS items in background
       // Items are inserted to DB by fetchAndInsertFeedData - don't publish them here
