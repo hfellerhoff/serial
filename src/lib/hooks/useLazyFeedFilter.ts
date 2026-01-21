@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useAtomValue } from "jotai";
 import { feedFilterAtom, visibilityFilterAtom } from "~/lib/data/atoms";
 import { feedItemsStore } from "~/lib/data/store";
+import { dataSubscriptionActions } from "~/lib/data/useDataSubscription";
 
 /**
  * Hook that triggers lazy loading of items when a feed is selected.
@@ -19,6 +20,17 @@ export function useLazyFeedFilter() {
     // feedFilter < 0 means no feed is selected
     if (feedFilter < 0) return;
 
-    feedItemsStore.getState().fetchItemsForFeed(feedFilter, visibilityFilter);
+    // Check if already fetched for this feed/filter
+    const fetchedFilters =
+      feedItemsStore.getState().fetchedFeedFilters[feedFilter];
+    if (fetchedFilters?.has(visibilityFilter)) {
+      return;
+    }
+
+    // Request items via the publisher pattern
+    void dataSubscriptionActions.requestItemsByFeed(
+      feedFilter,
+      visibilityFilter,
+    );
   }, [feedFilter, visibilityFilter]);
 }

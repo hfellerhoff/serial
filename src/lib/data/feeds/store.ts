@@ -120,7 +120,6 @@ export const feedsStore = createSelectorHooks(vanillaFeedsStore);
 
 export const {
   useFeeds,
-  useFeedsDict,
   useFetchStatus: useFeedsFetchStatus,
   useFetch: useFetchFeeds,
   useSet: useSetFeeds,

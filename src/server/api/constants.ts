@@ -3,3 +3,4 @@ export const INITIAL_ITEMS_PER_VIEW = 20;
 
 export const ITEMS_PER_PAGE = 30;
 export const ITEMS_BY_VISIBILITY_CHUNK_SIZE = 10;
+export const REVALIDATE_VIEW_CHUNK_SIZE = 30;

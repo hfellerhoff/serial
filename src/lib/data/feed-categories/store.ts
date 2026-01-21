@@ -96,11 +96,7 @@ export const feedCategoriesStore = createSelectorHooks(
 
 export const {
   useFeedCategories,
-  useFeedCategoriesDict,
   useFetchStatus: useFeedCategoriesFetchStatus,
   useFetch: useFetchFeedCategories,
-  useSet: useSetFeedCategories,
-  useAdd: useAddFeedCategory,
-  useRemove: useRemoveFeedCategory,
   useReset: useResetFeedCategories,
 } = feedCategoriesStore;

@@ -108,12 +108,8 @@ export const viewsStore = createSelectorHooks(vanillaViewsStore);
 
 export const {
   useViews,
-  useViewsDict,
   useFetchStatus: useViewsFetchStatus,
   useFetch: useFetchViews,
   useSet: useSetViews,
-  useAdd: useAddView,
-  useUpdate: useUpdateView,
-  useRemove: useRemoveView,
   useReset: useResetViews,
 } = viewsStore;

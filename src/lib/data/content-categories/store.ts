@@ -103,12 +103,7 @@ export const contentCategoriesStore = createSelectorHooks(
 
 export const {
   useContentCategories,
-  useContentCategoriesDict,
   useFetchStatus: useContentCategoriesFetchStatus,
   useFetch: useFetchContentCategories,
-  useSet: useSetContentCategories,
-  useAdd: useAddContentCategory,
-  useUpdate: useUpdateContentCategory,
-  useRemove: useRemoveContentCategory,
   useReset: useResetContentCategories,
 } = contentCategoriesStore;

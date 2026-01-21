@@ -11,11 +11,11 @@ import { Toaster } from "~/components/ui/sonner";
 import { QueryProvider } from "~/lib/query-provider";
 
 import { ApplyColorThemeOnServerMount } from "~/components/color-theme/ApplyColorThemeOnMount";
-import { orpcRouterClient } from "~/lib/orpc";
-import appCss from "~/styles/globals.css?url";
+import { ReloadPrompt } from "~/components/pwa/ReloadPrompt";
 import { Button } from "~/components/ui/button";
 import { BASE_SIGNED_OUT_URL } from "~/lib/constants";
-import { ReloadPrompt } from "~/components/pwa/ReloadPrompt";
+import { orpcRouterClient } from "~/lib/orpc";
+import appCss from "~/styles/globals.css?url";
 
 const title = "Serial";
 const description =
@@ -125,7 +125,7 @@ export function RootLayout() {
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
-        {/* {import.meta.env.NODE_ENV !== "production" && (
+        {/* {import.meta.env.DEV && (
           <>
             <script
               crossOrigin="anonymous"
@@ -133,25 +133,24 @@ export function RootLayout() {
             />
           </>
         )}*/}
-        {import.meta.env.NODE_ENV === "production" && (
-          <>
-            <script
-              async
-              defer
-              data-website-id="b65ad781-e11e-43e3-a53e-35e09c16709a"
-              src="https://umami.henryfellerhoff.com/script.js"
-            />
-          </>
-        )}
+        {import.meta.env.PROD &&
+          import.meta.env.VITE_PUBLIC_UMAMI_SRC &&
+          import.meta.env.VITE_PUBLIC_UMAMI_WEBSITE_ID && (
+            <>
+              <script
+                async
+                defer
+                data-website-id={import.meta.env.VITE_PUBLIC_UMAMI_WEBSITE_ID}
+                src={import.meta.env.VITE_PUBLIC_UMAMI_SRC}
+              />
+            </>
+          )}
         <meta
           name="apple-mobile-web-app-status-bar-style"
           content="black-translucent"
         />
       </head>
-      <body
-        // className={cn(`min-h-screen font-sans antialiased ${inter.variable}`)}
-        className="min-h-screen font-sans antialiased"
-      >
+      <body className="min-h-screen font-sans antialiased">
         <ApplyColorThemeOnServerMount data={data.variables} />
         <QueryProvider>
           <ThemeProvider

@@ -18,12 +18,31 @@ import type {
   DatabaseFeed,
   DatabaseFeedCategory,
 } from "~/server/db/schema";
+import type { PaginationCursor } from "~/server/api/routers/initialRouter";
 
 export { isFeedCompatibleWithContentType } from "./filters";
 
 function isVideoContent(item: ApplicationFeedItem): boolean {
   const videoPlatforms = ["youtube", "peertube", "nebula"];
   return videoPlatforms.includes(item.platform);
+}
+
+function isItemOlderThanCursor(
+  item: ApplicationFeedItem,
+  cursor: PaginationCursor,
+): boolean {
+  if (!cursor) return false;
+
+  const itemTime = item.postedAt.getTime();
+  const cursorTime = cursor.postedAt.getTime();
+
+  if (itemTime < cursorTime) {
+    return true;
+  }
+  if (itemTime === cursorTime && item.id > cursor.id) {
+    return true;
+  }
+  return false;
 }
 
 export function doesFeedItemPassFilters(
@@ -159,21 +178,46 @@ export const useFilteredFeedItemsOrder = () => {
   const viewFilter = useAtomValue(viewFilterAtom);
   const { customViews, customViewCategoryIds } = useCustomViewsData();
 
+  // Get pagination states for cursor-based filtering
+  const viewPaginationState = feedItemsStore.useViewPaginationState();
+  const feedPaginationState = feedItemsStore.useFeedPaginationState();
+  const categoryPaginationState = feedItemsStore.useCategoryPaginationState();
+
+  // Determine active cursor based on filter priority: feed > category > view
+  const activeCursor: PaginationCursor | undefined = (() => {
+    if (feedFilter >= 0) {
+      return feedPaginationState[feedFilter]?.[visibilityFilter]?.cursor;
+    }
+    if (categoryFilter >= 0) {
+      return categoryPaginationState[categoryFilter]?.[visibilityFilter]
+        ?.cursor;
+    }
+    if (viewFilter?.id) {
+      return viewPaginationState[viewFilter.id]?.[visibilityFilter]?.cursor;
+    }
+    return undefined;
+  })();
+
   return feedItemsOrder.filter((id) => {
-    return (
-      feedItemsDict[id] &&
-      doesFeedItemPassFilters(
-        feedItemsDict[id],
-        dateFilter,
-        visibilityFilter,
-        categoryFilter,
-        feedCategories,
-        feedFilter,
-        feeds,
-        viewFilter,
-        customViewCategoryIds,
-        customViews,
-      )
+    const item = feedItemsDict[id];
+    if (!item) return false;
+
+    // Apply cursor filter - hide items older than cursor
+    if (activeCursor && isItemOlderThanCursor(item, activeCursor)) {
+      return false;
+    }
+
+    return doesFeedItemPassFilters(
+      item,
+      dateFilter,
+      visibilityFilter,
+      categoryFilter,
+      feedCategories,
+      feedFilter,
+      feeds,
+      viewFilter,
+      customViewCategoryIds,
+      customViews,
     );
   });
 };
