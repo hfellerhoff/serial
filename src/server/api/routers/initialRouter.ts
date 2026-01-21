@@ -47,13 +47,15 @@ import {
 import { logMessage } from "~/server/logger";
 import { protectedProcedure } from "~/server/orpc/base";
 import { fetchAndInsertFeedData } from "~/server/rss/fetchFeeds";
+import { delay } from "~/lib/utils";
 
 export type PaginationCursor = { postedAt: Date; id: string } | null;
 
 export type ViewDataChunk =
   | {
       type: "feed-items";
-      viewId: number;
+      viewId?: number;
+      feedId?: number;
       feedItems: ApplicationFeedItem[];
       visibilityFilter?: string;
       hasMore?: boolean;
@@ -69,6 +71,9 @@ export type GetByViewChunk =
   | { type: "feed-status"; feedId: number; status: FetchFeedsStatus }
   | { type: "view-feeds"; viewId: number; feedIds: number[] }
   | { type: "initial-data-complete" }
+  | { type: "new-data-complete" }
+  | { type: "refresh-start"; totalFeeds: number }
+  | { type: "view-items"; viewId: number; feedItemIds: string[] }
   | ViewDataChunk;
 
 export type RevalidateViewChunk =
@@ -429,6 +434,8 @@ export const requestInitialData = protectedProcedure
     const visibilityFilter = input?.visibilityFilter;
     const isVisibilityFilterFetch = !!visibilityFilter;
 
+    await delay(500);
+
     // Step 1: Fetch all prerequisite data using helper
     let prerequisiteData: PrerequisiteData;
     try {
@@ -558,6 +565,8 @@ export const requestInitialData = protectedProcedure
       return { status: "completed" };
     }
 
+    await delay(2000);
+
     const fetchContentForViewParams: FetchContentForViewParams = {
       feedIds,
       visibilityFilter,
@@ -591,6 +600,8 @@ export const requestInitialData = protectedProcedure
         chunk: { type: "initial-data-complete" },
       });
 
+      await delay(2000);
+
       // Step 5: Run fetch and insert for fresh RSS items in background
       // Items are inserted to DB by fetchAndInsertFeedData - don't publish them here
       // Fresh items will be available via pagination (getItemsByVisibility)
@@ -609,6 +620,141 @@ export const requestInitialData = protectedProcedure
         // Items already inserted to DB - they'll be included in pagination queries
       }
     }
+
+    return { status: "completed" };
+  });
+
+/**
+ * Request new data (refresh). Only performs RSS fetching and returns items
+ * newer than the client-provided timestamp.
+ */
+export const requestNewData = protectedProcedure
+  .input(z.object({ newerThan: z.coerce.date() }))
+  .handler(async ({ context, input }) => {
+    const channel = getUserChannel(context.user.id);
+    const newerThanTimestamp = input.newerThan;
+
+    // Fetch prerequisite data (needed for feedIdToViewIds mapping)
+    let prerequisiteData: PrerequisiteData;
+    try {
+      prerequisiteData = await fetchUserPrerequisiteData(context);
+    } catch (error) {
+      await publisher.publish(channel, {
+        source: "new-data",
+        chunk: {
+          type: "error",
+          message:
+            error instanceof Error ? error.message : "Failed to fetch data",
+          phase: "initial-fetch",
+          viewId: -1,
+        },
+      });
+      return { status: "error" };
+    }
+
+    const {
+      viewsList,
+      feedsList,
+      contentCategoriesList,
+      feedCategoriesList,
+      viewCategoriesList,
+    } = prerequisiteData;
+
+    // Publish total feeds count for progress tracking
+    await publisher.publish(channel, {
+      source: "new-data",
+      chunk: { type: "refresh-start", totalFeeds: feedsList.length },
+    });
+
+    if (feedsList.length === 0) {
+      await publisher.publish(channel, {
+        source: "new-data",
+        chunk: { type: "new-data-complete" },
+      });
+      return { status: "completed" };
+    }
+
+    // Build application views and feedIdToViewIds map
+    const { customViews, allViews, customViewCategoryIds } =
+      buildApplicationViews(
+        context.user.id,
+        viewsList,
+        contentCategoriesList,
+        viewCategoriesList,
+      );
+
+    const applicationFeeds = parseArrayOfSchema(feedsList, feedsSchema);
+
+    // Build feedId -> viewIds map
+    const feedIdToViewIds = new Map<number, number[]>();
+    for (const view of allViews) {
+      const feedIdsForView = computeFeedsForView(
+        view,
+        applicationFeeds,
+        feedCategoriesList,
+        customViews,
+        customViewCategoryIds,
+      );
+      for (const feedId of feedIdsForView) {
+        const existingViewIds = feedIdToViewIds.get(feedId) ?? [];
+        feedIdToViewIds.set(feedId, [...existingViewIds, view.id]);
+      }
+    }
+
+    // Run RSS fetch and publish new items
+    for await (const feedResult of fetchAndInsertFeedData(
+      context,
+      feedsList,
+    )) {
+      // Always publish feed status (for progress tracking)
+      await publisher.publish(channel, {
+        source: "new-data",
+        chunk: {
+          type: "feed-status",
+          status: feedResult.status,
+          feedId: feedResult.id,
+        },
+      });
+
+      if (feedResult.status === "success" && feedResult.feedItems.length > 0) {
+        // Filter items newer than the client-provided timestamp
+        const newItems = feedResult.feedItems.filter(
+          (item) => item.postedAt > newerThanTimestamp,
+        );
+
+        if (newItems.length > 0) {
+          // Stream feed items once per feed (not per view)
+          await publisher.publish(channel, {
+            source: "new-data",
+            chunk: {
+              type: "feed-items",
+              feedId: feedResult.id,
+              feedItems: newItems,
+            },
+          });
+
+          // Stream only item IDs for each view (efficient mapping)
+          const viewIdsForFeed = feedIdToViewIds.get(feedResult.id) ?? [];
+          const newItemIds = newItems.map((item) => item.id);
+
+          for (const viewId of viewIdsForFeed) {
+            await publisher.publish(channel, {
+              source: "new-data",
+              chunk: {
+                type: "view-items",
+                viewId,
+                feedItemIds: newItemIds,
+              },
+            });
+          }
+        }
+      }
+    }
+
+    await publisher.publish(channel, {
+      source: "new-data",
+      chunk: { type: "new-data-complete" },
+    });
 
     return { status: "completed" };
   });

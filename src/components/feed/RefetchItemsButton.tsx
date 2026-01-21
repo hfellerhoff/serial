@@ -1,27 +1,23 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import clsx from "clsx";
 import { RefreshCwIcon } from "lucide-react";
 import { useCallback, useState } from "react";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
-import { useFetchByView } from "~/lib/data/store";
+import { useFetchNewData } from "~/lib/data/store";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 
 export function RefetchItemsButton() {
   const location = useLocation();
-
-  const queryClient = useQueryClient();
-
   const [isLoading, setIsLoading] = useState(false);
-  const fetchByView = useFetchByView();
+  const fetchNewData = useFetchNewData();
 
   const onClick = useCallback(async () => {
     setIsLoading(true);
-    await Promise.all([queryClient.invalidateQueries(), fetchByView()]);
+    await fetchNewData();
     setIsLoading(false);
-  }, [fetchByView, queryClient]);
+  }, [fetchNewData]);
 
   useShortcut("r", onClick);
 

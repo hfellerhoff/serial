@@ -13,7 +13,8 @@ export type PublishedChunk =
   | { source: "revalidate"; chunk: RevalidateViewChunk }
   | { source: "visibility"; chunk: GetItemsByVisibilityChunk }
   | { source: "feed"; chunk: GetItemsByFeedChunk }
-  | { source: "category"; chunk: GetItemsByCategoryIdChunk };
+  | { source: "category"; chunk: GetItemsByCategoryIdChunk }
+  | { source: "new-data"; chunk: GetByViewChunk };
 
 // Dynamic channels keyed by user ID
 export const publisher = new MemoryPublisher<Record<string, PublishedChunk>>({

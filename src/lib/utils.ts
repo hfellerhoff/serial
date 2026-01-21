@@ -8,6 +8,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Just for debugging
+export const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
 const ONE_MINUTE_MS = 1000 * 60;
 const ONE_HOUR_MS = ONE_MINUTE_MS * 60;
 const ONE_DAY_MS = ONE_HOUR_MS * 24;

@@ -22,17 +22,27 @@ export type PaginationState = {
   isFetching: boolean;
 };
 
+export type ProgressState = {
+  fetchType: "idle" | "initial" | "refresh";
+  metadataLoaded: boolean;
+  totalViews: number;
+  viewsWithFeedItems: Set<number>;
+  totalFeeds: number;
+};
+
 export type ApplicationStore = {
   reset: () => void;
   feedItemsOrder: string[];
   setFeedItemsOrder: (itemsOrder: string[]) => void;
   feedItemsDict: Record<string, ApplicationFeedItem>;
   feedStatusDict: Record<number, FetchFeedsStatus>;
+  progressState: ProgressState;
   setFeedItemsDict: (itemsDict: Record<string, ApplicationFeedItem>) => void;
   setFeedItem: (id: string, item: ApplicationFeedItem) => void;
   fetchFeedItems: () => Promise<void>;
   fetchFeedItemsForFeed: (feedId: number) => Promise<void>;
   fetchByView: () => Promise<void>;
+  fetchNewData: () => Promise<void>;
   revalidateView: (viewId: number) => Promise<void>;
   fetchFeedItemsLastFetchedAt: number | null;
   fetchFeedItemsStatus: "idle" | "fetching" | "success";
@@ -112,11 +122,25 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
         fetchedFeedFilters: {},
         fetchedCategoryFilters: {},
         _lastItemByView: {},
+        progressState: {
+          fetchType: "idle",
+          metadataLoaded: false,
+          totalViews: 0,
+          viewsWithFeedItems: new Set(),
+          totalFeeds: 0,
+        },
       }),
     feedItemsOrder: [],
     setFeedItemsOrder: (itemsOrder) => set({ feedItemsOrder: itemsOrder }),
     feedItemsDict: {},
     feedStatusDict: {},
+    progressState: {
+      fetchType: "idle",
+      metadataLoaded: false,
+      totalViews: 0,
+      viewsWithFeedItems: new Set(),
+      totalFeeds: 0,
+    },
     setFeedItemsDict: (itemsDict) => set({ feedItemsDict: itemsDict }),
     setFeedItem: (id, item) =>
       set({
@@ -693,13 +717,15 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
 
             // Track the oldest item (by postedAt) for this view to use as cursor
             const viewId = incomingChunk.viewId;
-            for (const item of incomingFeedItems) {
-              const currentOldest = lastItemByView.get(viewId);
-              if (
-                !currentOldest ||
-                item.postedAt.getTime() < currentOldest.postedAt.getTime()
-              ) {
-                lastItemByView.set(viewId, item);
+            if (viewId !== undefined) {
+              for (const item of incomingFeedItems) {
+                const currentOldest = lastItemByView.get(viewId);
+                if (
+                  !currentOldest ||
+                  item.postedAt.getTime() < currentOldest.postedAt.getTime()
+                ) {
+                  lastItemByView.set(viewId, item);
+                }
               }
             }
 
@@ -732,6 +758,19 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           sortFeedItemsOrderByDate(get().feedItemsDict),
         ),
         feedStatusDict: { ...get().feedStatusDict },
+      });
+    },
+
+    fetchNewData: async () => {
+      const newerThan = get().fetchFeedItemsLastFetchedAt;
+      if (!newerThan) {
+        // No previous fetch timestamp, fall back to fetchByView
+        return get().fetchByView();
+      }
+
+      // Progress is initialized by "refresh-start" chunk from server
+      await orpcRouterClient.initial.requestNewData({
+        newerThan: new Date(newerThan),
       });
     },
 
@@ -813,12 +852,31 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               viewsStore.getState().set(initialChunk.views);
               viewsStore.setState({ fetchStatus: "success" });
               // Show UI immediately when views are received
-              set({ hasInitialData: true });
+              // Initialize progress tracking for initial fetch
+              set({
+                hasInitialData: true,
+                fetchFeedItemsStatus: "fetching",
+                feedStatusDict: {}, // Clear stale entries from previous fetch
+                progressState: {
+                  fetchType: "initial",
+                  metadataLoaded: false,
+                  totalViews: initialChunk.views.length,
+                  viewsWithFeedItems: new Set(),
+                  totalFeeds: 0,
+                },
+              });
               break;
 
             case "feeds":
               feedsStore.getState().set(initialChunk.feeds);
               feedsStore.setState({ fetchStatus: "success" });
+              // Track total feeds for progress calculation
+              set({
+                progressState: {
+                  ...get().progressState,
+                  totalFeeds: initialChunk.feeds.length,
+                },
+              });
               break;
 
             case "content-categories":
@@ -831,6 +889,13 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             case "feed-categories":
               feedCategoriesStore.getState().set(initialChunk.feedCategories);
               feedCategoriesStore.setState({ fetchStatus: "success" });
+              // Mark metadata as loaded (this is the last metadata chunk)
+              set({
+                progressState: {
+                  ...get().progressState,
+                  metadataLoaded: true,
+                },
+              });
               break;
 
             case "view-feeds":
@@ -840,7 +905,17 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             case "feed-status": {
               const feedStatusDict = { ...get().feedStatusDict };
               feedStatusDict[initialChunk.feedId] = initialChunk.status;
-              set({ feedStatusDict });
+
+              // Check if all feeds have reported status
+              const { totalFeeds } = get().progressState;
+              const allFeedsComplete =
+                Object.keys(feedStatusDict).length >= totalFeeds &&
+                totalFeeds > 0;
+
+              set({
+                feedStatusDict,
+                ...(allFeedsComplete && { fetchFeedItemsStatus: "success" }),
+              });
               break;
             }
 
@@ -875,7 +950,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               }
 
               set({
-                fetchFeedItemsStatus: "success",
+                // Note: fetchFeedItemsStatus is set to "success" when all feed-status chunks arrive
                 fetchFeedItemsLastFetchedAt: Date.now(),
                 fetchedVisibilityFilters: fetchedFilters,
                 viewPaginationState: paginationState,
@@ -887,50 +962,68 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             case "feed-items": {
               // Track the current view ID from the first feed-items chunk
               const firstView = viewsStore.getState().views[0];
+              const viewId = initialChunk.viewId;
               if (
                 get().currentViewId === null &&
-                initialChunk.viewId === firstView?.id
+                viewId === firstView?.id
               ) {
-                set({ currentViewId: initialChunk.viewId });
+                set({ currentViewId: viewId });
               }
               mergeFeedItems(initialChunk.feedItems);
 
-              // Track oldest item per view for cursor computation
-              const viewId = initialChunk.viewId;
-              const lastItemByView = { ...get()._lastItemByView };
-              for (const item of initialChunk.feedItems) {
-                const currentOldest = lastItemByView[viewId];
-                const itemTime =
-                  item.postedAt instanceof Date
-                    ? item.postedAt.getTime()
-                    : new Date(item.postedAt).getTime();
-                const currentTime =
-                  currentOldest?.postedAt instanceof Date
-                    ? currentOldest.postedAt.getTime()
-                    : currentOldest
-                      ? new Date(currentOldest.postedAt).getTime()
-                      : Infinity;
+              // Only track view-specific data if viewId is present
+              if (viewId !== undefined) {
+                // Track oldest item per view for cursor computation
+                const lastItemByView = { ...get()._lastItemByView };
+                for (const item of initialChunk.feedItems) {
+                  const currentOldest = lastItemByView[viewId];
+                  const itemTime =
+                    item.postedAt instanceof Date
+                      ? item.postedAt.getTime()
+                      : new Date(item.postedAt).getTime();
+                  const currentTime =
+                    currentOldest?.postedAt instanceof Date
+                      ? currentOldest.postedAt.getTime()
+                      : currentOldest
+                        ? new Date(currentOldest.postedAt).getTime()
+                        : Infinity;
 
-                if (!currentOldest || itemTime < currentTime) {
-                  lastItemByView[viewId] = item;
+                  if (!currentOldest || itemTime < currentTime) {
+                    lastItemByView[viewId] = item;
+                  }
                 }
-              }
-              set({ _lastItemByView: lastItemByView });
+                set({ _lastItemByView: lastItemByView });
 
-              // Track fetched visibility filter for this view (when fetching non-unread filters)
-              if (
-                initialChunk.visibilityFilter &&
-                initialChunk.visibilityFilter !== "unread"
-              ) {
-                set({
-                  fetchedVisibilityFilters: {
-                    ...get().fetchedVisibilityFilters,
-                    [viewId]: new Set([
-                      ...(get().fetchedVisibilityFilters[viewId] ?? []),
-                      initialChunk.visibilityFilter as VisibilityFilter,
-                    ]),
-                  },
-                });
+                // Track that we received feed items for this view (for progress calculation)
+                const currentProgressState = get().progressState;
+                if (!currentProgressState.viewsWithFeedItems.has(viewId)) {
+                  const newViewsWithFeedItems = new Set(
+                    currentProgressState.viewsWithFeedItems,
+                  );
+                  newViewsWithFeedItems.add(viewId);
+                  set({
+                    progressState: {
+                      ...currentProgressState,
+                      viewsWithFeedItems: newViewsWithFeedItems,
+                    },
+                  });
+                }
+
+                // Track fetched visibility filter for this view (when fetching non-unread filters)
+                if (
+                  initialChunk.visibilityFilter &&
+                  initialChunk.visibilityFilter !== "unread"
+                ) {
+                  set({
+                    fetchedVisibilityFilters: {
+                      ...get().fetchedVisibilityFilters,
+                      [viewId]: new Set([
+                        ...(get().fetchedVisibilityFilters[viewId] ?? []),
+                        initialChunk.visibilityFilter as VisibilityFilter,
+                      ]),
+                    },
+                  });
+                }
               }
               break;
             }
@@ -1064,6 +1157,74 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           });
           break;
         }
+
+        case "new-data": {
+          if (chunk.type === "refresh-start") {
+            // Initialize progress tracking for refresh
+            set({
+              fetchFeedItemsStatus: "fetching",
+              feedStatusDict: {},
+              progressState: {
+                fetchType: "refresh",
+                metadataLoaded: true,
+                totalViews: 0,
+                viewsWithFeedItems: new Set(),
+                totalFeeds: chunk.totalFeeds,
+              },
+            });
+            break;
+          }
+
+          if (chunk.type === "feed-status") {
+            // Update feedStatusDict for progress tracking
+            const feedStatusDict = { ...get().feedStatusDict };
+            feedStatusDict[chunk.feedId] = chunk.status;
+            set({ feedStatusDict });
+            break;
+          }
+
+          if (chunk.type === "feed-items") {
+            // Merge new items into feedItemsDict
+            const newDict = { ...get().feedItemsDict };
+            const feedItemsOrder = [...get().feedItemsOrder];
+            const existingIds = new Set(feedItemsOrder);
+
+            for (const item of chunk.feedItems) {
+              newDict[item.id] = item;
+              if (!existingIds.has(item.id)) {
+                feedItemsOrder.push(item.id);
+                existingIds.add(item.id);
+              }
+            }
+            set({
+              feedItemsDict: newDict,
+              feedItemsOrder: feedItemsOrder.sort(
+                sortFeedItemsOrderByDate(newDict),
+              ),
+            });
+            break;
+          }
+
+          if (chunk.type === "view-items") {
+            // Items are already added to feedItemsDict via feed-items chunk
+            // view-items just tells us which views they belong to (for future use)
+            break;
+          }
+
+          if (chunk.type === "new-data-complete") {
+            set({
+              fetchFeedItemsStatus: "success",
+              fetchFeedItemsLastFetchedAt: Date.now(),
+            });
+            break;
+          }
+
+          if (chunk.type === "error") {
+            console.error("New data fetch error:", chunk.message);
+            set({ fetchFeedItemsStatus: "success" }); // Reset status on error
+          }
+          break;
+        }
       }
     },
   }),
@@ -1091,6 +1252,7 @@ export const {
   useFetchFeedItems,
   useFetchFeedItemsForFeed,
   useFetchByView,
+  useFetchNewData,
   useRevalidateView,
   useCurrentViewId,
   useViewFeedIds,
@@ -1100,6 +1262,7 @@ export const {
   useCategoryPaginationState,
   useFetchMoreItemsForFeed,
   useFetchMoreItemsForCategory,
+  useProgressState,
   useReset: useResetFeedItems,
 } = feedItemsStore;
 
@@ -1121,3 +1284,48 @@ export const useFeedItemState = (id: string) => {
 
   return [value, setValue] as const;
 };
+
+export function useLoadingProgress(): number {
+  const progressState = useProgressState();
+  const fetchStatus = useFetchFeedItemsStatus();
+  const feedStatusDict = useFeedStatusDict();
+
+  if (fetchStatus !== "fetching") {
+    return 0;
+  }
+
+  const {
+    fetchType,
+    metadataLoaded,
+    totalViews,
+    viewsWithFeedItems,
+    totalFeeds,
+  } = progressState;
+
+  if (fetchType === "refresh") {
+    // Refresh: 100% based on feed status
+    if (totalFeeds === 0) return 0;
+    return (Object.keys(feedStatusDict).length / totalFeeds) * 100;
+  }
+
+  // Initial fetch
+  if (!metadataLoaded) {
+    return 10; // Partial progress during metadata loading
+  }
+
+  let progress = 20; // Metadata complete = 20%
+
+  // View feed-items progress (20-60%)
+  if (totalViews > 0) {
+    const viewsProgress = viewsWithFeedItems.size / totalViews;
+    progress += viewsProgress * 40;
+  }
+
+  // Feed status progress (60-100%)
+  if (totalFeeds > 0) {
+    const feedStatusProgress = Object.keys(feedStatusDict).length / totalFeeds;
+    progress += feedStatusProgress * 40;
+  }
+
+  return Math.min(progress, 100);
+}
