@@ -702,10 +702,7 @@ export const requestNewData = protectedProcedure
     }
 
     // Run RSS fetch and publish new items
-    for await (const feedResult of fetchAndInsertFeedData(
-      context,
-      feedsList,
-    )) {
+    for await (const feedResult of fetchAndInsertFeedData(context, feedsList)) {
       // Always publish feed status (for progress tracking)
       await publisher.publish(channel, {
         source: "new-data",

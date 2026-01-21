@@ -963,10 +963,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               // Track the current view ID from the first feed-items chunk
               const firstView = viewsStore.getState().views[0];
               const viewId = initialChunk.viewId;
-              if (
-                get().currentViewId === null &&
-                viewId === firstView?.id
-              ) {
+              if (get().currentViewId === null && viewId === firstView?.id) {
                 set({ currentViewId: viewId });
               }
               mergeFeedItems(initialChunk.feedItems);
