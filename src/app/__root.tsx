@@ -133,8 +133,7 @@ export function RootLayout() {
             />
           </>
         )}*/}
-        {import.meta.env.PROD &&
-          import.meta.env.VITE_PUBLIC_UMAMI_SRC &&
+        {import.meta.env.VITE_PUBLIC_UMAMI_SRC &&
           import.meta.env.VITE_PUBLIC_UMAMI_WEBSITE_ID && (
             <>
               <script
