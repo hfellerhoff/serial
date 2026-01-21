@@ -2,6 +2,12 @@
 
 import { useAtomValue } from "jotai";
 import { EmptyState, FeedEmptyState } from "./EmptyStates";
+import {
+  GridSkeleton,
+  LargeGridSkeleton,
+  LargeListSkeleton,
+  StandardListSkeleton,
+} from "./skeletons";
 import { ViewItemGrid } from "./ViewItemGrid";
 import { ViewItemLargeGrid } from "./ViewItemLargeGrid";
 import { ViewItemLargeList } from "./ViewItemLargeList";
@@ -46,6 +52,20 @@ export function RenderViewItems() {
 
   if (hasFetchedFeeds && !feeds.length) {
     return <FeedEmptyState />;
+  }
+
+  // Show skeletons while feed items are being fetched
+  if (feedItemsLastFetchedAt === null && filteredFeedItemsOrder.length === 0) {
+    switch (layout) {
+      case VIEW_LAYOUT.LARGE_LIST:
+        return <LargeListSkeleton />;
+      case VIEW_LAYOUT.GRID:
+        return <GridSkeleton />;
+      case VIEW_LAYOUT.LARGE_GRID:
+        return <LargeGridSkeleton />;
+      default:
+        return <StandardListSkeleton />;
+    }
   }
 
   if (

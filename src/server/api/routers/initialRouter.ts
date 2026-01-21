@@ -47,7 +47,6 @@ import {
 import { logMessage } from "~/server/logger";
 import { protectedProcedure } from "~/server/orpc/base";
 import { fetchAndInsertFeedData } from "~/server/rss/fetchFeeds";
-import { delay } from "~/lib/utils";
 
 export type PaginationCursor = { postedAt: Date; id: string } | null;
 
