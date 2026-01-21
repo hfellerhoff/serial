@@ -47,26 +47,43 @@ export function VideoDisplay({
   const isVertical = item.orientation === "vertical";
   const showNavButtons = isVertical && view === "windowed";
 
-  if (view === "windowed") {
-    return (
-      <>
-        <div className="relative z-10 h-fit w-full">
-          <div className="flex items-center justify-center gap-4">
-            {showNavButtons && (
-              <ButtonWithShortcut
-                shortcut="["
-                variant="ghost"
-                size="icon"
-                onClick={goToPreviousVideo}
-                disabled={!canGoToPrevious}
-                className={clsx("ml-4 shrink-0", {
-                  invisible: !canGoToPrevious,
-                })}
-              >
-                <ChevronLeftIcon />
-              </ButtonWithShortcut>
-            )}
-            <div className="relative w-full">
+  return (
+    <>
+      <div
+        className={clsx({
+          "relative z-10 h-fit w-full": view === "windowed",
+          "relative z-10 h-full w-full": view === "fullscreen",
+        })}
+      >
+        <div
+          className={clsx({
+            "flex items-center justify-center gap-4": view === "windowed",
+            "h-full w-full overflow-hidden transition-opacity":
+              view === "fullscreen",
+          })}
+        >
+          {showNavButtons && (
+            <ButtonWithShortcut
+              shortcut="["
+              variant="ghost"
+              size="icon"
+              onClick={goToPreviousVideo}
+              disabled={!canGoToPrevious}
+              className={clsx("ml-4 shrink-0", {
+                invisible: !canGoToPrevious,
+              })}
+            >
+              <ChevronLeftIcon />
+            </ButtonWithShortcut>
+          )}
+          <div
+            className={clsx({
+              "relative w-full": view === "windowed",
+              "h-full w-full overflow-hidden transition-opacity":
+                view === "fullscreen",
+            })}
+          >
+            {view === "windowed" && (
               <div
                 className={clsx(
                   "bg-muted absolute top-0 w-full animate-pulse overflow-hidden transition-opacity",
@@ -76,53 +93,44 @@ export function VideoDisplay({
                   },
                 )}
               />
-              <div
-                className={clsx("w-full overflow-hidden transition-opacity", {
+            )}
+            {view === "fullscreen" && (
+              <div className="bg-muted absolute top-0 aspect-video h-full w-full animate-pulse overflow-hidden transition-opacity" />
+            )}
+            <div
+              className={clsx({
+                [clsx("w-full overflow-hidden transition-opacity", {
                   "aspect-video rounded": !isVertical,
                   "aspect-9/16 rounded": isVertical,
                   "opacity-0": !showVideo,
                   "opacity-100": showVideo,
-                })}
-              >
-                <ResponsiveVideo
-                  videoID={item.contentId}
-                  feedItemId={id}
-                  isInactive={isInactive}
-                />
-              </div>
+                })]: view === "windowed",
+                "h-full w-full overflow-hidden transition-opacity":
+                  view === "fullscreen",
+              })}
+            >
+              <ResponsiveVideo
+                videoID={item.contentId}
+                feedItemId={id}
+                isInactive={isInactive}
+              />
             </div>
-            {showNavButtons && (
-              <ButtonWithShortcut
-                shortcut="]"
-                variant="ghost"
-                size="icon"
-                onClick={goToNextVideo}
-                disabled={!canGoToNext}
-                className={clsx("mr-4 shrink-0", {
-                  invisible: !canGoToNext,
-                })}
-                shortcutPosition="left"
-              >
-                <ChevronRightIcon />
-              </ButtonWithShortcut>
-            )}
           </div>
-        </div>
-        <ContentActions contentID={id} />
-      </>
-    );
-  }
-
-  return (
-    <>
-      <div className="relative z-10 h-full w-full">
-        <div className="bg-muted absolute top-0 aspect-video h-full w-full animate-pulse overflow-hidden transition-opacity" />
-        <div className="h-full w-full overflow-hidden transition-opacity">
-          <ResponsiveVideo
-            videoID={item.contentId}
-            feedItemId={id}
-            isInactive={isInactive}
-          />
+          {showNavButtons && (
+            <ButtonWithShortcut
+              shortcut="]"
+              variant="ghost"
+              size="icon"
+              onClick={goToNextVideo}
+              disabled={!canGoToNext}
+              className={clsx("mr-4 shrink-0", {
+                invisible: !canGoToNext,
+              })}
+              shortcutPosition="left"
+            >
+              <ChevronRightIcon />
+            </ButtonWithShortcut>
+          )}
         </div>
       </div>
       <ContentActions contentID={id} />
