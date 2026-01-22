@@ -961,7 +961,6 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               }
 
               set({
-                fetchFeedItemsStatus: "success",
                 fetchFeedItemsLastFetchedAt: Date.now(),
                 fetchedVisibilityFilters: fetchedFilters,
                 viewPaginationState: paginationState,

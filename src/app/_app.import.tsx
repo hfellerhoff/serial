@@ -61,7 +61,8 @@ function EditFeedsPage() {
   const { feeds } = useFeeds();
   const fetchStatus = useFetchFeedItemsStatus();
   const progressState = useProgressState();
-  const isFetchingRss = fetchStatus === "fetching";
+  const isFetchingRss =
+    fetchStatus === "fetching" && progressState.fetchType === "import";
   const failedImportUrls = progressState.failedImportUrls;
 
   const isPostImportScreen = isImportComplete || hasStartedImport;
