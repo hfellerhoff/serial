@@ -16,6 +16,7 @@ export function ImportLoading() {
   const isFetching = status === "fetching";
   const feedsCompleted = Object.keys(feedStatusDict).length;
   const totalFeeds = progressState.totalFeeds;
+  const importErrors = progressState.importErrors;
 
   return (
     <div className="bg-background fixed inset-0 flex h-screen w-screen flex-col items-center justify-center">
@@ -25,6 +26,12 @@ export function ImportLoading() {
           <p className="text-muted-foreground pt-4 font-mono text-sm">
             Importing {feedsCompleted} of {totalFeeds} feeds...
           </p>
+          {importErrors > 0 && (
+            <p className="text-muted-foreground/50 pt-2 font-mono text-sm">
+              {importErrors} feed{importErrors !== 1 ? "s" : ""} failed to
+              import
+            </p>
+          )}
         </>
       ) : (
         <Loader2Icon size={32} className="animate-spin" />

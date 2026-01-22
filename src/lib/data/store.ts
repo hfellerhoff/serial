@@ -28,6 +28,8 @@ export type ProgressState = {
   totalViews: number;
   viewsWithFeedItems: Set<number>;
   totalFeeds: number;
+  importErrors: number;
+  failedImportUrls: Set<string>;
 };
 
 export type ApplicationStore = {
@@ -128,6 +130,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           totalViews: 0,
           viewsWithFeedItems: new Set(),
           totalFeeds: 0,
+          importErrors: 0,
+          failedImportUrls: new Set(),
         },
       }),
     feedItemsOrder: [],
@@ -140,6 +144,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
       totalViews: 0,
       viewsWithFeedItems: new Set(),
       totalFeeds: 0,
+      importErrors: 0,
+      failedImportUrls: new Set(),
     },
     setFeedItemsDict: (itemsDict) => set({ feedItemsDict: itemsDict }),
     setFeedItem: (id, item) =>
@@ -865,6 +871,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                     totalViews: initialChunk.views.length,
                     viewsWithFeedItems: new Set(),
                     totalFeeds: 0,
+                    importErrors: 0,
+                    failedImportUrls: new Set(),
                   },
                 });
               }
@@ -1045,6 +1053,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                   totalViews: 0,
                   viewsWithFeedItems: new Set(),
                   totalFeeds: initialChunk.totalFeeds,
+                  importErrors: 0,
+                  failedImportUrls: new Set(),
                 },
               });
               break;
@@ -1054,12 +1064,22 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               feedsStore.getState().add(initialChunk.feed);
               break;
 
-            case "import-feed-error":
-              // Log import errors (could also track in state for UI display)
+            case "import-feed-error": {
               console.error(
                 `Import error for ${initialChunk.feedUrl}: ${initialChunk.error}`,
               );
+              const currentProgress = get().progressState;
+              const newFailedUrls = new Set(currentProgress.failedImportUrls);
+              newFailedUrls.add(initialChunk.feedUrl);
+              set({
+                progressState: {
+                  ...currentProgress,
+                  importErrors: currentProgress.importErrors + 1,
+                  failedImportUrls: newFailedUrls,
+                },
+              });
               break;
+            }
 
             case "error":
               console.error("Initial data error:", initialChunk.message);
@@ -1203,6 +1223,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 totalViews: 0,
                 viewsWithFeedItems: new Set(),
                 totalFeeds: chunk.totalFeeds,
+                importErrors: 0,
+                failedImportUrls: new Set(),
               },
             });
             break;

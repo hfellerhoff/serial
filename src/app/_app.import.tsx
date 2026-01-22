@@ -8,6 +8,7 @@ import {
   GlobeIcon,
   MinusIcon,
   PlayCircleIcon,
+  XIcon,
   YoutubeIcon,
 } from "lucide-react";
 import { useRef, useState } from "react";
@@ -16,7 +17,6 @@ import { getInitialFeedDataFromFileInputElement } from "../components/feed/impor
 import type { FeedPlatform } from "~/server/db/schema";
 import type { ImportFeedDataItem } from "../components/feed/import/utils/shared";
 import { ImportLoading } from "~/components/ImportLoading";
-import { useFetchFeedItemsStatus } from "~/lib/data/store";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -26,6 +26,7 @@ import {
   TooltipTrigger,
 } from "~/components/ui/tooltip";
 import { useFeeds } from "~/lib/data/feeds";
+import { useFetchFeedItemsStatus, useProgressState } from "~/lib/data/store";
 import { dataSubscriptionActions } from "~/lib/data/useDataSubscription";
 
 function PlatformIcon({ platform }: { platform: FeedPlatform }) {
@@ -59,7 +60,9 @@ function EditFeedsPage() {
 
   const { feeds } = useFeeds();
   const fetchStatus = useFetchFeedItemsStatus();
+  const progressState = useProgressState();
   const isFetchingRss = fetchStatus === "fetching";
+  const failedImportUrls = progressState.failedImportUrls;
 
   const isPostImportScreen = isImportComplete || hasStartedImport;
 
@@ -299,6 +302,18 @@ function EditFeedsPage() {
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   Imported Successfully!
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          {isPostImportScreen &&
+                            channel.shouldImport &&
+                            failedImportUrls.has(channel.feedUrl) && (
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <XIcon size={20} />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  Failed to import
                                 </TooltipContent>
                               </Tooltip>
                             )}

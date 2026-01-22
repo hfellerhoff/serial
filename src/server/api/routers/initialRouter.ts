@@ -942,7 +942,7 @@ export const streamingImport = protectedProcedure
   )
   .handler(async ({ context, input }) => {
     const channel = getUserChannel(context.user.id);
-    const BATCH_SIZE = 64;
+    const BATCH_SIZE = 16;
 
     if (!input.feeds.length) {
       await publisher.publish(channel, {
@@ -966,59 +966,84 @@ export const streamingImport = protectedProcedure
 
     // Worker function: insert feed + fetch RSS content
     async function processFeed(feedInput: (typeof input.feeds)[0]) {
-      // 1. Insert feed within a transaction
-      const insertResult = await context.db.transaction(async (tx) => {
-        return await insertFeedWithCategories(tx, context.user.id, feedInput);
+      const IMPORT_TIMEOUT_MS = 15_000; // 10 seconds
+
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error("Import timed out")),
+          IMPORT_TIMEOUT_MS,
+        );
       });
 
-      if (!insertResult.success) {
+      const importPromise = (async () => {
+        // 1. Insert feed within a transaction
+        const insertResult = await context.db.transaction(async (tx) => {
+          return await insertFeedWithCategories(tx, context.user.id, feedInput);
+        });
+
+        if (!insertResult.success) {
+          await publisher.publish(channel, {
+            source: "initial",
+            chunk: {
+              type: "import-feed-error",
+              feedUrl: feedInput.feedUrl,
+              error: insertResult.error,
+            },
+          });
+          return { success: false as const, feedUrl: feedInput.feedUrl };
+        }
+
+        // 2. Publish that feed was inserted
+        await publisher.publish(channel, {
+          source: "initial",
+          chunk: {
+            type: "import-feed-inserted",
+            feedUrl: feedInput.feedUrl,
+            feedId: insertResult.feedId,
+            feed: insertResult.feed,
+          },
+        });
+
+        // Track successful feed for later
+        successfulFeeds.push({
+          feedId: insertResult.feedId,
+          feed: insertResult.feed as typeof feeds.$inferSelect,
+        });
+
+        // 3. Immediately fetch RSS content for this feed
+        for await (const feedResult of fetchAndInsertFeedData(context, [
+          insertResult.feed as typeof feeds.$inferSelect,
+        ])) {
+          await publisher.publish(channel, {
+            source: "initial",
+            chunk: {
+              type: "feed-status",
+              feedId: feedResult.id,
+              status: feedResult.status,
+            },
+          });
+        }
+
+        return {
+          success: true as const,
+          feedUrl: feedInput.feedUrl,
+          feedId: insertResult.feedId,
+        };
+      })();
+
+      try {
+        return await Promise.race([importPromise, timeoutPromise]);
+      } catch (error) {
         await publisher.publish(channel, {
           source: "initial",
           chunk: {
             type: "import-feed-error",
             feedUrl: feedInput.feedUrl,
-            error: insertResult.error,
+            error: error instanceof Error ? error.message : "Import timed out",
           },
         });
         return { success: false as const, feedUrl: feedInput.feedUrl };
       }
-
-      // 2. Publish that feed was inserted
-      await publisher.publish(channel, {
-        source: "initial",
-        chunk: {
-          type: "import-feed-inserted",
-          feedUrl: feedInput.feedUrl,
-          feedId: insertResult.feedId,
-          feed: insertResult.feed,
-        },
-      });
-
-      // Track successful feed for later
-      successfulFeeds.push({
-        feedId: insertResult.feedId,
-        feed: insertResult.feed as typeof feeds.$inferSelect,
-      });
-
-      // 3. Immediately fetch RSS content for this feed
-      for await (const feedResult of fetchAndInsertFeedData(context, [
-        insertResult.feed as typeof feeds.$inferSelect,
-      ])) {
-        await publisher.publish(channel, {
-          source: "initial",
-          chunk: {
-            type: "feed-status",
-            feedId: feedResult.id,
-            status: feedResult.status,
-          },
-        });
-      }
-
-      return {
-        success: true as const,
-        feedUrl: feedInput.feedUrl,
-        feedId: insertResult.feedId,
-      };
     }
 
     // Process all feeds through worker pool
