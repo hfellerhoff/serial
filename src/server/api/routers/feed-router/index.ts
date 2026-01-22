@@ -111,7 +111,7 @@ export const createFromSubscriptionImport = protectedProcedure
     }
 
     // Process feeds in small batches to avoid overwhelming the database
-    const BATCH_SIZE = 8;
+    const BATCH_SIZE = 32;
     const feedChunks = prepareArrayChunks(input.feeds, BATCH_SIZE);
     const allResults: BulkImportFromFileResult[] = [];
 

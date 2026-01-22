@@ -942,7 +942,7 @@ export const streamingImport = protectedProcedure
   )
   .handler(async ({ context, input }) => {
     const channel = getUserChannel(context.user.id);
-    const BATCH_SIZE = 8;
+    const BATCH_SIZE = 32;
 
     if (!input.feeds.length) {
       await publisher.publish(channel, {
