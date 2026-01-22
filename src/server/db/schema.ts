@@ -112,7 +112,11 @@ export const feeds = sqliteTable(
       .$default(() => new Date())
       .notNull(),
   },
-  (example) => [index("feed_name_idx").on(example.name)],
+  (example) => [
+    index("feed_name_idx").on(example.name),
+    index("feed_user_id_idx").on(example.userId),
+    index("feed_user_id_url_idx").on(example.userId, example.url),
+  ],
 );
 export const platformsSchema = z.enum([
   "youtube",
@@ -174,6 +178,18 @@ export const feedItems = sqliteTable(
   (example) => [
     index("feed_item_id_idx").on(example.id),
     unique().on(example.url, example.feedId),
+    index("feed_item_feed_id_posted_at_idx").on(
+      example.feedId,
+      example.postedAt,
+    ),
+    index("feed_item_feed_id_is_watched_idx").on(
+      example.feedId,
+      example.isWatched,
+    ),
+    index("feed_item_feed_id_is_watch_later_idx").on(
+      example.feedId,
+      example.isWatchLater,
+    ),
   ],
 );
 export const feedItemSchema = createSelectSchema(feedItems);
@@ -204,7 +220,10 @@ export const contentCategories = sqliteTable(
       .$default(() => new Date())
       .notNull(),
   },
-  (example) => [index("content_categories_name_idx").on(example.name)],
+  (example) => [
+    index("content_categories_name_idx").on(example.name),
+    index("content_categories_user_id_idx").on(example.userId),
+  ],
 );
 export const contentCategorySchema = createSelectSchema(contentCategories);
 export type DatabaseContentCategory = typeof contentCategories.$inferSelect;
@@ -219,7 +238,10 @@ export const feedCategories = sqliteTable(
       .notNull()
       .references(() => contentCategories.id, { onDelete: "cascade" }),
   },
-  (table) => [primaryKey({ columns: [table.feedId, table.categoryId] })],
+  (table) => [
+    primaryKey({ columns: [table.feedId, table.categoryId] }),
+    index("feed_categories_category_id_idx").on(table.categoryId),
+  ],
 );
 export const feedCategorySchema = createSelectSchema(feedCategories);
 export type DatabaseFeedCategory = typeof feedCategories.$inferSelect;
@@ -270,7 +292,11 @@ export const views = sqliteTable(
       .$default(() => new Date())
       .notNull(),
   },
-  (example) => [index("view_name_idx").on(example.name)],
+  (example) => [
+    index("view_name_idx").on(example.name),
+    index("view_user_id_idx").on(example.userId),
+    index("view_user_id_placement_idx").on(example.userId, example.placement),
+  ],
 );
 
 export const viewSchema = createSelectSchema(views);
@@ -296,7 +322,10 @@ export const viewCategories = sqliteTable(
       onDelete: "cascade",
     }),
   },
-  (table) => [primaryKey({ columns: [table.viewId, table.categoryId] })],
+  (table) => [
+    primaryKey({ columns: [table.viewId, table.categoryId] }),
+    index("view_categories_view_id_idx").on(table.viewId),
+  ],
 );
 export type DatabaseViewCategory = typeof viewCategories.$inferSelect;
 

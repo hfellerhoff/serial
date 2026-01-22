@@ -97,6 +97,21 @@ export type RevalidateViewChunk =
   | { type: "view-feeds"; viewId: number; feedIds: number[] }
   | { type: "error"; message: string; phase: string };
 
+function buildFeedCategoriesMap(
+  allFeedCategories: DatabaseFeedCategory[],
+): Map<number, number[]> {
+  const map = new Map<number, number[]>();
+  for (const fc of allFeedCategories) {
+    const existing = map.get(fc.feedId);
+    if (existing) {
+      existing.push(fc.categoryId);
+    } else {
+      map.set(fc.feedId, [fc.categoryId]);
+    }
+  }
+  return map;
+}
+
 /**
  * Compute which feeds belong to a view based on categories and content type.
  * This replicates client-side logic from useCheckFeedBelongsToView.
@@ -107,8 +122,12 @@ function computeFeedsForView(
   allFeedCategories: DatabaseFeedCategory[],
   customViews: ApplicationView[],
   customViewCategoryIds: Set<number>,
+  feedCategoriesMap?: Map<number, number[]>,
 ): number[] {
   const feedIds: number[] = [];
+
+  const categoryMap =
+    feedCategoriesMap ?? buildFeedCategoriesMap(allFeedCategories);
 
   for (const feed of allFeeds) {
     // Check if feed's content type is compatible with the view
@@ -120,10 +139,7 @@ function computeFeedsForView(
       continue;
     }
 
-    // Get categories this feed belongs to
-    const feedCategoryIds = allFeedCategories
-      .filter((fc) => fc.feedId === feed.id)
-      .map((fc) => fc.categoryId);
+    const feedCategoryIds = categoryMap.get(feed.id) ?? [];
 
     // For Uncategorized view, include feeds that are NOT in any custom view category
     // or feeds that are in the Uncategorized view's category list
@@ -269,18 +285,20 @@ async function* fetchContentForViews(
   viewList: ApplicationView[],
   params: FetchContentForViewParams,
 ) {
-  const viewIds = viewList.map((view) => view.id);
-  const viewPromises = viewList.map((view) =>
-    fetchContentForView(context, view, params),
-  );
+  const pendingPromises = new Map<number, Promise<ViewDataChunk>>();
 
-  while (viewPromises.length > 0) {
-    const result = await Promise.any(Array.from(viewPromises));
+  for (const view of viewList) {
+    // Wrap each promise to include viewId resolution tracking
+    const promise = fetchContentForView(context, view, params);
+    pendingPromises.set(view.id, promise);
+  }
 
-    const resultIndex = viewIds.findIndex((id) => id === result.viewId);
-    void viewPromises.splice(resultIndex, 1);
-    viewIds.splice(resultIndex, 1);
+  while (pendingPromises.size > 0) {
+    const result = await Promise.any(pendingPromises.values());
 
+    if (result.viewId !== undefined) {
+      pendingPromises.delete(result.viewId);
+    }
     yield result;
   }
 
@@ -542,6 +560,8 @@ function buildFeedIdToViewIdsMap(
 ): Map<number, number[]> {
   const feedIdToViewIds = new Map<number, number[]>();
 
+  const feedCategoriesMap = buildFeedCategoriesMap(feedCategoriesList);
+
   for (const view of allViews) {
     const feedIdsForView = computeFeedsForView(
       view,
@@ -549,11 +569,16 @@ function buildFeedIdToViewIdsMap(
       feedCategoriesList,
       customViews,
       customViewCategoryIds,
+      feedCategoriesMap,
     );
 
     for (const feedId of feedIdsForView) {
-      const existingViewIds = feedIdToViewIds.get(feedId) ?? [];
-      feedIdToViewIds.set(feedId, [...existingViewIds, view.id]);
+      const existingViewIds = feedIdToViewIds.get(feedId);
+      if (existingViewIds) {
+        existingViewIds.push(view.id);
+      } else {
+        feedIdToViewIds.set(feedId, [view.id]);
+      }
     }
   }
 
@@ -593,6 +618,8 @@ async function publishViewFeedsChunks(
     ? new Map<number, number[]>()
     : undefined;
 
+  const feedCategoriesMap = buildFeedCategoriesMap(feedCategoriesList);
+
   for (const view of allViews) {
     const feedIdsForView = computeFeedsForView(
       view,
@@ -600,6 +627,7 @@ async function publishViewFeedsChunks(
       feedCategoriesList,
       customViews,
       customViewCategoryIds,
+      feedCategoriesMap,
     );
 
     await publisher.publish(channel, {
@@ -613,8 +641,12 @@ async function publishViewFeedsChunks(
 
     if (feedIdToViewIds) {
       for (const feedId of feedIdsForView) {
-        const existingViewIds = feedIdToViewIds.get(feedId) ?? [];
-        feedIdToViewIds.set(feedId, [...existingViewIds, view.id]);
+        const existingViewIds = feedIdToViewIds.get(feedId);
+        if (existingViewIds) {
+          existingViewIds.push(view.id);
+        } else {
+          feedIdToViewIds.set(feedId, [view.id]);
+        }
       }
     }
   }
@@ -1742,6 +1774,7 @@ export const getAllByView = protectedProcedure
       } as GetByViewChunk;
 
       // Step 3: Yield view-feeds chunks for each view
+      const feedCategoriesMap = buildFeedCategoriesMap(feedCategoriesList);
       for (const view of allViews) {
         const feedIdsForView = computeFeedsForView(
           view,
@@ -1749,6 +1782,7 @@ export const getAllByView = protectedProcedure
           feedCategoriesList,
           customViews,
           customViewCategoryIds,
+          feedCategoriesMap,
         );
 
         yield {
@@ -1852,6 +1886,7 @@ export const revalidateView = protectedProcedure
     } as RevalidateViewChunk;
 
     // Step 3: Yield view-feeds chunks for each view
+    const feedCategoriesMap = buildFeedCategoriesMap(feedCategoriesList);
     for (const view of allViews) {
       const feedIdsForView = computeFeedsForView(
         view,
@@ -1859,6 +1894,7 @@ export const revalidateView = protectedProcedure
         feedCategoriesList,
         customViews,
         customViewCategoryIds,
+        feedCategoriesMap,
       );
 
       yield {

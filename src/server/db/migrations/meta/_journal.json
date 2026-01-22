@@ -204,6 +204,13 @@
       "when": 1768878628817,
       "tag": "0028_boring_punisher",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1769068206198,
+      "tag": "0029_abandoned_captain_britain",
+      "breakpoints": true
     }
   ]
 }

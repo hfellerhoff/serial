@@ -118,60 +118,54 @@ export async function insertFeedWithCategories(
     };
   }
 
-  // Handle categories
-  const matchingCategories = await db
-    .select()
-    .from(schema.contentCategories)
-    .where(
-      and(
-        inArray(schema.contentCategories.name, feedInput.categories),
-        eq(schema.contentCategories.userId, userId),
-      ),
-    )
-    .all();
+  if (feedInput.categories.length > 0) {
+    const matchingCategories = await db
+      .select()
+      .from(schema.contentCategories)
+      .where(
+        and(
+          inArray(schema.contentCategories.name, feedInput.categories),
+          eq(schema.contentCategories.userId, userId),
+        ),
+      )
+      .all();
 
-  const matchingCategoryNames = matchingCategories.map(
-    (category) => category.name,
-  );
+    const matchingCategoryNames = new Set(
+      matchingCategories.map((category) => category.name),
+    );
 
-  const nonMatchingCategories = feedInput.categories.filter(
-    (category) => !matchingCategoryNames.includes(category),
-  );
+    const nonMatchingCategoryNames = feedInput.categories.filter(
+      (category) => !matchingCategoryNames.has(category),
+    );
 
-  const matchingCategoryPromises = matchingCategories.map(
-    async (matchingCategory) => {
-      const categoryId = matchingCategory.id;
-      return await db.insert(schema.feedCategories).values({
-        feedId: newFeedRow.id,
-        categoryId,
-      });
-    },
-  );
-
-  const nonMatchingCategoryPromises = nonMatchingCategories.map(
-    async (nonMatchingCategory) => {
-      const newContentCategoryList = await db
+    let newCategories: Array<{ id: number }> = [];
+    if (nonMatchingCategoryNames.length > 0) {
+      newCategories = await db
         .insert(schema.contentCategories)
-        .values({
-          name: nonMatchingCategory,
-          userId,
-        })
-        .returning();
-      const newContentCategory = newContentCategoryList[0];
+        .values(
+          nonMatchingCategoryNames.map((name) => ({
+            name,
+            userId,
+          })),
+        )
+        .returning({ id: schema.contentCategories.id });
+    }
 
-      if (!newContentCategory?.id) return;
-
-      await db.insert(schema.feedCategories).values({
+    const feedCategoryValues = [
+      ...matchingCategories.map((c) => ({
         feedId: newFeedRow.id,
-        categoryId: newContentCategory.id,
-      });
-    },
-  );
+        categoryId: c.id,
+      })),
+      ...newCategories.map((c) => ({
+        feedId: newFeedRow.id,
+        categoryId: c.id,
+      })),
+    ];
 
-  await Promise.allSettled([
-    ...matchingCategoryPromises,
-    ...nonMatchingCategoryPromises,
-  ]);
+    if (feedCategoryValues.length > 0) {
+      await db.insert(schema.feedCategories).values(feedCategoryValues);
+    }
+  }
 
   // Parse the feed to ApplicationFeed format
   const [applicationFeed] = parseArrayOfSchema(
