@@ -34,7 +34,7 @@ function DeleteAccountConfirmationSection({
   onCancel: () => void;
 }) {
   const router = useRouter();
-  const { mutate: deleteAccount } = useDeleteAccountMutation();
+  const { mutateAsync: deleteAccount, isPending } = useDeleteAccountMutation();
 
   return (
     <>
@@ -44,7 +44,7 @@ function DeleteAccountConfirmationSection({
       </p>
       <form
         className="grid gap-4"
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
 
           const formValues = new FormData(e.currentTarget);
@@ -56,7 +56,7 @@ function DeleteAccountConfirmationSection({
             return;
           }
 
-          deleteAccount(undefined);
+          await deleteAccount(undefined);
 
           void router.navigate({
             to: "/welcome",
@@ -69,7 +69,7 @@ function DeleteAccountConfirmationSection({
           <Button type="button" onClick={onCancel} variant="outline">
             Cancel
           </Button>
-          <Button type="submit" variant="destructive">
+          <Button type="submit" variant="destructive" disabled={isPending}>
             Delete Account
           </Button>
         </div>

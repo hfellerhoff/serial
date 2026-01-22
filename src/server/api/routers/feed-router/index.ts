@@ -18,6 +18,7 @@ import { fetchNewFeedDetails } from "~/server/rss/fetchFeeds";
 
 type BulkImportFromFileSuccess = {
   feedUrl: string;
+  feedId: number;
   success: true;
 };
 type BulkImportFromFileError = {
@@ -216,6 +217,7 @@ export const createFromSubscriptionImport = protectedProcedure
 
             return {
               feedUrl: newFeed.url,
+              feedId: newFeedRow.id,
               success: true,
             };
           });

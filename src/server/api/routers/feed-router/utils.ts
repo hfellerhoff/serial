@@ -3,7 +3,10 @@ import type { ExtractTablesWithRelations } from "drizzle-orm";
 import type { ResultSet } from "@libsql/client";
 import type { SQLiteTransaction } from "drizzle-orm/sqlite-core";
 
+import type { ApplicationFeed } from "~/server/db/schema";
 import * as schema from "~/server/db/schema";
+import { fetchNewFeedDetails } from "~/server/rss/fetchFeeds";
+import { parseArrayOfSchema } from "~/lib/schemas/utils";
 
 type SerialSchema = typeof schema;
 
@@ -50,4 +53,135 @@ export async function verifyFeedsOwnedByUser({
     );
 
   return userFeeds.length === feedIds.length;
+}
+
+export type InsertFeedWithCategoriesSuccess = {
+  success: true;
+  feedId: number;
+  feed: ApplicationFeed;
+};
+
+export type InsertFeedWithCategoriesError = {
+  success: false;
+  error: string;
+};
+
+export type InsertFeedWithCategoriesResult =
+  | InsertFeedWithCategoriesSuccess
+  | InsertFeedWithCategoriesError;
+
+/**
+ * Insert a feed with its categories, handling both existing and new categories.
+ * This is the core logic extracted from createFromSubscriptionImport.
+ */
+export async function insertFeedWithCategories(
+  db: Transaction,
+  userId: string,
+  feedInput: { feedUrl: string; categories: string[] },
+): Promise<InsertFeedWithCategoriesResult> {
+  const newFeedDetails = await fetchNewFeedDetails(feedInput.feedUrl);
+  const newFeed = newFeedDetails[0];
+
+  if (!newFeed?.url) {
+    return {
+      success: false,
+      error: "Unsupported feed URL",
+    };
+  }
+
+  const existingFeed = await findExistingFeedThatMatches(db, {
+    feedUrl: newFeed.url,
+    userId,
+  });
+
+  if (existingFeed) {
+    return {
+      success: false,
+      error: "Feed already exists",
+    };
+  }
+
+  const newFeeds = await db
+    .insert(schema.feeds)
+    .values({
+      userId,
+      ...newFeed,
+      openLocation: schema.PLATFORM_DEFAULT_OPEN_LOCATION[newFeed.platform],
+    })
+    .returning();
+  const newFeedRow = newFeeds[0];
+
+  if (!newFeedRow) {
+    return {
+      success: false,
+      error: "Couldn't find new feed",
+    };
+  }
+
+  // Handle categories
+  const matchingCategories = await db
+    .select()
+    .from(schema.contentCategories)
+    .where(
+      and(
+        inArray(schema.contentCategories.name, feedInput.categories),
+        eq(schema.contentCategories.userId, userId),
+      ),
+    )
+    .all();
+
+  const matchingCategoryNames = matchingCategories.map(
+    (category) => category.name,
+  );
+
+  const nonMatchingCategories = feedInput.categories.filter(
+    (category) => !matchingCategoryNames.includes(category),
+  );
+
+  const matchingCategoryPromises = matchingCategories.map(
+    async (matchingCategory) => {
+      const categoryId = matchingCategory.id;
+      return await db.insert(schema.feedCategories).values({
+        feedId: newFeedRow.id,
+        categoryId,
+      });
+    },
+  );
+
+  const nonMatchingCategoryPromises = nonMatchingCategories.map(
+    async (nonMatchingCategory) => {
+      const newContentCategoryList = await db
+        .insert(schema.contentCategories)
+        .values({
+          name: nonMatchingCategory,
+          userId,
+        })
+        .returning();
+      const newContentCategory = newContentCategoryList[0];
+
+      if (!newContentCategory?.id) return;
+
+      await db.insert(schema.feedCategories).values({
+        feedId: newFeedRow.id,
+        categoryId: newContentCategory.id,
+      });
+    },
+  );
+
+  await Promise.allSettled([
+    ...matchingCategoryPromises,
+    ...nonMatchingCategoryPromises,
+  ]);
+
+  // Parse the feed to ApplicationFeed format
+  const [applicationFeed] = parseArrayOfSchema(
+    [newFeedRow],
+    schema.feedsSchema,
+  );
+
+  return {
+    success: true,
+    feedId: newFeedRow.id,
+    feed: applicationFeed!,
+  };
 }

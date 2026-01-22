@@ -2,22 +2,21 @@
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
+  AlertTriangleIcon,
   CheckIcon,
-  CircleQuestionMarkIcon,
   ExternalLinkIcon,
   GlobeIcon,
   MinusIcon,
   PlayCircleIcon,
-  TriangleAlertIcon,
   YoutubeIcon,
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { ImportDropzone } from "../components/feed/import/ImportDropzone";
 import { getInitialFeedDataFromFileInputElement } from "../components/feed/import/utils/getInitialFeedDataFromFileInputElement";
-import type { BulkImportFromFileResult } from "~/server/api/routers/feed-router";
 import type { FeedPlatform } from "~/server/db/schema";
 import type { ImportFeedDataItem } from "../components/feed/import/utils/shared";
-import FeedLoading from "~/components/loading";
+import { ImportLoading } from "~/components/ImportLoading";
+import { useFetchFeedItemsStatus } from "~/lib/data/store";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -27,9 +26,7 @@ import {
   TooltipTrigger,
 } from "~/components/ui/tooltip";
 import { useFeeds } from "~/lib/data/feeds";
-import { useCreateFeedsFromSubscriptionImportMutation } from "~/lib/data/feeds/mutations";
-import { useResetFeeds } from "~/lib/data/feeds/store";
-import { useFetchByView, useResetFeedItems } from "~/lib/data/store";
+import { dataSubscriptionActions } from "~/lib/data/useDataSubscription";
 
 function PlatformIcon({ platform }: { platform: FeedPlatform }) {
   switch (platform) {
@@ -53,25 +50,18 @@ function EditFeedsPage() {
   const [feedsFoundFromFile, setFeedsFoundFromFile] = useState<
     ImportFeedDataItem[] | null
   >(null);
-  const [feedResults, setFeedResults] = useState<BulkImportFromFileResult[]>(
-    [],
-  );
-
-  const {
-    mutateAsync: createFeedsFromSubscriptionImportMutation,
-    isPending,
-    isSuccess,
-    reset: resetCreateFeedsMutation,
-  } = useCreateFeedsFromSubscriptionImportMutation();
+  const [hasStartedImport, setHasStartedImport] = useState(false);
+  const [isImportComplete, setIsImportComplete] = useState(false);
 
   const channelImportCount = feedsFoundFromFile?.filter(
     (feed) => feed.shouldImport,
   ).length;
 
   const { feeds } = useFeeds();
-  const resetFeeds = useResetFeeds();
-  const resetFeedItems = useResetFeedItems();
-  const fetchByView = useFetchByView();
+  const fetchStatus = useFetchFeedItemsStatus();
+  const isFetchingRss = fetchStatus === "fetching";
+
+  const isPostImportScreen = isImportComplete || hasStartedImport;
 
   const onSelectFiles = async () => {
     if (!inputElementRef.current) return;
@@ -82,12 +72,23 @@ function EditFeedsPage() {
     inputElementRef.current.value = "";
 
     if (feedResult.success) {
-      setFeedsFoundFromFile(feedResult.data);
+      // Mark already-added feeds as shouldImport: false
+      const feedsWithImportStatus = feedResult.data.map((feed) => ({
+        ...feed,
+        shouldImport: !feeds.some(
+          (existingFeed) => existingFeed.url === feed.feedUrl,
+        ),
+      }));
+      setFeedsFoundFromFile(feedsWithImportStatus);
     }
   };
 
   const onFeedImport = async () => {
     if (!feedsFoundFromFile?.length) return;
+
+    setTimeout(() => {
+      setHasStartedImport(true);
+    }, 500);
 
     const channelsToImport = feedsFoundFromFile
       .filter((channel) => channel.shouldImport)
@@ -96,32 +97,25 @@ function EditFeedsPage() {
         feedUrl: feed.feedUrl,
       }));
 
-    const results = await createFeedsFromSubscriptionImportMutation({
-      feeds: channelsToImport,
-    });
-
-    setFeedResults(results);
-
-    resetFeeds();
-    resetFeedItems();
-
-    void fetchByView();
+    // Use the new streaming import that handles both insert and RSS fetch
+    await dataSubscriptionActions.streamingImport(channelsToImport);
+    setIsImportComplete(true);
   };
 
   const onReset = () => {
     setFeedsFoundFromFile(null);
-    setFeedResults([]);
-    resetCreateFeedsMutation();
+    setHasStartedImport(false);
+    setIsImportComplete(false);
   };
 
-  if (isPending) {
-    return <FeedLoading />;
+  if (isFetchingRss) {
+    return <ImportLoading />;
   }
 
   return (
     <div className="mx-auto max-w-2xl p-6">
       <h2 className="font-mono text-lg">Import Feeds</h2>
-      {!isSuccess && (
+      {!isPostImportScreen && (
         <>
           <p className="mt-2">Serial supports importing:</p>
           <ul className="mb-6 list-disc pl-4">
@@ -144,18 +138,17 @@ function EditFeedsPage() {
           />
         </>
       )}
-      {isSuccess && (
+      {isPostImportScreen && (
         <>
           <p className="mt-2 mb-4">
-            Imported finished! Check below to see the status of specific feed
-            imports.
+            Import finished! Your list has been added.
           </p>
           <div className="flex gap-2">
             <Link to="/">
               <Button>Back to feeds</Button>
             </Link>
             <Button variant="outline" onClick={onReset}>
-              Try again
+              Import more
             </Button>
           </div>
         </>
@@ -165,13 +158,13 @@ function EditFeedsPage() {
         type="file"
         accept="text/csv,.opml"
         className="hidden"
-        multiple={false}
+        multiple
         onChange={onSelectFiles}
       />
       {!!feedsFoundFromFile && (
         <>
           <div className="mt-12">
-            {!isSuccess && (
+            {!isPostImportScreen && (
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">Feeds To Import</h3>
                 <Button
@@ -182,7 +175,13 @@ function EditFeedsPage() {
                       setFeedsFoundFromFile((prevChannels) => {
                         if (!prevChannels) return prevChannels;
                         return prevChannels.map((channel) => {
-                          channel.shouldImport = true;
+                          // Don't enable import for already-added feeds
+                          const isAlreadyAdded = feeds.some(
+                            (feed) => feed.url === channel.feedUrl,
+                          );
+                          if (!isAlreadyAdded) {
+                            channel.shouldImport = true;
+                          }
                           return channel;
                         });
                       });
@@ -211,18 +210,32 @@ function EditFeedsPage() {
                 })
                 .map((channel, i) => {
                   const displayTitle = channel.title ?? channel.feedUrl;
-                  const result = feedResults.find(
-                    (r) => r.feedUrl === channel.feedUrl,
+                  // Check if feed already exists in the feeds store
+                  const isAlreadyAdded = feeds.some(
+                    (feed) => feed.url === channel.feedUrl,
                   );
+                  // Check if feed was imported by looking in the feeds store
+                  const wasImported = isPostImportScreen && isAlreadyAdded;
 
                   return (
                     <div
                       key={displayTitle}
                       className="border-muted/50 flex items-center justify-between border-0 border-t border-solid py-4"
                     >
-                      <span className="bg-background border-foreground/30 text-foreground/50 mr-3 grid size-7 place-items-center rounded border border-solid">
-                        <PlatformIcon platform={channel.platform} />
-                      </span>
+                      {!isPostImportScreen && isAlreadyAdded ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="bg-background border-foreground/30 text-foreground/50 mr-3 grid size-7 place-items-center rounded border border-dashed">
+                              <AlertTriangleIcon size={16} />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Feed already exists</TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <span className="bg-background border-foreground/30 text-foreground/50 mr-3 grid size-7 place-items-center rounded border border-solid">
+                          <PlatformIcon platform={channel.platform} />
+                        </span>
+                      )}
                       <label
                         className="line-clamp-1 flex-1"
                         htmlFor={`channel ${displayTitle}`}
@@ -230,7 +243,7 @@ function EditFeedsPage() {
                         {displayTitle}
                       </label>
 
-                      {!isSuccess && (
+                      {!isPostImportScreen && (
                         <span className="space-x-1 px-2">
                           {channel.categories.map((category) => (
                             <Badge key={category} variant="outline">
@@ -257,7 +270,7 @@ function EditFeedsPage() {
                           </Tooltip>
                         )}
                         <div className="flex items-center justify-between gap-2">
-                          {!isSuccess && (
+                          {!isPostImportScreen && (
                             <Checkbox
                               id={`channel ${displayTitle}`}
                               checked={channel.shouldImport}
@@ -274,15 +287,12 @@ function EditFeedsPage() {
                                   return [...prevChannels];
                                 });
                               }}
-                              disabled={
-                                !!feeds.find(
-                                  (feed) => feed.url === channel.feedUrl,
-                                )
-                              }
+                              disabled={isAlreadyAdded}
                             />
                           )}
-                          {!!result &&
-                            (result.success ? (
+                          {isPostImportScreen &&
+                            wasImported &&
+                            channel.shouldImport && (
                               <Tooltip>
                                 <TooltipTrigger>
                                   <CheckIcon size={20} />
@@ -291,40 +301,17 @@ function EditFeedsPage() {
                                   Imported Successfully!
                                 </TooltipContent>
                               </Tooltip>
-                            ) : (
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <TriangleAlertIcon size={20} />
-                                </TooltipTrigger>
-                                <TooltipContent>{result.error}</TooltipContent>
-                              </Tooltip>
-                            ))}
-                          {!result &&
-                            !!feedResults.length &&
-                            channel.shouldImport && (
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <CircleQuestionMarkIcon size={20} />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  We don&apos;t know what happened with this
-                                  import. Feel free to file a bug report with
-                                  this feed URL!
-                                </TooltipContent>
-                              </Tooltip>
                             )}
-                          {!result &&
-                            !!feedResults.length &&
-                            !channel.shouldImport && (
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <MinusIcon size={20} />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  This feed was excluded from the import.
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
+                          {isPostImportScreen && !channel.shouldImport && (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <MinusIcon size={20} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                This feed was excluded from the import.
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -332,7 +319,7 @@ function EditFeedsPage() {
                 })}
             </div>
           </div>
-          {!isSuccess && (
+          {!isPostImportScreen && (
             <div className="fixed inset-x-0 bottom-0">
               <div className="mx-auto box-border max-w-2xl p-6">
                 <Button

@@ -23,7 +23,7 @@ export type PaginationState = {
 };
 
 export type ProgressState = {
-  fetchType: "idle" | "initial" | "refresh";
+  fetchType: "idle" | "initial" | "refresh" | "import";
   metadataLoaded: boolean;
   totalViews: number;
   viewsWithFeedItems: Set<number>;
@@ -853,18 +853,21 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               viewsStore.setState({ fetchStatus: "success" });
               // Show UI immediately when views are received
               // Initialize progress tracking for initial fetch
-              set({
-                hasInitialData: true,
-                fetchFeedItemsStatus: "fetching",
-                feedStatusDict: {}, // Clear stale entries from previous fetch
-                progressState: {
-                  fetchType: "initial",
-                  metadataLoaded: false,
-                  totalViews: initialChunk.views.length,
-                  viewsWithFeedItems: new Set(),
-                  totalFeeds: 0,
-                },
-              });
+              // Only reset loading state if this is a true initial load (not a metadata refresh)
+              if (!get().hasInitialData) {
+                set({
+                  hasInitialData: true,
+                  fetchFeedItemsStatus: "fetching",
+                  feedStatusDict: {}, // Clear stale entries from previous fetch
+                  progressState: {
+                    fetchType: "initial",
+                    metadataLoaded: false,
+                    totalViews: initialChunk.views.length,
+                    viewsWithFeedItems: new Set(),
+                    totalFeeds: 0,
+                  },
+                });
+              }
               break;
 
             case "feeds":
@@ -950,7 +953,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               }
 
               set({
-                // Note: fetchFeedItemsStatus is set to "success" when all feed-status chunks arrive
+                fetchFeedItemsStatus: "success",
                 fetchFeedItemsLastFetchedAt: Date.now(),
                 fetchedVisibilityFilters: fetchedFilters,
                 viewPaginationState: paginationState,
@@ -1024,6 +1027,39 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               }
               break;
             }
+
+            case "view-items":
+              // Items already added to feedItemsDict via feed-items chunk
+              // view-items provides view mapping (for future use)
+              break;
+
+            case "import-start":
+              // Initialize progress tracking for streaming import
+              set({
+                hasInitialData: true,
+                fetchFeedItemsStatus: "fetching",
+                feedStatusDict: {},
+                progressState: {
+                  fetchType: "import",
+                  metadataLoaded: false,
+                  totalViews: 0,
+                  viewsWithFeedItems: new Set(),
+                  totalFeeds: initialChunk.totalFeeds,
+                },
+              });
+              break;
+
+            case "import-feed-inserted":
+              // Add the newly inserted feed to the feeds store
+              feedsStore.getState().add(initialChunk.feed);
+              break;
+
+            case "import-feed-error":
+              // Log import errors (could also track in state for UI display)
+              console.error(
+                `Import error for ${initialChunk.feedUrl}: ${initialChunk.error}`,
+              );
+              break;
 
             case "error":
               console.error("Initial data error:", initialChunk.message);

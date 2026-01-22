@@ -160,6 +160,10 @@ export const dataSubscriptionActions = {
     orpcRouterClient.initial.requestInitialData(
       visibilityFilter ? { visibilityFilter } : undefined,
     ),
+  requestImportedData: (newFeedIds: number[]) =>
+    orpcRouterClient.initial.requestImportedData({ newFeedIds }),
+  streamingImport: (feeds: Array<{ feedUrl: string; categories: string[] }>) =>
+    orpcRouterClient.initial.streamingImport({ feeds }),
   requestItemsByVisibility: (
     viewId: number,
     visibilityFilter: VisibilityFilter,

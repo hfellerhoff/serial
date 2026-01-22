@@ -1,22 +1,16 @@
 import { getInitialFeedDataFromCSVInput } from "./getInitialFeedDataFromCSVInput";
 import { getInitialFeedDataFromOPMLInput } from "./getInitialFeedDataFromOPMLInput";
-import { formError } from "./shared";
-import type { ImportFeedDataFromFileResult } from "./shared";
+import { formError, formSuccess } from "./shared";
+import type {
+  ImportFeedDataFromFileResult,
+  ImportFeedDataItem,
+} from "./shared";
 
-export async function getInitialFeedDataFromFileInputElement(
-  inputElement: HTMLInputElement,
+async function getInitialFeedDataFromFile(
+  file: File,
 ): Promise<ImportFeedDataFromFileResult> {
-  if (!inputElement.files) {
-    return formError("Couldn't find a file.");
-  }
-
-  const file = inputElement.files[0];
-  if (!file) {
-    return formError("Couldn't find a file.");
-  }
-
   const fileContent = await file.text();
-  const [, fileExtension] = file.name.split(".");
+  const fileExtension = file.name.split(".").pop()?.toLowerCase();
 
   // subscriptions.csv
   if (fileExtension === "csv") {
@@ -30,6 +24,40 @@ export async function getInitialFeedDataFromFileInputElement(
 
   // rest
   else {
-    return formError("This file type is not supported.");
+    return formError(`File "${file.name}" has an unsupported file type.`);
   }
+}
+
+export async function getInitialFeedDataFromFileInputElement(
+  inputElement: HTMLInputElement,
+): Promise<ImportFeedDataFromFileResult> {
+  if (!inputElement.files || inputElement.files.length === 0) {
+    return formError("Couldn't find a file.");
+  }
+
+  const files = Array.from(inputElement.files);
+  const results = await Promise.all(files.map(getInitialFeedDataFromFile));
+
+  const errors: string[] = [];
+  const allFeeds: ImportFeedDataItem[] = [];
+  const seenUrls = new Set<string>();
+
+  for (const result of results) {
+    if (!result.success) {
+      errors.push(result.error);
+    } else {
+      for (const feed of result.data) {
+        if (!seenUrls.has(feed.feedUrl)) {
+          seenUrls.add(feed.feedUrl);
+          allFeeds.push(feed);
+        }
+      }
+    }
+  }
+
+  if (allFeeds.length === 0 && errors.length > 0) {
+    return formError(errors.join(" "));
+  }
+
+  return formSuccess(allFeeds);
 }
