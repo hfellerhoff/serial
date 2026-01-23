@@ -115,6 +115,12 @@
     --sidebar-accent-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
     --sidebar-border: var(--sc-sb-hue) var(--sc-sb-sat) var(--sc-lgt);
     --sidebar-ring: var(--mf-hue) var(--mf-sat) var(--rg-lgt);
+
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
   }
 
   .dark {
@@ -180,6 +186,12 @@
     --sidebar-accent-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
     --sidebar-border: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
     --sidebar-ring: var(--mf-hue) var(--mf-sat) var(--rg-lgt);
+
+    --chart-1: 220 70% 60%;
+    --chart-2: 160 60% 55%;
+    --chart-3: 30 80% 60%;
+    --chart-4: 280 65% 65%;
+    --chart-5: 340 75% 60%;
   }
 
   /* .arc {

@@ -1,11 +1,11 @@
 import { ORPCError } from "@orpc/server";
-import { count, eq } from "drizzle-orm";
+import { and, count, eq, gte, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { isPublicSignupEnabled } from "~/lib/constants";
 import { protectedProcedure, publicProcedure } from "~/server/orpc/base";
 import { auth } from "~/server/auth";
-import { appConfig, user } from "~/server/db/schema";
+import { appConfig, session, user } from "~/server/db/schema";
 import { db } from "~/server/db";
 
 // Admin procedure that requires admin role
@@ -217,3 +217,84 @@ export const getIsPublicSignupEnabled = publicProcedure.handler(async () => {
     isFirstUser,
   };
 });
+
+// Time range schema for stats
+const timeRangeSchema = z.enum(["30d", "1y", "all"]);
+
+function getTimeRangeParams(timeRange: z.infer<typeof timeRangeSchema>) {
+  const now = new Date();
+  switch (timeRange) {
+    case "30d":
+      return {
+        startDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+        groupBy: "%Y-%m-%d",
+      };
+    case "1y":
+      return {
+        startDate: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000),
+        groupBy: "%Y-%W",
+      };
+    case "all":
+      return {
+        startDate: null,
+        groupBy: "%Y-%m",
+      };
+  }
+}
+
+// Get sign-up stats grouped by time period
+export const getSignupStats = adminProcedure
+  .input(z.object({ timeRange: timeRangeSchema }))
+  .handler(async ({ input }) => {
+    const { startDate, groupBy } = getTimeRangeParams(input.timeRange);
+
+    const dateGroup = sql<string>`strftime(${groupBy}, datetime(${user.createdAt}, 'unixepoch'))`;
+
+    const query = db
+      .select({
+        date: dateGroup,
+        count: count(),
+      })
+      .from(user);
+
+    const results = startDate
+      ? await query
+          .where(gte(user.createdAt, startDate))
+          .groupBy(dateGroup)
+          .orderBy(dateGroup)
+          .all()
+      : await query.groupBy(dateGroup).orderBy(dateGroup).all();
+
+    return {
+      stats: results.map((r) => ({ date: r.date, count: r.count })),
+    };
+  });
+
+// Get sign-in stats grouped by time period
+export const getSigninStats = adminProcedure
+  .input(z.object({ timeRange: timeRangeSchema }))
+  .handler(async ({ input }) => {
+    const { startDate, groupBy } = getTimeRangeParams(input.timeRange);
+
+    const dateGroup = sql<string>`strftime(${groupBy}, datetime(${session.createdAt}, 'unixepoch'))`;
+
+    // Build where clause - always exclude impersonation sessions
+    const whereClause = startDate
+      ? and(isNull(session.impersonatedBy), gte(session.createdAt, startDate))
+      : isNull(session.impersonatedBy);
+
+    const results = await db
+      .select({
+        date: dateGroup,
+        count: count(),
+      })
+      .from(session)
+      .where(whereClause)
+      .groupBy(dateGroup)
+      .orderBy(dateGroup)
+      .all();
+
+    return {
+      stats: results.map((r) => ({ date: r.date, count: r.count })),
+    };
+  });

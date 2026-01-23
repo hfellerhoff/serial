@@ -27,6 +27,7 @@ import { Route as ApiAuthSplatRouteImport } from './app/api/auth.$'
 import { Route as WebReleasesSlugRouteImport } from './app/_web.releases.$slug'
 import { Route as AppWatchIdRouteImport } from './app/_app.watch.$id'
 import { Route as AppReadIdRouteImport } from './app/_app.read.$id'
+import { Route as AppAdminInfoRouteImport } from './app/_app.admin.info'
 import { Route as AppAdminUserIdRouteImport } from './app/_app.admin.user.$id'
 
 const AuthRoute = AuthRouteImport.update({
@@ -117,6 +118,11 @@ const AppReadIdRoute = AppReadIdRouteImport.update({
   path: '/read/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminInfoRoute = AppAdminInfoRouteImport.update({
+  id: '/admin/info',
+  path: '/admin/info',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminUserIdRoute = AppAdminUserIdRouteImport.update({
   id: '/admin/user/$id',
   path: '/admin/user/$id',
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/admin/info': typeof AppAdminInfoRoute
   '/read/$id': typeof AppReadIdRoute
   '/watch/$id': typeof AppWatchIdRoute
   '/releases/$slug': typeof WebReleasesSlugRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/admin/info': typeof AppAdminInfoRoute
   '/read/$id': typeof AppReadIdRoute
   '/watch/$id': typeof AppWatchIdRoute
   '/releases/$slug': typeof WebReleasesSlugRoute
@@ -174,6 +182,7 @@ export interface FileRoutesById {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/admin/info': typeof AppAdminInfoRoute
   '/_app/read/$id': typeof AppReadIdRoute
   '/_app/watch/$id': typeof AppWatchIdRoute
   '/_web/releases/$slug': typeof WebReleasesSlugRoute
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/admin/info'
     | '/read/$id'
     | '/watch/$id'
     | '/releases/$slug'
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/admin/info'
     | '/read/$id'
     | '/watch/$id'
     | '/releases/$slug'
@@ -235,6 +246,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/_app/'
+    | '/_app/admin/info'
     | '/_app/read/$id'
     | '/_app/watch/$id'
     | '/_web/releases/$slug'
@@ -382,6 +394,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReadIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/info': {
+      id: '/_app/admin/info'
+      path: '/admin/info'
+      fullPath: '/admin/info'
+      preLoaderRoute: typeof AppAdminInfoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/user/$id': {
       id: '/_app/admin/user/$id'
       path: '/admin/user/$id'
@@ -396,6 +415,7 @@ interface AppRouteChildren {
   AppFeedsRoute: typeof AppFeedsRoute
   AppImportRoute: typeof AppImportRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAdminInfoRoute: typeof AppAdminInfoRoute
   AppReadIdRoute: typeof AppReadIdRoute
   AppWatchIdRoute: typeof AppWatchIdRoute
   AppAdminIndexRoute: typeof AppAdminIndexRoute
@@ -406,6 +426,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFeedsRoute: AppFeedsRoute,
   AppImportRoute: AppImportRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAdminInfoRoute: AppAdminInfoRoute,
   AppReadIdRoute: AppReadIdRoute,
   AppWatchIdRoute: AppWatchIdRoute,
   AppAdminIndexRoute: AppAdminIndexRoute,

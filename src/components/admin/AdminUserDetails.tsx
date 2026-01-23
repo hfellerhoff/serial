@@ -48,7 +48,7 @@ export function AdminUserDetails({ data }: AdminUserDetailsProps) {
       <Link to="/admin">
         <Button variant="ghost" size="sm" className="-ml-2">
           <ArrowLeftIcon className="mr-2" size={16} />
-          Back to Users
+          Admin Home
         </Button>
       </Link>
 
