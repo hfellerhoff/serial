@@ -1,3 +1,4 @@
+import * as adminRouter from "~/server/api/routers/adminRouter";
 import * as feedRouter from "~/server/api/routers/feed-router";
 import * as feedItemRouter from "~/server/api/routers/feedItemRouter";
 import * as initialRouter from "~/server/api/routers/initialRouter";
@@ -9,6 +10,7 @@ import * as contentCategoriesRouter from "~/server/api/routers/contentCategories
 import * as viewRouter from "~/server/api/routers/viewRouter";
 
 export const orpcRouter = {
+  admin: adminRouter,
   feed: feedRouter,
   feedItem: feedItemRouter,
   initial: initialRouter,

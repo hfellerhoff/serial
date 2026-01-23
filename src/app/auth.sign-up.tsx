@@ -11,9 +11,11 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { signUp } from "~/lib/auth-client";
 import { AuthHeader } from "~/components/auth/AuthHeader";
+import { orpcRouterClient } from "~/lib/orpc";
 
 export const Route = createFileRoute("/auth/sign-up")({
   component: SignUp,
+  loader: () => orpcRouterClient.admin.getIsPublicSignupEnabled(),
 });
 
 function SignUp() {
@@ -24,9 +26,38 @@ function SignUp() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
+  const signupStatus = Route.useLoaderData();
+  const signupsEnabled = signupStatus.enabled === true;
+
+  if (!signupsEnabled) {
+    return (
+      <AuthHeader>
+        <div className="flex flex-col items-center gap-4 text-center">
+          <p className="text-muted-foreground">
+            Sign ups are currently disabled.
+          </p>
+          <Link to="/auth/sign-in">
+            <Button variant="outline">Go to Sign In</Button>
+          </Link>
+        </div>
+      </AuthHeader>
+    );
+  }
+
   return (
     <>
-      <AuthHeader removePadding></AuthHeader>
+      <AuthHeader removePadding={!signupStatus.isFirstUser}>
+        {signupStatus.isFirstUser && (
+          <div className="text-center">
+            <div className="text-center font-semibold">
+              Admin Account Creation
+            </div>
+            <div className="text-muted-foreground mx-auto max-w-2xs pt-1">
+              Welcome to Serial! Let&apos;s create your first account.
+            </div>
+          </div>
+        )}
+      </AuthHeader>
       <CardContent>
         <div className="grid gap-4">
           <div className="grid gap-2">

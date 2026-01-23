@@ -2,6 +2,7 @@
 // https://orm.drizzle.team/docs/sql-schema-declaration
 
 import { createId } from "@paralleldrive/cuid2";
+import { relations } from "drizzle-orm";
 import {
   index,
   integer,
@@ -44,6 +45,10 @@ export const user = sqliteTable("user", {
   image: text("image"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  role: text("role"),
+  banned: integer("banned", { mode: "boolean" }).default(false),
+  banReason: text("ban_reason"),
+  banExpires: integer("ban_expires", { mode: "timestamp_ms" }),
 });
 
 export const session = sqliteTable("session", {
@@ -57,6 +62,7 @@ export const session = sqliteTable("session", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
+  impersonatedBy: text("impersonated_by"),
 });
 
 export const account = sqliteTable("account", {
@@ -89,6 +95,26 @@ export const verification = sqliteTable("verification", {
   createdAt: integer("created_at", { mode: "timestamp" }),
   updatedAt: integer("updated_at", { mode: "timestamp" }),
 });
+
+export const userRelations = relations(user, ({ many }) => ({
+  sessions: many(session),
+  accounts: many(account),
+}));
+
+export const sessionRelations = relations(session, ({ one }) => ({
+  user: one(user, {
+    fields: [session.userId],
+    references: [user.id],
+  }),
+}));
+
+export const accountRelations = relations(account, ({ one }) => ({
+  user: one(user, {
+    fields: [account.userId],
+    references: [user.id],
+  }),
+}));
+
 // === End: Better Auth ===
 
 export const feeds = sqliteTable(
@@ -377,3 +403,23 @@ export const instapaperConnections = sqliteTable("instapaper_connections", {
 });
 export type DatabaseInstapaperConnection =
   typeof instapaperConnections.$inferSelect;
+
+// === App Config (app-wide settings) ===
+
+/**
+ * Type-safe app config key -> value mappings
+ */
+export type AppConfigKeys = {
+  "public-signup-enabled": "true" | "false";
+};
+
+export type AppConfigKey = keyof AppConfigKeys;
+
+export const appConfig = sqliteTable("app_config", {
+  key: text("key").$type<AppConfigKey>().primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .$default(() => new Date())
+    .notNull(),
+});
+export type DatabaseAppConfig = typeof appConfig.$inferSelect;

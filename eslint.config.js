@@ -25,6 +25,7 @@ export default tseslint.config(
     rules: {
       // TanStack Router's redirect() and notFound() are designed to be thrown
       "@typescript-eslint/only-throw-error": "off",
+      "@typescript-eslint/no-unnecessary-condition": "off",
       "@typescript-eslint/array-type": ["error", { default: "array-simple" }],
       "react-hooks/set-state-in-effect": "warn",
       "no-undef": "off",

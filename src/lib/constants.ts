@@ -5,3 +5,13 @@ export const IS_MAIN_INSTANCE =
 export const BASE_SIGNED_OUT_URL = IS_MAIN_INSTANCE
   ? "/welcome"
   : "/auth/sign-in";
+
+/**
+ * Parse the public signup config value consistently.
+ * Default: signups are ENABLED if not explicitly set to "true"
+ */
+export function isPublicSignupEnabled(
+  configValue: string | undefined | null,
+): boolean {
+  return configValue === "true";
+}

@@ -92,6 +92,36 @@ function extractThumbnail(
   return undefined;
 }
 
+async function fetchOgImage(url: string): Promise<string | undefined> {
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) return undefined;
+
+    const html = await response.text();
+
+    // Try og:image meta tag
+    const ogImageMatch = html.match(
+      /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+    );
+    if (ogImageMatch?.[1]) {
+      return ogImageMatch[1];
+    }
+
+    // Try alternate format (content before property)
+    const ogImageAltMatch = html.match(
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
+    );
+    if (ogImageAltMatch?.[1]) {
+      return ogImageAltMatch[1];
+    }
+
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export const websiteSchema = z.object({
   items: websiteItemSchema.array(),
   image: z
@@ -145,10 +175,17 @@ export async function fetchWebsiteFeedData(
 
     const data = websiteSchema.parse(rssData);
 
-    const itemPromises = data.items.map((item) => {
+    const itemPromises = data.items.map(async (item) => {
       const id = item.guid || item.id;
 
       if (!id) return null;
+
+      let thumbnail = extractThumbnail(item);
+
+      // Fetch og:image as last resort if no thumbnail found
+      if (!thumbnail) {
+        thumbnail = await fetchOgImage(item.link);
+      }
 
       return {
         id,
@@ -156,7 +193,7 @@ export async function fetchWebsiteFeedData(
         publishedDate: item.pubDate || item.isoDate || item.updated || "",
         url: item.link,
         author: item.creator ?? "",
-        thumbnail: extractThumbnail(item),
+        thumbnail,
         content: getLongestString(
           item["content:encoded"],
           item.content,

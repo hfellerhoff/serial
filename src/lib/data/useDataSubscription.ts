@@ -42,7 +42,6 @@ export function useDataSubscription() {
           });
 
           for await (const payload of iterator as AsyncIterable<PublishedChunk>) {
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- signal can be aborted during async iteration
             if (controller.signal.aborted) break;
 
             // Process the chunk
@@ -52,7 +51,7 @@ export function useDataSubscription() {
           isConnectedRef.current = false;
 
           // Don't retry if aborted
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- signal can be aborted during async iteration
+
           if (controller.signal.aborted) {
             break;
           }

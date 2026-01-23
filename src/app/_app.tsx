@@ -7,6 +7,7 @@ import { Header } from "../components/feed/Header";
 import FeedLoading from "../components/loading";
 import type React from "react";
 import { AppLeftSidebar, AppRightSidebar } from "~/components/app-sidebar";
+import { ImpersonationBanner } from "~/components/ImpersonationBanner";
 import { ReleaseNotifier } from "~/components/releases/ReleaseNotifier";
 import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
 import { InitialClientQueries } from "~/lib/data/InitialClientQueries";
@@ -31,6 +32,7 @@ function RootLayout() {
     // <ApplyColorTheme>
     <Suspense fallback={<FeedLoading />}>
       <InitialClientQueries>
+        <ImpersonationBanner />
         <SidebarProvider
           style={
             {

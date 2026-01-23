@@ -5,6 +5,7 @@ import {
   LightbulbIcon,
   NotebookIcon,
   PaletteIcon,
+  ShieldIcon,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { ColorThemeDropdownSidebar } from "./color-theme/ColorThemePopoverButton";
@@ -15,8 +16,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "~/components/ui/sidebar";
+import { useSession } from "~/lib/auth-client";
 
 export function LeftSidebarBottomNav() {
+  const { data } = useSession();
+  const isAdmin = data?.user.role === "admin";
+
   return (
     <SidebarGroup className="mt-auto">
       <SidebarGroupContent>
@@ -29,7 +34,6 @@ export function LeftSidebarBottomNav() {
               </SidebarMenuButton>
             </ColorThemeDropdownSidebar>
           </SidebarMenuItem>
-          {/* TODO*/}
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link to="/releases">
@@ -62,6 +66,16 @@ export function LeftSidebarBottomNav() {
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          {isAdmin && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link to="/admin">
+                  <ShieldIcon />
+                  <span>Admin</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

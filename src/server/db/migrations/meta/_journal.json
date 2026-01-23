@@ -211,6 +211,20 @@
       "when": 1769068206198,
       "tag": "0029_abandoned_captain_britain",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1769186535697,
+      "tag": "0030_omniscient_firebrand",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1769188515090,
+      "tag": "0031_brainy_trauma",
+      "breakpoints": true
     }
   ]
 }

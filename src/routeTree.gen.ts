@@ -21,11 +21,13 @@ import { Route as WebWelcomeRouteImport } from './app/_web.welcome'
 import { Route as AppImportRouteImport } from './app/_app.import'
 import { Route as AppFeedsRouteImport } from './app/_app.feeds'
 import { Route as WebReleasesIndexRouteImport } from './app/_web.releases.index'
+import { Route as AppAdminIndexRouteImport } from './app/_app.admin.index'
 import { Route as ApiRpcSplatRouteImport } from './app/api/rpc.$'
 import { Route as ApiAuthSplatRouteImport } from './app/api/auth.$'
 import { Route as WebReleasesSlugRouteImport } from './app/_web.releases.$slug'
 import { Route as AppWatchIdRouteImport } from './app/_app.watch.$id'
 import { Route as AppReadIdRouteImport } from './app/_app.read.$id'
+import { Route as AppAdminUserIdRouteImport } from './app/_app.admin.user.$id'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -85,6 +87,11 @@ const WebReleasesIndexRoute = WebReleasesIndexRouteImport.update({
   path: '/releases/',
   getParentRoute: () => WebRoute,
 } as any)
+const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => AppRoute,
+} as any)
 const ApiRpcSplatRoute = ApiRpcSplatRouteImport.update({
   id: '/api/rpc/$',
   path: '/api/rpc/$',
@@ -110,6 +117,11 @@ const AppReadIdRoute = AppReadIdRouteImport.update({
   path: '/read/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminUserIdRoute = AppAdminUserIdRouteImport.update({
+  id: '/admin/user/$id',
+  path: '/admin/user/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -126,7 +138,9 @@ export interface FileRoutesByFullPath {
   '/releases/$slug': typeof WebReleasesSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
+  '/admin/': typeof AppAdminIndexRoute
   '/releases/': typeof WebReleasesIndexRoute
+  '/admin/user/$id': typeof AppAdminUserIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
@@ -143,7 +157,9 @@ export interface FileRoutesByTo {
   '/releases/$slug': typeof WebReleasesSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
+  '/admin': typeof AppAdminIndexRoute
   '/releases': typeof WebReleasesIndexRoute
+  '/admin/user/$id': typeof AppAdminUserIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -163,7 +179,9 @@ export interface FileRoutesById {
   '/_web/releases/$slug': typeof WebReleasesSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
+  '/_app/admin/': typeof AppAdminIndexRoute
   '/_web/releases/': typeof WebReleasesIndexRoute
+  '/_app/admin/user/$id': typeof AppAdminUserIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -182,7 +200,9 @@ export interface FileRouteTypes {
     | '/releases/$slug'
     | '/api/auth/$'
     | '/api/rpc/$'
+    | '/admin/'
     | '/releases/'
+    | '/admin/user/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -199,7 +219,9 @@ export interface FileRouteTypes {
     | '/releases/$slug'
     | '/api/auth/$'
     | '/api/rpc/$'
+    | '/admin'
     | '/releases'
+    | '/admin/user/$id'
   id:
     | '__root__'
     | '/_app'
@@ -218,7 +240,9 @@ export interface FileRouteTypes {
     | '/_web/releases/$slug'
     | '/api/auth/$'
     | '/api/rpc/$'
+    | '/_app/admin/'
     | '/_web/releases/'
+    | '/_app/admin/user/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -316,6 +340,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WebReleasesIndexRouteImport
       parentRoute: typeof WebRoute
     }
+    '/_app/admin/': {
+      id: '/_app/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AppAdminIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/api/rpc/$': {
       id: '/api/rpc/$'
       path: '/api/rpc/$'
@@ -351,6 +382,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReadIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/user/$id': {
+      id: '/_app/admin/user/$id'
+      path: '/admin/user/$id'
+      fullPath: '/admin/user/$id'
+      preLoaderRoute: typeof AppAdminUserIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -360,6 +398,8 @@ interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppReadIdRoute: typeof AppReadIdRoute
   AppWatchIdRoute: typeof AppWatchIdRoute
+  AppAdminIndexRoute: typeof AppAdminIndexRoute
+  AppAdminUserIdRoute: typeof AppAdminUserIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -368,6 +408,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppReadIdRoute: AppReadIdRoute,
   AppWatchIdRoute: AppWatchIdRoute,
+  AppAdminIndexRoute: AppAdminIndexRoute,
+  AppAdminUserIdRoute: AppAdminUserIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
