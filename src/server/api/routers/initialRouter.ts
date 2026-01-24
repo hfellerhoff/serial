@@ -51,6 +51,16 @@ import { fetchAndInsertFeedData } from "~/server/rss/fetchFeeds";
 
 export type PaginationCursor = { postedAt: Date; id: string } | null;
 
+type ViewBoundary = {
+  oldestPostedAt: Date | null;
+  sentItemIds: Set<string>;
+};
+
+type FetchContentForViewResult = {
+  chunk: ViewDataChunk;
+  boundary: ViewBoundary;
+};
+
 export type ViewDataChunk =
   | {
       type: "feed-items";
@@ -215,8 +225,14 @@ async function fetchContentForView(
     applicationFeeds,
     feedsById,
   }: FetchContentForViewParams,
-): Promise<ViewDataChunk> {
+): Promise<FetchContentForViewResult> {
   visibilityFilter ??= "unread";
+
+  // Default empty boundary
+  const emptyBoundary: ViewBoundary = {
+    oldestPostedAt: null,
+    sentItemIds: new Set(),
+  };
 
   try {
     const filterConditions = [
@@ -252,31 +268,47 @@ async function fetchContentForView(
         } as ApplicationFeedItem;
       });
 
+      // Compute boundary: track sent item IDs and oldest postedAt
+      const sentItemIds = new Set(initialItems.map((item) => item.id));
+      const oldestPostedAt = initialItems[initialItems.length - 1]!.postedAt;
+
       return {
-        type: "feed-items",
-        viewId: view.id,
-        feedItems: applicationItems,
-        visibilityFilter: visibilityFilter,
+        chunk: {
+          type: "feed-items",
+          viewId: view.id,
+          feedItems: applicationItems,
+          visibilityFilter: visibilityFilter,
+        },
+        boundary: {
+          oldestPostedAt,
+          sentItemIds,
+        },
       };
     }
   } catch (error) {
     return {
-      type: "error",
-      message:
-        error instanceof Error
-          ? error.message
-          : `Failed to fetch initial items for view ${view.id}`,
-      phase: "initial-items",
-      viewId: view.id,
+      chunk: {
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : `Failed to fetch initial items for view ${view.id}`,
+        phase: "initial-items",
+        viewId: view.id,
+      },
+      boundary: emptyBoundary,
     };
     // Continue to next view instead of stopping
   }
 
   return {
-    type: "feed-items",
-    viewId: view.id,
-    feedItems: [],
-    visibilityFilter: visibilityFilter,
+    chunk: {
+      type: "feed-items",
+      viewId: view.id,
+      feedItems: [],
+      visibilityFilter: visibilityFilter,
+    },
+    boundary: emptyBoundary,
   };
 }
 
@@ -284,8 +316,8 @@ async function* fetchContentForViews(
   context: ORPCContext,
   viewList: ApplicationView[],
   params: FetchContentForViewParams,
-) {
-  const pendingPromises = new Map<number, Promise<ViewDataChunk>>();
+): AsyncGenerator<FetchContentForViewResult> {
+  const pendingPromises = new Map<number, Promise<FetchContentForViewResult>>();
 
   for (const view of viewList) {
     // Wrap each promise to include viewId resolution tracking
@@ -296,8 +328,16 @@ async function* fetchContentForViews(
   while (pendingPromises.size > 0) {
     const result = await Promise.any(pendingPromises.values());
 
-    if (result.viewId !== undefined) {
-      pendingPromises.delete(result.viewId);
+    if (
+      result.chunk.type === "feed-items" &&
+      result.chunk.viewId !== undefined
+    ) {
+      pendingPromises.delete(result.chunk.viewId);
+    } else if (
+      result.chunk.type === "error" &&
+      result.chunk.viewId !== undefined
+    ) {
+      pendingPromises.delete(result.chunk.viewId);
     }
     yield result;
   }
@@ -305,7 +345,29 @@ async function* fetchContentForViews(
   return;
 }
 
-// Helper to get the user's channel name
+function filterNewItemsForView(
+  items: ApplicationFeedItem[],
+  boundary: ViewBoundary,
+  feedIdsForView: Set<number>,
+): ApplicationFeedItem[] {
+  return items.filter((item) => {
+    // Item must be unread (not watched, not watch later)
+    if (item.isWatched || item.isWatchLater) return false;
+
+    // Item must belong to a feed in this view
+    if (!feedIdsForView.has(item.feedId)) return false;
+
+    // Item must not have been sent in initial data
+    if (boundary.sentItemIds.has(item.id)) return false;
+
+    // If no initial items, include all matching items
+    if (!boundary.oldestPostedAt) return true;
+
+    // Item must be newer than or equal to the oldest initial item
+    return item.postedAt >= boundary.oldestPostedAt;
+  });
+}
+
 function getUserChannel(userId: string): string {
   return `user:${userId}`;
 }
@@ -723,6 +785,9 @@ export const requestInitialData = protectedProcedure
     } = prepareApplicationData(context.user.id, prerequisiteData);
 
     // Step 2: Publish prerequisite data chunks (skip when fetching for visibility filter)
+    // Track feedIdToViewIds for streaming new items after RSS fetch
+    let feedIdToViewIds: Map<number, number[]> | undefined;
+
     if (!isVisibilityFilterFetch) {
       await publishPrerequisiteDataChunks(channel, "initial", {
         allViews,
@@ -731,14 +796,16 @@ export const requestInitialData = protectedProcedure
         feedCategoriesList,
       });
 
-      // Step 3: Publish view-feeds chunks for each view
-      await publishViewFeedsChunks(channel, "initial", {
+      // Step 3: Publish view-feeds chunks for each view and build feedIdToViewIds mapping
+      const result = await publishViewFeedsChunks(channel, "initial", {
         allViews,
         applicationFeeds,
         feedCategoriesList,
         customViews,
         customViewCategoryIds,
+        buildFeedIdToViewIds: true,
       });
+      feedIdToViewIds = result.feedIdToViewIds!;
     }
 
     const firstView = allViews[0];
@@ -753,6 +820,21 @@ export const requestInitialData = protectedProcedure
       return { status: "completed" };
     }
 
+    // Build feed IDs per view for filtering new items
+    const feedCategoriesMap = buildFeedCategoriesMap(feedCategoriesList);
+    const feedIdsByView = new Map<number, Set<number>>();
+    for (const view of allViews) {
+      const feedIdsForView = computeFeedsForView(
+        view,
+        applicationFeeds,
+        feedCategoriesList,
+        customViews,
+        customViewCategoryIds,
+        feedCategoriesMap,
+      );
+      feedIdsByView.set(view.id, new Set(feedIdsForView));
+    }
+
     const fetchContentForViewParams: FetchContentForViewParams = {
       feedIds,
       visibilityFilter,
@@ -763,16 +845,24 @@ export const requestInitialData = protectedProcedure
       feedsById,
     };
 
+    // Track boundaries for each view to filter new items after RSS fetch
+    const viewBoundaries = new Map<number, ViewBoundary>();
+
     // Step 4: Query and publish initial items (first 100) for EACH view
-    for await (const viewResult of fetchContentForViews(
+    for await (const { chunk, boundary } of fetchContentForViews(
       context,
       allViews,
       fetchContentForViewParams,
     )) {
       await publisher.publish(channel, {
         source: "initial",
-        chunk: viewResult,
+        chunk,
       });
+
+      // Track boundary for this view
+      if (chunk.type === "feed-items" && chunk.viewId !== undefined) {
+        viewBoundaries.set(chunk.viewId, boundary);
+      }
     }
 
     // Skip initial-data-complete and RSS fetch when fetching for visibility filter
@@ -784,12 +874,11 @@ export const requestInitialData = protectedProcedure
       });
 
       // Step 5: Run fetch and insert for fresh RSS items in background
-      // Items are inserted to DB by fetchAndInsertFeedData - don't publish them here
-      // Fresh items will be available via pagination (getItemsByVisibility)
       for await (const feedResult of fetchAndInsertFeedData(
         context,
         feedsList,
       )) {
+        // Always publish feed status
         await publisher.publish(channel, {
           source: "initial",
           chunk: {
@@ -798,7 +887,57 @@ export const requestInitialData = protectedProcedure
             feedId: feedResult.id,
           },
         });
-        // Items already inserted to DB - they'll be included in pagination queries
+
+        // Stream newly fetched items that belong to views
+        if (
+          feedResult.status === "success" &&
+          feedResult.feedItems.length > 0
+        ) {
+          const viewIdsForFeed = feedIdToViewIds?.get(feedResult.id) ?? [];
+
+          // Filter items per view and collect results
+          const viewFilteredItems = new Map<number, ApplicationFeedItem[]>();
+
+          for (const viewId of viewIdsForFeed) {
+            const boundary = viewBoundaries.get(viewId);
+            const feedIdsForView = feedIdsByView.get(viewId);
+
+            if (!boundary || !feedIdsForView) continue;
+
+            const itemsForView = filterNewItemsForView(
+              feedResult.feedItems,
+              boundary,
+              feedIdsForView,
+            );
+
+            if (itemsForView.length > 0) {
+              viewFilteredItems.set(viewId, itemsForView);
+            }
+          }
+
+          // Publish feed-items and view-items using the filtered data
+          for (const [viewId, itemsForView] of viewFilteredItems) {
+            // Publish feed-items chunk for this view
+            await publisher.publish(channel, {
+              source: "initial",
+              chunk: {
+                type: "feed-items",
+                viewId,
+                feedItems: itemsForView,
+              },
+            });
+
+            // Publish view-items chunk for this view
+            await publisher.publish(channel, {
+              source: "initial",
+              chunk: {
+                type: "view-items",
+                viewId,
+                feedItemIds: itemsForView.map((item) => item.id),
+              },
+            });
+          }
+        }
       }
     }
 
@@ -890,14 +1029,14 @@ export const requestImportedData = protectedProcedure
     };
 
     // Step 4: Query and publish initial items for EACH view
-    for await (const viewResult of fetchContentForViews(
+    for await (const { chunk } of fetchContentForViews(
       context,
       allViews,
       fetchContentForViewParams,
     )) {
       await publisher.publish(channel, {
         source: "initial",
-        chunk: viewResult,
+        chunk,
       });
     }
 
@@ -1125,14 +1264,14 @@ export const streamingImport = protectedProcedure
       feedsById,
     };
 
-    for await (const viewResult of fetchContentForViews(
+    for await (const { chunk } of fetchContentForViews(
       context,
       allViews,
       fetchContentForViewParams,
     )) {
       await publisher.publish(channel, {
         source: "initial",
-        chunk: viewResult,
+        chunk,
       });
     }
 
@@ -1813,12 +1952,12 @@ export const getAllByView = protectedProcedure
     };
 
     // Step 4: Query and yield initial items (first 100) for EACH view
-    for await (const viewResult of fetchContentForViews(
+    for await (const { chunk } of fetchContentForViews(
       context,
       allViews,
       fetchContentForViewParams,
     )) {
-      yield viewResult;
+      yield chunk;
     }
 
     // Skip initial-data-complete and RSS fetch when fetching for visibility filter
