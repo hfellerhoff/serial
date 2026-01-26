@@ -21,7 +21,12 @@ import {
   useFetchMoreItemsForFeed,
   useViewPaginationState,
 } from "~/lib/data/store";
-import { Button } from "~/components/ui/button";
+import {
+  useLastFullyVisibleIndex,
+  useResetVisibleItems,
+} from "~/lib/data/visible-items-store";
+import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
+import { useShortcut } from "~/lib/hooks/useShortcut";
 
 export function MarkVisibleAsReadButton() {
   const [isLoading, setIsLoading] = useState(false);
@@ -33,6 +38,8 @@ export function MarkVisibleAsReadButton() {
 
   const filteredItemIds = useFilteredFeedItemsOrder();
   const feedItemsDict = feedItemsStore.useFeedItemsDict();
+  const lastFullyVisibleIndex = useLastFullyVisibleIndex();
+  const resetVisibleItems = useResetVisibleItems();
 
   const viewPaginationState = useViewPaginationState();
   const feedPaginationState = useFeedPaginationState();
@@ -44,17 +51,23 @@ export function MarkVisibleAsReadButton() {
 
   const bulkMutation = useBulkSetWatchedValueMutation();
 
-  // Only show for unread filter
-  if (visibilityFilter !== "unread") return null;
-
-  // Don't show if no items visible
-  if (filteredItemIds.length === 0) return null;
-
   const handleMarkAsRead = async () => {
+    // Only handle for unread filter with visible items
+    if (visibilityFilter !== "unread" || filteredItemIds.length === 0) return;
+    // Don't proceed if no items are fully visible yet
+    if (lastFullyVisibleIndex < 0) return;
+
     setIsLoading(true);
     try {
+      // Slice from index 0 to lastFullyVisibleIndex (inclusive)
+      // This includes items that are above the viewport (scrolled past) and fully visible items
+      const visibleItemIds = filteredItemIds.slice(
+        0,
+        lastFullyVisibleIndex + 1,
+      );
+
       // Prepare items payload
-      const items = filteredItemIds
+      const items = visibleItemIds
         .map((id) => ({
           id,
           feedId: feedItemsDict[id]?.feedId ?? 0,
@@ -62,6 +75,9 @@ export function MarkVisibleAsReadButton() {
         .filter((item) => item.feedId > 0);
 
       await bulkMutation.mutateAsync({ items, isWatched: true });
+
+      // Reset visible items tracking so it starts fresh for new items
+      resetVisibleItems();
 
       // Determine active filter type (priority: feed > category > view)
       const activeFilterType =
@@ -98,22 +114,31 @@ export function MarkVisibleAsReadButton() {
     }
   };
 
+  useShortcut("e", handleMarkAsRead);
+
+  // Only show for unread filter
+  if (visibilityFilter !== "unread") return null;
+
+  // Don't show if no items visible
+  if (filteredItemIds.length === 0) return null;
+
   if (isLoading) {
     return <PaginationLoader />;
   }
 
   return (
     <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
-      <Button
+      <ButtonWithShortcut
         onClick={handleMarkAsRead}
         disabled={isLoading}
         className="shadow-lg"
         variant="outline"
         size="default"
+        shortcut="e"
       >
         <FlameIcon size={16} />
         <span className="pl-1.5">Mark visible as read</span>
-      </Button>
+      </ButtonWithShortcut>
     </div>
   );
 }

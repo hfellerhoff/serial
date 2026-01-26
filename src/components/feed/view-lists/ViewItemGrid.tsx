@@ -4,6 +4,7 @@ import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { GridItemDisplay } from "./ItemDisplay";
 import { PaginationEnd } from "./PaginationEnd";
 import { PaginationLoader } from "./PaginationLoader";
+import { VisibleItemTracker } from "./VisibleItemTracker";
 import { useViewListScroll } from "./useViewListScroll";
 
 interface ViewItemGridProps {
@@ -23,12 +24,12 @@ export function ViewItemGrid({ items }: ViewItemGridProps) {
         className="grid w-full grid-cols-2 gap-y-4 px-4 pt-4 md:grid-cols-[repeat(auto-fill,_minmax(180px,_1fr))] md:gap-2"
       >
         {items.map((contentId, index) => (
-          <div key={contentId}>
+          <VisibleItemTracker key={contentId} index={index}>
             <GridItemDisplay contentId={contentId} size="standard" />
             {index === sentinelIndex && (
               <div ref={sentinelRef} key={sentinelIndex} />
             )}
-          </div>
+          </VisibleItemTracker>
         ))}
       </div>
       {paginationState?.isFetching && <PaginationLoader />}
