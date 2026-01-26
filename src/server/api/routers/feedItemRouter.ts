@@ -150,6 +150,46 @@ export const setWatchedValue = protectedProcedure
     });
   });
 
+export const setBulkWatchedValue = protectedProcedure
+  .input(
+    z.object({
+      items: z.array(
+        z.object({
+          id: z.string(),
+          feedId: z.number(),
+        }),
+      ),
+      isWatched: z.boolean(),
+    }),
+  )
+  .handler(async ({ context, input }) => {
+    if (input.items.length === 0) return;
+
+    await context.db.transaction(async (tx) => {
+      // Extract unique feedIds and verify ownership
+      const feedIds = [...new Set(input.items.map((item) => item.feedId))];
+
+      const isOwned = await verifyFeedsOwnedByUser({
+        feedIds,
+        userId: context.user.id,
+        db: tx,
+      });
+
+      if (!isOwned) {
+        throw new Error(
+          "Unauthorized: One or more feeds do not belong to user",
+        );
+      }
+
+      // Bulk update using inArray
+      const itemIds = input.items.map((item) => item.id);
+      await tx
+        .update(feedItems)
+        .set({ isWatched: input.isWatched })
+        .where(inArray(feedItems.id, itemIds));
+    });
+  });
+
 export const setWatchLaterValue = protectedProcedure
   .input(
     z.object({

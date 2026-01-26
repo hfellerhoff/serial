@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ClientDatetime } from "~/components/feed/ClientDatetime";
 import { ItemVisibilityChips } from "~/components/feed/ItemVisibilityChips";
+import { MarkVisibleAsReadButton } from "~/components/feed/MarkVisibleAsReadButton";
 import { RenderViewItems } from "~/components/feed/view-lists";
 import { ViewFilterChips } from "~/components/feed/ViewFilterChips";
 
@@ -24,6 +25,7 @@ function Home() {
         </div>
       </div>
       <RenderViewItems />
+      <MarkVisibleAsReadButton />
     </div>
   );
 }
