@@ -45,3 +45,11 @@ export const YOUTUBE_FASTEST_SPEED =
 
 export const YOUTUBE_VIDEO_TYPES = ["video", "live"] as const;
 export type YouTubeVideoType = (typeof YOUTUBE_VIDEO_TYPES)[number];
+
+export const YOUTUBE_CAPTION_SIZES = [
+  { label: "Small", value: -1 },
+  { label: "Normal", value: 0 },
+  { label: "Large", value: 1 },
+  { label: "Larger", value: 2 },
+  { label: "Largest", value: 3 },
+];

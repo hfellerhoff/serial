@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { YOUTUBE_FASTEST_SPEED, YOUTUBE_PLAYBACK_SPEEDS } from "./constants";
 import { useCustomVideoPlayerContext } from "./CustomVideoPlayerProvider";
+import { useView } from "~/components/feed/watch/[id]/useView";
 import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
 
 const SEEK_KEYS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
@@ -8,14 +10,21 @@ const SEEK_KEYS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 export function useVideoShortcuts() {
   const {
     toggleVideoPlayback,
-    stopVideoHold,
     playerState,
     playbackSpeed,
     changeVideoPlaybackSpeed,
     videoDuration,
     seekToSecond,
     videoProgress,
+    captionsAvailable,
+    captionsModuleLoaded,
+    toggleCaptions,
+    toggleNativeFullscreen,
+    isNativeFullscreen,
+    toggleMute,
   } = useCustomVideoPlayerContext();
+
+  const { view, setView, toggleView } = useView();
 
   const keypressTimeRef = useRef<Record<string, number | null>>({});
 
@@ -26,10 +35,6 @@ export function useVideoShortcuts() {
       }
 
       keypressTimeRef.current[event.key] = Date.now();
-
-      // if (playerState === YOUTUBE_PLAYER_STATES.PLAYING && event.key === " ") {
-      //   startVideoHold();
-      // }
     };
 
     const processKeyUp = (event: KeyboardEvent) => {
@@ -41,7 +46,6 @@ export function useVideoShortcuts() {
       keypressTimeRef.current[event.key] = null;
 
       if (event.key === " ") {
-        stopVideoHold();
         event.preventDefault();
         toggleVideoPlayback();
         return;
@@ -85,6 +89,46 @@ export function useVideoShortcuts() {
         );
         return;
       }
+      if (event.key === "c") {
+        event.preventDefault();
+        if (!captionsModuleLoaded) {
+          toast.error("Play video to load available captions");
+          return;
+        }
+        if (!captionsAvailable) {
+          toast.error("Captions not available for this video");
+          return;
+        }
+        toggleCaptions();
+        return;
+      }
+      if (event.key === "m") {
+        event.preventDefault();
+        toggleMute();
+        return;
+      }
+      // Shift+F or ` for windowed fullscreen
+      if ((event.key === "F" && event.shiftKey) || event.key === "`") {
+        event.preventDefault();
+        // If in native fullscreen, exit it and enter windowed fullscreen
+        if (isNativeFullscreen) {
+          document.exitFullscreen();
+          setView("fullscreen");
+        } else {
+          toggleView();
+        }
+        return;
+      }
+      // f for true/native fullscreen
+      if (event.key === "f" && !event.shiftKey) {
+        event.preventDefault();
+        // Exit windowed fullscreen if active before entering native fullscreen
+        if (view === "fullscreen") {
+          setView("windowed");
+        }
+        toggleNativeFullscreen();
+        return;
+      }
     };
 
     window.addEventListener("keydown", processKeyDown);
@@ -102,5 +146,14 @@ export function useVideoShortcuts() {
     changeVideoPlaybackSpeed,
     seekToSecond,
     videoDuration,
+    captionsModuleLoaded,
+    captionsAvailable,
+    toggleCaptions,
+    toggleNativeFullscreen,
+    isNativeFullscreen,
+    view,
+    setView,
+    toggleView,
+    toggleMute,
   ]);
 }
