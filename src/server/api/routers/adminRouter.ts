@@ -242,6 +242,76 @@ function getTimeRangeParams(timeRange: z.infer<typeof timeRangeSchema>) {
   }
 }
 
+function fillDateGaps(
+  results: Array<{ date: string; count: number }>,
+  timeRange: z.infer<typeof timeRangeSchema>,
+  startDate: Date | null,
+): Array<{ date: string; count: number }> {
+  if (results.length === 0) return results;
+
+  const existing = new Map(results.map((r) => [r.date, r.count]));
+  const now = new Date();
+  const keys: string[] = [];
+
+  if (timeRange === "30d") {
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      keys.push(`${yyyy}-${mm}-${dd}`);
+    }
+  } else if (timeRange === "1y") {
+    // Generate week keys matching SQLite strftime("%Y-%W")
+    // Walk day-by-day from startDate to now, collect unique week keys
+    const start =
+      startDate ?? new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+    const seen = new Set<string>();
+    for (
+      let d = new Date(start);
+      d <= now;
+      d = new Date(d.getTime() + 24 * 60 * 60 * 1000)
+    ) {
+      const yyyy = d.getFullYear();
+      // SQLite %W: week starts Monday, Jan 1 = week 00
+      const jan1 = new Date(yyyy, 0, 1);
+      const dayOfYear = Math.floor(
+        (d.getTime() - jan1.getTime()) / (24 * 60 * 60 * 1000),
+      );
+      // %W counts Monday-starting weeks; Jan 1 day-of-week: 0=Sun..6=Sat
+      const jan1Day = jan1.getDay();
+      const mondayOffset = jan1Day === 0 ? 6 : jan1Day - 1;
+      const weekNum = Math.floor((dayOfYear + mondayOffset) / 7);
+      const key = `${yyyy}-${String(weekNum).padStart(2, "0")}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        keys.push(key);
+      }
+    }
+  } else {
+    // "all": months from earliest result to now
+    const earliest = results[0]!.date; // already sorted by date, length checked above
+    const parts = earliest.split("-").map(Number);
+    const startYear = parts[0]!;
+    const startMonth = parts[1]!;
+    const endYear = now.getFullYear();
+    const endMonth = now.getMonth() + 1;
+    for (
+      let y = startYear, m = startMonth;
+      y < endYear || (y === endYear && m <= endMonth);
+      m++
+    ) {
+      if (m > 12) {
+        m = 1;
+        y++;
+      }
+      keys.push(`${y}-${String(m).padStart(2, "0")}`);
+    }
+  }
+
+  return keys.map((key) => ({ date: key, count: existing.get(key) ?? 0 }));
+}
+
 // Get sign-up stats grouped by time period
 export const getSignupStats = adminProcedure
   .input(z.object({ timeRange: timeRangeSchema }))
@@ -265,8 +335,9 @@ export const getSignupStats = adminProcedure
           .all()
       : await query.groupBy(dateGroup).orderBy(dateGroup).all();
 
+    const stats = results.map((r) => ({ date: r.date, count: r.count }));
     return {
-      stats: results.map((r) => ({ date: r.date, count: r.count })),
+      stats: fillDateGaps(stats, input.timeRange, startDate),
     };
   });
 
@@ -294,7 +365,8 @@ export const getSigninStats = adminProcedure
       .orderBy(dateGroup)
       .all();
 
+    const stats = results.map((r) => ({ date: r.date, count: r.count }));
     return {
-      stats: results.map((r) => ({ date: r.date, count: r.count })),
+      stats: fillDateGaps(stats, input.timeRange, startDate),
     };
   });
