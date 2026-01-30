@@ -913,6 +913,16 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               get().setViewFeedIds(initialChunk.viewId, initialChunk.feedIds);
               break;
 
+            case "refresh-start":
+              // Update totalFeeds for progress tracking (only counts feeds that need fetching)
+              set({
+                progressState: {
+                  ...get().progressState,
+                  totalFeeds: initialChunk.totalFeeds,
+                },
+              });
+              break;
+
             case "feed-status": {
               const feedStatusDict = { ...get().feedStatusDict };
               feedStatusDict[initialChunk.feedId] = initialChunk.status;

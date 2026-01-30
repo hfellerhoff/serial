@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { EllipsisVerticalIcon, Loader2Icon, PlugIcon } from "lucide-react";
 import { useState } from "react";
 import { useDialogStore } from "./dialogStore";
@@ -67,6 +67,12 @@ export function UserManagementNavItem() {
               <p className="text-muted-foreground text-xs">
                 {data?.user.email}
               </p>
+              <Link
+                to="/debug"
+                className="text-muted-foreground hover:text-foreground pt-1 text-xs underline"
+              >
+                View debug
+              </Link>
             </div>
           </ResponsiveDropdownLabel>
           <ResponsiveDropdownMenuItem asChild>

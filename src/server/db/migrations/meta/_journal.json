@@ -225,6 +225,20 @@
       "when": 1769188515090,
       "tag": "0031_brainy_trauma",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1769718434640,
+      "tag": "0032_chief_cerise",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1769733255830,
+      "tag": "0033_careful_red_wolf",
+      "breakpoints": true
     }
   ]
 }

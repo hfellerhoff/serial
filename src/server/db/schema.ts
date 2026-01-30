@@ -51,41 +51,49 @@ export const user = sqliteTable("user", {
   banExpires: integer("ban_expires", { mode: "timestamp_ms" }),
 });
 
-export const session = sqliteTable("session", {
-  id: text("id").primaryKey(),
-  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
-  token: text("token").notNull().unique(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-  ipAddress: text("ip_address"),
-  userAgent: text("user_agent"),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  impersonatedBy: text("impersonated_by"),
-});
+export const session = sqliteTable(
+  "session",
+  {
+    id: text("id").primaryKey(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    token: text("token").notNull().unique(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    impersonatedBy: text("impersonated_by"),
+  },
+  (table) => [index("session_user_id_idx").on(table.userId)],
+);
 
-export const account = sqliteTable("account", {
-  id: text("id").primaryKey(),
-  accountId: text("account_id").notNull(),
-  providerId: text("provider_id").notNull(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  accessToken: text("access_token"),
-  refreshToken: text("refresh_token"),
-  idToken: text("id_token"),
-  accessTokenExpiresAt: integer("access_token_expires_at", {
-    mode: "timestamp",
-  }),
-  refreshTokenExpiresAt: integer("refresh_token_expires_at", {
-    mode: "timestamp",
-  }),
-  scope: text("scope"),
-  password: text("password"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-});
+export const account = sqliteTable(
+  "account",
+  {
+    id: text("id").primaryKey(),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: integer("access_token_expires_at", {
+      mode: "timestamp",
+    }),
+    refreshTokenExpiresAt: integer("refresh_token_expires_at", {
+      mode: "timestamp",
+    }),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("account_user_id_idx").on(table.userId)],
+);
 
 export const verification = sqliteTable("verification", {
   id: text("id").primaryKey(),
@@ -137,6 +145,8 @@ export const feeds = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .$default(() => new Date())
       .notNull(),
+    lastFetchedAt: integer("last_fetched_at", { mode: "timestamp" }),
+    nextFetchAt: integer("next_fetch_at", { mode: "timestamp" }),
   },
   (example) => [
     index("feed_name_idx").on(example.name),
@@ -351,6 +361,7 @@ export const viewCategories = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.viewId, table.categoryId] }),
     index("view_categories_view_id_idx").on(table.viewId),
+    index("view_categories_category_id_idx").on(table.categoryId),
   ],
 );
 export type DatabaseViewCategory = typeof viewCategories.$inferSelect;

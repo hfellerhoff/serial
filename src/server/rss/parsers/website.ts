@@ -1,7 +1,18 @@
 import Parser from "rss-parser";
 import { z } from "zod";
+import { parseHttpHeaders } from "../calculateNextFetch";
+import {
+  BASE_FEED_CUSTOM_FIELDS,
+  baseFeedSchema,
+  extractRssMetadata,
+} from "../types";
 import type { DatabaseFeed } from "~/server/db/schema";
-import type { NewFeedDetails, RSSContent, RSSFeed } from "../types";
+import type {
+  FeedFetchMetadata,
+  NewFeedDetails,
+  RSSContent,
+  RSSFeedWithMetadata,
+} from "../types";
 
 function getLongestString(...strings: Array<string | undefined>) {
   return strings.reduce((acc: string, cur) => {
@@ -13,6 +24,7 @@ function getLongestString(...strings: Array<string | undefined>) {
 
 const parser = new Parser({
   customFields: {
+    feed: [...BASE_FEED_CUSTOM_FIELDS],
     item: [
       "description",
       ["media:content", "mediaContent"],
@@ -122,7 +134,7 @@ async function fetchOgImage(url: string): Promise<string | undefined> {
   }
 }
 
-export const websiteSchema = z.object({
+export const websiteSchema = baseFeedSchema.extend({
   items: websiteItemSchema.array(),
   image: z
     .object({
@@ -136,7 +148,6 @@ export const websiteSchema = z.object({
   generator: z.string().optional(),
   link: z.string(),
   lastBuildDate: z.string().optional(),
-  ttl: z.string().optional(),
 });
 
 export async function getWebsiteFeedIfMatches(
@@ -167,13 +178,19 @@ export async function getWebsiteFeedIfMatches(
 
 export async function fetchWebsiteFeedData(
   feed: DatabaseFeed,
-): Promise<RSSFeed | null> {
+): Promise<RSSFeedWithMetadata | null> {
   try {
     const feedResponse = await fetch(feed.url);
     const text = await feedResponse.text();
     const rssData = await parser.parseString(text);
 
     const data = websiteSchema.parse(rssData);
+
+    // Build fetch metadata from HTTP headers and RSS elements
+    const fetchMetadata: FeedFetchMetadata = {
+      ...parseHttpHeaders(feedResponse),
+      ...extractRssMetadata(data),
+    };
 
     const itemPromises = data.items.map(async (item) => {
       const id = item.guid || item.id;
@@ -208,6 +225,7 @@ export async function fetchWebsiteFeedData(
       title: data.title,
       url: data.link,
       items: (await Promise.all(itemPromises)).filter(Boolean),
+      fetchMetadata,
     };
   } catch (e) {
     console.error("Error fetching website feed data for URL =", feed.url);

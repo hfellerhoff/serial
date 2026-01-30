@@ -1,10 +1,22 @@
 import Parser from "rss-parser";
 import { z } from "zod";
+import { parseHttpHeaders } from "../calculateNextFetch";
+import {
+  BASE_FEED_CUSTOM_FIELDS,
+  baseFeedSchema,
+  extractRssMetadata,
+} from "../types";
 import type { DatabaseFeed } from "~/server/db/schema";
-import type { NewFeedDetails, RSSContent, RSSFeed } from "../types";
+import type {
+  FeedFetchMetadata,
+  NewFeedDetails,
+  RSSContent,
+  RSSFeedWithMetadata,
+} from "../types";
 
 const parser = new Parser({
   customFields: {
+    feed: [...BASE_FEED_CUSTOM_FIELDS],
     item: ["media:group", "media:thumbnail", "media:description"],
   },
 });
@@ -25,7 +37,7 @@ export const peerTubeItemSchema = z.object({
   isoDate: z.string(),
 });
 
-export const peerTubeSchema = z.object({
+export const peerTubeSchema = baseFeedSchema.extend({
   items: peerTubeItemSchema.array(),
   feedUrl: z.string(),
   image: z.object({
@@ -69,13 +81,19 @@ export async function getPeerTubeFeedIfMatches(
 
 export async function fetchPeerTubeFeedData(
   feed: DatabaseFeed,
-): Promise<RSSFeed | null> {
+): Promise<RSSFeedWithMetadata | null> {
   try {
     const feedResponse = await fetch(feed.url);
     const text = await feedResponse.text();
     const rssData = await parser.parseString(text);
 
     const data = peerTubeSchema.parse(rssData);
+
+    // Build fetch metadata from HTTP headers and RSS elements
+    const fetchMetadata: FeedFetchMetadata = {
+      ...parseHttpHeaders(feedResponse),
+      ...extractRssMetadata(data),
+    };
 
     return {
       id: feed.id,
@@ -100,6 +118,7 @@ export async function fetchPeerTubeFeedData(
           } satisfies RSSContent;
         })
         .filter(Boolean),
+      fetchMetadata,
     };
   } catch (e) {
     console.error("Error fetching PeerTube feed data for URL =", feed.url);

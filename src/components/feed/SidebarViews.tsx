@@ -27,16 +27,11 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDialogStore } from "./dialogStore";
-import type { DragEndEvent } from "@dnd-kit/core";
 import type { Dispatch, SetStateAction } from "react";
+import type { DragEndEvent } from "@dnd-kit/core";
 
 import type { ApplicationView } from "~/server/db/schema";
-import {
-  useCheckFilteredFeedItemsForView,
-  useUpdateViewFilter,
-  useViews,
-} from "~/lib/data/views";
-import { viewFilterIdAtom } from "~/lib/data/atoms";
+import { EditViewDialog } from "~/components/AddViewDialog";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -44,7 +39,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "~/components/ui/sidebar";
-import { EditViewDialog } from "~/components/AddViewDialog";
+import { viewFilterIdAtom } from "~/lib/data/atoms";
+import {
+  useCheckFilteredFeedItemsForView,
+  useUpdateViewFilter,
+  useViews,
+} from "~/lib/data/views";
 import {
   calculateViewsPlacement,
   useUpdateViewsPlacementMutation,

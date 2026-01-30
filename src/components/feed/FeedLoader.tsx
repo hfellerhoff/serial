@@ -16,9 +16,13 @@ export function FeedLoader() {
   const isFetching = status === "fetching";
   const hasFeeds = feeds.length > 0;
   const isImporting = progressState.fetchType === "import";
+  const nothingToFetch =
+    (progressState.fetchType === "initial" ||
+      progressState.fetchType === "refresh") &&
+    progressState.totalFeeds === 0;
 
-  // Hide when importing (ImportLoading handles that) or when no feeds
-  if (!hasFeeds || isImporting) {
+  // Hide when importing (ImportLoading handles that), when no feeds, or when all feeds are cached
+  if (!hasFeeds || isImporting || nothingToFetch) {
     return null;
   }
 

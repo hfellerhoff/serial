@@ -1,10 +1,22 @@
 import Parser from "rss-parser";
 import { z } from "zod";
+import { parseHttpHeaders } from "../calculateNextFetch";
+import {
+  BASE_FEED_CUSTOM_FIELDS,
+  baseFeedSchema,
+  extractRssMetadata,
+} from "../types";
 import type { DatabaseFeed } from "~/server/db/schema";
-import type { NewFeedDetails, RSSContent, RSSFeed } from "../types";
+import type {
+  FeedFetchMetadata,
+  NewFeedDetails,
+  RSSContent,
+  RSSFeedWithMetadata,
+} from "../types";
 
 const parser = new Parser({
   customFields: {
+    feed: [...BASE_FEED_CUSTOM_FIELDS],
     item: ["dc:creator"],
   },
 });
@@ -21,7 +33,7 @@ export const nebulaItemSchema = z.object({
   isoDate: z.string(),
 });
 
-export const nebulaSchema = z.object({
+export const nebulaSchema = baseFeedSchema.extend({
   items: nebulaItemSchema.array(),
   feedUrl: z.string().optional(),
   title: z.string(),
@@ -106,13 +118,19 @@ export async function getNebulaFeedIfMatches(
 
 export async function fetchNebulaFeedData(
   feed: DatabaseFeed,
-): Promise<RSSFeed | null> {
+): Promise<RSSFeedWithMetadata | null> {
   try {
     const feedResponse = await fetch(feed.url);
     const text = await feedResponse.text();
     const rssData = await parser.parseString(text);
 
     const data = nebulaSchema.parse(rssData);
+
+    // Build fetch metadata from HTTP headers and RSS elements
+    const fetchMetadata: FeedFetchMetadata = {
+      ...parseHttpHeaders(feedResponse),
+      ...extractRssMetadata(data),
+    };
 
     return {
       id: feed.id,
@@ -135,6 +153,7 @@ export async function fetchNebulaFeedData(
           } satisfies RSSContent;
         })
         .filter(Boolean),
+      fetchMetadata,
     };
   } catch (e) {
     console.error("Error fetching Nebula feed data for URL =", feed.url);
