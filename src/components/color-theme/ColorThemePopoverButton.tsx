@@ -4,18 +4,23 @@ import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
 import { LaptopIcon, MoonIcon, PaletteIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ResponsiveButton } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { ResponsiveDropdown } from "../ui/responsive-dropdown";
 import { Slider } from "../ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
+import { Input } from "../ui/input";
 import { EnableCustomVideoPlayerToggle } from "./EnableCustomVideoPlayerToggle";
 import { ShowShortcutsToggle } from "./ShowShortcutsToggle";
 import { ShowArticleStyleToggle } from "./ShowArticleStyleToggle";
 import type React from "react";
 import { authClient } from "~/lib/auth-client";
 import { orpc } from "~/lib/orpc";
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
 
 function getCssVariable(name: string) {
   const value = window
@@ -31,21 +36,6 @@ function getCssVariable(name: string) {
   return numberValue;
 }
 
-function FormSection({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex-1 space-y-2">
-      <h3 className="font-mono">{label}</h3>
-      {children}
-    </div>
-  );
-}
-
 const themes = ["light", "dark"] as const;
 type Theme = (typeof themes)[number];
 function getThemeOrDefault(theme: string | undefined): Theme {
@@ -53,6 +43,50 @@ function getThemeOrDefault(theme: string | undefined): Theme {
     return theme as Theme;
   }
   return themes[0];
+}
+
+function useDebouncedCssValue(options: {
+  cssVariable: string;
+  initialValue: number;
+  clamp: (value: number) => number;
+  format: (value: number) => string;
+  onCommit: (value: number) => void;
+}) {
+  const [committed, setCommitted] = useState(options.initialValue);
+  const [local, setLocal] = useState<number | null>(null);
+  const flushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const onChange = (value: number) => {
+    const clamped = options.clamp(value);
+    setLocal(clamped);
+    if (flushTimeoutRef.current) clearTimeout(flushTimeoutRef.current);
+    flushTimeoutRef.current = setTimeout(() => {
+      document.documentElement.style.setProperty(
+        options.cssVariable,
+        options.format(clamped),
+      );
+    }, 50);
+  };
+
+  const commit = (value: number) => {
+    if (flushTimeoutRef.current) clearTimeout(flushTimeoutRef.current);
+    const clamped = options.clamp(value);
+    setCommitted(clamped);
+    setLocal(null);
+    document.documentElement.style.setProperty(
+      options.cssVariable,
+      options.format(clamped),
+    );
+    options.onCommit(clamped);
+  };
+
+  return {
+    value: local ?? committed,
+    committed,
+    setCommitted,
+    onChange,
+    onCommit: commit,
+  };
 }
 
 function EditColorsForm() {
@@ -64,91 +98,122 @@ function EditColorsForm() {
 
   const { resolvedTheme } = useTheme();
 
-  const [hue, setHue] = useState(0);
-  const [saturation, setSaturation] = useState(0);
-  const [lightness, setLightness] = useState(0);
-
-  useEffect(() => {
-    setTimeout(() => {
-      setHue(getCssVariable(`--${resolvedTheme}-hue`));
-      setSaturation(getCssVariable(`--${resolvedTheme}-sat`));
-      setLightness(getCssVariable(`--${resolvedTheme}-lgt`));
-    }, 0);
-  }, [resolvedTheme]);
-
-  const updateCssVariable =
-    (
-      name: string,
-      setter: React.Dispatch<React.SetStateAction<number>>,
-      kind: "number" | "percentage",
-    ) =>
-    (values: number[]) => {
-      const value = values[0];
-      if (value === undefined) return;
-
-      setter(value);
-
-      const formattedValue = kind === "number" ? value.toString() : `${value}%`;
-      document.documentElement.style.setProperty(name, formattedValue);
-    };
-
-  const saveValuesToDatabase = () => {
-    if (!data?.session.id) return;
-    saveThemeHSLToDatabase({
-      theme: getThemeOrDefault(resolvedTheme),
-      hsl: [hue, saturation, lightness],
-    });
-  };
-
   const brightnessMin = resolvedTheme === "dark" ? 0 : 70;
   const brightnessMax = resolvedTheme === "dark" ? 30 : 100;
 
+  const saveValuesToDatabase = (hsl: [number, number, number]) => {
+    if (!data?.session.id) return;
+    saveThemeHSLToDatabase({
+      theme: getThemeOrDefault(resolvedTheme),
+      hsl,
+    });
+  };
+
+  const hue = useDebouncedCssValue({
+    cssVariable: `--${resolvedTheme}-hue`,
+    initialValue: 0,
+    clamp: (v) => clamp(v, 0, 360),
+    format: (v) => v.toString(),
+    onCommit: (v) =>
+      saveValuesToDatabase([v, saturation.committed, lightness.committed]),
+  });
+
+  const saturation = useDebouncedCssValue({
+    cssVariable: `--${resolvedTheme}-sat`,
+    initialValue: 0,
+    clamp: (v) => clamp(v, 0, 100),
+    format: (v) => `${v}%`,
+    onCommit: (v) =>
+      saveValuesToDatabase([hue.committed, v, lightness.committed]),
+  });
+
+  const lightness = useDebouncedCssValue({
+    cssVariable: `--${resolvedTheme}-lgt`,
+    initialValue: 0,
+    clamp: (v) => clamp(v, brightnessMin, brightnessMax),
+    format: (v) => `${v}%`,
+    onCommit: (v) =>
+      saveValuesToDatabase([hue.committed, saturation.committed, v]),
+  });
+
+  useEffect(() => {
+    setTimeout(() => {
+      hue.setCommitted(getCssVariable(`--${resolvedTheme}-hue`));
+      saturation.setCommitted(getCssVariable(`--${resolvedTheme}-sat`));
+      lightness.setCommitted(getCssVariable(`--${resolvedTheme}-lgt`));
+    }, 0);
+  }, [hue, lightness, resolvedTheme, saturation]);
+
   return (
     <div className="space-y-4">
-      <FormSection label="Hue">
-        <div className="flex">
-          <Slider
-            value={[hue]}
-            min={0}
-            max={360}
-            step={1}
-            onValueChange={updateCssVariable(
-              `--${resolvedTheme}-hue`,
-              setHue,
-              "number",
-            )}
-            onValueCommit={saveValuesToDatabase}
+      <div className="flex-1 space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="font-mono">Hue</h3>
+          <Input
+            className="w-18 font-mono"
+            type="number"
+            value={hue.value}
+            onChange={(e) => hue.onChange(parseInt(e.target.value) || 0)}
+            onBlur={(e) => hue.onCommit(parseInt(e.target.value) || 0)}
           />
         </div>
-      </FormSection>
-      <FormSection label="Saturation">
         <Slider
-          value={[saturation]}
+          value={[hue.value]}
+          min={0}
+          max={360}
+          step={1}
+          onValueChange={(values) => hue.onChange(values[0] ?? hue.committed)}
+          onValueCommit={(values) => hue.onCommit(values[0] ?? hue.committed)}
+        />
+      </div>
+      <div className="flex-1 space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="font-mono">Saturation</h3>
+          <Input
+            className="w-18 font-mono"
+            type="number"
+            value={saturation.value}
+            onChange={(e) => saturation.onChange(parseInt(e.target.value) || 0)}
+            onBlur={(e) => saturation.onCommit(parseInt(e.target.value) || 0)}
+          />
+        </div>
+        <Slider
+          value={[saturation.value]}
           min={0}
           max={100}
           step={1}
-          onValueChange={updateCssVariable(
-            `--${resolvedTheme}-sat`,
-            setSaturation,
-            "percentage",
-          )}
-          onValueCommit={saveValuesToDatabase}
+          onValueChange={(values) =>
+            saturation.onChange(values[0] ?? saturation.committed)
+          }
+          onValueCommit={(values) =>
+            saturation.onCommit(values[0] ?? saturation.committed)
+          }
         />
-      </FormSection>
-      <FormSection label="Lightness">
+      </div>
+      <div className="flex-1 space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="font-mono">Lightness</h3>
+          <Input
+            className="w-18 font-mono"
+            type="number"
+            value={lightness.value}
+            onChange={(e) => lightness.onChange(parseInt(e.target.value) || 0)}
+            onBlur={(e) => lightness.onCommit(parseInt(e.target.value) || 0)}
+          />
+        </div>
         <Slider
-          value={[lightness]}
+          value={[lightness.value]}
           min={brightnessMin}
           max={brightnessMax}
           step={1}
-          onValueChange={updateCssVariable(
-            `--${resolvedTheme}-lgt`,
-            setLightness,
-            "percentage",
-          )}
-          onValueCommit={saveValuesToDatabase}
+          onValueChange={(values) =>
+            lightness.onChange(values[0] ?? lightness.committed)
+          }
+          onValueCommit={(values) =>
+            lightness.onCommit(values[0] ?? lightness.committed)
+          }
         />
-      </FormSection>
+      </div>
     </div>
   );
 }
