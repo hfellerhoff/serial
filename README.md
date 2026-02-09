@@ -26,8 +26,6 @@ If you'd like to support additional features in development, [see below!](#enabl
 
 ## Self Hosting
 
-> Note: Self hosting is only possible through the `libsql` host [Turso](https://turso.tech/) at the moment. This will change going forward, but keep in mind that your current database choices may be limited.
-
 Self hosting Serial is relatively easy. Here are the current step by step platform-specific guides available:
 
 - [Coolify](/docs/hosting/coolify.md) (supports local and cloud db)
