@@ -73,6 +73,21 @@
   width: 100%;
 }
 
+.article .videoEmbed span {
+  opacity: 1;
+  font-size: inherit;
+  margin-block: 0;
+}
+
+.article .videoEmbed img {
+  margin: 0;
+  width: auto;
+}
+
+.article .videoEmbed * {
+  max-width: none;
+}
+
 .article img + :not(span) {
   margin-bottom: 1.5rem;
 }

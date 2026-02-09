@@ -13,6 +13,7 @@ import { useFeeds } from "~/lib/data/feeds";
 import { useFlagState } from "~/lib/hooks/useFlagState";
 import classes from "~/components/feed/read/article.module.css";
 import { useFeedItemValue } from "~/lib/data/store";
+import { ArticleContent } from "~/components/feed/read/ArticleContent";
 
 const parser = unified()
   .use(rehypeParse, { fragment: true })
@@ -77,16 +78,20 @@ function ReadPage() {
         ) : (
           <div className="bg-muted aspect-square size-6 rounded object-cover" />
         )}
-        <span className="line-clamp-1 font-mono text-sm">{feed?.name}</span>
+        <span className="line-clamp-1 font-sans text-sm">{feed?.name}</span>
       </div>
       <div className={`h-full w-full px-6 sm:pb-6 ${classes.article}`}>
         <h1>{feedItem?.title}</h1>
         <h6>{feedItem?.author || feed?.name || ""}</h6>
-        <div
-          dangerouslySetInnerHTML={{
-            __html: content,
-          }}
-        />
+        {articleStyle === "simplified" ? (
+          <div
+            dangerouslySetInnerHTML={{
+              __html: content,
+            }}
+          />
+        ) : (
+          <ArticleContent content={content} />
+        )}
       </div>
       <div className="sticky inset-x-0 bottom-0 left-0 grid place-items-center">
         <ContentActions contentID={params.id} />

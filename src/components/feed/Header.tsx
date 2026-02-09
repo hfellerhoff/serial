@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocation, useRouter } from "@tanstack/react-router";
-import { FeedLoader } from "./FeedLoader";
+import { HeaderCenterContent } from "./HeaderCenterContent";
 import { TopLeftButton } from "./TopLeftButton";
 import { TopRightHeaderContent } from "./TopRightHeaderContent";
 import { useShortcut } from "~/lib/hooks/useShortcut";
@@ -22,7 +22,7 @@ export function Header() {
       <span className="inline-flex w-auto items-center justify-start md:w-16">
         <TopLeftButton />
       </span>
-      <FeedLoader />
+      <HeaderCenterContent />
       <span className="inline-flex w-auto items-center justify-end md:w-16">
         <TopRightHeaderContent />
       </span>

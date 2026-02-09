@@ -38,7 +38,7 @@ export function AppLeftSidebar() {
             >
               <Link to="/" onClick={onNavigate}>
                 <SerialLogo className="size-8" />
-                <span className="font-mono text-base font-semibold">
+                <span className="font-sans text-base font-semibold">
                   Serial
                 </span>
               </Link>

@@ -17,6 +17,8 @@ import { BASE_SIGNED_OUT_URL } from "~/lib/constants";
 import { orpcRouterClient } from "~/lib/orpc";
 import appCss from "~/styles/globals.css?url";
 
+import "@fontsource-variable/outfit";
+
 const title = "Serial";
 const description =
   "A snappy, customizable video feed. Designed to show you exactly the content you want to see and nothing else.";
@@ -125,14 +127,14 @@ export function RootLayout() {
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
-        {/* {import.meta.env.DEV && (
+        {import.meta.env.DEV && (
           <>
             <script
               crossOrigin="anonymous"
               src="//unpkg.com/react-scan/dist/auto.global.js"
             />
           </>
-        )}*/}
+        )}
         {import.meta.env.VITE_PUBLIC_UMAMI_SRC &&
           import.meta.env.VITE_PUBLIC_UMAMI_WEBSITE_ID && (
             <>

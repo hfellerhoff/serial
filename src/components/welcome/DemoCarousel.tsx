@@ -3,7 +3,7 @@ import Marquee from "react-fast-marquee";
 export function DemoCarousel() {
   return (
     <>
-      <div className="absolute inset-x-0 top-12 md:top-16">
+      <div>
         <Marquee>
           <img
             className="mx-2 h-40 rounded shadow sm:h-56 md:mx-4 md:h-80"
@@ -47,7 +47,7 @@ export function DemoCarousel() {
           />
         </Marquee>
       </div>
-      <div className="h-48 sm:h-68 md:h-96" />
+      {/* <div className="h-48 sm:h-68 md:h-96" />*/}
     </>
   );
 }

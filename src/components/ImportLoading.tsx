@@ -23,11 +23,11 @@ export function ImportLoading() {
       {isFetching && totalFeeds > 0 ? (
         <>
           <Progress value={progress} className="w-48" />
-          <p className="text-muted-foreground pt-4 font-mono text-sm">
+          <p className="text-muted-foreground pt-4 font-sans text-sm">
             Importing {feedsCompleted} of {totalFeeds} feeds...
           </p>
           {importErrors > 0 && (
-            <p className="text-muted-foreground/50 pt-2 font-mono text-sm">
+            <p className="text-muted-foreground/50 pt-2 font-sans text-sm">
               {importErrors} feed{importErrors !== 1 ? "s" : ""} failed to
               import
             </p>

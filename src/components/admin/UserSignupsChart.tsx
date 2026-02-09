@@ -33,7 +33,7 @@ export function UserSignupsChart() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="font-mono text-base font-medium">
+        <CardTitle className="font-sans text-base font-medium">
           User Sign-ups
         </CardTitle>
         <Tabs

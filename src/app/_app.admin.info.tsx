@@ -23,7 +23,7 @@ function AdminInfoPage() {
           Admin Home
         </Button>
       </Link>
-      <h2 className="pt-4 font-mono text-lg">Admin Info</h2>
+      <h2 className="pt-4 font-sans text-lg">Admin Info</h2>
       <div className="mt-6 flex flex-col gap-6">
         <UserSignupsChart />
         <UserSigninsChart />

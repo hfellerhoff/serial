@@ -31,7 +31,7 @@ function RouteComponent() {
           </>
         )}
       </div>
-      <p className="pb-0 font-mono">{release.publish_date}</p>
+      <p className="pb-0 font-sans">{release.publish_date}</p>
       <h2>{release.title}</h2>
       <p>{release.description}</p>
       <hr />

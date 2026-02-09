@@ -47,7 +47,7 @@ const flagsAtom = atom({
     parseFlagLocalStorageValue("CUSTOM_VIDEO_PLAYER") ?? "serial",
   INLINE_SHORTCUTS:
     parseFlagLocalStorageValue("INLINE_SHORTCUTS") ?? "show-shortcuts",
-  ARTICLE_STYLE: parseFlagLocalStorageValue("ARTICLE_STYLE") ?? "simplified",
+  ARTICLE_STYLE: parseFlagLocalStorageValue("ARTICLE_STYLE") ?? "full",
 } as FlagsState);
 
 export function useFlagState<TKey extends FlagName>(key: TKey) {

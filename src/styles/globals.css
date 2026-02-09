@@ -226,8 +226,12 @@
 }
 
 @layer base {
+  :root {
+    --font-sans: "Outfit Variable", sans-serif;
+  }
+
   * {
-    @apply border-border;
+    @apply border-border font-sans;
   }
 
   body {
@@ -240,27 +244,27 @@
   }
 
   .prose h1 {
-    @apply font-mono text-2xl leading-relaxed font-bold lg:text-3xl lg:leading-loose;
+    @apply font-sans text-2xl leading-relaxed font-bold lg:text-3xl lg:leading-loose;
   }
 
   .prose h2 {
-    @apply font-mono text-xl leading-relaxed font-bold lg:text-2xl lg:leading-loose;
+    @apply font-sans text-xl leading-relaxed font-bold lg:text-2xl lg:leading-loose;
   }
 
   .prose h3 {
-    @apply font-mono text-lg leading-relaxed font-bold lg:text-xl lg:leading-loose;
+    @apply font-sans text-lg leading-relaxed font-bold lg:text-xl lg:leading-loose;
   }
 
   .prose h4 {
-    @apply font-mono text-base leading-relaxed font-bold lg:text-lg lg:leading-loose;
+    @apply font-sans text-base leading-relaxed font-bold lg:text-lg lg:leading-loose;
   }
 
   .prose h5 {
-    @apply font-mono text-base leading-relaxed font-bold lg:text-base lg:leading-loose;
+    @apply font-sans text-base leading-relaxed font-bold lg:text-base lg:leading-loose;
   }
 
   .prose h6 {
-    @apply font-mono text-base leading-relaxed font-bold lg:text-base lg:leading-loose;
+    @apply font-sans text-base leading-relaxed font-bold lg:text-base lg:leading-loose;
   }
 
   .prose a {

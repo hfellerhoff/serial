@@ -35,7 +35,7 @@ export function FeedEmptyState() {
   return (
     <>
       <div className="w-full px-6 pt-6 pb-4 md:pt-16 md:text-center">
-        <h2 className="font-mono text-xl font-bold">Welcome to Serial!</h2>
+        <h2 className="font-sans text-xl font-bold">Welcome to Serial!</h2>
         <p className="">There are a couple ways to get started:</p>
       </div>
       <div className="flex w-full flex-col gap-4 px-6 md:flex-row">

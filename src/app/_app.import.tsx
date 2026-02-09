@@ -118,7 +118,7 @@ function EditFeedsPage() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h2 className="font-mono text-lg">Import Feeds</h2>
+      <h2 className="font-sans text-lg">Import Feeds</h2>
       {!isPostImportScreen && (
         <>
           <p className="mt-2">Serial supports importing:</p>

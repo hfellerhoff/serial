@@ -358,7 +358,7 @@ function ManageFeedsPage() {
     return (
       <div className="mx-auto max-w-2xl p-6">
         <div className="flex items-center justify-between">
-          <h2 className="font-mono text-lg">Manage Feeds</h2>
+          <h2 className="font-sans text-lg">Manage Feeds</h2>
           <Button
             variant="outline"
             size="icon"
@@ -381,7 +381,7 @@ function ManageFeedsPage() {
     <div>
       <div className="mx-auto max-w-2xl px-6 pt-6">
         <div className="flex items-center justify-between">
-          <h2 ref={headerRef} className="font-mono text-lg">
+          <h2 ref={headerRef} className="font-sans text-lg">
             Manage Feeds
           </h2>
           <ButtonWithShortcut

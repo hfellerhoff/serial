@@ -52,6 +52,7 @@ interface IResponsiveVideoProps {
   videoSrc?: string;
   orientation: "vertical" | "horizontal";
   isInactive: boolean;
+  isEmbed?: boolean;
 }
 
 function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
@@ -83,7 +84,7 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
     isMuted,
     toggleMute,
   } = useCustomVideoPlayerContext();
-  useVideoShortcuts();
+  useVideoShortcuts({ disabled: props.isEmbed });
 
   const { view, setView, toggleView } = useView();
 
@@ -213,7 +214,7 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
                     <Button
                       size="sm"
                       variant="link"
-                      className="-ml-3 flex w-max flex-row items-center gap-2 font-mono text-sm font-bold"
+                      className="-ml-3 flex w-max flex-row items-center gap-2 font-sans text-sm font-bold"
                       onClick={() => {
                         const location = Math.max(
                           videoDuration + 160,
@@ -365,27 +366,31 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
                       </Tooltip>
                     );
                   })()}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <ButtonWithShortcut
-                        shortcut="F"
-                        size="icon"
-                        variant={
-                          hasInlineShortcutsVisible === "show-shortcuts"
-                            ? "outline"
-                            : "ghost"
-                        }
-                        onClick={handleWindowedFullscreen}
-                      >
-                        {view === "fullscreen" ? (
-                          <MinimizeIcon size={16} />
-                        ) : (
-                          <MaximizeIcon size={16} />
-                        )}
-                      </ButtonWithShortcut>
-                    </TooltipTrigger>
-                    <TooltipContent>Toggle windowed fullscreen</TooltipContent>
-                  </Tooltip>
+                  {!props.isEmbed && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <ButtonWithShortcut
+                          shortcut="F"
+                          size="icon"
+                          variant={
+                            hasInlineShortcutsVisible === "show-shortcuts"
+                              ? "outline"
+                              : "ghost"
+                          }
+                          onClick={handleWindowedFullscreen}
+                        >
+                          {view === "fullscreen" ? (
+                            <MinimizeIcon size={16} />
+                          ) : (
+                            <MaximizeIcon size={16} />
+                          )}
+                        </ButtonWithShortcut>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Toggle windowed fullscreen
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <ButtonWithShortcut

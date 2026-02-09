@@ -7,7 +7,7 @@ import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
 
 const SEEK_KEYS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
-export function useVideoShortcuts() {
+export function useVideoShortcuts({ disabled = false } = {}) {
   const {
     toggleVideoPlayback,
     playerState,
@@ -29,6 +29,8 @@ export function useVideoShortcuts() {
   const keypressTimeRef = useRef<Record<string, number | null>>({});
 
   useEffect(() => {
+    if (disabled) return;
+
     const processKeyDown = (event: KeyboardEvent) => {
       if (typeof keypressTimeRef.current[event.key] === "number") {
         return;
@@ -155,5 +157,6 @@ export function useVideoShortcuts() {
     setView,
     toggleView,
     toggleMute,
+    disabled,
   ]);
 }

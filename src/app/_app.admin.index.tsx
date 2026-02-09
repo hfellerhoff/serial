@@ -16,7 +16,7 @@ function AdminDashboard() {
   return (
     <div className="mx-auto max-w-2xl p-6">
       <div className="flex items-center justify-between">
-        <h2 className="font-mono text-lg">Admin</h2>
+        <h2 className="font-sans text-lg">Admin</h2>
         <Link
           to="/admin/info"
           className="text-muted-foreground hover:text-foreground text-sm underline"
@@ -27,12 +27,12 @@ function AdminDashboard() {
 
       <div className="mt-6 flex flex-col gap-6">
         <div className="flex flex-col gap-3">
-          <h3 className="font-mono text-base">Settings</h3>
+          <h3 className="font-sans text-base">Settings</h3>
           <PublicSignupToggle />
         </div>
 
         <div className="flex flex-col gap-3">
-          <h3 className="font-mono text-base">Users</h3>
+          <h3 className="font-sans text-base">Users</h3>
           <AdminUserList />
         </div>
       </div>

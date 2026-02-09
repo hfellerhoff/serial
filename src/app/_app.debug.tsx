@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_app/debug")({
 function DebugPage() {
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h2 className="font-mono text-lg">Debug</h2>
+      <h2 className="font-sans text-lg">Debug</h2>
       <div className="mt-6">
         <FeedRefreshTimeframesChart />
       </div>

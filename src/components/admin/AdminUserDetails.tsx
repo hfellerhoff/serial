@@ -109,7 +109,7 @@ export function AdminUserDetails({ data }: AdminUserDetailsProps) {
       </div>
 
       <div className="flex flex-col gap-3">
-        <h3 className="font-mono text-lg">Sessions ({sessions.length})</h3>
+        <h3 className="font-sans text-lg">Sessions ({sessions.length})</h3>
         <AdminSessionList sessions={sessions} />
       </div>
     </div>
