@@ -370,3 +370,120 @@ export const getSigninStats = adminProcedure
       stats: fillDateGaps(stats, input.timeRange, startDate),
     };
   });
+
+// Get retention stats by months since signup (0-12)
+export const getRetentionStats = adminProcedure.handler(async () => {
+  const now = new Date();
+  const currentAbsMonth = now.getFullYear() * 12 + (now.getMonth() + 1);
+  const minSignupDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+
+  // Month offset between session creation and user signup
+  const monthOffsetExpr = sql<number>`
+    (CAST(strftime('%Y', datetime(${session.createdAt}, 'unixepoch')) AS INTEGER)
+     - CAST(strftime('%Y', datetime(${user.createdAt}, 'unixepoch')) AS INTEGER)) * 12
+    + (CAST(strftime('%m', datetime(${session.createdAt}, 'unixepoch')) AS INTEGER)
+     - CAST(strftime('%m', datetime(${user.createdAt}, 'unixepoch')) AS INTEGER))`;
+
+  // Signup absolute month expression
+  const signupAbsMonthExpr = sql<number>`
+    CAST(strftime('%Y', datetime(${user.createdAt}, 'unixepoch')) AS INTEGER) * 12
+    + CAST(strftime('%m', datetime(${user.createdAt}, 'unixepoch')) AS INTEGER)`;
+
+  // Count distinct active users per (month offset, signup month), excluding impersonation
+  // Only include users who signed up on or after 2025-04
+  const activeResults = await db
+    .select({
+      month: monthOffsetExpr,
+      signupMonth: signupAbsMonthExpr,
+      activeUsers: sql<number>`COUNT(DISTINCT ${session.userId})`,
+    })
+    .from(session)
+    .innerJoin(user, eq(session.userId, user.id))
+    .where(
+      and(
+        isNull(session.impersonatedBy),
+        gte(user.createdAt, minSignupDate),
+        sql`${monthOffsetExpr} >= 0`,
+        sql`${monthOffsetExpr} <= 12`,
+      ),
+    )
+    .groupBy(monthOffsetExpr, signupAbsMonthExpr)
+    .orderBy(monthOffsetExpr)
+    .all();
+
+  // Get signup absolute month for each user (only those who signed up on or after 2025-04)
+  const signupMonths = await db
+    .select({
+      absMonth: sql<number>`CAST(strftime('%Y', datetime(${user.createdAt}, 'unixepoch')) AS INTEGER) * 12 + CAST(strftime('%m', datetime(${user.createdAt}, 'unixepoch')) AS INTEGER)`,
+    })
+    .from(user)
+    .where(gte(user.createdAt, minSignupDate))
+    .all();
+
+  if (signupMonths.length === 0) {
+    return { stats: [] };
+  }
+
+  // Build a map of (monthOffset, signupMonth) -> activeUsers
+  const activeByOffsetAndSignup = new Map<string, number>();
+  // Also build the aggregate map for all-users line
+  const activeMap = new Map<number, number>();
+  for (const r of activeResults) {
+    activeByOffsetAndSignup.set(`${r.month}:${r.signupMonth}`, r.activeUsers);
+    activeMap.set(r.month, (activeMap.get(r.month) ?? 0) + r.activeUsers);
+  }
+
+  const cohortWindows = [1, 3, 6, 9] as const;
+
+  // For each month offset 0-12, compute eligible users and retention rate
+  const stats = [];
+  for (let n = 0; n <= 12; n++) {
+    // User is eligible for month N if they signed up at least N months ago
+    const maxSignupAbsMonth = currentAbsMonth - n;
+    const totalUsers = signupMonths.filter(
+      (u) => u.absMonth <= maxSignupAbsMonth,
+    ).length;
+    const activeUsers = activeMap.get(n) ?? 0;
+    const retentionRate =
+      totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 1000) / 10 : 0;
+
+    const point: Record<string, number | undefined> = {
+      month: n,
+      retentionRate,
+      activeUsers,
+      totalUsers,
+    };
+
+    // Compute cohort-specific retention
+    // A W-month cohort = all users who signed up in [currentAbsMonth-W, currentAbsMonth].
+    // The denominator is fixed (total cohort size). The numerator only counts
+    // users active at offset N — users too new to reach offset N naturally
+    // won't appear in activeByOffsetAndSignup.
+    for (const w of cohortWindows) {
+      if (n > w) continue;
+      const cohortMinAbsMonth = currentAbsMonth - w;
+      const cohortTotal = signupMonths.filter(
+        (u) => u.absMonth >= cohortMinAbsMonth,
+      ).length;
+      if (cohortTotal === 0) continue;
+      // Collect all unique signup months in this cohort
+      const cohortMonths = new Set(
+        signupMonths
+          .filter((u) => u.absMonth >= cohortMinAbsMonth)
+          .map((u) => u.absMonth),
+      );
+      let cohortActive = 0;
+      for (const sm of cohortMonths) {
+        cohortActive += activeByOffsetAndSignup.get(`${n}:${sm}`) ?? 0;
+      }
+      const rate = Math.round((cohortActive / cohortTotal) * 1000) / 10;
+      point[`retention${w}mo`] = rate;
+      point[`active${w}mo`] = cohortActive;
+      point[`total${w}mo`] = cohortTotal;
+    }
+
+    stats.push(point);
+  }
+
+  return { stats };
+});

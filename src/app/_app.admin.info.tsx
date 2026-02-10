@@ -4,6 +4,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeftIcon } from "lucide-react";
 import { UserSignupsChart } from "~/components/admin/UserSignupsChart";
 import { UserSigninsChart } from "~/components/admin/UserSigninsChart";
+import { UserRetentionChart } from "~/components/admin/UserRetentionChart";
 import { adminMiddleware } from "~/server/auth";
 import { Button } from "~/components/ui/button";
 
@@ -27,6 +28,7 @@ function AdminInfoPage() {
       <div className="mt-6 flex flex-col gap-6">
         <UserSignupsChart />
         <UserSigninsChart />
+        <UserRetentionChart />
       </div>
     </div>
   );
