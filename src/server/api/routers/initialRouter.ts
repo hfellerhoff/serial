@@ -611,43 +611,6 @@ async function publishPrerequisiteDataChunks(
   });
 }
 
-/**
- * Build a reverse mapping of feedId → viewIds for RSS item routing.
- */
-function buildFeedIdToViewIdsMap(
-  allViews: ApplicationView[],
-  applicationFeeds: ApplicationFeed[],
-  feedCategoriesList: DatabaseFeedCategory[],
-  customViews: ApplicationView[],
-  customViewCategoryIds: Set<number>,
-): Map<number, number[]> {
-  const feedIdToViewIds = new Map<number, number[]>();
-
-  const feedCategoriesMap = buildFeedCategoriesMap(feedCategoriesList);
-
-  for (const view of allViews) {
-    const feedIdsForView = computeFeedsForView(
-      view,
-      applicationFeeds,
-      feedCategoriesList,
-      customViews,
-      customViewCategoryIds,
-      feedCategoriesMap,
-    );
-
-    for (const feedId of feedIdsForView) {
-      const existingViewIds = feedIdToViewIds.get(feedId);
-      if (existingViewIds) {
-        existingViewIds.push(view.id);
-      } else {
-        feedIdToViewIds.set(feedId, [view.id]);
-      }
-    }
-  }
-
-  return feedIdToViewIds;
-}
-
 type PublishViewFeedsResult = {
   feedIdToViewIds?: Map<number, number[]>;
 };
@@ -933,9 +896,8 @@ export const requestInitialData = protectedProcedure
             }
           }
 
-          // Publish feed-items and view-items using the filtered data
+          // Publish feed-items using the filtered data
           for (const [viewId, itemsForView] of viewFilteredItems) {
-            // Publish feed-items chunk for this view
             await publisher.publish(channel, {
               source: "initial",
               chunk: {
@@ -945,15 +907,6 @@ export const requestInitialData = protectedProcedure
               },
             });
 
-            // Publish view-items chunk for this view
-            await publisher.publish(channel, {
-              source: "initial",
-              chunk: {
-                type: "view-items",
-                viewId,
-                feedItemIds: itemsForView.map((item) => item.id),
-              },
-            });
           }
         }
       }
@@ -1014,18 +967,15 @@ export const requestImportedData = protectedProcedure
       feedCategoriesList,
     });
 
-    // Step 3: Publish view-feeds chunks and build feedIdToViewIds mapping
-    const result = await publishViewFeedsChunks(channel, "initial", {
+    // Step 3: Publish view-feeds chunks
+    await publishViewFeedsChunks(channel, "initial", {
       allViews,
       applicationFeeds,
       feedCategoriesList,
       customViews,
       customViewCategoryIds,
-      buildFeedIdToViewIds: true,
+      buildFeedIdToViewIds: false,
     });
-    // feedIdToViewIds is guaranteed to be defined when buildFeedIdToViewIds is true
-    const feedIdToViewIds = result.feedIdToViewIds!;
-
     const firstView = allViews[0];
 
     if (feedIds.length === 0 || !firstView) {
@@ -1094,19 +1044,6 @@ export const requestImportedData = protectedProcedure
           },
         });
 
-        // Stream view mappings for the items
-        const viewIdsForFeed = feedIdToViewIds.get(feedResult.id) ?? [];
-        const itemIds = feedResult.feedItems.map((item) => item.id);
-        for (const viewId of viewIdsForFeed) {
-          await publisher.publish(channel, {
-            source: "initial",
-            chunk: {
-              type: "view-items",
-              viewId,
-              feedItemIds: itemIds,
-            },
-          });
-        }
       }
     }
 
@@ -1317,7 +1254,7 @@ export const requestNewData = protectedProcedure
     const channel = getUserChannel(context.user.id);
     const newerThanTimestamp = input.newerThan;
 
-    // Fetch prerequisite data (needed for feedIdToViewIds mapping)
+    // Fetch prerequisite data
     let prerequisiteData: PrerequisiteData;
     try {
       prerequisiteData = await fetchUserPrerequisiteData(context);
@@ -1335,7 +1272,7 @@ export const requestNewData = protectedProcedure
       return { status: "error" };
     }
 
-    const { feedsList, feedCategoriesList } = prerequisiteData;
+    const { feedsList } = prerequisiteData;
 
     // Count feeds that will actually be fetched (not cached)
     const now = new Date();
@@ -1356,18 +1293,6 @@ export const requestNewData = protectedProcedure
       });
       return { status: "completed" };
     }
-
-    // Build application data and feedIdToViewIds map
-    const { customViews, allViews, customViewCategoryIds, applicationFeeds } =
-      prepareApplicationData(context.user.id, prerequisiteData);
-
-    const feedIdToViewIds = buildFeedIdToViewIdsMap(
-      allViews,
-      applicationFeeds,
-      feedCategoriesList,
-      customViews,
-      customViewCategoryIds,
-    );
 
     // Run RSS fetch and publish new items
     for await (const feedResult of fetchAndInsertFeedData(context, feedsList)) {
@@ -1403,20 +1328,6 @@ export const requestNewData = protectedProcedure
             },
           });
 
-          // Stream only item IDs for each view (efficient mapping)
-          const viewIdsForFeed = feedIdToViewIds.get(feedResult.id) ?? [];
-          const newItemIds = newItems.map((item) => item.id);
-
-          for (const viewId of viewIdsForFeed) {
-            await publisher.publish(channel, {
-              source: "new-data",
-              chunk: {
-                type: "view-items",
-                viewId,
-                feedItemIds: newItemIds,
-              },
-            });
-          }
         }
       }
     }

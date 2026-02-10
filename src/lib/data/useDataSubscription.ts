@@ -21,9 +21,16 @@ export function useDataSubscription() {
   const retryDelayRef = useRef(INITIAL_RETRY_DELAY);
   const isConnectedRef = useRef(false);
 
-  // Process incoming chunks via the store
-  const processChunk = useCallback((payload: PublishedChunk) => {
-    feedItemsStore.getState().processChunk(payload);
+  // Buffer chunks and flush via requestAnimationFrame for micro-batching
+  const chunkBufferRef = useRef<PublishedChunk[]>([]);
+  const rafIdRef = useRef<number | null>(null);
+
+  const flushBuffer = useCallback(() => {
+    rafIdRef.current = null;
+    const chunks = chunkBufferRef.current;
+    if (chunks.length === 0) return;
+    chunkBufferRef.current = [];
+    feedItemsStore.getState().processChunks(chunks);
   }, []);
 
   useEffect(() => {
@@ -44,8 +51,11 @@ export function useDataSubscription() {
           for await (const payload of iterator as AsyncIterable<PublishedChunk>) {
             if (controller.signal.aborted) break;
 
-            // Process the chunk
-            processChunk(payload);
+            // Buffer the chunk and schedule a flush via RAF
+            chunkBufferRef.current.push(payload);
+            if (rafIdRef.current === null) {
+              rafIdRef.current = requestAnimationFrame(flushBuffer);
+            }
           }
         } catch (error) {
           isConnectedRef.current = false;
@@ -77,8 +87,18 @@ export function useDataSubscription() {
     return () => {
       controller.abort();
       isConnectedRef.current = false;
+      // Cancel any pending RAF flush
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      // Flush remaining chunks synchronously on unmount
+      if (chunkBufferRef.current.length > 0) {
+        feedItemsStore.getState().processChunks(chunkBufferRef.current);
+        chunkBufferRef.current = [];
+      }
     };
-  }, [processChunk]);
+  }, [flushBuffer]);
 
   // Request methods that trigger data fetching via the publisher
   const requestInitialData = useCallback(
