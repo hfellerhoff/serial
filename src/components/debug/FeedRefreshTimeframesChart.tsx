@@ -119,7 +119,7 @@ export function FeedRefreshTimeframesChart() {
               cx="50%"
               cy="50%"
               outerRadius={80}
-              label={({ label, value }) => `${label}: ${value}`}
+              label={({ name, value }) => `${name}: ${value}`}
             >
               {data.map((entry) => (
                 <Cell key={entry.name} fill={entry.fill} />

@@ -1110,8 +1110,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               // Check if all feeds are accounted for (successes + errors)
               const allFeedsComplete =
                 Object.keys(get().feedStatusDict).length + newImportErrors >=
-                  currentProgress.totalFeeds &&
-                currentProgress.totalFeeds > 0;
+                  currentProgress.totalFeeds && currentProgress.totalFeeds > 0;
 
               set({
                 progressState: {
@@ -1517,9 +1516,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             payload.source === "initial" &&
             payload.chunk.type === "feed-items"
           ) {
-            pendingInitialFeedItems.push(
-              payload as InitialFeedItemPayload,
-            );
+            pendingInitialFeedItems.push(payload as InitialFeedItemPayload);
           } else if (
             payload.source === "initial" &&
             payload.chunk.type === "feed-status"

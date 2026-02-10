@@ -1,21 +1,25 @@
 import eslint from "@eslint/js";
+import { fixupConfigRules } from "@eslint/compat";
 import { tanstackConfig } from "@tanstack/eslint-config";
 import reactPlugin from "eslint-plugin-react";
 import reactHooksPlugin from "eslint-plugin-react-hooks";
+// @ts-expect-error - no type declarations available
 import jsxA11yPlugin from "eslint-plugin-jsx-a11y";
 import tseslint from "typescript-eslint";
 
-const reactConfigs = [
-  reactPlugin.configs.flat.recommended,
-  reactPlugin.configs.flat["jsx-runtime"],
-  reactHooksPlugin.configs.flat["recommended-latest"],
-].filter(Boolean);
+const reactConfigs = fixupConfigRules(
+  /** @type {import("eslint").Linter.Config[]} */ ([
+    reactPlugin.configs.flat.recommended,
+    reactPlugin.configs.flat["jsx-runtime"],
+    reactHooksPlugin.configs.flat["recommended-latest"],
+  ]),
+).filter(Boolean);
 
 export default tseslint.config(
   eslint.configs.recommended,
   ...tanstackConfig,
   ...reactConfigs,
-  jsxA11yPlugin.flatConfigs.recommended,
+  ...fixupConfigRules([jsxA11yPlugin.flatConfigs.recommended]),
   {
     settings: {
       react: {

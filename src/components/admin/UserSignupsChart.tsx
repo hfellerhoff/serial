@@ -58,7 +58,7 @@ export function UserSignupsChart() {
           </div>
         ) : (
           <ChartContainer config={chartConfig} className="h-[250px] w-full">
-            <LineChart data={data.stats} accessibilityLayer>
+            <LineChart data={data.stats}>
               <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="date"

@@ -1,5 +1,10 @@
 import { ToggleGroup } from "@radix-ui/react-toggle-group";
-import { ImportIcon } from "lucide-react";
+import {
+  CheckIcon,
+  ExternalLinkIcon,
+  ImportIcon,
+  LinkIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
@@ -15,6 +20,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { ControlledResponsiveDialog } from "./ui/responsive-dropdown";
 import { ToggleGroupItem } from "./ui/toggle-group";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import type { FeedOpenLocation, FeedPlatform } from "~/server/db/schema";
 import { useFeedCategories } from "~/lib/data/feed-categories";
 import { useFeeds } from "~/lib/data/feeds";
@@ -192,6 +198,7 @@ export function EditFeedDialog({
 }) {
   const [isUpdatingFeed, setIsUpdatingFeed] = useState(false);
   const [isDeletingFeed, setIsDeletingFeed] = useState(false);
+  const [hasCopied, setHasCopied] = useState(false);
 
   const { mutateAsync: editFeed } = useEditFeedMutation();
   const { mutateAsync: deleteFeed } = useDeleteFeedMutation();
@@ -224,6 +231,23 @@ export function EditFeedDialog({
 
   const feed = feeds.find((v) => v.id === selectedFeedId);
 
+  const websiteUrl = (() => {
+    if (!feed?.url) return "#";
+    try {
+      const url = new URL(feed.url);
+      if (feed.platform === "youtube") {
+        const channelId = url.searchParams.get("channel_id");
+        if (channelId) return `https://www.youtube.com/channel/${channelId}`;
+      }
+      return url.origin;
+    } catch {
+      return "#";
+    }
+  })();
+
+  const platformName =
+    PLATFORM_TO_FORMATTED_NAME_MAP[feed?.platform ?? "youtube"];
+
   return (
     <ControlledResponsiveDialog
       open={selectedFeedId !== null}
@@ -233,13 +257,53 @@ export function EditFeedDialog({
       <div className="grid gap-6">
         <div className="grid gap-2">
           <Label htmlFor="name">Name</Label>
-          <Input
-            id="name"
-            type="text"
-            value={name}
-            placeholder="My Feed"
-            disabled
-          />
+          <div className="flex gap-2">
+            <Input
+              id="name"
+              type="text"
+              value={name}
+              placeholder="My Feed"
+              disabled
+              className="flex-1"
+            />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => {
+                    navigator.clipboard.writeText(feed?.url ?? "");
+                    toast.success("Feed URL copied!");
+                    setHasCopied(true);
+                    setTimeout(() => setHasCopied(false), 2000);
+                  }}
+                >
+                  {hasCopied ? <CheckIcon size={16} /> : <LinkIcon size={16} />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Copy Feed URL</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  asChild
+                >
+                  <a
+                    href={websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLinkIcon size={16} />
+                  </a>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Open in {platformName}</TooltipContent>
+            </Tooltip>
+          </div>
         </div>
         <ViewCategoriesInput
           selectedCategories={selectedCategories}

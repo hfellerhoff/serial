@@ -57,7 +57,7 @@ export function TopRightHeaderContent() {
   return (
     <div className="flex items-center gap-2">
       <RefetchItemsButton />
-      <div className="md:hidden">
+      <div className="lg:hidden">
         <OpenRightSidebarButton />
       </div>
     </div>

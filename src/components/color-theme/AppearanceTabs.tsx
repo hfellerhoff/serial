@@ -1,12 +1,7 @@
 import { ArticlesTab } from "./ArticlesTab";
 import { DesignTab } from "./DesignTab";
 import { VideosTab } from "./VideosTab";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "~/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 
 export function AppearanceTabs({
   defaultTab = "design",

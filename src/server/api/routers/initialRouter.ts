@@ -906,7 +906,6 @@ export const requestInitialData = protectedProcedure
                 feedItems: itemsForView,
               },
             });
-
           }
         }
       }
@@ -1043,7 +1042,6 @@ export const requestImportedData = protectedProcedure
             feedItems: feedResult.feedItems,
           },
         });
-
       }
     }
 
@@ -1327,7 +1325,6 @@ export const requestNewData = protectedProcedure
               feedItems: newItems,
             },
           });
-
         }
       }
     }
