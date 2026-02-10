@@ -26,8 +26,8 @@ export function ItemVisibilityChips() {
       size="sm"
     >
       <ToggleGroupItem value="unread">Unread</ToggleGroupItem>
-      <ToggleGroupItem value="later">Later</ToggleGroupItem>
       <ToggleGroupItem value="read">Read</ToggleGroupItem>
+      <ToggleGroupItem value="later">Later</ToggleGroupItem>
     </ToggleGroup>
   );
 }
@@ -48,8 +48,8 @@ export function ItemVisibilitySelect() {
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="unread">Unread</SelectItem>
-        <SelectItem value="later">Later</SelectItem>
         <SelectItem value="read">Read</SelectItem>
+        <SelectItem value="later">Later</SelectItem>
       </SelectContent>
     </Select>
   );
