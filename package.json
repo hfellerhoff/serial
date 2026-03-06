@@ -40,7 +40,7 @@
     "@libsql/linux-arm64-gnu": "^0.5.22",
     "@libsql/linux-arm64-musl": "0.5.22",
     "@libsql/linux-x64-musl": "0.5.22",
-    "@orpc/client": "^1.13.4",
+    "@orpc/client": "^1.13.6",
     "@orpc/experimental-publisher": "^1.13.4",
     "@orpc/server": "^1.13.4",
     "@orpc/tanstack-query": "^1.13.4",
