@@ -15,6 +15,7 @@ import {
 } from "~/lib/data/instapaper";
 import { useFeedItemValue } from "~/lib/data/store";
 import { timeAgo } from "~/lib/utils";
+import { useFeedItemActions } from "~/lib/hooks/useFeedItemActions";
 
 export type ItemSize = "standard" | "large";
 
@@ -365,14 +366,19 @@ function ItemThumbnail({ layout, item, feed }: ItemThumbnailProps) {
 interface ItemDisplayProps {
   contentId: string;
   size?: ItemSize;
+  isSelected?: boolean;
+  onSelect?: () => void;
 }
 
 export function ItemDisplay({
   contentId,
   size = "standard",
+  isSelected,
+  onSelect,
 }: ItemDisplayProps) {
   const feeds = useFeedsArray();
   const item = useFeedItemValue(contentId);
+  const { markAsRead } = useFeedItemActions(contentId);
 
   if (!item) return null;
 
@@ -390,8 +396,14 @@ export function ItemDisplay({
 
   const isLarge = size === "large";
 
+  const handleClick = () => {
+    markAsRead();
+  };
+
   return (
     <article
+      data-item-id={contentId}
+      onMouseEnter={onSelect}
       className={clsx(
         "group relative flex w-full flex-1 justify-stretch gap-2",
         isLarge
@@ -407,9 +419,11 @@ export function ItemDisplay({
         target={target}
         rel={rel}
         preload={shouldOpenInSerial ? "intent" : undefined}
+        onClick={handleClick}
         className={clsx(
-          "sm:hover:bg-muted flex w-full flex-1 flex-col gap-4 pt-4 pr-4 pl-6 text-left transition-colors md:flex-row md:items-center md:rounded md:py-4 md:pr-0",
+          "flex w-full flex-1 flex-col gap-4 pt-4 pr-4 pl-6 text-left md:flex-row md:items-center md:rounded md:py-4 md:pr-0",
           isLarge ? "pb-1 md:pb-4" : "pb-4 md:h-20 md:py-0",
+          isSelected && "bg-muted",
         )}
       >
         {isLarge ? (
@@ -456,14 +470,19 @@ export function ItemDisplay({
 interface GridItemDisplayProps {
   contentId: string;
   size?: ItemSize;
+  isSelected?: boolean;
+  onSelect?: () => void;
 }
 
 export function GridItemDisplay({
   contentId,
   size = "standard",
+  isSelected,
+  onSelect,
 }: GridItemDisplayProps) {
   const feeds = useFeedsArray();
   const item = useFeedItemValue(contentId);
+  const { markAsRead } = useFeedItemActions(contentId);
 
   if (!item) return null;
 
@@ -481,9 +500,15 @@ export function GridItemDisplay({
 
   const isLarge = size === "large";
 
+  const handleClick = () => {
+    markAsRead();
+  };
+
   return (
     <article
-      className={clsx("group relative flex w-full flex-col", {
+      data-item-id={contentId}
+      onMouseEnter={onSelect}
+      className={clsx("group relative flex h-full w-full flex-col", {
         "opacity-50": item.isWatched,
       })}
     >
@@ -492,12 +517,10 @@ export function GridItemDisplay({
         target={target}
         rel={rel}
         preload={shouldOpenInSerial ? "intent" : undefined}
+        onClick={handleClick}
         className={clsx(
-          "sm:hover:bg-muted flex flex-col rounded p-2 text-left transition-colors",
-          {
-            "w-full": !isLarge,
-            "w-[calc(100vw-3rem)] md:w-full": isLarge,
-          },
+          "flex h-full flex-1 flex-col rounded p-2 text-left",
+          isSelected && "bg-muted",
         )}
       >
         <ItemThumbnail

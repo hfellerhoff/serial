@@ -4,9 +4,11 @@ import { ExternalLinkIcon } from "lucide-react";
 import { useLocation } from "@tanstack/react-router";
 import { OpenRightSidebarButton } from "./OpenRightSidebarButton";
 import { RefetchItemsButton } from "./RefetchItemsButton";
+import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { Button } from "~/components/ui/button";
 import { PLATFORM_TO_FORMATTED_NAME_MAP } from "~/lib/data/feeds/utils";
 import { useFeedItemValue } from "~/lib/data/store";
+import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 
 function OpenInYouTubeButton() {
   const { pathname } = useLocation();
@@ -33,12 +35,16 @@ function OpenInYouTubeButton() {
 
   return (
     <a href={feedItem.url} target="_blank" rel="noopener noreferrer">
-      <Button variant="outline" size="icon md:default">
+      <ButtonWithShortcut
+        variant="outline"
+        shortcut={SHORTCUT_KEYS.OPEN_ORIGINAL}
+        size="icon md:default"
+      >
         <span className="hidden pr-1.5 md:block">
           {PLATFORM_TO_FORMATTED_NAME_MAP[feedItem.platform]}
         </span>
         <ExternalLinkIcon size={16} />
-      </Button>
+      </ButtonWithShortcut>
     </a>
   );
 }

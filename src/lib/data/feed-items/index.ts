@@ -3,6 +3,7 @@ import {
   categoryFilterAtom,
   dateFilterAtom,
   feedFilterAtom,
+  softReadItemIdsAtom,
   viewFilterAtom,
   visibilityFilterAtom,
 } from "../atoms";
@@ -56,10 +57,14 @@ export function doesFeedItemPassFilters(
   viewFilter: ApplicationView | null,
   customViewCategoryIds?: Set<number>,
   customViews?: ApplicationView[],
+  softReadItemIds?: Set<string>,
 ) {
   // Visibility filter
   if (visibilityFilter === "unread" && (item.isWatched || item.isWatchLater)) {
-    return false;
+    // Allow soft read items to pass through unread filter
+    if (!softReadItemIds?.has(item.id)) {
+      return false;
+    }
   }
   if (visibilityFilter === "read" && (!item.isWatched || item.isWatchLater)) {
     return false;
@@ -177,6 +182,7 @@ export const useFilteredFeedItemsOrder = () => {
   const feeds = useFeeds();
   const viewFilter = useAtomValue(viewFilterAtom);
   const { customViews, customViewCategoryIds } = useCustomViewsData();
+  const softReadItemIds = useAtomValue(softReadItemIdsAtom);
 
   // Get pagination states for cursor-based filtering
   const viewPaginationState = feedItemsStore.useViewPaginationState();
@@ -218,6 +224,7 @@ export const useFilteredFeedItemsOrder = () => {
       viewFilter,
       customViewCategoryIds,
       customViews,
+      softReadItemIds,
     );
   });
 };
@@ -231,6 +238,7 @@ export function useDoesFeedItemMatchAllFilters(item: ApplicationFeedItem) {
   const feeds = useFeeds();
   const viewFilter = useAtomValue(viewFilterAtom);
   const { customViews, customViewCategoryIds } = useCustomViewsData();
+  const softReadItemIds = useAtomValue(softReadItemIdsAtom);
 
   return doesFeedItemPassFilters(
     item,
@@ -243,5 +251,6 @@ export function useDoesFeedItemMatchAllFilters(item: ApplicationFeedItem) {
     viewFilter,
     customViewCategoryIds,
     customViews,
+    softReadItemIds,
   );
 }

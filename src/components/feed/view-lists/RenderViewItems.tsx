@@ -24,6 +24,7 @@ import {
 import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
 import { VIEW_LAYOUT, viewLayoutSchema } from "~/server/db/constants";
 import { useLazyVisibilityFilter } from "~/lib/hooks/useLazyVisibilityFilter";
+import { useFeedItemNavigation } from "~/lib/hooks/useFeedItemNavigation";
 
 export function RenderViewItems() {
   const { feeds, hasFetchedFeeds } = useFeeds();
@@ -45,6 +46,15 @@ export function RenderViewItems() {
     isUncategorized || !parsedLayout.success
       ? VIEW_LAYOUT.LIST
       : parsedLayout.data;
+
+  const isGridLayout =
+    layout === VIEW_LAYOUT.GRID || layout === VIEW_LAYOUT.LARGE_GRID;
+
+  // Keyboard navigation
+  const { handleMouseSelect } = useFeedItemNavigation(
+    filteredFeedItemsOrder,
+    isGridLayout,
+  );
 
   if (!hasInitialData) {
     return <FeedLoading />;
@@ -79,12 +89,32 @@ export function RenderViewItems() {
 
   switch (layout) {
     case VIEW_LAYOUT.LARGE_LIST:
-      return <ViewItemLargeList items={filteredFeedItemsOrder} />;
+      return (
+        <ViewItemLargeList
+          items={filteredFeedItemsOrder}
+          handleMouseSelect={handleMouseSelect}
+        />
+      );
     case VIEW_LAYOUT.GRID:
-      return <ViewItemGrid items={filteredFeedItemsOrder} />;
+      return (
+        <ViewItemGrid
+          items={filteredFeedItemsOrder}
+          handleMouseSelect={handleMouseSelect}
+        />
+      );
     case VIEW_LAYOUT.LARGE_GRID:
-      return <ViewItemLargeGrid items={filteredFeedItemsOrder} />;
+      return (
+        <ViewItemLargeGrid
+          items={filteredFeedItemsOrder}
+          handleMouseSelect={handleMouseSelect}
+        />
+      );
     default:
-      return <ViewItemStandardList items={filteredFeedItemsOrder} />;
+      return (
+        <ViewItemStandardList
+          items={filteredFeedItemsOrder}
+          handleMouseSelect={handleMouseSelect}
+        />
+      );
   }
 }

@@ -50,3 +50,7 @@ export const viewAtom = atom<"windowed" | "fullscreen">("windowed");
 export const longformVideoZoomAtom = atom<number>(3);
 export const shortformVideoZoomAtom = atom<number>(2);
 export const articleZoomAtom = atom<number>(1);
+
+export const selectedItemIdAtom = atom<string | null>(null);
+export const softReadItemIdsAtom = atom<Set<string>>(new Set<string>());
+export const isReturningFromRouteAtom = atom(false);

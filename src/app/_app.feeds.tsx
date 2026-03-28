@@ -16,7 +16,7 @@ import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { useDialogStore } from "~/components/feed/dialogStore";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
+import { useCanUseShortcuts } from "~/lib/hooks/useCanUseShortcuts";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Input } from "~/components/ui/input";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
@@ -46,10 +46,12 @@ function useFeedManagementShortcuts({
   isDialogOpen: boolean;
   hasSelection: boolean;
 }) {
+  const { doesFormElementHaveFocus } = useCanUseShortcuts();
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.repeat) return;
-      if (doesAnyFormElementHaveFocus()) return;
+      if (doesFormElementHaveFocus) return;
 
       // Check if event originated from within a dialog
       const target = event.target as HTMLElement;
@@ -87,6 +89,7 @@ function useFeedManagementShortcuts({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
+    doesFormElementHaveFocus,
     hasSelection,
     isDialogOpen,
     onClearCategories,

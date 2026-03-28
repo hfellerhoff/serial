@@ -14,6 +14,11 @@ import {
   useUpdateViewFilter,
   useViews,
 } from "~/lib/data/views";
+import { KeyboardShortcutDisplay } from "~/components/ButtonWithShortcut";
+import {
+  MAX_VIEW_SHORTCUTS,
+  VIEW_SHORTCUT_KEYS,
+} from "~/lib/constants/shortcuts";
 
 export function ViewFilterChips() {
   const { views } = useViews();
@@ -73,17 +78,27 @@ export function ViewFilterChips() {
       size="sm"
       className="flex max-w-[calc(100vw-3rem)] flex-wrap items-start justify-start md:max-w-lg md:items-center md:justify-center"
     >
-      {views.map((view) => (
-        <ToggleGroupItem
-          className={clsx({
-            "opacity-50": !viewHasEntriesMap.get(view.id),
-          })}
-          key={view.id}
-          value={view.id.toString()}
-        >
-          {view.name}
-        </ToggleGroupItem>
-      ))}
+      {views.map((view, index) => {
+        const isActive = view.id === viewFilter;
+        return (
+          <ToggleGroupItem
+            className={clsx({
+              "opacity-50": !viewHasEntriesMap.get(view.id),
+            })}
+            key={view.id}
+            value={view.id.toString()}
+          >
+            {view.name}
+            {index < MAX_VIEW_SHORTCUTS && (
+              <KeyboardShortcutDisplay
+                shortcut={VIEW_SHORTCUT_KEYS[index]!}
+                position="right"
+                isActive={isActive}
+              />
+            )}
+          </ToggleGroupItem>
+        );
+      })}
     </ToggleGroup>
   );
 }

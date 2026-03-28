@@ -14,6 +14,7 @@ import { useFlagState } from "~/lib/hooks/useFlagState";
 import classes from "~/components/feed/read/article.module.css";
 import { useFeedItemValue } from "~/lib/data/store";
 import { ArticleContent } from "~/components/feed/read/ArticleContent";
+import { useOpenOriginalShortcut } from "~/lib/hooks/useOpenOriginalShortcut";
 
 const parser = unified()
   .use(rehypeParse, { fragment: true })
@@ -51,6 +52,9 @@ function ReadPage() {
   if (articleStyle === "simplified") {
     content = String(parser.processSync(feedItem?.content ?? ""));
   }
+
+  // Shortcut to open original URL
+  useOpenOriginalShortcut(feedItem?.url);
 
   return (
     <div

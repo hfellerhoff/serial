@@ -61,6 +61,7 @@ function ViewSidebarItem({
 }) {
   const updateViewFilter = useUpdateViewFilter();
   const [viewFilter] = useAtom(viewFilterIdAtom);
+  const isActive = view.id === viewFilter;
 
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: view.id });
@@ -74,7 +75,7 @@ function ViewSidebarItem({
     <div ref={setNodeRef} style={style} {...attributes}>
       <SidebarMenuItem className="group flex gap-1">
         <SidebarMenuButton
-          variant={view.id === viewFilter ? "outline" : "default"}
+          variant={isActive ? "outline" : "default"}
           onClick={() => updateViewFilter(view.id)}
         >
           {!view.hasEntries && <CircleSmall className="text-sidebar-accent" />}
