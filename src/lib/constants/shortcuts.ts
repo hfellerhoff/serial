@@ -17,6 +17,7 @@ export const SHORTCUT_KEYS = {
   TOGGLE_LATER: "w",
   MARK_VISIBLE_READ: "f",
   OPEN_ORIGINAL: "o",
+  SEND_TO_INSTAPAPER: "s",
   ARROW_UP: { key: "ArrowUp", allowRepeat: true },
   ARROW_DOWN: { key: "ArrowDown", allowRepeat: true },
   ARROW_LEFT: { key: "ArrowLeft", allowRepeat: true },

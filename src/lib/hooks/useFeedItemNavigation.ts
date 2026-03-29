@@ -19,6 +19,10 @@ import {
   getShortcutKey,
   SHORTCUT_KEYS,
 } from "~/lib/constants/shortcuts";
+import {
+  useSaveToInstapaperMutation,
+  useShowInstapaperAction,
+} from "~/lib/data/instapaper";
 
 const SCROLL_DURATION_MS = 300;
 const TARGET_VIEWPORT_POSITION = 1 / 3;
@@ -109,6 +113,10 @@ export function useFeedItemNavigation(
   const lastNavTimeRef = useRef<number>(0);
 
   const selectedItemActions = useFeedItemActions(selectedItemId ?? "");
+  const showInstapaperAction = useShowInstapaperAction(selectedItemId ?? "");
+  const { mutateAsync: saveToInstapaper } = useSaveToInstapaperMutation(
+    selectedItemId ?? "",
+  );
 
   const scrollToItem = useCallback(
     (itemId: string | null, forceInstant: boolean = false) => {
@@ -351,6 +359,14 @@ export function useFeedItemNavigation(
 
     const idx = items.indexOf(selectedItemId);
     selectedItemActions.openItem();
+    selectNextItem(idx);
+  });
+
+  useShortcut(getShortcutKey(SHORTCUT_KEYS.SEND_TO_INSTAPAPER), () => {
+    if (pathname !== "/" || !selectedItemId || !showInstapaperAction) return;
+
+    void saveToInstapaper({ feedItemId: selectedItemId });
+    const idx = items.indexOf(selectedItemId);
     selectNextItem(idx);
   });
 

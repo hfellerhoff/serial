@@ -11,6 +11,7 @@ import { ImpersonationBanner } from "~/components/ImpersonationBanner";
 import { ReleaseNotifier } from "~/components/releases/ReleaseNotifier";
 import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
 import { InitialClientQueries } from "~/lib/data/InitialClientQueries";
+import { useAltKeyHeld } from "~/lib/hooks/useAltKeyHeld";
 import { authMiddleware } from "~/server/auth";
 import { getMostRecentRelease } from "~/lib/markdown/loaders";
 
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/_app")({
 
 function RootLayout() {
   const { mostRecentRelease } = Route.useLoaderData();
+  useAltKeyHeld();
 
   return (
     // <ApplyColorTheme>

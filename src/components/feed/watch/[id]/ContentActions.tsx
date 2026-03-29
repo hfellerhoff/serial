@@ -13,8 +13,8 @@ import {
   useFeedItemsSetWatchLaterValueMutation,
 } from "~/lib/data/feed-items/mutations";
 import {
-  useInstapaperConnectionStatus,
   useSaveToInstapaperMutation,
+  useShowInstapaperAction,
 } from "~/lib/data/instapaper";
 import { useFeedItemValue } from "~/lib/data/store";
 import { useMediaQuery } from "~/lib/hooks/use-media-query";
@@ -30,7 +30,7 @@ export function ContentActions({ contentID }: { contentID: string }) {
   const { mutateAsync: setWatchLaterValue } =
     useFeedItemsSetWatchLaterValueMutation(contentID);
 
-  const { data: instapaperStatus } = useInstapaperConnectionStatus();
+  const showInstapaperAction = useShowInstapaperAction(contentID);
   const { mutateAsync: saveToInstapaper, isPending: isSavingToInstapaper } =
     useSaveToInstapaperMutation(contentID);
 
@@ -66,14 +66,9 @@ export function ContentActions({ contentID }: { contentID: string }) {
   });
 
   const handleSaveToInstapaper = async () => {
-    if (!video || !instapaperStatus?.isConnected) return;
+    if (!video || !showInstapaperAction) return;
     await saveToInstapaper({ feedItemId: video.id });
   };
-
-  const showInstapaperAction =
-    instapaperStatus?.isConfigured &&
-    instapaperStatus.isConnected &&
-    video?.platform === "website";
 
   useShortcut("s", () => {
     if (showInstapaperAction) {

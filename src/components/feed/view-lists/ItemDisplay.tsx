@@ -7,8 +7,8 @@ import { Button } from "~/components/ui/button";
 import { useFeedItemsSetWatchLaterValueMutation } from "~/lib/data/feed-items/mutations";
 import { useFeeds as useFeedsArray } from "~/lib/data/feeds/store";
 import {
-  useInstapaperConnectionStatus,
   useSaveToInstapaperMutation,
+  useShowInstapaperAction,
 } from "~/lib/data/instapaper";
 import { useFeedItemValue } from "~/lib/data/store";
 import { timeAgo } from "~/lib/utils";
@@ -244,7 +244,7 @@ function ItemActions({ contentId, item, layout }: ItemActionsProps) {
     useFeedItemsSetWatchLaterValueMutation(contentId);
   const { toggleRead } = useFeedItemActions(contentId);
 
-  const { data: instapaperStatus } = useInstapaperConnectionStatus();
+  const showInstapaperAction = useShowInstapaperAction(contentId);
   const { mutateAsync: saveToInstapaper, isPending: isSavingToInstapaper } =
     useSaveToInstapaperMutation(contentId);
 
@@ -277,19 +277,17 @@ function ItemActions({ contentId, item, layout }: ItemActionsProps) {
           isLargeList,
       })}
     >
-      {instapaperStatus?.isConfigured &&
-        instapaperStatus.isConnected &&
-        item.platform === "website" && (
-          <Button
-            size={isGrid ? "sm" : "icon"}
-            variant="ghost"
-            disabled={isSavingToInstapaper}
-            onClick={handleSaveToInstapaper}
-            className={clsx({ "h-8 w-8 p-0": isGrid })}
-          >
-            <SendIcon size={isGrid ? 14 : 16} />
-          </Button>
-        )}
+      {showInstapaperAction && (
+        <Button
+          size={isGrid ? "sm" : "icon"}
+          variant="ghost"
+          disabled={isSavingToInstapaper}
+          onClick={handleSaveToInstapaper}
+          className={clsx({ "h-8 w-8 p-0": isGrid })}
+        >
+          <SendIcon size={isGrid ? 14 : 16} />
+        </Button>
+      )}
       <Button
         size={isGrid ? "sm" : "icon"}
         variant="ghost"

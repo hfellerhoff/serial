@@ -4,7 +4,7 @@ import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 
 function getDate() {
-  return dayjs().format("dddd, MMMM DD • hh:mma");
+  return dayjs().format("dddd, MMMM DD • h:mma");
 }
 
 export function ClientDatetime() {
