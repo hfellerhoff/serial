@@ -26,7 +26,11 @@ import {
   TooltipTrigger,
 } from "~/components/ui/tooltip";
 import { useFeeds } from "~/lib/data/feeds";
-import { useFetchFeedItemsStatus, useProgressState } from "~/lib/data/store";
+import {
+  feedItemsStore,
+  useFetchFeedItemsStatus,
+  useProgressState,
+} from "~/lib/data/store";
 import { dataSubscriptionActions } from "~/lib/data/useDataSubscription";
 
 function PlatformIcon({ platform }: { platform: FeedPlatform }) {
@@ -101,8 +105,37 @@ function EditFeedsPage() {
         feedUrl: feed.feedUrl,
       }));
 
-    // Use the new streaming import that handles both insert and RSS fetch
+    // Capture the current timestamp so we can detect when the subscription
+    // finishes processing all import chunks (initial-data-complete updates this).
+    const prevFetchedAt = feedItemsStore.getState().fetchFeedItemsLastFetchedAt;
+
+    // The RPC resolves when the server finishes publishing, but the
+    // subscription may still be processing buffered chunks via rAF.
     await dataSubscriptionActions.streamingImport(channelsToImport);
+
+    // Wait for the store to process initial-data-complete from the import,
+    // ensuring all feed items are available before showing "Import finished".
+    // Times out after 30s to avoid hanging if the subscription drops.
+    await Promise.race([
+      new Promise<void>((resolve) => {
+        const done = () => {
+          unsubscribe();
+          resolve();
+        };
+        const check = () => {
+          if (
+            feedItemsStore.getState().fetchFeedItemsLastFetchedAt !==
+            prevFetchedAt
+          ) {
+            done();
+          }
+        };
+        const unsubscribe = feedItemsStore.subscribe(check);
+        check();
+      }),
+      new Promise<void>((resolve) => setTimeout(resolve, 30000)),
+    ]);
+
     setIsImportComplete(true);
   };
 

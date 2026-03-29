@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="1.1">
+  <head>
+    <title>Test Subscriptions</title>
+  </head>
+  <body>
+    <outline text="Scary Pockets" title="Scary Pockets" type="rss" xmlUrl="http://127.0.0.1:3003/feed/scary-pockets" htmlUrl="http://127.0.0.1:3003/scary-pockets"/>
+    <outline text="Fireship" title="Fireship" type="rss" xmlUrl="http://127.0.0.1:3003/feed/fireship" htmlUrl="http://127.0.0.1:3003/fireship"/>
+    <outline text="CGP Grey" title="CGP Grey" type="rss" xmlUrl="http://127.0.0.1:3003/feed/cgp-grey" htmlUrl="http://127.0.0.1:3003/cgp-grey"/>
+  </body>
+</opml>

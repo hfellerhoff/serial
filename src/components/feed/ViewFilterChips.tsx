@@ -77,6 +77,7 @@ export function ViewFilterChips() {
       }}
       size="sm"
       className="flex max-w-[calc(100vw-3rem)] flex-wrap items-start justify-start md:max-w-lg md:items-center md:justify-center"
+      rovingFocus={false}
     >
       {views.map((view, index) => {
         const isActive = view.id === viewFilter;

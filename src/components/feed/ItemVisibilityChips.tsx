@@ -32,6 +32,7 @@ export function ItemVisibilityChips() {
         setVisibilityFilter(value as VisibilityFilter);
       }}
       size="sm"
+      rovingFocus={false}
     >
       {(["unread", "read", "later"] as const).map((filter) => {
         const isActive = visibilityFilter === filter;
