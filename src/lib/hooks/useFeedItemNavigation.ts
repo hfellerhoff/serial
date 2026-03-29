@@ -313,13 +313,18 @@ export function useFeedItemNavigation(
       event.preventDefault();
       if (pathname !== "/" || !selectedItemId) return;
 
+      const idx = items.indexOf(selectedItemId);
       const wasMarkedRead = selectedItemActions.toggleRead();
       if (wasMarkedRead) {
-        const idx = items.indexOf(selectedItemId);
-        selectNextItem(idx);
+        if (idx === items.length - 1) {
+          setSelectedItemId(null);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } else {
+          selectNextItem(idx);
+        }
       }
     },
-    [pathname, selectedItemId, selectedItemActions, items, selectNextItem],
+    [pathname, selectedItemId, selectedItemActions, items, selectNextItem, setSelectedItemId],
   );
 
   useShortcut(getShortcutKey(SHORTCUT_KEYS.TOGGLE_READ), handleToggleRead);

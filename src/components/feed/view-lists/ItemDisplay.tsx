@@ -4,10 +4,7 @@ import { Link } from "@tanstack/react-router";
 import clsx from "clsx";
 import { CheckIcon, ClockIcon, EyeIcon, SendIcon } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import {
-  useFeedItemsSetWatchedValueMutation,
-  useFeedItemsSetWatchLaterValueMutation,
-} from "~/lib/data/feed-items/mutations";
+import { useFeedItemsSetWatchLaterValueMutation } from "~/lib/data/feed-items/mutations";
 import { useFeeds as useFeedsArray } from "~/lib/data/feeds/store";
 import {
   useInstapaperConnectionStatus,
@@ -243,10 +240,9 @@ interface ItemActionsProps {
 }
 
 function ItemActions({ contentId, item, layout }: ItemActionsProps) {
-  const { mutateAsync: setWatchedValue } =
-    useFeedItemsSetWatchedValueMutation(contentId);
   const { mutateAsync: setWatchLaterValue } =
     useFeedItemsSetWatchLaterValueMutation(contentId);
+  const { toggleRead } = useFeedItemActions(contentId);
 
   const { data: instapaperStatus } = useInstapaperConnectionStatus();
   const { mutateAsync: saveToInstapaper, isPending: isSavingToInstapaper } =
@@ -269,11 +265,7 @@ function ItemActions({ contentId, item, layout }: ItemActionsProps) {
   };
 
   const handleToggleWatched = () => {
-    void setWatchedValue({
-      id: item.id,
-      feedId: item.feedId,
-      isWatched: !item.isWatched,
-    });
+    toggleRead();
   };
 
   return (
