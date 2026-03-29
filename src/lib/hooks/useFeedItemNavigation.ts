@@ -324,7 +324,14 @@ export function useFeedItemNavigation(
         }
       }
     },
-    [pathname, selectedItemId, selectedItemActions, items, selectNextItem, setSelectedItemId],
+    [
+      pathname,
+      selectedItemId,
+      selectedItemActions,
+      items,
+      selectNextItem,
+      setSelectedItemId,
+    ],
   );
 
   useShortcut(getShortcutKey(SHORTCUT_KEYS.TOGGLE_READ), handleToggleRead);

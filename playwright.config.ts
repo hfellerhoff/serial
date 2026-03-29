@@ -1,17 +1,19 @@
-import { defineConfig } from "@playwright/test";
-import { baseConfig } from "./playwright.base.config";
+import { devices } from "@playwright/test";
+import type { PlaywrightTestConfig } from "@playwright/test";
 
-export default defineConfig({
-  ...baseConfig,
-  globalSetup: "./tests/global-setup.ts",
-  testDir: "./tests/e2e/main",
+export const baseConfig = {
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: "html",
   use: {
-    ...baseConfig.use,
-    baseURL: "http://localhost:3000",
+    trace: "on-first-retry",
   },
-  webServer: {
-    command: "pnpm dev:test:main",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-  },
-});
+  projects: [
+    {
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: /.*\.spec\.ts/,
+    },
+  ],
+} satisfies PlaywrightTestConfig;
