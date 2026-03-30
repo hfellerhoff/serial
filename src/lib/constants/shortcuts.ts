@@ -23,6 +23,8 @@ export const SHORTCUT_KEYS = {
   ARROW_LEFT: { key: "ArrowLeft", allowRepeat: true },
   ARROW_RIGHT: { key: "ArrowRight", allowRepeat: true },
   ENTER: "Enter",
+  PREV_VIEW: "[",
+  NEXT_VIEW: "]",
 } as const;
 
 export const MAX_VIEW_SHORTCUTS = 10;

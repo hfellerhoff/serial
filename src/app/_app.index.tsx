@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom } from "jotai";
 import type { VisibilityFilter } from "~/lib/data/atoms";
-import { viewsAtom, visibilityFilterAtom } from "~/lib/data/atoms";
+import {
+  viewFilterIdAtom,
+  viewsAtom,
+  visibilityFilterAtom,
+} from "~/lib/data/atoms";
 import { ClientDatetime } from "~/components/feed/ClientDatetime";
 import { ItemVisibilityChips } from "~/components/feed/ItemVisibilityChips";
 import { MarkVisibleAsReadButton } from "~/components/feed/MarkVisibleAsReadButton";
@@ -17,6 +21,7 @@ export const Route = createFileRoute("/_app/")({
 
 function Home() {
   const views = useAtomValue(viewsAtom);
+  const viewFilterId = useAtomValue(viewFilterIdAtom);
   const updateViewFilter = useUpdateViewFilter();
   const setVisibilityFilter = useSetAtom(visibilityFilterAtom);
 
@@ -70,6 +75,20 @@ function Home() {
   useShortcut(SHORTCUT_KEYS.LATER, () =>
     setVisibilityFilter("later" as VisibilityFilter),
   );
+
+  useShortcut(SHORTCUT_KEYS.PREV_VIEW, () => {
+    if (views.length === 0) return;
+    const currentIndex = views.findIndex((v) => v.id === viewFilterId);
+    const prevIndex = currentIndex <= 0 ? views.length - 1 : currentIndex - 1;
+    updateViewFilter(views[prevIndex]!.id);
+  });
+
+  useShortcut(SHORTCUT_KEYS.NEXT_VIEW, () => {
+    if (views.length === 0) return;
+    const currentIndex = views.findIndex((v) => v.id === viewFilterId);
+    const nextIndex = currentIndex >= views.length - 1 ? 0 : currentIndex + 1;
+    updateViewFilter(views[nextIndex]!.id);
+  });
 
   return (
     <div className="mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center lg:pb-18">
