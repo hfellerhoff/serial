@@ -47,10 +47,14 @@ import {
 } from "./constants";
 import { useVideoShortcuts } from "./useYouTubeVideoShortcuts";
 import { useAtomValue } from "jotai";
+import { useRef, useEffect } from "react";
 import { articleSelectedElementAtom } from "~/lib/hooks/useArticleNavigation";
+import { useSaveProgress } from "~/lib/hooks/useSaveProgress";
+import { useFeedItemValue } from "~/lib/data/store";
 
 interface IResponsiveVideoProps {
   videoID?: string;
+  feedItemId?: string;
   videoSrc?: string;
   orientation: "vertical" | "horizontal";
   isInactive: boolean;
@@ -94,6 +98,44 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
     videoContainerRef.current !== null &&
     articleSelectedElement.contains(videoContainerRef.current);
   useVideoShortcuts({ disabled: props.isEmbed && !isSelectedInArticle });
+
+  // --- Progress save/restore ---
+  const savedFeedItem = useFeedItemValue(props.feedItemId ?? "");
+
+  const { saveNow } = useSaveProgress({
+    contentId: props.feedItemId ?? "",
+    getProgress: () => ({
+      progress: Math.floor(videoProgress * 1000),
+      duration: Math.floor(videoDuration * 1000),
+    }),
+    enabled: manualPlayerState === YOUTUBE_PLAYER_STATES.PLAYING,
+  });
+
+  // Save progress on pause
+  const prevPlayerStateRef = useRef(manualPlayerState);
+  useEffect(() => {
+    const wasPaused =
+      prevPlayerStateRef.current === YOUTUBE_PLAYER_STATES.PLAYING &&
+      manualPlayerState !== YOUTUBE_PLAYER_STATES.PLAYING;
+    prevPlayerStateRef.current = manualPlayerState;
+    if (wasPaused) {
+      saveNow();
+    }
+  }, [manualPlayerState, saveNow]);
+
+  // Restore progress on first play
+  const hasRestoredRef = useRef(false);
+  useEffect(() => {
+    if (
+      !hasRestoredRef.current &&
+      manualPlayerState === YOUTUBE_PLAYER_STATES.PLAYING &&
+      savedFeedItem?.progress &&
+      savedFeedItem.progress > 0
+    ) {
+      hasRestoredRef.current = true;
+      seekToSecond(savedFeedItem.progress / 1000);
+    }
+  }, [manualPlayerState, savedFeedItem?.progress, seekToSecond]);
 
   const { view, setView, toggleView } = useView();
 

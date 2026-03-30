@@ -101,15 +101,24 @@ interface ThumbnailContainerProps {
   layout: ThumbnailLayout;
   thumbnailType: ThumbnailType;
   children: React.ReactNode;
+  progress?: number;
+  duration?: number;
 }
 
 function ThumbnailContainer({
   layout,
   thumbnailType,
   children,
+  progress,
+  duration,
 }: ThumbnailContainerProps) {
   const isVideo =
     thumbnailType === "horizontal-video" || thumbnailType === "vertical-video";
+
+  const percentage =
+    progress && duration && duration > 0
+      ? Math.min((progress / duration) * 100, 100)
+      : 0;
 
   return (
     <div
@@ -139,6 +148,14 @@ function ThumbnailContainer({
       })}
     >
       {children}
+      {percentage > 0 && (
+        <div className="absolute inset-x-0 bottom-0 z-10 h-1.5 bg-white/30">
+          <div
+            className="bg-muted-foreground h-full"
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -319,6 +336,8 @@ interface ItemThumbnailProps {
     title: string;
     platform: string;
     orientation?: string;
+    progress?: number;
+    duration?: number;
   };
   feed?: {
     imageUrl?: string;
@@ -330,7 +349,12 @@ function ItemThumbnail({ layout, item, feed }: ItemThumbnailProps) {
   const thumbnailType = getThumbnailType(item, feed, layout);
 
   return (
-    <ThumbnailContainer layout={layout} thumbnailType={thumbnailType}>
+    <ThumbnailContainer
+      layout={layout}
+      thumbnailType={thumbnailType}
+      progress={item.progress}
+      duration={item.duration}
+    >
       {thumbnailType === "horizontal-video" && item.thumbnail && (
         <VideoThumbnail thumbnail={item.thumbnail} title={item.title} />
       )}

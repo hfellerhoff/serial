@@ -221,6 +221,39 @@ export const setWatchLaterValue = protectedProcedure
     });
   });
 
+export const setProgress = protectedProcedure
+  .input(
+    z.object({
+      id: z.string(),
+      feedId: z.number(),
+      progress: z.number().int().min(0),
+      duration: z.number().int().min(0),
+    }),
+  )
+  .handler(async ({ context, input }) => {
+    await context.db.transaction(async (tx) => {
+      const isOwned = await verifyFeedsOwnedByUser({
+        feedIds: [input.feedId],
+        userId: context.user.id,
+        db: tx,
+      });
+
+      if (!isOwned) {
+        throw new Error("Unauthorized: Feed does not belong to user");
+      }
+
+      await tx
+        .update(feedItems)
+        .set({
+          progress: input.progress,
+          duration: input.duration,
+        })
+        .where(
+          and(eq(feedItems.feedId, input.feedId), eq(feedItems.id, input.id)),
+        );
+    });
+  });
+
 export const getById = protectedProcedure
   .input(z.object({ id: z.string() }))
   .handler(async ({ context, input }) => {

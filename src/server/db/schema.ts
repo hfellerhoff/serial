@@ -202,6 +202,8 @@ export const feedItems = sqliteTable(
     isWatchLater: integer("is_watch_later", { mode: "boolean" })
       .notNull()
       .default(false),
+    progress: integer("progress", { mode: "number" }).notNull().default(0),
+    duration: integer("duration", { mode: "number" }).notNull().default(0),
     orientation: text("orientation", { length: 64 }),
     postedAt: integer("posted_at", { mode: "timestamp" }).notNull(),
     createdAt: integer("created_at", { mode: "timestamp" })

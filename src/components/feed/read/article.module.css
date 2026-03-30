@@ -146,6 +146,12 @@
   width: 2px;
   background: var(--color-sidebar-primary);
   border-radius: 9999px;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.article :global([data-article-selected="true"][data-selection-faded])::before {
+  opacity: 0;
 }
 
 .article * {

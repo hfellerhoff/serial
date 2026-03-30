@@ -3,7 +3,7 @@
 import clsx from "clsx";
 
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import rehypeParse from "rehype-parse";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeStringify from "rehype-stringify";
@@ -16,7 +16,11 @@ import classes from "~/components/feed/read/article.module.css";
 import { useFeedItemValue } from "~/lib/data/store";
 import { ArticleContent } from "~/components/feed/read/ArticleContent";
 import { useOpenOriginalShortcut } from "~/lib/hooks/useOpenOriginalShortcut";
-import { useArticleNavigation } from "~/lib/hooks/useArticleNavigation";
+import {
+  getElements,
+  useArticleNavigation,
+} from "~/lib/hooks/useArticleNavigation";
+import { useDebouncedSaveProgress } from "~/lib/hooks/useDebouncedSaveProgress";
 
 const parser = unified()
   .use(rehypeParse, { fragment: true })
@@ -61,7 +65,35 @@ function ReadPage() {
   useOpenOriginalShortcut(feedItem?.url);
 
   // Arrow key navigation between paragraphs/headings
-  useArticleNavigation(articleRef);
+  const { selectedIndex, selectElement } = useArticleNavigation(articleRef);
+
+  // Save progress 500ms after last scroll event
+  useDebouncedSaveProgress({
+    contentId: params.id,
+    getProgress: () => {
+      const elements = getElements(articleRef.current);
+      return {
+        progress: Math.max(selectedIndex, 0),
+        duration: elements.length,
+      };
+    },
+  });
+
+  // Restore progress on open — wait a frame so layout is complete
+  const hasRestoredRef = useRef(false);
+  useEffect(() => {
+    if (hasRestoredRef.current || !feedItem?.progress || feedItem.progress <= 0)
+      return;
+
+    const elements = getElements(articleRef.current);
+    if (elements.length === 0) return;
+
+    const targetIndex = Math.min(feedItem.progress, elements.length - 1);
+    hasRestoredRef.current = true;
+    requestAnimationFrame(() => {
+      selectElement(elements, targetIndex, true);
+    });
+  }, [feedItem?.progress, feedItem?.content, selectElement]);
 
   return (
     <div

@@ -57,6 +57,8 @@ export default tseslint.config(
       ".content-collections/",
       "public/sw.js",
       "public/workbox-*.js",
+      "playwright-report/",
+      "test-results/",
     ],
   },
 );

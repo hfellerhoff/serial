@@ -28,6 +28,8 @@
   "include": [".eslintrc.cjs", "**/*.ts", "**/*.tsx", "**/*.cjs", "**/*.js"],
   "exclude": [
     "node_modules",
+    "playwright-report",
+    "test-results",
     "dist",
     "dist-sw",
     "**/public/sw.js",

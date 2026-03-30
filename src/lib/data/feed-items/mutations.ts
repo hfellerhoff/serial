@@ -38,6 +38,19 @@ export function useFeedItemsSetWatchLaterValueMutation(contentId: string) {
   );
 }
 
+export function useSetProgressMutation(contentId: string) {
+  const [feedItem, setFeedItem] = useFeedItemState(contentId);
+
+  return useMutation(
+    orpc.feedItem.setProgress.mutationOptions({
+      onMutate: ({ progress, duration }) => {
+        if (!feedItem) return;
+        setFeedItem({ ...feedItem, progress, duration });
+      },
+    }),
+  );
+}
+
 export function useBulkSetWatchedValueMutation() {
   return useMutation(
     orpc.feedItem.setBulkWatchedValue.mutationOptions({

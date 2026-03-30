@@ -24,6 +24,8 @@
     "schema:migrate": "node --experimental-specifier-resolution=node --loader ts-node/esm src/server/db/migrate",
     "schema:update": "pnpm schema:generate && pnpm schema:migrate",
     "db:studio": "drizzle-kit studio",
+    "db:studio:test:main": "DATABASE_URL=http://127.0.0.1:8081 drizzle-kit studio",
+    "db:studio:test:self-hosted": "DATABASE_URL=http://127.0.0.1:8082 drizzle-kit studio",
     "start": "node .output/server/index.mjs",
     "start:local": "concurrently --kill-others \"pnpm dev:db\" \"pnpm start\"",
     "typecheck": "tsc --noEmit",
