@@ -123,14 +123,14 @@ export function RootLayout() {
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
-        {import.meta.env.DEV && (
+        {/* {import.meta.env.DEV && (
           <>
             <script
               crossOrigin="anonymous"
               src="//unpkg.com/react-scan/dist/auto.global.js"
             />
           </>
-        )}
+        )}*/}
         {import.meta.env.VITE_PUBLIC_UMAMI_SRC &&
           import.meta.env.VITE_PUBLIC_UMAMI_WEBSITE_ID && (
             <>

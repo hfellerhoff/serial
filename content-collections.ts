@@ -23,6 +23,23 @@ export const releaseSchema = markdownReleaseSchema.extend({
 
 export type Release = z.infer<typeof releaseSchema>;
 
+const markdownBlogPostSchema = z.object({
+  title: z.string(),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+  publish_date: z.string().date(),
+  updated_at: z.string().date().optional(),
+  public: z.boolean(),
+  content: z.string(),
+});
+
+export const blogPostSchema = markdownBlogPostSchema.extend({
+  slug: z.string(),
+  excerpt: z.string(),
+});
+
+export type BlogPost = z.infer<typeof blogPostSchema>;
+
 const releases = defineCollection({
   name: "releases",
   directory: "./src/content/releases", // Directory containing your .md files
@@ -40,6 +57,23 @@ const releases = defineCollection({
   },
 });
 
+const blogPosts = defineCollection({
+  name: "blogPosts",
+  directory: "./src/content/blog",
+  include: "*.md",
+  schema: markdownBlogPostSchema,
+  transform: ({ content, ...post }) => {
+    const frontMatter = extractFrontMatter(content);
+
+    return {
+      ...post,
+      slug: post._meta.path,
+      excerpt: frontMatter.excerpt,
+      content: frontMatter.body,
+    };
+  },
+});
+
 export default defineConfig({
-  collections: [releases],
+  collections: [releases, blogPosts],
 });

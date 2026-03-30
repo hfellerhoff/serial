@@ -340,6 +340,103 @@
   .prose ol:has(+ h6) {
     @apply pb-8 md:pb-10;
   }
+
+  .blog {
+    color: var(--foreground);
+    @apply mx-auto max-w-2xl;
+  }
+
+  .blog h1 {
+    @apply font-sans text-3xl leading-relaxed font-bold md:text-4xl;
+  }
+
+  .blog h2 {
+    @apply font-sans text-2xl leading-relaxed font-bold md:text-3xl;
+  }
+
+  .blog h3 {
+    @apply font-sans text-xl leading-relaxed font-bold md:text-2xl;
+  }
+
+  .blog h4 {
+    @apply font-sans text-lg leading-relaxed font-bold md:text-xl;
+  }
+
+  .blog h5 {
+    @apply font-sans text-lg leading-relaxed font-bold;
+  }
+
+  .blog h6 {
+    @apply font-sans text-lg leading-relaxed font-bold;
+  }
+
+  .blog a {
+    @apply text-foreground underline;
+  }
+
+  .blog h1 a,
+  .blog h2 a,
+  .blog h3 a,
+  .blog h4 a,
+  .blog h5 a,
+  .blog h6 a {
+    @apply pointer-events-none no-underline;
+  }
+
+  .blog hr {
+    @apply my-12;
+  }
+
+  .blog ul {
+    @apply text-foreground my-1 list-disc pl-5 text-lg;
+  }
+
+  .blog ol {
+    @apply text-foreground my-1 list-decimal pl-5 text-lg;
+  }
+
+  .blog p {
+    @apply text-foreground text-lg;
+  }
+
+  .blog kbd {
+    @apply bg-muted border-muted-foreground/20 rounded border border-b-2 border-solid px-1.5 py-0.5 text-sm;
+  }
+
+  .blog code {
+    @apply bg-muted rounded px-px py-px text-base;
+  }
+
+  .blog img {
+    @apply my-8 rounded;
+  }
+
+  .blog p:has(+ p),
+  .blog ul:has(+ p),
+  .blog ol:has(+ p) {
+    @apply pb-4 md:pb-6;
+  }
+
+  .blog p:has(+ h1),
+  .blog ul:has(+ h1),
+  .blog ol:has(+ h1),
+  .blog p:has(+ h2),
+  .blog ul:has(+ h2),
+  .blog ol:has(+ h2),
+  .blog p:has(+ h3),
+  .blog ul:has(+ h3),
+  .blog ol:has(+ h3),
+  .blog p:has(+ h4),
+  .blog ul:has(+ h4),
+  .blog ol:has(+ h4),
+  .blog p:has(+ h5),
+  .blog ul:has(+ h5),
+  .blog ol:has(+ h5),
+  .blog p:has(+ h6),
+  .blog ul:has(+ h6),
+  .blog ol:has(+ h6) {
+    @apply pb-8 md:pb-10;
+  }
 }
 
 dialog:modal {
