@@ -1,3 +1,9 @@
+.article {
+  font-size: calc(var(--article-font-size, 18) / 16 * 1rem);
+  font-family: var(--article-font-family);
+  line-height: 1.7;
+}
+
 .article h1 {
   font-size: 1.5rem;
   font-weight: 900;
@@ -40,7 +46,6 @@
 
 .article p {
   margin-block: 1rem;
-  line-height: 1.7rem;
 }
 
 .article a {
@@ -61,10 +66,12 @@
   hyphens: auto;
 }
 
-.article a:not(:has(p)):not(:has(img)):not(:empty):hover {
+.article a:not(:has(p)):not(:has(img)):not(:empty):hover,
+.article a:not(:has(p)):not(:has(img)):not(:empty):focus-visible {
   background: var(--color-sidebar-primary);
   color: var(--color-sidebar-primary-foreground);
   text-decoration: none;
+  outline: none;
 }
 
 .article img {
@@ -104,7 +111,6 @@
 
 .article li {
   margin-block: 0.25rem;
-  line-height: 1.7rem;
 }
 
 .article blockquote {
@@ -126,11 +132,28 @@
   overflow-x: scroll;
 }
 
+.article :global([data-article-selected="true"]) {
+  position: relative;
+  outline: none;
+}
+
+.article :global([data-article-selected="true"])::before {
+  content: "";
+  position: absolute;
+  left: calc(-20px - var(--selection-offset, 0px));
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-sidebar-primary);
+  border-radius: 9999px;
+}
+
 .article * {
   --non-edge: calc(var(--article-max-width));
   --edge: calc(100vw - var(--spacing) * 16);
 
   max-width: min(var(--edge), var(--non-edge));
+  font-family: inherit;
 }
 
 .article pre {

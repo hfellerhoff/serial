@@ -298,6 +298,8 @@ export const userConfig = sqliteTable("user_config", {
     .notNull(),
   lightHSL: text("light_hsl", { length: 16 }).notNull().default(""),
   darkHSL: text("dark_hsl", { length: 16 }).notNull().default(""),
+  articleFontSize: integer("article_font_size"),
+  articleFontFamily: text("article_font_family", { length: 64 }),
 });
 export type DatabaseUserConfig = typeof userConfig.$inferSelect;
 

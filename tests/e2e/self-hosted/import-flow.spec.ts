@@ -53,8 +53,13 @@ test.describe("import flow", () => {
     await page.goto("/import");
     await expect(page.getByText("Import Feeds")).toBeVisible();
 
+    // Wait for hydration — the dropzone button must be interactive
+    const dropzone = page.getByText(/drag and drop/i);
+    await expect(dropzone).toBeVisible();
+    await page.waitForTimeout(1000);
+
     const fileChooserPromise = page.waitForEvent("filechooser");
-    await page.getByText(/drag and drop/i).click();
+    await dropzone.click();
     const fileChooser = await fileChooserPromise;
     const opmlContent = fs.readFileSync(OPML_PATH);
     await fileChooser.setFiles({

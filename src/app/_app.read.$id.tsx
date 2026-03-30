@@ -3,6 +3,7 @@
 import clsx from "clsx";
 
 import { createFileRoute } from "@tanstack/react-router";
+import { useRef } from "react";
 import rehypeParse from "rehype-parse";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeStringify from "rehype-stringify";
@@ -15,6 +16,7 @@ import classes from "~/components/feed/read/article.module.css";
 import { useFeedItemValue } from "~/lib/data/store";
 import { ArticleContent } from "~/components/feed/read/ArticleContent";
 import { useOpenOriginalShortcut } from "~/lib/hooks/useOpenOriginalShortcut";
+import { useArticleNavigation } from "~/lib/hooks/useArticleNavigation";
 
 const parser = unified()
   .use(rehypeParse, { fragment: true })
@@ -53,8 +55,13 @@ function ReadPage() {
     content = String(parser.processSync(feedItem?.content ?? ""));
   }
 
+  const articleRef = useRef<HTMLDivElement>(null);
+
   // Shortcut to open original URL
   useOpenOriginalShortcut(feedItem?.url);
+
+  // Arrow key navigation between paragraphs/headings
+  useArticleNavigation(articleRef);
 
   return (
     <div
@@ -84,9 +91,12 @@ function ReadPage() {
         )}
         <span className="line-clamp-1 font-sans text-sm">{feed?.name}</span>
       </div>
-      <div className={`h-full w-full px-6 sm:pb-6 ${classes.article}`}>
-        <h1>{feedItem?.title}</h1>
-        <h6>{feedItem?.author || feed?.name || ""}</h6>
+      <div
+        ref={articleRef}
+        className={`h-full w-full px-6 sm:pb-6 ${classes.article}`}
+      >
+        <h1 data-serial-header>{feedItem?.title}</h1>
+        <h6 data-serial-header>{feedItem?.author || feed?.name || ""}</h6>
         {articleStyle === "simplified" ? (
           <div
             dangerouslySetInnerHTML={{

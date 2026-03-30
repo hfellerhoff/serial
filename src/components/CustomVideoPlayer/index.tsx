@@ -46,6 +46,8 @@ import {
   YOUTUBE_PLAYER_STATES,
 } from "./constants";
 import { useVideoShortcuts } from "./useYouTubeVideoShortcuts";
+import { useAtomValue } from "jotai";
+import { articleSelectedElementAtom } from "~/lib/hooks/useArticleNavigation";
 
 interface IResponsiveVideoProps {
   videoID?: string;
@@ -84,7 +86,14 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
     isMuted,
     toggleMute,
   } = useCustomVideoPlayerContext();
-  useVideoShortcuts({ disabled: props.isEmbed });
+
+  const articleSelectedElement = useAtomValue(articleSelectedElementAtom);
+  const isSelectedInArticle =
+    props.isEmbed &&
+    articleSelectedElement !== null &&
+    videoContainerRef.current !== null &&
+    articleSelectedElement.contains(videoContainerRef.current);
+  useVideoShortcuts({ disabled: props.isEmbed && !isSelectedInArticle });
 
   const { view, setView, toggleView } = useView();
 
