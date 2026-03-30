@@ -73,10 +73,6 @@ export function useFeedItemActions(itemId: string) {
     const shouldOpenInSerial =
       feed?.openLocation === "serial" || !feed?.openLocation;
 
-    if (!item.isWatched) {
-      markAsRead();
-    }
-
     if (shouldOpenInSerial) {
       router.navigate({ to: `/${itemDestination}/${item.id}` });
     } else {

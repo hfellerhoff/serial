@@ -357,9 +357,7 @@ export function useFeedItemNavigation(
   useShortcut(getShortcutKey(SHORTCUT_KEYS.ENTER), () => {
     if (pathname !== "/" || !selectedItemId) return;
 
-    const idx = items.indexOf(selectedItemId);
     selectedItemActions.openItem();
-    selectNextItem(idx);
   });
 
   useShortcut(getShortcutKey(SHORTCUT_KEYS.SEND_TO_INSTAPAPER), () => {
