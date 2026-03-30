@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useSetProgressMutation } from "~/lib/data/feed-items/mutations";
+import { getShortcutKey, SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { useFeedItemValue } from "~/lib/data/store";
+
+const NAV_KEYS = new Set([
+  getShortcutKey(SHORTCUT_KEYS.ARROW_UP),
+  getShortcutKey(SHORTCUT_KEYS.ARROW_DOWN),
+]);
 
 const DEBOUNCE_MS = 500;
 
@@ -49,13 +55,17 @@ export function useDebouncedSaveProgress({
       timer = setTimeout(save, DEBOUNCE_MS);
     };
 
+    const handleKeydown = (e: globalThis.KeyboardEvent) => {
+      if (NAV_KEYS.has(e.key)) resetTimer();
+    };
+
     window.addEventListener("wheel", resetTimer);
-    window.addEventListener("keydown", resetTimer);
+    window.addEventListener("keydown", handleKeydown);
 
     return () => {
       if (timer) clearTimeout(timer);
       window.removeEventListener("wheel", resetTimer);
-      window.removeEventListener("keydown", resetTimer);
+      window.removeEventListener("keydown", handleKeydown);
     };
   }, [save]);
 }
