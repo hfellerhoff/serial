@@ -12,7 +12,9 @@ import {
 } from "~/lib/data/instapaper";
 import { useFeedItemValue } from "~/lib/data/store";
 import { timeAgo } from "~/lib/utils";
+import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { useFeedItemActions } from "~/lib/hooks/useFeedItemActions";
+import { useShowShortcuts } from "~/lib/hooks/useShowShortcuts";
 
 export type ItemSize = "standard" | "large";
 
@@ -254,9 +256,15 @@ interface ItemActionsProps {
     isWatched: boolean;
   };
   layout: ItemActionsLayout;
+  isSelected?: boolean;
 }
 
-function ItemActions({ contentId, item, layout }: ItemActionsProps) {
+function ItemActions({
+  contentId,
+  item,
+  layout,
+  isSelected,
+}: ItemActionsProps) {
   const { mutateAsync: setWatchLaterValue } =
     useFeedItemsSetWatchLaterValueMutation(contentId);
   const { toggleRead } = useFeedItemActions(contentId);
@@ -264,6 +272,8 @@ function ItemActions({ contentId, item, layout }: ItemActionsProps) {
   const showInstapaperAction = useShowInstapaperAction(contentId);
   const { mutateAsync: saveToInstapaper, isPending: isSavingToInstapaper } =
     useSaveToInstapaperMutation(contentId);
+
+  const showShortcuts = useShowShortcuts();
 
   const isStandardList = layout === "list";
   const isLargeList = layout === "large-list";
@@ -287,43 +297,63 @@ function ItemActions({ contentId, item, layout }: ItemActionsProps) {
 
   return (
     <div
-      className={clsx("flex flex-row items-center", {
-        "h-full justify-center pr-6 md:pr-0": isStandardList,
-        "-ml-2 justify-start gap-1 px-2 pb-2": isGrid,
-        "-ml-2 justify-start pb-2 pl-6 md:ml-0 md:h-full md:justify-center md:pr-0 md:pb-0 md:pl-0":
-          isLargeList,
-      })}
+      className={clsx(
+        "md:bg-background/90 flex flex-row items-center md:absolute md:right-2 md:bottom-2 md:rounded-lg md:shadow-sm",
+        {
+          "md:hidden md:group-hover:flex": !(showShortcuts && isSelected),
+          "-ml-2 justify-start pb-2 pl-6 md:right-4 md:bottom-5 md:ml-0 md:pb-0 md:pl-0":
+            isStandardList,
+          "-ml-2 justify-start gap-1 px-2 pb-2 md:ml-0 md:px-0 md:pb-0": isGrid,
+          "-ml-2 justify-start pb-2 pl-6 md:ml-0 md:pb-0 md:pl-0":
+            isStandardList || isLargeList,
+        },
+      )}
     >
       {showInstapaperAction && (
         <Button
-          size={isGrid ? "sm" : "icon"}
+          size={isGrid || showShortcuts ? "sm" : "icon"}
           variant="ghost"
           disabled={isSavingToInstapaper}
           onClick={handleSaveToInstapaper}
-          className={clsx({ "h-8 w-8 p-0": isGrid })}
+          className={clsx({ "h-8 w-8 p-0": isGrid && !showShortcuts })}
         >
           <SendIcon size={isGrid ? 14 : 16} />
+          {showShortcuts && (
+            <kbd className="bg-muted rounded px-1 text-xs">
+              {SHORTCUT_KEYS.SEND_TO_INSTAPAPER}
+            </kbd>
+          )}
         </Button>
       )}
       <Button
-        size={isGrid ? "sm" : "icon"}
+        size={isGrid || showShortcuts ? "sm" : "icon"}
         variant="ghost"
         onClick={handleToggleWatchLater}
-        className={clsx({ "h-8 w-8 p-0": isGrid })}
+        className={clsx({ "h-8 w-8 p-0": isGrid && !showShortcuts })}
       >
         {item.isWatchLater ? (
           <CheckIcon size={isGrid ? 14 : 16} />
         ) : (
           <ClockIcon size={isGrid ? 14 : 16} />
         )}
+        {showShortcuts && (
+          <kbd className="bg-muted ml-1.5 rounded px-1 text-xs">
+            {SHORTCUT_KEYS.TOGGLE_LATER}
+          </kbd>
+        )}
       </Button>
       <Button
-        size={isGrid ? "sm" : "icon"}
+        size={isGrid || showShortcuts ? "sm" : "icon"}
         variant="ghost"
         onClick={handleToggleWatched}
-        className={clsx({ "h-8 w-8 p-0": isGrid })}
+        className={clsx({ "h-8 w-8 p-0": isGrid && !showShortcuts })}
       >
         <EyeIcon size={isGrid ? 14 : 16} />
+        {showShortcuts && (
+          <kbd className="bg-muted ml-1.5 rounded px-1 text-xs">
+            {SHORTCUT_KEYS.TOGGLE_READ}
+          </kbd>
+        )}
       </Button>
     </div>
   );
@@ -431,7 +461,7 @@ export function ItemDisplay({
         className={clsx(
           "flex w-full flex-1 flex-col gap-4 pt-4 pr-4 pl-6 text-left md:flex-row md:items-center md:rounded md:py-4 md:pr-0",
           isLarge ? "pb-1 md:pb-4" : "pb-4 md:h-20 md:py-0",
-          isSelected && "bg-muted",
+          isSelected && "md:bg-muted",
         )}
       >
         {isLarge ? (
@@ -470,6 +500,7 @@ export function ItemDisplay({
         contentId={contentId}
         item={item}
         layout={isLarge ? "large-list" : "list"}
+        isSelected={isSelected}
       />
     </article>
   );
@@ -522,7 +553,7 @@ export function GridItemDisplay({
         preload={shouldOpenInSerial ? "intent" : undefined}
         className={clsx(
           "flex h-full flex-1 flex-col rounded p-2 text-left",
-          isSelected && "bg-muted",
+          isSelected && "md:bg-muted",
         )}
       >
         <ItemThumbnail
@@ -541,7 +572,12 @@ export function GridItemDisplay({
           />
         </div>
       </Link>
-      <ItemActions contentId={contentId} item={item} layout="grid" />
+      <ItemActions
+        contentId={contentId}
+        item={item}
+        layout="grid"
+        isSelected={isSelected}
+      />
     </article>
   );
 }

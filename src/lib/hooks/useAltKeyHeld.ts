@@ -9,8 +9,15 @@ export function useAltKeyHeld() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Alt") {
+      if (
+        event.key === "Alt" &&
+        !event.shiftKey &&
+        !event.ctrlKey &&
+        !event.metaKey
+      ) {
         setAltKeyHeld(true);
+      } else if (event.shiftKey || event.ctrlKey || event.metaKey) {
+        setAltKeyHeld(false);
       }
     };
 

@@ -1,11 +1,9 @@
 "use client";
 
 import { cva } from "class-variance-authority";
-import { useAtomValue } from "jotai";
 import { ResponsiveButton } from "./ui/button";
 import type { ButtonProps } from "./ui/button";
-import { altKeyHeldAtom } from "~/lib/data/atoms";
-import { useFlagState } from "~/lib/hooks/useFlagState";
+import { useShowShortcuts } from "~/lib/hooks/useShowShortcuts";
 
 const kbdVariants = cva("hidden rounded px-1 text-xs md:inline-block", {
   variants: {
@@ -44,9 +42,7 @@ export const KeyboardShortcutDisplay = ({
   position?: "left" | "right";
   isActive?: boolean;
 }) => {
-  const [shortcutDisplay] = useFlagState("INLINE_SHORTCUTS");
-  const altKeyHeld = useAtomValue(altKeyHeldAtom);
-  const showShortcuts = shortcutDisplay === "show-shortcuts" || altKeyHeld;
+  const showShortcuts = useShowShortcuts();
 
   if (!showShortcuts) return null;
 

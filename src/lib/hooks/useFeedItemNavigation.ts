@@ -5,6 +5,7 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useLocation } from "@tanstack/react-router";
 import { useShortcut } from "./useShortcut";
 import { useFeedItemActions } from "./useFeedItemActions";
+import { useLoadMoreItems } from "./useLoadMoreItems";
 import type { KeyboardEvent } from "react";
 import {
   categoryFilterAtom,
@@ -117,6 +118,7 @@ export function useFeedItemNavigation(
   const { mutateAsync: saveToInstapaper } = useSaveToInstapaperMutation(
     selectedItemId ?? "",
   );
+  const { handleLoadMore } = useLoadMoreItems();
 
   const scrollToItem = useCallback(
     (itemId: string | null, forceInstant: boolean = false) => {
@@ -144,10 +146,10 @@ export function useFeedItemNavigation(
   );
 
   const selectItem = useCallback(
-    (itemId: string | null) => {
+    (itemId: string | null, forceInstant: boolean = false) => {
       keyboardNavActiveRef.current = true;
       setSelectedItemId(itemId);
-      scrollToItem(itemId);
+      scrollToItem(itemId, forceInstant);
     },
     [setSelectedItemId, scrollToItem],
   );
@@ -204,18 +206,29 @@ export function useFeedItemNavigation(
           const nextIndex = (gridPos.row + 1) * gridPos.columns + gridPos.col;
           if (nextIndex < items.length) {
             selectItem(items[nextIndex]!);
+          } else {
+            setSelectedItemId(null);
+            window.scrollTo({ top: 0, behavior: "instant" });
           }
         }
       } else {
         const nextIndex = currentIndex + 1;
         if (nextIndex >= items.length) {
-          selectItem(items[0]!);
+          setSelectedItemId(null);
+          window.scrollTo({ top: 0, behavior: "instant" });
         } else {
           selectItem(items[nextIndex]!);
         }
       }
     },
-    [pathname, selectedItemId, items, selectItem, isGridLayout],
+    [
+      pathname,
+      selectedItemId,
+      items,
+      selectItem,
+      isGridLayout,
+      setSelectedItemId,
+    ],
   );
 
   const handleArrowUp = useCallback(
@@ -227,13 +240,14 @@ export function useFeedItemNavigation(
 
       if (currentIndex === -1) {
         if (window.scrollY === 0 && items.length > 0) {
-          selectItem(items[0]!);
+          selectItem(items[items.length - 1]!, true);
+          handleLoadMore();
         } else {
           const closestItem = getClosestVisibleItem(items);
           if (closestItem) {
             selectItem(closestItem);
           } else if (items.length > 0) {
-            selectItem(items[0]!);
+            selectItem(items[items.length - 1]!, true);
           }
         }
         return;
@@ -255,12 +269,26 @@ export function useFeedItemNavigation(
         if (gridPos && gridPos.row > 0) {
           const prevIndex = (gridPos.row - 1) * gridPos.columns + gridPos.col;
           selectItem(items[prevIndex]!);
+        } else {
+          setSelectedItemId(null);
+          window.scrollTo({ top: 0, behavior: "instant" });
         }
       } else if (currentIndex > 0) {
         selectItem(items[currentIndex - 1]!);
+      } else {
+        setSelectedItemId(null);
+        window.scrollTo({ top: 0, behavior: "instant" });
       }
     },
-    [pathname, selectedItemId, items, selectItem, isGridLayout],
+    [
+      pathname,
+      selectedItemId,
+      items,
+      selectItem,
+      isGridLayout,
+      setSelectedItemId,
+      handleLoadMore,
+    ],
   );
 
   const handleArrowRight = useCallback(
