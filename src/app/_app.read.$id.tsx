@@ -82,13 +82,20 @@ function ReadPage() {
   // Restore progress on open — wait a frame so layout is complete
   const hasRestoredRef = useRef(false);
   useEffect(() => {
-    if (hasRestoredRef.current || !feedItem?.progress || feedItem.progress <= 0)
+    if (hasRestoredRef.current) return;
+    if (feedItem == null) return;
+
+    const progress = feedItem.progress ?? 0;
+
+    if (progress <= 0) {
+      hasRestoredRef.current = true;
       return;
+    }
 
     const elements = getElements(articleRef.current);
     if (elements.length === 0) return;
 
-    const targetIndex = Math.min(feedItem.progress, elements.length - 1);
+    const targetIndex = Math.min(progress, elements.length - 1);
     hasRestoredRef.current = true;
     requestAnimationFrame(() => {
       selectElement(elements, targetIndex, true);

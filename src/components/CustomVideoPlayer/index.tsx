@@ -126,13 +126,11 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
   // Restore progress on first play
   const hasRestoredRef = useRef(false);
   useEffect(() => {
-    if (
-      !hasRestoredRef.current &&
-      manualPlayerState === YOUTUBE_PLAYER_STATES.PLAYING &&
-      savedFeedItem?.progress &&
-      savedFeedItem.progress > 0
-    ) {
-      hasRestoredRef.current = true;
+    if (hasRestoredRef.current) return;
+    if (manualPlayerState !== YOUTUBE_PLAYER_STATES.PLAYING) return;
+
+    hasRestoredRef.current = true;
+    if (savedFeedItem?.progress && savedFeedItem.progress > 0) {
       seekToSecond(savedFeedItem.progress / 1000);
     }
   }, [manualPlayerState, savedFeedItem?.progress, seekToSecond]);
