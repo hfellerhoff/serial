@@ -1,9 +1,9 @@
 import { defineTask } from "nitro/task";
 import { and, eq, lte } from "drizzle-orm";
-import { db } from "~/server/db";
-import { feeds, user } from "~/server/db/schema";
-import { fetchAndInsertFeedData } from "~/server/rss/fetchFeeds";
-import { IS_MAIN_INSTANCE } from "~/lib/constants";
+import { db } from "../../../src/server/db";
+import { feeds, user } from "../../../src/server/db/schema";
+import { fetchAndInsertFeedData } from "../../../src/server/rss/fetchFeeds";
+import { IS_MAIN_INSTANCE } from "../../../src/lib/constants";
 
 export default defineTask({
   meta: {

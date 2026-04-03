@@ -27,7 +27,7 @@ export default defineConfig({
     }),
     nitro({
       preset: "node",
-      serverDir: "src",
+      serverDir: "server",
       experimental: { vite: {}, tasks: true } as any,
       scheduledTasks: { "* * * * *": ["feeds:background-refresh"] },
     } as any),
