@@ -1,6 +1,6 @@
 "use client";
 
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import {
   GlobeIcon,
   PlayCircleIcon,
@@ -14,12 +14,14 @@ import type { FeedPlatform } from "~/server/db/schema";
 import { ViewCategoriesInput } from "~/components/AddViewDialog";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { useDialogStore } from "~/components/feed/dialogStore";
+import { FeedEmptyState } from "~/components/feed/view-lists/EmptyStates";
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Input } from "~/components/ui/input";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
+import { Switch } from "~/components/ui/switch";
 import { useContentCategories } from "~/lib/data/content-categories";
 import { useFeedCategories } from "~/lib/data/feed-categories";
 import {
@@ -27,7 +29,12 @@ import {
   useBulkRemoveFeedCategoryMutation,
 } from "~/lib/data/feed-categories/mutations";
 import { useFeeds } from "~/lib/data/feeds";
-import { useBulkDeleteFeedsMutation } from "~/lib/data/feeds/mutations";
+import {
+  useBulkDeleteFeedsMutation,
+  useSetFeedActiveMutation,
+} from "~/lib/data/feeds/mutations";
+import { useSubscription } from "~/lib/data/subscription";
+import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
 
 function useFeedManagementShortcuts({
   onEscape,
@@ -143,7 +150,11 @@ function ManageFeedsPage() {
   const { feeds } = useFeeds();
   const { feedCategories } = useFeedCategories();
   const { contentCategories } = useContentCategories();
-  const launchDialog = useDialogStore((store) => store.launchDialog);
+  const { launchDialog } = useDialogStore();
+  const { billingEnabled, activeFeeds, maxActiveFeeds, planName } =
+    useSubscription();
+  const { mutate: setFeedActive, isPending: isTogglingActive } =
+    useSetFeedActiveMutation();
 
   const [selectedFeedIds, setSelectedFeedIds] = useState<Set<number>>(
     new Set(),
@@ -356,7 +367,7 @@ function ManageFeedsPage() {
 
   if (!feeds.length) {
     return (
-      <div className="mx-auto max-w-2xl p-6">
+      <div className="mx-auto max-w-3xl p-6">
         <div className="flex items-center justify-between">
           <h2 className="font-sans text-lg">Manage Feeds</h2>
           <Button
@@ -367,23 +378,25 @@ function ManageFeedsPage() {
             <PlusIcon size={16} />
           </Button>
         </div>
-        <p className="text-muted-foreground mt-4">
-          You don&apos;t have any feeds yet.
-        </p>
-        <Link to="/">
-          <Button className="mt-4">Back to home</Button>
-        </Link>
+        <FeedEmptyState />
       </div>
     );
   }
 
   return (
     <div>
-      <div className="mx-auto max-w-2xl px-6 pt-6">
+      <div className="mx-auto max-w-3xl px-6 pt-6">
         <div className="flex items-center justify-between">
-          <h2 ref={headerRef} className="font-sans text-lg">
-            Manage Feeds
-          </h2>
+          <div>
+            <h2 ref={headerRef} className="font-sans text-lg">
+              Manage Feeds
+            </h2>
+            {billingEnabled && maxActiveFeeds > 0 && (
+              <p className="text-muted-foreground text-sm">
+                {activeFeeds} / {maxActiveFeeds} feeds active
+              </p>
+            )}
+          </div>
           <ButtonWithShortcut
             variant="outline"
             size="icon"
@@ -393,6 +406,25 @@ function ManageFeedsPage() {
             <PlusIcon size={16} />
           </ButtonWithShortcut>
         </div>
+        {billingEnabled &&
+          maxActiveFeeds > 0 &&
+          activeFeeds >= maxActiveFeeds && (
+            <Alert className="mt-4">
+              <AlertTitle>Max active feeds reached</AlertTitle>
+              <AlertDescription>
+                The {planName} plan supports a maximum of {maxActiveFeeds}{" "}
+                feeds. You can add more than this, but only your active feeds
+                will receive new content.
+                <Button
+                  type="button"
+                  onClick={() => launchDialog("subscription")}
+                  className="mt-4"
+                >
+                  Upgrade your plan
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
       </div>
 
       <div
@@ -400,7 +432,7 @@ function ManageFeedsPage() {
           isScrolled ? "border-border" : "border-transparent"
         }`}
       >
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-6 py-4">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-4">
           <Input
             placeholder="Search feeds..."
             value={searchQuery}
@@ -428,7 +460,7 @@ function ManageFeedsPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-2xl px-6">
+      <div className="mx-auto max-w-3xl px-6">
         <div className="-mx-3">
           {filteredFeeds.map((feed) => {
             const isSelected = selectedFeedIds.has(feed.id);
@@ -438,7 +470,9 @@ function ManageFeedsPage() {
               <button
                 type="button"
                 key={feed.id}
-                className="hover:bg-muted/50 flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-3 text-left transition-colors"
+                className={`hover:bg-muted/50 flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
+                  !feed.isActive ? "opacity-50" : ""
+                }`}
                 onClick={() => toggleFeedSelection(feed.id)}
               >
                 <Checkbox
@@ -464,6 +498,24 @@ function ManageFeedsPage() {
                     );
                   })}
                 </div>
+                <Switch
+                  checked={feed.isActive}
+                  disabled={isTogglingActive}
+                  onCheckedChange={(checked) => {
+                    if (
+                      !checked ||
+                      activeFeeds < maxActiveFeeds ||
+                      maxActiveFeeds < 0
+                    ) {
+                      setFeedActive({ feedId: feed.id, isActive: checked });
+                    } else {
+                      toast.error(
+                        "Feed limit reached. Upgrade your plan to activate more feeds.",
+                      );
+                    }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
               </button>
             );
           })}
@@ -483,7 +535,7 @@ function ManageFeedsPage() {
             isAtBottom ? "border-transparent" : "border-border"
           }`}
         >
-          <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-4">
+          <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
             <div className="flex gap-2">
               <ButtonWithShortcut
                 variant="outline"

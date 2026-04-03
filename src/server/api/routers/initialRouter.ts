@@ -22,6 +22,7 @@ import type {
 } from "~/server/db/schema";
 import type { ORPCContext } from "~/server/orpc/base";
 import type { FetchFeedsStatus } from "~/server/rss/fetchFeeds";
+import { getFeedsActivationBudget } from "~/server/subscriptions/helpers";
 import { visibilityFilterSchema } from "~/lib/data/atoms";
 import {
   buildContentTypeFilter,
@@ -93,6 +94,11 @@ export type GetByViewChunk =
     }
   | { type: "import-feed-error"; feedUrl: string; error: string }
   | { type: "import-start"; totalFeeds: number }
+  | {
+      type: "import-limit-warning";
+      deactivatedCount: number;
+      maxActiveFeeds: number;
+    }
   | ViewDataChunk;
 
 export type RevalidateViewChunk =
@@ -837,9 +843,12 @@ export const requestInitialData = protectedProcedure
         chunk: { type: "initial-data-complete" },
       });
 
+      // Only fetch active feeds
+      const activeFeedsList = feedsList.filter((feed) => feed.isActive);
+
       // Count feeds that will actually be fetched (not cached)
       const now = new Date();
-      const feedsToFetchCount = feedsList.filter(
+      const feedsToFetchCount = activeFeedsList.filter(
         (feed) => !feed.nextFetchAt || feed.nextFetchAt <= now,
       ).length;
 
@@ -852,7 +861,7 @@ export const requestInitialData = protectedProcedure
       // Step 5: Run fetch and insert for fresh RSS items in background
       for await (const feedResult of fetchAndInsertFeedData(
         context,
-        feedsList,
+        activeFeedsList,
       )) {
         // Skip publishing status for cached feeds (they complete instantly with no network activity)
         if (feedResult.status === "skipped") {
@@ -1076,11 +1085,37 @@ export const streamingImport = protectedProcedure
       return { status: "completed" };
     }
 
-    // Publish import start with total feeds count
+    // Check activation budget upfront
+    const { remainingSlots, maxActiveFeeds } = await getFeedsActivationBudget(
+      context.db,
+      context.user.id,
+    );
+    const deactivatedCount = Math.max(0, input.feeds.length - remainingSlots);
+
+    // Pre-calculate which feeds should be active
+    const feedsWithActivation = input.feeds.map((feed, index) => ({
+      ...feed,
+      shouldBeActive: index < remainingSlots,
+    }));
+
+    // Publish import start with total feeds count (must come before
+    // import-limit-warning so the client's progressState is initialized first)
     await publisher.publish(channel, {
       source: "initial",
       chunk: { type: "import-start", totalFeeds: input.feeds.length },
     });
+
+    // Publish warning if some feeds will be inactive
+    if (deactivatedCount > 0) {
+      await publisher.publish(channel, {
+        source: "initial",
+        chunk: {
+          type: "import-limit-warning",
+          deactivatedCount,
+          maxActiveFeeds,
+        },
+      });
+    }
 
     // Track successful feed IDs for building view mappings later
     const successfulFeeds: Array<{
@@ -1089,8 +1124,8 @@ export const streamingImport = protectedProcedure
     }> = [];
 
     // Worker function: insert feed + fetch RSS content
-    async function processFeed(feedInput: (typeof input.feeds)[0]) {
-      const IMPORT_TIMEOUT_MS = 15_000; // 10 seconds
+    async function processFeed(feedInput: (typeof feedsWithActivation)[0]) {
+      const IMPORT_TIMEOUT_MS = 15_000; // 15 seconds
 
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(
@@ -1107,6 +1142,7 @@ export const streamingImport = protectedProcedure
               tx,
               context.user.id,
               feedInput,
+              feedInput.shouldBeActive,
             );
           }),
         );
@@ -1177,7 +1213,11 @@ export const streamingImport = protectedProcedure
     }
 
     // Process all feeds through worker pool
-    const workerIterator = workerPool(input.feeds, BATCH_SIZE, processFeed);
+    const workerIterator = workerPool(
+      feedsWithActivation,
+      BATCH_SIZE,
+      processFeed,
+    );
     // Consume the iterator - results are published via side effects in processFeed
     while (!(await workerIterator.next()).done) {
       // Results stream as each feed completes
@@ -1272,9 +1312,12 @@ export const requestNewData = protectedProcedure
 
     const { feedsList } = prerequisiteData;
 
+    // Only fetch active feeds
+    const activeFeedsList = feedsList.filter((feed) => feed.isActive);
+
     // Count feeds that will actually be fetched (not cached)
     const now = new Date();
-    const feedsToFetchCount = feedsList.filter(
+    const feedsToFetchCount = activeFeedsList.filter(
       (feed) => !feed.nextFetchAt || feed.nextFetchAt <= now,
     ).length;
 
@@ -1284,7 +1327,7 @@ export const requestNewData = protectedProcedure
       chunk: { type: "refresh-start", totalFeeds: feedsToFetchCount },
     });
 
-    if (feedsList.length === 0) {
+    if (activeFeedsList.length === 0) {
       await publisher.publish(channel, {
         source: "new-data",
         chunk: { type: "new-data-complete" },
@@ -1293,7 +1336,10 @@ export const requestNewData = protectedProcedure
     }
 
     // Run RSS fetch and publish new items
-    for await (const feedResult of fetchAndInsertFeedData(context, feedsList)) {
+    for await (const feedResult of fetchAndInsertFeedData(
+      context,
+      activeFeedsList,
+    )) {
       // Skip publishing status for cached feeds (they complete instantly with no network activity)
       if (feedResult.status === "skipped") {
         continue;
@@ -1911,9 +1957,10 @@ export const getAllByView = protectedProcedure
       // Step 5: Run fetch and insert for fresh RSS items in background
       // Items are inserted to DB by fetchAndInsertFeedData - don't yield them here
       // Fresh items will be available via pagination (getItemsByVisibility)
+      const activeFeedsForLegacy = feedsList.filter((feed) => feed.isActive);
       for await (const feedResult of fetchAndInsertFeedData(
         context,
-        feedsList,
+        activeFeedsForLegacy,
       )) {
         yield {
           type: "feed-status",

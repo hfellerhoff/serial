@@ -78,6 +78,7 @@ export async function insertFeedWithCategories(
   db: Transaction,
   userId: string,
   feedInput: { feedUrl: string; categories: string[] },
+  isActive: boolean = true,
 ): Promise<InsertFeedWithCategoriesResult> {
   const newFeedDetails = await fetchNewFeedDetails(feedInput.feedUrl);
   const newFeed = newFeedDetails[0];
@@ -106,6 +107,7 @@ export async function insertFeedWithCategories(
     .values({
       userId,
       ...newFeed,
+      isActive,
       openLocation: schema.PLATFORM_DEFAULT_OPEN_LOCATION[newFeed.platform],
     })
     .returning();

@@ -19,6 +19,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { ControlledResponsiveDialog } from "./ui/responsive-dropdown";
+import { Switch } from "./ui/switch";
 import { ToggleGroupItem } from "./ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import type { FeedOpenLocation, FeedPlatform } from "~/server/db/schema";
@@ -28,6 +29,7 @@ import {
   useCreateFeedMutation,
   useDeleteFeedMutation,
   useEditFeedMutation,
+  useSetFeedActiveMutation,
 } from "~/lib/data/feeds/mutations";
 import { PLATFORM_TO_FORMATTED_NAME_MAP } from "~/lib/data/feeds/utils";
 import { useShortcut } from "~/lib/hooks/useShortcut";
@@ -202,6 +204,7 @@ export function EditFeedDialog({
 
   const { mutateAsync: editFeed } = useEditFeedMutation();
   const { mutateAsync: deleteFeed } = useDeleteFeedMutation();
+  const { mutate: setFeedActive } = useSetFeedActiveMutation();
 
   const [name, setName] = useState<string>("");
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
@@ -253,6 +256,28 @@ export function EditFeedDialog({
       open={selectedFeedId !== null}
       onOpenChange={onClose}
       title="Edit Feed"
+      headerRight={
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center">
+              <Switch
+                checked={feed?.isActive ?? true}
+                onCheckedChange={(checked) => {
+                  if (selectedFeedId !== null) {
+                    setFeedActive({
+                      feedId: selectedFeedId,
+                      isActive: checked,
+                    });
+                  }
+                }}
+              />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {feed?.isActive ? "Feed active" : "Feed inactive"}
+          </TooltipContent>
+        </Tooltip>
+      }
     >
       <div className="grid gap-6">
         <div className="grid gap-2">

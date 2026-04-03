@@ -15,6 +15,8 @@ import type {
   PaginationCursor,
 } from "~/server/api/routers/initialRouter";
 import type { PublishedChunk } from "~/server/api/publisher";
+import { getQueryClient } from "~/lib/query-provider";
+import { orpc } from "~/lib/orpc";
 
 export type PaginationState = {
   cursor: PaginationCursor;
@@ -30,6 +32,8 @@ export type ProgressState = {
   totalFeeds: number;
   importErrors: number;
   failedImportUrls: Set<string>;
+  importDeactivatedCount: number;
+  importMaxActiveFeeds: number;
 };
 
 export type ApplicationStore = {
@@ -134,6 +138,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           totalFeeds: 0,
           importErrors: 0,
           failedImportUrls: new Set(),
+          importDeactivatedCount: 0,
+          importMaxActiveFeeds: 0,
         },
       }),
     feedItemsOrder: [],
@@ -148,6 +154,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
       totalFeeds: 0,
       importErrors: 0,
       failedImportUrls: new Set(),
+      importDeactivatedCount: 0,
+      importMaxActiveFeeds: 0,
     },
     setFeedItemsDict: (itemsDict) => set({ feedItemsDict: itemsDict }),
     setFeedItem: (id, item) =>
@@ -875,6 +883,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                     totalFeeds: 0,
                     importErrors: 0,
                     failedImportUrls: new Set(),
+                    importDeactivatedCount: 0,
+                    importMaxActiveFeeds: 0,
                   },
                 });
               }
@@ -983,6 +993,12 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 viewPaginationState: paginationState,
                 _lastItemByView: {}, // Clear after use
               });
+
+              // Invalidate subscription query so active feed count updates
+              void getQueryClient().invalidateQueries({
+                queryKey: orpc.subscription.getStatus.queryOptions().queryKey,
+              });
+
               break;
             }
 
@@ -1089,6 +1105,18 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                   totalFeeds: initialChunk.totalFeeds,
                   importErrors: 0,
                   failedImportUrls: new Set(),
+                  importDeactivatedCount: 0,
+                  importMaxActiveFeeds: 0,
+                },
+              });
+              break;
+
+            case "import-limit-warning":
+              set({
+                progressState: {
+                  ...get().progressState,
+                  importDeactivatedCount: initialChunk.deactivatedCount,
+                  importMaxActiveFeeds: initialChunk.maxActiveFeeds,
                 },
               });
               break;
@@ -1267,6 +1295,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 totalFeeds: chunk.totalFeeds,
                 importErrors: 0,
                 failedImportUrls: new Set(),
+                importDeactivatedCount: 0,
+                importMaxActiveFeeds: 0,
               },
             });
             break;

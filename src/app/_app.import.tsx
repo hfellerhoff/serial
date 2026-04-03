@@ -7,11 +7,13 @@ import {
   ExternalLinkIcon,
   GlobeIcon,
   MinusIcon,
+  PauseIcon,
   PlayCircleIcon,
   XIcon,
   YoutubeIcon,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { ImportDropzone } from "../components/feed/import/ImportDropzone";
 import { getInitialFeedDataFromFileInputElement } from "../components/feed/import/utils/getInitialFeedDataFromFileInputElement";
 import type { FeedPlatform } from "~/server/db/schema";
@@ -33,6 +35,29 @@ import {
   useProgressState,
 } from "~/lib/data/store";
 import { dataSubscriptionActions } from "~/lib/data/useDataSubscription";
+import { useDialogStore } from "~/components/feed/dialogStore";
+
+function ImportedFeedStatus({
+  feedUrl,
+  feeds,
+}: {
+  feedUrl: string;
+  feeds: Array<{ url: string; isActive: boolean }>;
+}) {
+  const importedFeed = feeds.find((f) => f.url === feedUrl);
+  const isInactive = importedFeed && !importedFeed.isActive;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger>
+        {isInactive ? <PauseIcon size={20} /> : <CheckIcon size={20} />}
+      </TooltipTrigger>
+      <TooltipContent>
+        {isInactive ? "Feed inactive" : "Imported Successfully!"}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 function PlatformIcon({ platform }: { platform: FeedPlatform }) {
   switch (platform) {
@@ -69,8 +94,24 @@ function EditFeedsPage() {
   const isFetchingRss =
     fetchStatus === "fetching" && progressState.fetchType === "import";
   const failedImportUrls = progressState.failedImportUrls;
+  const { launchDialog } = useDialogStore();
 
   const isPostImportScreen = isImportComplete || hasStartedImport;
+
+  useEffect(() => {
+    if (isImportComplete && progressState.importDeactivatedCount > 0) {
+      const count = progressState.importDeactivatedCount;
+      toast.warning(
+        `${count} feed${count > 1 ? "s were" : " was"} added as inactive. To unlock more active feeds, you can switch to a higher plan.`,
+        {
+          action: {
+            label: "Upgrade",
+            onClick: () => launchDialog("subscription"),
+          },
+        },
+      );
+    }
+  }, [isImportComplete, progressState.importDeactivatedCount, launchDialog]);
 
   const onSelectFiles = async () => {
     if (!inputElementRef.current) return;
@@ -191,7 +232,7 @@ function EditFeedsPage() {
           </p>
           <div className="flex gap-2">
             <Link to="/">
-              <Button>Back to feeds</Button>
+              <Button>Back to home</Button>
             </Link>
             <Button variant="outline" onClick={onReset}>
               Import more
@@ -339,14 +380,10 @@ function EditFeedsPage() {
                           {isPostImportScreen &&
                             wasImported &&
                             channel.shouldImport && (
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <CheckIcon size={20} />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  Imported Successfully!
-                                </TooltipContent>
-                              </Tooltip>
+                              <ImportedFeedStatus
+                                feedUrl={channel.feedUrl}
+                                feeds={feeds}
+                              />
                             )}
                           {isPostImportScreen &&
                             channel.shouldImport &&

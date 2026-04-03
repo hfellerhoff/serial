@@ -8,6 +8,7 @@ import * as userRouter from "~/server/api/routers/userRouter";
 import * as feedCategoriesRouter from "~/server/api/routers/feedCategoriesRouter";
 import * as contentCategoriesRouter from "~/server/api/routers/contentCategoriesRouter";
 import * as viewRouter from "~/server/api/routers/viewRouter";
+import * as subscriptionRouter from "~/server/api/routers/subscriptionRouter";
 
 export const orpcRouter = {
   admin: adminRouter,
@@ -20,4 +21,5 @@ export const orpcRouter = {
   feedCategories: feedCategoriesRouter,
   contentCategories: contentCategoriesRouter,
   view: viewRouter,
+  subscription: subscriptionRouter,
 };

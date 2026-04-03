@@ -147,11 +147,13 @@ export const feeds = sqliteTable(
       .notNull(),
     lastFetchedAt: integer("last_fetched_at", { mode: "timestamp" }),
     nextFetchAt: integer("next_fetch_at", { mode: "timestamp" }),
+    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   },
   (example) => [
     index("feed_name_idx").on(example.name),
     index("feed_user_id_idx").on(example.userId),
     index("feed_user_id_url_idx").on(example.userId, example.url),
+    index("feed_user_id_is_active_idx").on(example.userId, example.isActive),
   ],
 );
 export const platformsSchema = z.enum([

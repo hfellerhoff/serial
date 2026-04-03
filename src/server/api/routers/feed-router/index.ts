@@ -16,6 +16,10 @@ import {
 } from "~/server/db/schema";
 import { protectedProcedure } from "~/server/orpc/base";
 import { fetchNewFeedDetails } from "~/server/rss/fetchFeeds";
+import {
+  canActivateFeed,
+  getFeedsActivationBudget,
+} from "~/server/subscriptions/helpers";
 
 type BulkImportFromFileSuccess = {
   feedUrl: string;
@@ -39,9 +43,15 @@ export const create = protectedProcedure
       throw new Error("Unsupported feed URL");
     }
 
+    // Check activation budget upfront
+    const { remainingSlots, maxActiveFeeds } = await getFeedsActivationBudget(
+      context.db,
+      context.user.id,
+    );
+
     const results = await context.db.transaction(async (tx) => {
       return await Promise.all(
-        newFeedDetails.map(async (newFeed) => {
+        newFeedDetails.map(async (newFeed, index) => {
           if (!newFeed.url) return { error: "No feed url found." };
 
           const existingFeed = await findExistingFeedThatMatches(tx, {
@@ -53,11 +63,14 @@ export const create = protectedProcedure
             return { error: "Feed already exists" };
           }
 
+          const isActive = index < remainingSlots;
+
           const insertedFeeds = await tx
             .insert(feeds)
             .values({
               userId: context.user.id,
               ...newFeed,
+              isActive,
               openLocation: PLATFORM_DEFAULT_OPEN_LOCATION[newFeed.platform],
             })
             .returning();
@@ -92,7 +105,13 @@ export const create = protectedProcedure
       )
       .map((r) => r.feed);
 
-    return parseArrayOfSchema(createdFeeds, feedsSchema);
+    const deactivatedCount = Math.max(0, createdFeeds.length - remainingSlots);
+
+    return {
+      feeds: parseArrayOfSchema(createdFeeds, feedsSchema),
+      deactivatedCount,
+      maxActiveFeeds,
+    };
   });
 
 export const createFromSubscriptionImport = protectedProcedure
@@ -111,9 +130,21 @@ export const createFromSubscriptionImport = protectedProcedure
       return [];
     }
 
+    // Check activation budget upfront and pre-calculate which feeds should be active
+    const { remainingSlots } = await getFeedsActivationBudget(
+      context.db,
+      context.user.id,
+    );
+
+    // Pre-calculate which feeds should be active BEFORE any parallel processing
+    const feedsWithActivation = input.feeds.map((feed, index) => ({
+      ...feed,
+      shouldBeActive: index < remainingSlots,
+    }));
+
     // Process feeds in small batches to avoid overwhelming the database
     const BATCH_SIZE = 4;
-    const feedChunks = prepareArrayChunks(input.feeds, BATCH_SIZE);
+    const feedChunks = prepareArrayChunks(feedsWithActivation, BATCH_SIZE);
     const allResults: BulkImportFromFileResult[] = [];
 
     for (const chunk of feedChunks) {
@@ -150,6 +181,7 @@ export const createFromSubscriptionImport = protectedProcedure
                 .values({
                   userId: context.user.id,
                   ...newFeed,
+                  isActive: feed.shouldBeActive,
                   openLocation:
                     PLATFORM_DEFAULT_OPEN_LOCATION[newFeed.platform],
                 })
@@ -361,6 +393,40 @@ export const bulkDelete = protectedProcedure
           eq(feeds.userId, context.user.id),
         ),
       );
+  });
+
+export const setActive = protectedProcedure
+  .input(z.object({ feedId: z.number(), isActive: z.boolean() }))
+  .handler(async ({ context, input }) => {
+    // Verify feed belongs to user
+    const feed = await context.db.query.feeds.findFirst({
+      where: and(eq(feeds.id, input.feedId), eq(feeds.userId, context.user.id)),
+    });
+
+    if (!feed) {
+      throw new Error("Feed not found");
+    }
+
+    // When activating, check feed limits
+    if (input.isActive) {
+      const canActivate = await canActivateFeed(context.db, context.user.id);
+      if (!canActivate) {
+        throw new Error(
+          "Feed limit reached. Upgrade your plan to activate more feeds.",
+        );
+      }
+    }
+
+    const updatedFeeds = await context.db
+      .update(feeds)
+      .set({ isActive: input.isActive })
+      .where(and(eq(feeds.id, input.feedId), eq(feeds.userId, context.user.id)))
+      .returning();
+
+    const updatedFeed = updatedFeeds[0];
+    if (!updatedFeed) return null;
+
+    return feedsSchema.parse(updatedFeed);
   });
 
 export const discoverFeeds = protectedProcedure

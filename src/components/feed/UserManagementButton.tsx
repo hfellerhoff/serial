@@ -2,9 +2,15 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
-import { EllipsisVerticalIcon, Loader2Icon, PlugIcon } from "lucide-react";
+import {
+  CreditCardIcon,
+  EllipsisVerticalIcon,
+  Loader2Icon,
+  PlugIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { useDialogStore } from "./dialogStore";
+import { SubscriptionDialog } from "./SubscriptionDialog";
 import { Button } from "~/components/ui/button";
 import { DropdownMenuSeparator } from "~/components/ui/dropdown-menu";
 import {
@@ -19,6 +25,7 @@ import {
 } from "~/components/ui/sidebar";
 import { authClient, signOut } from "~/lib/auth-client";
 import { useClearAllUserData } from "~/lib/data/atoms";
+import { useSubscription } from "~/lib/data/subscription";
 
 export function UserManagementNavItem() {
   const {
@@ -26,7 +33,8 @@ export function UserManagementNavItem() {
     isPending, // loading state
   } = authClient.useSession();
 
-  const { launchDialog } = useDialogStore();
+  const { launchDialog, closeDialog, dialog } = useDialogStore();
+  const { billingEnabled, planName } = useSubscription();
 
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -35,6 +43,12 @@ export function UserManagementNavItem() {
 
   return (
     <SidebarMenu>
+      <SubscriptionDialog
+        open={dialog === "subscription"}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+      />
       <SidebarMenuItem>
         <ResponsiveDropdown
           side="right"
@@ -67,6 +81,9 @@ export function UserManagementNavItem() {
               <p className="text-muted-foreground text-xs">
                 {data?.user.email}
               </p>
+              {billingEnabled && (
+                <p className="text-muted-foreground text-xs">{planName} plan</p>
+              )}
               <Link
                 to="/debug"
                 className="text-muted-foreground hover:text-foreground pt-1 text-xs underline"
@@ -87,6 +104,18 @@ export function UserManagementNavItem() {
               <span className="pl-1.5">Connections</span>
             </Button>
           </ResponsiveDropdownMenuItem>
+          {billingEnabled && (
+            <ResponsiveDropdownMenuItem asChild>
+              <Button
+                variant="outline"
+                className="mb-2 w-full"
+                onClick={() => launchDialog("subscription")}
+              >
+                <CreditCardIcon size={16} />
+                <span className="pl-1.5">Subscription</span>
+              </Button>
+            </ResponsiveDropdownMenuItem>
+          )}
           <div className="my-4">
             <DropdownMenuSeparator />
           </div>

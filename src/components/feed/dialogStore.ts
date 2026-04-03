@@ -6,7 +6,8 @@ export type DialogType =
   | "add-content-category"
   | "custom-video"
   | "edit-user-profile"
-  | "connections";
+  | "connections"
+  | "subscription";
 type DialogStore = {
   dialog: null | DialogType;
   launchDialog: (dialog: DialogType) => void;

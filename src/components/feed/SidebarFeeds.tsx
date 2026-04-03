@@ -5,6 +5,7 @@ import {
   CircleSmall,
   Edit2Icon,
   MinusIcon,
+  PauseIcon,
   PlusIcon,
   SettingsIcon,
 } from "lucide-react";
@@ -191,7 +192,9 @@ export function SidebarFeeds() {
 
   const feedOptions = feeds.map((feed) => ({
     ...feed,
-    hasEntries: !!checkFilteredFeedItemsForFeed(feed.id).length,
+    hasEntries: feed.isActive
+      ? !!checkFilteredFeedItemsForFeed(feed.id).length
+      : false,
   }));
 
   const {
@@ -200,8 +203,16 @@ export function SidebarFeeds() {
     feedOptionsWithContent,
     emptyFeedOptions,
     errorFeedOptions,
+    inactiveFeedOptions,
   } = feedOptions.reduce(
     (acc, feedOption) => {
+      // Inactive feeds always go to the inactive section
+      if (!feedOption.isActive) {
+        acc.inactiveFeedOptions.push(feedOption);
+        acc.inactiveFeedOptions.sort(sortFeedOptions);
+        return acc;
+      }
+
       if (searchQuery) {
         const lowercaseQuery = searchQuery.toLowerCase();
         const lowercaseName = feedOption.name.toLowerCase();
@@ -256,6 +267,7 @@ export function SidebarFeeds() {
       feedOptionsWithContent: [] as typeof feedOptions,
       emptyFeedOptions: [] as typeof feedOptions,
       errorFeedOptions: [] as typeof feedOptions,
+      inactiveFeedOptions: [] as typeof feedOptions,
     },
   );
 
@@ -476,6 +488,45 @@ export function SidebarFeeds() {
               </SidebarMenuItem>
             );
           })}
+          {inactiveFeedOptions.length > 0 && (
+            <>
+              <hr className="my-2 opacity-50" />
+              {inactiveFeedOptions.map((feed) => (
+                <SidebarMenuItem
+                  key={feed.id}
+                  className="group flex gap-1 opacity-50"
+                >
+                  <SidebarMenuButton
+                    variant={feed.id === feedFilter ? "outline" : "default"}
+                    onClick={() => setFeedFilter(feed.id)}
+                  >
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <PauseIcon
+                          size={16}
+                          className="text-muted-foreground"
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        This feed is inactive and won&apos;t receive new
+                        content.
+                      </TooltipContent>
+                    </Tooltip>
+                    <div className="text-muted-foreground line-clamp-1">
+                      {feed.name}
+                    </div>
+                  </SidebarMenuButton>
+                  <div className="group/button flex w-fit items-center justify-end">
+                    <SidebarMenuButton
+                      onClick={() => setSelectedFeedForEditing(feed.id)}
+                    >
+                      <Edit2Icon className="opacity-30 transition-opacity group-hover/button:opacity-100" />
+                    </SidebarMenuButton>
+                  </div>
+                </SidebarMenuItem>
+              ))}
+            </>
+          )}
         </SidebarMenu>
       </SidebarGroup>
     </>

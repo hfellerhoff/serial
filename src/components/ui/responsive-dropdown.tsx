@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, XIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,7 @@ import type {
 } from "@radix-ui/react-dropdown-menu";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -114,6 +115,7 @@ interface ControlledResponsiveDialogProps {
   title?: string;
   description?: string;
   onBack?: () => void;
+  headerRight?: React.ReactNode;
 }
 export function ControlledResponsiveDialog({
   open,
@@ -122,13 +124,14 @@ export function ControlledResponsiveDialog({
   title,
   description,
   onBack,
+  headerRight,
 }: ControlledResponsiveDialogProps) {
   const isDesktop = useMediaQuery("(min-width: 640px)");
 
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
+        <DialogContent hideClose>
           <DialogHeader>
             {onBack && (
               <button
@@ -139,7 +142,16 @@ export function ControlledResponsiveDialog({
                 <span>Back</span>
               </button>
             )}
-            <DialogTitle>{title}</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>{title}</DialogTitle>
+              <div className="flex items-center gap-3">
+                {headerRight}
+                <DialogClose className="ring-offset-background focus:ring-ring rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden">
+                  <XIcon className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </DialogClose>
+              </div>
+            </div>
             <DialogDescription>{description}</DialogDescription>
           </DialogHeader>
           {children}
@@ -161,7 +173,10 @@ export function ControlledResponsiveDialog({
               <span>Back</span>
             </button>
           )}
-          <DrawerTitle>{title}</DrawerTitle>
+          <div className="flex items-center justify-between">
+            <DrawerTitle>{title}</DrawerTitle>
+            {headerRight}
+          </div>
           <DrawerDescription>{description}</DrawerDescription>
         </DrawerHeader>
         <div className="px-4 pb-4">{children}</div>

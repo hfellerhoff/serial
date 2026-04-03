@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
-import { RSS_SERVER_PORT } from "./ports";
 
-const BASE = `http://127.0.0.1:${RSS_SERVER_PORT}`;
+const port = Number(process.argv[2]) || 3003;
+const BASE = `http://127.0.0.1:${port}`;
 
 const feeds: Record<string, string> = {
   "scary-pockets": `<?xml version="1.0" encoding="UTF-8"?>
@@ -90,12 +90,35 @@ const server = createServer((req, res) => {
       res.end(content);
       return;
     }
+
+    // Dynamic fallback: generate a feed for any /feed/{slug} request
+    const titleFromSlug = slug
+      .replace(/-/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+    const dynamicContent = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>${titleFromSlug}</title>
+    <link>${BASE}</link>
+    <description>${titleFromSlug}</description>
+    <item>
+      <title>${titleFromSlug} - Article 1</title>
+      <link>${BASE}/${slug}/1</link>
+      <guid>${slug}-1</guid>
+      <pubDate>Mon, 01 Jan 2024 00:00:00 GMT</pubDate>
+      <description>Test article from ${titleFromSlug}</description>
+    </item>
+  </channel>
+</rss>`;
+    res.writeHead(200, { "Content-Type": "application/rss+xml" });
+    res.end(dynamicContent);
+    return;
   }
 
   res.writeHead(404);
   res.end();
 });
 
-server.listen(RSS_SERVER_PORT, "127.0.0.1", () => {
+server.listen(port, "127.0.0.1", () => {
   console.log(`RSS test server running on ${BASE}`);
 });

@@ -25,10 +25,12 @@ test.describe("article progress tracking", () => {
     await page.goto("/auth/sign-in");
     await expect(page.locator("#email")).toBeVisible({ timeout: 10000 });
     await page.waitForTimeout(1000);
-    await page.locator("#email").fill(email);
-    await page.locator("#password").fill(password);
-    await page.getByRole("button", { name: /login/i }).click();
-    await expect(page).toHaveURL("/", { timeout: 30000 });
+    await page.locator("#email").pressSequentially(email, { delay: 50 });
+    await page.locator("#password").pressSequentially(password, { delay: 50 });
+    await Promise.all([
+      page.waitForURL("/", { timeout: 30000 }),
+      page.getByRole("button", { name: /login/i }).click(),
+    ]);
     await expect(
       page.locator("article h3").filter({ hasText: "Test Article" }).first(),
     ).toBeVisible({ timeout: 15000 });

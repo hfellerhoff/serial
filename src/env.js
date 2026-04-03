@@ -19,6 +19,13 @@ export const env = createEnv({
     SENDGRID_API_KEY: z.string().optional(),
     INSTAPAPER_OAUTH_ID: z.string().optional(),
     INSTAPAPER_OAUTH_SECRET: z.string().optional(),
+    POLAR_ACCESS_TOKEN: z.string().optional(),
+    POLAR_WEBHOOK_SECRET: z.string().optional(),
+    POLAR_STANDARD_MONTHLY_PRODUCT_ID: z.string().optional(),
+    POLAR_STANDARD_ANNUAL_PRODUCT_ID: z.string().optional(),
+    POLAR_PRO_MONTHLY_PRODUCT_ID: z.string().optional(),
+    POLAR_PRO_ANNUAL_PRODUCT_ID: z.string().optional(),
+    BACKGROUND_REFRESH_ENABLED: z.string().optional().default("true"),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -36,6 +43,15 @@ export const env = createEnv({
     SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
     INSTAPAPER_OAUTH_ID: process.env.INSTAPAPER_OAUTH_ID,
     INSTAPAPER_OAUTH_SECRET: process.env.INSTAPAPER_OAUTH_SECRET,
+    POLAR_ACCESS_TOKEN: process.env.POLAR_ACCESS_TOKEN,
+    POLAR_WEBHOOK_SECRET: process.env.POLAR_WEBHOOK_SECRET,
+    POLAR_STANDARD_MONTHLY_PRODUCT_ID:
+      process.env.POLAR_STANDARD_MONTHLY_PRODUCT_ID,
+    POLAR_STANDARD_ANNUAL_PRODUCT_ID:
+      process.env.POLAR_STANDARD_ANNUAL_PRODUCT_ID,
+    POLAR_PRO_MONTHLY_PRODUCT_ID: process.env.POLAR_PRO_MONTHLY_PRODUCT_ID,
+    POLAR_PRO_ANNUAL_PRODUCT_ID: process.env.POLAR_PRO_ANNUAL_PRODUCT_ID,
+    BACKGROUND_REFRESH_ENABLED: process.env.BACKGROUND_REFRESH_ENABLED,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

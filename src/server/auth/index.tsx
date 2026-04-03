@@ -1,17 +1,25 @@
 import { render } from "@react-email/components";
 import sendgrid from "@sendgrid/mail";
 import { betterAuth } from "better-auth";
-import { admin } from "better-auth/plugins";
+import { admin, emailOTP } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { createMiddleware } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { redirect } from "@tanstack/react-router";
-import { asc, count, eq } from "drizzle-orm";
+import { and, asc, count, eq } from "drizzle-orm";
+import { checkout, polar, portal, webhooks } from "@polar-sh/better-auth";
 import { db } from "../db";
-import { appConfig, user } from "../db/schema";
+import { appConfig, feeds, user } from "../db/schema";
+import { determinePlanFromProductId, PLANS } from "../subscriptions/plans";
+import {
+  deactivateExcessFeeds,
+  invalidatePlanCache,
+} from "../subscriptions/helpers";
+import { polarClient } from "../subscriptions/polar";
 import ResetPasswordEmail from "~/emails/reset-password";
+import VerifyEmailEmail from "~/emails/verify-email";
 import { BASE_SIGNED_OUT_URL, isPublicSignupEnabled } from "~/lib/constants";
 
 export const authMiddleware = createMiddleware().server(
@@ -38,6 +46,113 @@ export const adminMiddleware = createMiddleware().server(async ({ next }) => {
   return await next();
 });
 
+async function handleSubscriptionEnd(payload: {
+  data: { customer?: { externalId?: string | null } | null };
+}) {
+  const externalId = payload.data.customer?.externalId;
+  if (!externalId) return;
+
+  invalidatePlanCache(externalId);
+  await deactivateExcessFeeds(db, externalId, PLANS.free.maxActiveFeeds);
+  await db
+    .update(feeds)
+    .set({ nextFetchAt: null })
+    .where(eq(feeds.userId, externalId));
+}
+
+function buildPolarPlugin() {
+  if (!polarClient) return [];
+  if (!process.env.POLAR_WEBHOOK_SECRET) return [];
+
+  const products = [
+    process.env.POLAR_STANDARD_MONTHLY_PRODUCT_ID
+      ? {
+          productId: process.env.POLAR_STANDARD_MONTHLY_PRODUCT_ID,
+          slug: "standard-monthly",
+        }
+      : null,
+    process.env.POLAR_STANDARD_ANNUAL_PRODUCT_ID
+      ? {
+          productId: process.env.POLAR_STANDARD_ANNUAL_PRODUCT_ID,
+          slug: "standard-annual",
+        }
+      : null,
+    process.env.POLAR_PRO_MONTHLY_PRODUCT_ID
+      ? {
+          productId: process.env.POLAR_PRO_MONTHLY_PRODUCT_ID,
+          slug: "pro-monthly",
+        }
+      : null,
+    process.env.POLAR_PRO_ANNUAL_PRODUCT_ID
+      ? {
+          productId: process.env.POLAR_PRO_ANNUAL_PRODUCT_ID,
+          slug: "pro-annual",
+        }
+      : null,
+  ].filter(Boolean);
+
+  return [
+    polar({
+      client: polarClient,
+      createCustomerOnSignUp: false,
+      use: [
+        checkout({
+          products,
+          successUrl: "/?checkout_success=true",
+          authenticatedUsersOnly: true,
+        }),
+        portal(),
+        webhooks({
+          secret: process.env.POLAR_WEBHOOK_SECRET ?? "",
+          onSubscriptionActive: async (payload) => {
+            const externalId = payload.data.customer?.externalId;
+            if (!externalId) return;
+
+            invalidatePlanCache(externalId);
+
+            const productId = payload.data.productId;
+            const planId = determinePlanFromProductId(productId);
+            if (!planId) {
+              console.warn(`[polar webhook] Unknown product ID: ${productId}`);
+              return;
+            }
+
+            const config = PLANS[planId];
+            if (config.backgroundRefreshIntervalMs) {
+              // Stagger nextFetchAt across the refresh interval so feeds
+              // don't all become due at the same instant (thundering herd).
+              const activeFeeds = await db
+                .select({ id: feeds.id })
+                .from(feeds)
+                .where(
+                  and(eq(feeds.userId, externalId), eq(feeds.isActive, true)),
+                )
+                .all();
+
+              const interval = config.backgroundRefreshIntervalMs;
+              const feedCount = activeFeeds.length;
+              for (let i = 0; i < feedCount; i++) {
+                const offset =
+                  feedCount > 1 ? Math.round((interval / feedCount) * i) : 0;
+                await db
+                  .update(feeds)
+                  .set({ nextFetchAt: new Date(Date.now() + offset) })
+                  .where(eq(feeds.id, activeFeeds[i]!.id));
+              }
+            }
+          },
+          onSubscriptionCanceled: async (payload) => {
+            await handleSubscriptionEnd(payload);
+          },
+          onSubscriptionRevoked: async (payload) => {
+            await handleSubscriptionEnd(payload);
+          },
+        }),
+      ],
+    }),
+  ];
+}
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "sqlite",
@@ -62,7 +177,30 @@ export const auth = betterAuth({
       await sendgrid.send(options);
     },
   },
-  plugins: [admin(), tanstackStartCookies()],
+  plugins: [
+    admin(),
+    tanstackStartCookies(),
+    ...buildPolarPlugin(),
+    ...(import.meta.env.SENDGRID_API_KEY
+      ? [
+          emailOTP({
+            async sendVerificationOTP({ email, otp, type }) {
+              if (type === "email-verification") {
+                sendgrid.setApiKey(import.meta.env.SENDGRID_API_KEY ?? "");
+                const html = await render(<VerifyEmailEmail otp={otp} />);
+                await sendgrid.send({
+                  from: "hey@serial.tube",
+                  to: email,
+                  subject: "Verify your email for Serial",
+                  html,
+                });
+              }
+            },
+            sendVerificationOnSignUp: true,
+          }),
+        ]
+      : []),
+  ],
 
   hooks: {
     before: createAuthMiddleware(async (ctx) => {

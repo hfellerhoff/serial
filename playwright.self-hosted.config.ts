@@ -16,7 +16,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: "node --import=tsx tests/e2e/fixtures/rss-server.ts",
+      command: "node --import=tsx tests/e2e/fixtures/rss-server.ts 3003",
       url: "http://127.0.0.1:3003",
       reuseExistingServer: !process.env.CI,
     },

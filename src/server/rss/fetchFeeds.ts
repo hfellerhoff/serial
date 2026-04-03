@@ -12,8 +12,8 @@ import {
   fetchYouTubeFeedData,
   fetchYouTubeFeedDetails,
 } from "./parsers/youtube";
-import type { ORPCContext } from "../orpc/base";
 import type { ApplicationFeedItem, DatabaseFeed } from "../db/schema";
+import type { db as Database } from "../db";
 import type { NewFeedDetails, RSSFeedWithMetadata } from "./types";
 import { dbSemaphore } from "~/lib/semaphore";
 
@@ -68,7 +68,7 @@ type FeedResult =
     };
 
 export async function* fetchAndInsertFeedData(
-  context: ORPCContext,
+  context: { db: typeof Database },
   databaseFeeds: DatabaseFeed[],
 ) {
   const feedIds = databaseFeeds.map((feed) => feed.id);
