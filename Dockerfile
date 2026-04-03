@@ -41,6 +41,8 @@ RUN --mount=type=bind,source=package.json,target=package.json \
 # Copy the rest of the source files into the image.
 COPY . .
 
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 # Run the build script (without migrations - those run at container startup)
 RUN pnpm run build:atomic
 
