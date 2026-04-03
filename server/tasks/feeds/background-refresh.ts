@@ -22,17 +22,6 @@ export default defineTask({
 
     console.log("[background-refresh] Running at ", now.toLocaleString());
 
-    // Find distinct userIds with active feeds that need refreshing
-    const usersWithFeeds = await db
-      .selectDistinct({ userId: feeds.userId })
-      .from(feeds)
-      .where(and(eq(feeds.isActive, true), lte(feeds.nextFetchAt, now)))
-      .all();
-
-    if (usersWithFeeds.length === 0) {
-      return { result: "no-feeds-to-refresh" };
-    }
-
     // On the main instance, only refresh feeds for admin users.
     // Paid users' feeds have nextFetchAt managed by subscription webhooks.
     let adminUserIds: Set<string> | null = null;
@@ -45,29 +34,37 @@ export default defineTask({
       adminUserIds = new Set(admins.map((a) => a.id));
     }
 
+    // Fetch all active feeds that need refreshing in a single query
+    const allFeedsDue = await db
+      .select()
+      .from(feeds)
+      .where(and(eq(feeds.isActive, true), lte(feeds.nextFetchAt, now)))
+      .all();
+
+    // Filter to admin users if on main instance
+    const feedsToRefresh = adminUserIds
+      ? allFeedsDue.filter((f) => adminUserIds.has(f.userId))
+      : allFeedsDue;
+
+    if (feedsToRefresh.length === 0) {
+      return { result: "no-feeds-to-refresh" };
+    }
+
+    // Group feeds by userId for per-user processing
+    const feedsByUser = new Map<string, typeof feedsToRefresh>();
+    for (const feed of feedsToRefresh) {
+      const existing = feedsByUser.get(feed.userId);
+      if (existing) {
+        existing.push(feed);
+      } else {
+        feedsByUser.set(feed.userId, [feed]);
+      }
+    }
+
     let refreshedCount = 0;
 
-    for (const { userId } of usersWithFeeds) {
+    for (const [userId, userFeeds] of feedsByUser) {
       try {
-        if (adminUserIds && !adminUserIds.has(userId)) {
-          continue;
-        }
-
-        // Get active feeds that need refreshing for this user
-        const userFeeds = await db
-          .select()
-          .from(feeds)
-          .where(
-            and(
-              eq(feeds.userId, userId),
-              eq(feeds.isActive, true),
-              lte(feeds.nextFetchAt, now),
-            ),
-          )
-          .all();
-
-        if (userFeeds.length === 0) continue;
-
         // Fetch and insert feed data
         for await (const result of fetchAndInsertFeedData({ db }, userFeeds)) {
           if (result.status === "success") {

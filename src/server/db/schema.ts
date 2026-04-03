@@ -154,6 +154,10 @@ export const feeds = sqliteTable(
     index("feed_user_id_idx").on(example.userId),
     index("feed_user_id_url_idx").on(example.userId, example.url),
     index("feed_user_id_is_active_idx").on(example.userId, example.isActive),
+    index("feed_is_active_next_fetch_at_idx").on(
+      example.isActive,
+      example.nextFetchAt,
+    ),
   ],
 );
 export const platformsSchema = z.enum([

@@ -1,0 +1,1 @@
+CREATE INDEX `feed_is_active_next_fetch_at_idx` ON `serial_feed` (`is_active`,`next_fetch_at`);

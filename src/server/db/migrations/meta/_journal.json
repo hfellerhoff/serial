@@ -260,6 +260,13 @@
       "when": 1774976982594,
       "tag": "0036_wild_inertia",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1775236359534,
+      "tag": "0037_complex_calypso",
+      "breakpoints": true
     }
   ]
 }
