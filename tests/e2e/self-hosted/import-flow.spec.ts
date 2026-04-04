@@ -2,6 +2,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
+import { signUp } from "../fixtures/auth";
 import { SELF_HOSTED_TURSO_PORT } from "../fixtures/ports";
 import {
   cleanupUser,
@@ -34,24 +35,12 @@ test.describe("full user lifecycle", () => {
     testEmail = generateTestEmail();
 
     // ── 1. Sign Up ──────────────────────────────────────────────────
-    await page.goto("/");
-    await expect(page).toHaveURL(/auth\/sign-in/);
-    await page.goto("/auth/sign-up");
-    await expect(page.locator("#first-name")).toBeVisible({ timeout: 10000 });
-
-    await page
-      .locator("#first-name")
-      .pressSequentially("Test User", { delay: 50 });
-    await page.locator("#email").pressSequentially(testEmail, { delay: 50 });
-    await page
-      .locator("#password")
-      .pressSequentially("testpassword123", { delay: 50 });
-    await page
-      .locator("#password_confirmation")
-      .pressSequentially("testpassword123", { delay: 50 });
-
-    await page.getByRole("button", { name: /create an account/i }).click();
-    await expect(page).toHaveURL("/", { timeout: 30000 });
+    await signUp({
+      page,
+      name: "Test User",
+      email: testEmail,
+      password: "testpassword123",
+    });
 
     // ── 2. Import Feeds ─────────────────────────────────────────────
     await page.goto("/import");

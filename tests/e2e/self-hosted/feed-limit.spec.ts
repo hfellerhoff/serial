@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { signUp } from "../fixtures/auth";
 import {
   SELF_HOSTED_RSS_SERVER_PORT,
   SELF_HOSTED_TURSO_PORT,
@@ -38,24 +39,12 @@ test.describe("feed limit on self-hosted (no limit)", () => {
     testEmail = generateTestEmail();
 
     // Sign up
-    await page.goto("/auth/sign-up");
-    await expect(page.locator("#first-name")).toBeVisible({ timeout: 10000 });
-    await page.locator("#first-name").click();
-    await page
-      .locator("#first-name")
-      .pressSequentially("Test User", { delay: 50 });
-    await page.locator("#email").click();
-    await page.locator("#email").pressSequentially(testEmail, { delay: 50 });
-    await page.locator("#password").click();
-    await page
-      .locator("#password")
-      .pressSequentially("testpassword123", { delay: 50 });
-    await page.locator("#password_confirmation").click();
-    await page
-      .locator("#password_confirmation")
-      .pressSequentially("testpassword123", { delay: 50 });
-    await page.getByRole("button", { name: /create an account/i }).click();
-    await expect(page).toHaveURL("/", { timeout: 30000 });
+    await signUp({
+      page,
+      name: "Test User",
+      email: testEmail,
+      password: "testpassword123",
+    });
 
     // Navigate to import
     await page.goto("/import");

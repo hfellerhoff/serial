@@ -432,6 +432,8 @@ export type DatabaseInstapaperConnection =
  */
 export type AppConfigKeys = {
   "public-signup-enabled": "true" | "false";
+  "enabled-signin-providers": string; // JSON array, e.g. '["email","oauth"]'
+  "enabled-signup-providers": string; // JSON array, e.g. '["email","oauth"]'
 };
 
 export type AppConfigKey = keyof AppConfigKeys;

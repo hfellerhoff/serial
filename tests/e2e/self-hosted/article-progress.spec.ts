@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { signIn } from "../fixtures/auth";
 import {
   SELF_HOSTED_APP_PORT,
   SELF_HOSTED_TURSO_PORT,
@@ -22,15 +23,7 @@ test.describe("article progress tracking", () => {
     testEmail = email;
 
     // Log in via the UI
-    await page.goto("/auth/sign-in");
-    await expect(page.locator("#email")).toBeVisible({ timeout: 10000 });
-    await page.waitForTimeout(1000);
-    await page.locator("#email").pressSequentially(email, { delay: 50 });
-    await page.locator("#password").pressSequentially(password, { delay: 50 });
-    await Promise.all([
-      page.waitForURL("/", { timeout: 30000 }),
-      page.getByRole("button", { name: /login/i }).click(),
-    ]);
+    await signIn({ page, email, password });
     await expect(
       page.locator("article h3").filter({ hasText: "Test Article" }).first(),
     ).toBeVisible({ timeout: 15000 });

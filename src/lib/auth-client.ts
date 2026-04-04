@@ -1,8 +1,17 @@
 import { createAuthClient } from "better-auth/react";
-import { adminClient, emailOTPClient } from "better-auth/client/plugins";
+import {
+  adminClient,
+  emailOTPClient,
+  genericOAuthClient,
+} from "better-auth/client/plugins";
 import { polarClient } from "@polar-sh/better-auth/client";
 
-const plugins = [adminClient(), polarClient(), emailOTPClient()];
+const plugins = [
+  adminClient(),
+  polarClient(),
+  emailOTPClient(),
+  genericOAuthClient(),
+];
 
 export const authClient = createAuthClient({
   plugins,

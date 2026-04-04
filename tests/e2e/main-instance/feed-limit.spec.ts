@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { signUp } from "../fixtures/auth";
 import { MAIN_RSS_SERVER_PORT, MAIN_TURSO_PORT } from "../fixtures/ports";
 import { cleanupUser, generateTestEmail } from "../fixtures/seed-db";
 
@@ -37,24 +38,12 @@ test.describe("feed limit for free plan", () => {
     testEmail = generateTestEmail();
 
     // Sign up
-    await page.goto("/auth/sign-up");
-    await expect(page.locator("#first-name")).toBeVisible({ timeout: 10000 });
-    await page.locator("#first-name").click();
-    await page
-      .locator("#first-name")
-      .pressSequentially("Test User", { delay: 50 });
-    await page.locator("#email").click();
-    await page.locator("#email").pressSequentially(testEmail, { delay: 50 });
-    await page.locator("#password").click();
-    await page
-      .locator("#password")
-      .pressSequentially("testpassword123", { delay: 50 });
-    await page.locator("#password_confirmation").click();
-    await page
-      .locator("#password_confirmation")
-      .pressSequentially("testpassword123", { delay: 50 });
-    await page.getByRole("button", { name: /create an account/i }).click();
-    await expect(page).toHaveURL("/", { timeout: 30000 });
+    await signUp({
+      page,
+      name: "Test User",
+      email: testEmail,
+      password: "testpassword123",
+    });
 
     // Navigate to import
     await page.goto("/import");

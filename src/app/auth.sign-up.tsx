@@ -9,13 +9,13 @@ import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { signUp } from "~/lib/auth-client";
+import { authClient, signUp } from "~/lib/auth-client";
 import { AuthHeader } from "~/components/auth/AuthHeader";
 import { orpcRouterClient } from "~/lib/orpc";
 
 export const Route = createFileRoute("/auth/sign-up")({
   component: SignUp,
-  loader: () => orpcRouterClient.admin.getIsPublicSignupEnabled(),
+  loader: () => orpcRouterClient.admin.getSignupConfig(),
 });
 
 function SignUp() {
@@ -29,6 +29,11 @@ function SignUp() {
   const signupStatus = Route.useLoaderData();
   const signupsEnabled = signupStatus.enabled === true;
 
+  const showEmail = signupStatus.signupProviders.includes("email");
+  const showOAuth =
+    signupStatus.isOAuthConfigured &&
+    signupStatus.signupProviders.includes("oauth");
+
   if (!signupsEnabled) {
     return (
       <AuthHeader>
@@ -36,9 +41,11 @@ function SignUp() {
           <p className="text-muted-foreground">
             Sign ups are currently disabled.
           </p>
-          <Link to="/auth/sign-in">
-            <Button variant="outline">Go to Sign In</Button>
-          </Link>
+          {!signupStatus.isFirstUser && (
+            <Link to="/auth/sign-in">
+              <Button variant="outline">Go to Sign In</Button>
+            </Link>
+          )}
         </div>
       </AuthHeader>
     );
@@ -60,96 +67,135 @@ function SignUp() {
       </AuthHeader>
       <CardContent>
         <div className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="first-name">First name</Label>
-            <Input
-              id="first-name"
-              placeholder="Max"
-              required
-              onChange={(e) => {
-                setFirstName(e.target.value);
-              }}
-              value={firstName}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="email@example.com"
-              required
-              onChange={(e) => {
-                setEmail(e.target.value);
-              }}
-              value={email}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="new-password"
-              placeholder="Password"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="password">Confirm Password</Label>
-            <Input
-              id="password_confirmation"
-              type="password"
-              value={passwordConfirmation}
-              onChange={(e) => setPasswordConfirmation(e.target.value)}
-              autoComplete="new-password"
-              placeholder="Confirm Password"
-            />
-          </div>
-        </div>
-        <Button
-          type="submit"
-          className="mt-4 w-full"
-          disabled={loading}
-          onClick={async () => {
-            await signUp.email({
-              email,
-              password,
-              name: firstName,
-              callbackURL: AUTH_SIGNED_IN_URL,
-              fetchOptions: {
-                onResponse: () => {
-                  setLoading(false);
-                },
-                onRequest: () => {
-                  setLoading(true);
-                },
-                onError: (ctx) => {
-                  toast.error(ctx.error.message);
-                },
-                onSuccess: () => {
-                  void router.navigate({
-                    to: AUTH_SIGNED_IN_URL,
-                    reloadDocument: true,
+          {showEmail && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="first-name">First name</Label>
+                <Input
+                  id="first-name"
+                  placeholder="Max"
+                  required
+                  onChange={(e) => {
+                    setFirstName(e.target.value);
+                  }}
+                  value={firstName}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="email@example.com"
+                  required
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                  }}
+                  value={email}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                  placeholder="Password"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="password_confirmation">Confirm Password</Label>
+                <Input
+                  id="password_confirmation"
+                  type="password"
+                  value={passwordConfirmation}
+                  onChange={(e) => setPasswordConfirmation(e.target.value)}
+                  autoComplete="new-password"
+                  placeholder="Confirm Password"
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
+                onClick={async () => {
+                  await signUp.email({
+                    email,
+                    password,
+                    name: firstName,
+                    callbackURL: AUTH_SIGNED_IN_URL,
+                    fetchOptions: {
+                      onResponse: () => {
+                        setLoading(false);
+                      },
+                      onRequest: () => {
+                        setLoading(true);
+                      },
+                      onError: (ctx) => {
+                        toast.error(ctx.error.message);
+                      },
+                      onSuccess: () => {
+                        void router.navigate({
+                          to: AUTH_SIGNED_IN_URL,
+                          reloadDocument: true,
+                        });
+                      },
+                    },
                   });
-                },
-              },
-            });
-          }}
-        >
-          {loading ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : (
-            "Create an account"
+                }}
+              >
+                {loading ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  "Create an account"
+                )}
+              </Button>
+            </>
           )}
-        </Button>
-        <Link
-          className="mt-4 block text-center text-sm underline"
-          to="/auth/sign-in"
-        >
-          Have an account? Sign in
-        </Link>
+
+          {showEmail && showOAuth && (
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card text-muted-foreground px-2">or</span>
+              </div>
+            </div>
+          )}
+
+          {showOAuth && (
+            <Button
+              variant={showEmail ? "outline" : "default"}
+              className="w-full"
+              disabled={loading}
+              onClick={async () => {
+                setLoading(true);
+                await authClient.signIn.oauth2({
+                  providerId: signupStatus.oauthProviderId,
+                  callbackURL: AUTH_SIGNED_IN_URL,
+                });
+              }}
+            >
+              {loading && !showEmail ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                `Sign up with ${signupStatus.oauthProviderName}`
+              )}
+            </Button>
+          )}
+
+          {!signupStatus.isFirstUser && (
+            <Link
+              className="block text-center text-sm underline"
+              to="/auth/sign-in"
+            >
+              Have an account? Sign in
+            </Link>
+          )}
+        </div>
       </CardContent>
     </>
   );

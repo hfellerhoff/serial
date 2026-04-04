@@ -1,7 +1,7 @@
 import { render } from "@react-email/components";
 import sendgrid from "@sendgrid/mail";
 import { betterAuth } from "better-auth";
-import { admin, emailOTP } from "better-auth/plugins";
+import { admin, emailOTP, genericOAuth } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { APIError, createAuthMiddleware } from "better-auth/api";
@@ -11,7 +11,7 @@ import { redirect } from "@tanstack/react-router";
 import { and, asc, count, eq } from "drizzle-orm";
 import { checkout, polar, portal, webhooks } from "@polar-sh/better-auth";
 import { db } from "../db";
-import { appConfig, feeds, user } from "../db/schema";
+import { account, appConfig, feeds, session, user } from "../db/schema";
 import { determinePlanFromProductId, PLANS } from "../subscriptions/plans";
 import {
   deactivateExcessFeeds,
@@ -20,7 +20,14 @@ import {
 import { polarClient } from "../subscriptions/polar";
 import ResetPasswordEmail from "~/emails/reset-password";
 import VerifyEmailEmail from "~/emails/verify-email";
-import { BASE_SIGNED_OUT_URL, isPublicSignupEnabled } from "~/lib/constants";
+import {
+  BASE_SIGNED_OUT_URL,
+  getAvailableSignupProviders,
+  getEnabledAuthProviders,
+  isPublicSignupEnabled,
+} from "~/lib/constants";
+import { isOAuthConfigured } from "~/server/auth/constants";
+import { env } from "~/env";
 
 export const authMiddleware = createMiddleware().server(
   async ({ pathname, next }) => {
@@ -153,6 +160,28 @@ function buildPolarPlugin() {
   ];
 }
 
+function buildGenericOAuthPlugin() {
+  if (!isOAuthConfigured()) return [];
+
+  return [
+    genericOAuth({
+      config: [
+        {
+          providerId: env.OAUTH_PROVIDER_ID!,
+          clientId: env.OAUTH_CLIENT_ID!,
+          clientSecret: env.OAUTH_CLIENT_SECRET!,
+          discoveryUrl: env.OAUTH_DISCOVERY_URL,
+          authorizationUrl: env.OAUTH_AUTHORIZATION_URL,
+          tokenUrl: env.OAUTH_TOKEN_URL,
+          userInfoUrl: env.OAUTH_USER_INFO_URL,
+          scopes: (env.OAUTH_SCOPES ?? "openid email profile").split(" "),
+          pkce: env.OAUTH_PKCE === "true",
+        },
+      ],
+    }),
+  ];
+}
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "sqlite",
@@ -181,6 +210,7 @@ export const auth = betterAuth({
     admin(),
     tanstackStartCookies(),
     ...buildPolarPlugin(),
+    ...buildGenericOAuthPlugin(),
     ...(import.meta.env.SENDGRID_API_KEY
       ? [
           emailOTP({
@@ -204,49 +234,143 @@ export const auth = betterAuth({
 
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
-      // Block sign-up endpoints if public signups are disabled
-      if (ctx.path.startsWith("/sign-up")) {
-        const config = await db
-          .select()
-          .from(appConfig)
-          .where(eq(appConfig.key, "public-signup-enabled"))
+      const isEmailSignUp = ctx.path.startsWith("/sign-up");
+      const isEmailSignIn = ctx.path.startsWith("/sign-in/email");
+      const isOAuth =
+        ctx.path.startsWith("/sign-in/oauth2") ||
+        ctx.path.startsWith("/oauth2/callback/");
+
+      if (!isEmailSignUp && !isEmailSignIn && !isOAuth) return;
+
+      // Allow first user to use any available method
+      const userCount = await db.select({ count: count() }).from(user).get();
+      if ((userCount?.count ?? 0) === 0) return;
+
+      const configs = await db.select().from(appConfig).all();
+      const signinConfig = configs.find(
+        (c) => c.key === "enabled-signin-providers",
+      );
+      const signupConfig = configs.find(
+        (c) => c.key === "enabled-signup-providers",
+      );
+      const publicSignupConfig = configs.find(
+        (c) => c.key === "public-signup-enabled",
+      );
+      const signinProviders = getEnabledAuthProviders(signinConfig?.value);
+
+      // Sign-in gating
+      if (isEmailSignIn && !signinProviders.includes("email")) {
+        throw new APIError("BAD_REQUEST", {
+          message: "Email sign in is currently disabled",
+        });
+      }
+
+      if (isOAuth && !signinProviders.includes("oauth")) {
+        throw new APIError("BAD_REQUEST", {
+          message: "OAuth is currently disabled",
+        });
+      }
+
+      const oauthConfigured = isOAuthConfigured();
+      const availableSignupProviders = getAvailableSignupProviders({
+        isFirstUser: false,
+        publicSignupEnabled: isPublicSignupEnabled(publicSignupConfig?.value),
+        signupProvidersConfig: signupConfig?.value,
+        oauthConfigured,
+      });
+
+      // Sign-up gating
+      if (isEmailSignUp && !availableSignupProviders.includes("email")) {
+        throw new APIError("BAD_REQUEST", {
+          message: "Sign ups are currently disabled",
+        });
+      }
+
+      // If neither OAuth sign-in nor sign-up is allowed, the isOAuth check
+      // above already blocked it. No additional gating needed here — the
+      // after hook handles the case where OAuth sign-in is enabled but
+      // sign-up is not (rolling back auto-created users).
+    }),
+    after: createAuthMiddleware(async (ctx) => {
+      const isEmailSignUp = ctx.path.startsWith("/sign-up");
+      const isOAuthCallback = ctx.path.startsWith("/oauth2/callback/");
+      if (!(isEmailSignUp || isOAuthCallback)) return;
+      if (!ctx.context?.newSession?.user?.id) return;
+
+      const userId = ctx.context.newSession.user.id;
+
+      // Check if this user is the first user by creation time
+      const firstUser = await db
+        .select({ id: user.id })
+        .from(user)
+        .orderBy(asc(user.createdAt))
+        .limit(1)
+        .get();
+
+      if (firstUser?.id === userId) {
+        await db.update(user).set({ role: "admin" }).where(eq(user.id, userId));
+
+        // Set sign-in and sign-up methods to match how the first user signed up
+        const method: string = isOAuthCallback ? "oauth" : "email";
+        const providers = JSON.stringify([method]);
+        await db
+          .insert(appConfig)
+          .values({
+            key: "enabled-signin-providers",
+            value: providers,
+            updatedAt: new Date(),
+          })
+          .onConflictDoUpdate({
+            target: appConfig.key,
+            set: { value: providers, updatedAt: new Date() },
+          });
+        await db
+          .insert(appConfig)
+          .values({
+            key: "enabled-signup-providers",
+            value: providers,
+            updatedAt: new Date(),
+          })
+          .onConflictDoUpdate({
+            target: appConfig.key,
+            set: { value: providers, updatedAt: new Date() },
+          });
+      } else if (isOAuthCallback) {
+        // Non-first user arriving via OAuth callback — Better Auth may have
+        // auto-created a user. If this is a brand-new user (single session)
+        // and OAuth sign-ups aren't allowed, roll back the auto-created user.
+        const sessionCount = await db
+          .select({ count: count() })
+          .from(session)
+          .where(eq(session.userId, userId))
           .get();
 
-        if (!isPublicSignupEnabled(config?.value)) {
-          // Allow signup if no users exist (first user scenario)
-          const userCount = await db
-            .select({ count: count() })
-            .from(user)
-            .get();
-          if ((userCount?.count ?? 0) > 0) {
+        if ((sessionCount?.count ?? 0) <= 1) {
+          const configs = await db.select().from(appConfig).all();
+          const publicSignupConfig = configs.find(
+            (c) => c.key === "public-signup-enabled",
+          );
+          const signupConfig = configs.find(
+            (c) => c.key === "enabled-signup-providers",
+          );
+
+          const availableProviders = getAvailableSignupProviders({
+            isFirstUser: false,
+            publicSignupEnabled: isPublicSignupEnabled(
+              publicSignupConfig?.value,
+            ),
+            signupProvidersConfig: signupConfig?.value,
+            oauthConfigured: isOAuthConfigured(),
+          });
+
+          if (!availableProviders.includes("oauth")) {
+            await db.delete(account).where(eq(account.userId, userId));
+            await db.delete(session).where(eq(session.userId, userId));
+            await db.delete(user).where(eq(user.id, userId));
             throw new APIError("BAD_REQUEST", {
               message: "Sign ups are currently disabled",
             });
           }
-        }
-      }
-    }),
-    after: createAuthMiddleware(async (ctx) => {
-      // After successful sign-up, check if this is the first user
-      if (
-        ctx.path.startsWith("/sign-up") &&
-        ctx.context?.newSession?.user?.id
-      ) {
-        const userId = ctx.context.newSession.user.id;
-
-        // Check if this user is the first user by creation time
-        const firstUser = await db
-          .select({ id: user.id })
-          .from(user)
-          .orderBy(asc(user.createdAt))
-          .limit(1)
-          .get();
-
-        if (firstUser?.id === userId) {
-          await db
-            .update(user)
-            .set({ role: "admin" })
-            .where(eq(user.id, userId));
         }
       }
     }),

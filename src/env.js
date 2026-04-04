@@ -26,6 +26,16 @@ export const env = createEnv({
     POLAR_PRO_MONTHLY_PRODUCT_ID: z.string().optional(),
     POLAR_PRO_ANNUAL_PRODUCT_ID: z.string().optional(),
     BACKGROUND_REFRESH_ENABLED: z.string().optional().default("true"),
+    OAUTH_PROVIDER_ID: z.string().optional(),
+    OAUTH_PROVIDER_NAME: z.string().optional(),
+    OAUTH_CLIENT_ID: z.string().optional(),
+    OAUTH_CLIENT_SECRET: z.string().optional(),
+    OAUTH_DISCOVERY_URL: z.string().optional(),
+    OAUTH_AUTHORIZATION_URL: z.string().optional(),
+    OAUTH_TOKEN_URL: z.string().optional(),
+    OAUTH_USER_INFO_URL: z.string().optional(),
+    OAUTH_SCOPES: z.string().optional(),
+    OAUTH_PKCE: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -52,6 +62,16 @@ export const env = createEnv({
     POLAR_PRO_MONTHLY_PRODUCT_ID: process.env.POLAR_PRO_MONTHLY_PRODUCT_ID,
     POLAR_PRO_ANNUAL_PRODUCT_ID: process.env.POLAR_PRO_ANNUAL_PRODUCT_ID,
     BACKGROUND_REFRESH_ENABLED: process.env.BACKGROUND_REFRESH_ENABLED,
+    OAUTH_PROVIDER_ID: process.env.OAUTH_PROVIDER_ID,
+    OAUTH_PROVIDER_NAME: process.env.OAUTH_PROVIDER_NAME,
+    OAUTH_CLIENT_ID: process.env.OAUTH_CLIENT_ID,
+    OAUTH_CLIENT_SECRET: process.env.OAUTH_CLIENT_SECRET,
+    OAUTH_DISCOVERY_URL: process.env.OAUTH_DISCOVERY_URL,
+    OAUTH_AUTHORIZATION_URL: process.env.OAUTH_AUTHORIZATION_URL,
+    OAUTH_TOKEN_URL: process.env.OAUTH_TOKEN_URL,
+    OAUTH_USER_INFO_URL: process.env.OAUTH_USER_INFO_URL,
+    OAUTH_SCOPES: process.env.OAUTH_SCOPES,
+    OAUTH_PKCE: process.env.OAUTH_PKCE,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
