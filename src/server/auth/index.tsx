@@ -174,7 +174,7 @@ function buildGenericOAuthPlugin() {
           authorizationUrl: env.OAUTH_AUTHORIZATION_URL,
           tokenUrl: env.OAUTH_TOKEN_URL,
           userInfoUrl: env.OAUTH_USER_INFO_URL,
-          scopes: (env.OAUTH_SCOPES ?? "openid email profile").split(" "),
+          scopes: env.OAUTH_SCOPES?.split(" ") ?? undefined,
           pkce: env.OAUTH_PKCE === "true",
         },
       ],
