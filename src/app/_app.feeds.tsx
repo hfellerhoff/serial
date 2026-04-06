@@ -1,16 +1,11 @@
 "use client";
 
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  GlobeIcon,
-  PlayCircleIcon,
-  PlusIcon,
-  Trash2Icon,
-  YoutubeIcon,
-} from "lucide-react";
+import { GlobeIcon, PlayCircleIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { FeedPlatform } from "~/server/db/schema";
+import { YoutubeIcon } from "~/components/brand-icons";
 import { ViewCategoriesInput } from "~/components/AddViewDialog";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { useDialogStore } from "~/components/feed/dialogStore";

@@ -10,7 +10,6 @@ import {
   PauseIcon,
   PlayCircleIcon,
   XIcon,
-  YoutubeIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -18,6 +17,7 @@ import { ImportDropzone } from "../components/feed/import/ImportDropzone";
 import { getInitialFeedDataFromFileInputElement } from "../components/feed/import/utils/getInitialFeedDataFromFileInputElement";
 import type { FeedPlatform } from "~/server/db/schema";
 import type { ImportFeedDataItem } from "../components/feed/import/utils/shared";
+import { YoutubeIcon } from "~/components/brand-icons";
 import { getBlogUrl } from "~/lib/constants";
 import { ImportLoading } from "~/components/ImportLoading";
 import { Badge } from "~/components/ui/badge";

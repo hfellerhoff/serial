@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import dayjs from "dayjs";
-import { BookOpenIcon, PenLineIcon, RssIcon, YoutubeIcon } from "lucide-react";
+import { BookOpenIcon, PenLineIcon, RssIcon } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { YoutubeIcon } from "~/components/brand-icons";
 import { DemoColorThemePopoverButton } from "~/components/color-theme/ColorThemePopoverButton";
 import { Markdown } from "~/components/Markdown";
 
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/blog/$slug")({
   },
 });
 
-const BLOG_ICONS: Record<string, LucideIcon> = {
+const BLOG_ICONS: Record<string, LucideIcon | typeof YoutubeIcon> = {
   youtube: YoutubeIcon,
   rss: RssIcon,
   "book-open": BookOpenIcon,

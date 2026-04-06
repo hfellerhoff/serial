@@ -480,10 +480,21 @@ dialog:modal {
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
+  --animate-marquee: marquee 60s linear infinite;
+
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-in: enter 0.15s ease-out;
   --animate-out: exit 0.1s ease-in forwards;
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
 
   @keyframes accordion-down {
     from {

@@ -30,15 +30,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Check types, lint, and formatting
-        run: pnpm precommit
-
       - name: Build application
         run: pnpm build:atomic
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+
+      - name: Check types, lint, and formatting
+        run: pnpm precommit
 
   e2e:
     runs-on: ubuntu-latest

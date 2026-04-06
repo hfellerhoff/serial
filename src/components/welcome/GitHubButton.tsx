@@ -1,4 +1,4 @@
-import { GithubIcon } from "lucide-react";
+import { GithubIcon } from "~/components/brand-icons";
 import { Button } from "~/components/ui/button";
 
 export function GitHubButton() {

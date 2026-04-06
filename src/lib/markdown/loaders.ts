@@ -1,10 +1,9 @@
 import { notFound } from "@tanstack/react-router";
-// @ts-expect-error this is fine
 import { allBlogPosts, allReleases } from "content-collections";
 import type { BlogPost, Release } from "content-collections";
 
-const releases = allReleases as Release[];
-const blogPosts = allBlogPosts as BlogPost[];
+const releases = allReleases;
+const blogPosts = allBlogPosts;
 
 function sortReleases(a: Release, b: Release) {
   if (a.publish_date < b.publish_date) return 1;
