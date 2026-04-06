@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { checkFeedItemIsVerticalFromUrl } from "../checkFeedItemIsVertical";
 import { feedItems, feeds } from "../db/schema";
 import { buildConflictUpdateColumns } from "../db/utils";
@@ -12,9 +12,15 @@ import {
   fetchYouTubeFeedData,
   fetchYouTubeFeedDetails,
 } from "./parsers/youtube";
+import { computeItemHash } from "./hash";
 import type { ApplicationFeedItem, DatabaseFeed } from "../db/schema";
 import type { db as Database } from "../db";
-import type { NewFeedDetails, RSSFeedWithMetadata } from "./types";
+import type {
+  ConditionalHeaders,
+  FeedFetchResult,
+  NewFeedDetails,
+  RSSFeedWithMetadata,
+} from "./types";
 import { dbSemaphore } from "~/lib/semaphore";
 
 export type FetchFeedsStatus = "success" | "empty" | "error" | "skipped";
@@ -84,19 +90,24 @@ export async function* fetchAndInsertFeedData(
         };
       }
 
-      let feedData: RSSFeedWithMetadata | null = null;
+      const cached: ConditionalHeaders = {
+        etag: feed.etag,
+        lastModifiedHeader: feed.lastModifiedHeader,
+      };
+
+      let feedData: FeedFetchResult | null = null;
 
       if (feed.platform === "youtube") {
-        feedData = await fetchYouTubeFeedData(feed);
+        feedData = await fetchYouTubeFeedData(feed, cached);
       }
       if (feed.platform === "peertube") {
-        feedData = await fetchPeerTubeFeedData(feed);
+        feedData = await fetchPeerTubeFeedData(feed, cached);
       }
       if (feed.platform === "nebula") {
-        feedData = await fetchNebulaFeedData(feed);
+        feedData = await fetchNebulaFeedData(feed, cached);
       }
       if (feed.platform === "website") {
-        feedData = await fetchWebsiteFeedData(feed);
+        feedData = await fetchWebsiteFeedData(feed, cached);
       }
 
       if (!feedData) {
@@ -106,19 +117,43 @@ export async function* fetchAndInsertFeedData(
         };
       }
 
-      // Calculate next fetch time and update feed timestamps
-      const nextFetchAt = calculateNextFetch(feedData.fetchMetadata, now);
+      // Handle 304 Not Modified — skip insert, just update timestamps
+      if ("notModified" in feedData && feedData.notModified) {
+        const nextFetchAt = calculateNextFetch(feedData.fetchMetadata, now);
+        await dbSemaphore.run(() =>
+          context.db
+            .update(feeds)
+            .set({
+              lastFetchedAt: now,
+              nextFetchAt: nextFetchAt,
+            })
+            .where(eq(feeds.id, feed.id)),
+        );
+        return {
+          status: "skipped",
+          id: feed.id,
+        };
+      }
+
+      // At this point feedData is a full RSSFeedWithMetadata (not notModified)
+      const completedFeed = feedData as RSSFeedWithMetadata;
+
+      // Calculate next fetch time and update feed timestamps + conditional headers
+      const nextFetchAt = calculateNextFetch(completedFeed.fetchMetadata, now);
       await dbSemaphore.run(() =>
         context.db
           .update(feeds)
           .set({
             lastFetchedAt: now,
             nextFetchAt: nextFetchAt,
+            etag: completedFeed.fetchMetadata.etag ?? null,
+            lastModifiedHeader:
+              completedFeed.fetchMetadata.lastModified ?? null,
           })
           .where(eq(feeds.id, feed.id)),
       );
 
-      if (!feedData.items.length) {
+      if (!completedFeed.items.length) {
         return {
           status: "empty",
           id: feed.id,
@@ -126,7 +161,7 @@ export async function* fetchAndInsertFeedData(
       }
 
       const feedItemList: Array<typeof feedItems.$inferInsert> =
-        feedData.items.map((item) => {
+        completedFeed.items.map((item) => {
           return {
             feedId: feed.id,
             contentId: item.id,
@@ -141,16 +176,60 @@ export async function* fetchAndInsertFeedData(
           } satisfies typeof feedItems.$inferInsert;
         });
 
+      // Compute content hash for each incoming item
+      const feedItemListWithHash = feedItemList.map((item) => ({
+        ...item,
+        contentHash: computeItemHash(item),
+      }));
+
+      // Diff against existing hashes to avoid unnecessary writes.
+      const incomingUrls = feedItemListWithHash.map((item) => item.url);
+      const existingItems = await dbSemaphore.run(() =>
+        context.db
+          .select({
+            url: feedItems.url,
+            contentHash: feedItems.contentHash,
+          })
+          .from(feedItems)
+          .where(
+            and(
+              eq(feedItems.feedId, feed.id),
+              inArray(feedItems.url, incomingUrls),
+            ),
+          )
+          .all(),
+      );
+
+      const existingByUrl = new Map(
+        existingItems.map((item) => [item.url, item]),
+      );
+
+      const changedItems = feedItemListWithHash.filter((incoming) => {
+        const existing = existingByUrl.get(incoming.url);
+        if (!existing) return true; // new item
+        // null hash means pre-migration row — force re-write to populate hash
+        return existing.contentHash !== incoming.contentHash;
+      });
+
+      if (changedItems.length === 0) {
+        return {
+          status: "success",
+          feedItems: [],
+          id: feed.id,
+        };
+      }
+
       const feedItemsList = (
         await dbSemaphore.run(() =>
           context.db
             .insert(feedItems)
-            .values(feedItemList)
+            .values(changedItems)
             .onConflictDoUpdate({
               target: [feedItems.url, feedItems.feedId],
               set: buildConflictUpdateColumns(feedItems, [
                 "author",
                 "content",
+                "contentHash",
                 "contentId",
                 "contentSnippet",
                 "createdAt",

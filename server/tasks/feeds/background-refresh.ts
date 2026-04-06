@@ -15,6 +15,9 @@ export default defineTask({
       process.env.BACKGROUND_REFRESH_ENABLED !== "false";
 
     if (!backgroundRefreshEnabled) {
+      console.log(
+        "[background-refresh] Disabled via BACKGROUND_REFRESH_ENABLED",
+      );
       return { result: "disabled" };
     }
 
@@ -47,6 +50,9 @@ export default defineTask({
       : allFeedsDue;
 
     if (feedsToRefresh.length === 0) {
+      console.log(
+        `[background-refresh] No feeds to refresh (${allFeedsDue.length} due, ${adminUserIds ? "filtered to admin users" : "no filter"})`,
+      );
       return { result: "no-feeds-to-refresh" };
     }
 
@@ -62,6 +68,10 @@ export default defineTask({
     }
 
     let refreshedCount = 0;
+    let totalRowsWritten = 0;
+    let skippedCount = 0;
+    let emptyCount = 0;
+    let errorCount = 0;
 
     for (const [userId, userFeeds] of feedsByUser) {
       try {
@@ -69,6 +79,13 @@ export default defineTask({
         for await (const result of fetchAndInsertFeedData({ db }, userFeeds)) {
           if (result.status === "success") {
             refreshedCount++;
+            totalRowsWritten += result.feedItems.length;
+          } else if (result.status === "skipped") {
+            skippedCount++;
+          } else if (result.status === "empty") {
+            emptyCount++;
+          } else if (result.status === "error") {
+            errorCount++;
           }
         }
       } catch (e) {
@@ -80,10 +97,11 @@ export default defineTask({
     }
 
     console.log(
-      "[background-refresh] Finished at ",
-      new Date().toLocaleString(),
+      `[background-refresh] Finished at ${new Date().toLocaleString()} — refreshed ${refreshedCount}, skipped ${skippedCount} (304/cached), empty ${emptyCount}, errors ${errorCount}, wrote ${totalRowsWritten} rows total`,
     );
 
-    return { result: `refreshed ${refreshedCount} feeds` };
+    return {
+      result: `refreshed ${refreshedCount}, skipped ${skippedCount}, empty ${emptyCount}, errors ${errorCount}, wrote ${totalRowsWritten} rows`,
+    };
   },
 });

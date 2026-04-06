@@ -1,4 +1,4 @@
-import type { FeedFetchMetadata } from "./types";
+import type { ConditionalHeaders, FeedFetchMetadata } from "./types";
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const MAX_INTERVAL_MS = 24 * ONE_HOUR_MS; // Cap at 24 hours
@@ -112,4 +112,20 @@ export function parseHttpHeaders(response: Response): FeedFetchMetadata {
   }
 
   return metadata;
+}
+
+/**
+ * Build HTTP headers for conditional requests using stored ETag/Last-Modified values.
+ */
+export function buildConditionalHeaders(
+  cached: ConditionalHeaders,
+): HeadersInit {
+  const headers: Record<string, string> = {};
+  if (cached.etag) {
+    headers["If-None-Match"] = cached.etag;
+  }
+  if (cached.lastModifiedHeader) {
+    headers["If-Modified-Since"] = cached.lastModifiedHeader;
+  }
+  return headers;
 }

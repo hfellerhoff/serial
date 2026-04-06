@@ -1,6 +1,9 @@
 import Parser from "rss-parser";
 import { z } from "zod";
-import { parseHttpHeaders } from "../calculateNextFetch";
+import {
+  buildConditionalHeaders,
+  parseHttpHeaders,
+} from "../calculateNextFetch";
 import {
   BASE_FEED_CUSTOM_FIELDS,
   baseFeedSchema,
@@ -8,10 +11,11 @@ import {
 } from "../types";
 import type { DatabaseFeed } from "~/server/db/schema";
 import type {
+  ConditionalHeaders,
   FeedFetchMetadata,
+  FeedFetchResult,
   NewFeedDetails,
   RSSContent,
-  RSSFeedWithMetadata,
 } from "../types";
 
 function getLongestString(...strings: Array<string | undefined>) {
@@ -178,9 +182,20 @@ export async function getWebsiteFeedIfMatches(
 
 export async function fetchWebsiteFeedData(
   feed: DatabaseFeed,
-): Promise<RSSFeedWithMetadata | null> {
+  cached?: ConditionalHeaders,
+): Promise<FeedFetchResult | null> {
   try {
-    const feedResponse = await fetch(feed.url);
+    const feedResponse = await fetch(feed.url, {
+      headers: cached ? buildConditionalHeaders(cached) : undefined,
+    });
+
+    if (feedResponse.status === 304) {
+      return {
+        notModified: true,
+        fetchMetadata: parseHttpHeaders(feedResponse),
+      };
+    }
+
     const text = await feedResponse.text();
     const rssData = await parser.parseString(text);
 

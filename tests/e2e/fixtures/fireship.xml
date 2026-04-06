@@ -1,0 +1,551 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+ <link rel="self" href="http://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA"/>
+ <id>yt:channel:sBjURrPoezykLs9EqgamOA</id>
+ <yt:channelId>sBjURrPoezykLs9EqgamOA</yt:channelId>
+ <title>Fireship</title>
+ <link rel="alternate" href="https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA"/>
+ <author>
+  <name>Fireship</name>
+  <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+ </author>
+ <published>2017-04-07T18:17:23+00:00</published>
+ <entry>
+  <id>yt:video:JSuS-zXMVwE</id>
+  <yt:videoId>JSuS-zXMVwE</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>Cursor ditches VS Code, but not everyone is happy...</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=JSuS-zXMVwE"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-04-06T18:37:57+00:00</published>
+  <updated>2026-04-06T18:41:49+00:00</updated>
+  <media:group>
+   <media:title>Cursor ditches VS Code, but not everyone is happy...</media:title>
+   <media:content url="https://www.youtube.com/v/JSuS-zXMVwE?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i3.ytimg.com/vi/JSuS-zXMVwE/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Try Blacksmith for free to run your GitHub Actions 2x faster - https://www.blacksmith.sh/
+
+Cursor 3 just introduced its own frontier model that's been suspiciously dominating all the trust me bro benchmarks. But it turns out there's a catch...
+
+#coding  #programming
+
+Want more Fireship?
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="2061" average="5.00" min="1" max="5"/>
+    <media:statistics views="35922"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:vd14EElCRvs</id>
+  <yt:videoId>vd14EElCRvs</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>He just crawled through hell to fix the browser…</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=vd14EElCRvs"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-04-02T19:18:38+00:00</published>
+  <updated>2026-04-05T14:52:12+00:00</updated>
+  <media:group>
+   <media:title>He just crawled through hell to fix the browser…</media:title>
+   <media:content url="https://www.youtube.com/v/vd14EElCRvs?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i3.ytimg.com/vi/vd14EElCRvs/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Try out the Junie CLI for free - https://jb.gg/fireship-junie-cli
+
+Cheng Lou, a former React Core team member and engineer at Midjourney says he &quot;crawled through depths of hell&quot; to bring us Pretext – a fast, accurate, and comprehensive text measurement library that could change UI design forever. Let's run it.
+
+#coding #programming #typescript #javascript
+
+🔖 Topics Covered
+- Who is Cheng Lou?
+- Intro to Pretext
+- What makes dynamic text rendering so hard?
+- Pretext demo
+
+Want more Fireship?
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="46957" average="5.00" min="1" max="5"/>
+    <media:statistics views="1125781"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:mBHRPeg8zPU</id>
+  <yt:videoId>mBHRPeg8zPU</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>Tragic mistake... Anthropic leaks Claude’s source code</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=mBHRPeg8zPU"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-04-01T17:27:05+00:00</published>
+  <updated>2026-04-05T04:16:30+00:00</updated>
+  <media:group>
+   <media:title>Tragic mistake... Anthropic leaks Claude’s source code</media:title>
+   <media:content url="https://www.youtube.com/v/mBHRPeg8zPU?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i2.ytimg.com/vi/mBHRPeg8zPU/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Anthropic accidentally leaked Claude Code's source code to the entire internet. Let's take a look...
+
+#coding #programming #claude #ai
+
+🔖 Topics Covered
+- Claude source code leak
+- What's in the leak?
+- Unreleased features
+- Undercover Mode
+- Frustration Detector
+
+Want more Fireship?
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="94844" average="5.00" min="1" max="5"/>
+    <media:statistics views="2868859"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:o7NYXvYohYk</id>
+  <yt:videoId>o7NYXvYohYk</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>Millions of JS devs just got penetrated by a RAT…</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=o7NYXvYohYk"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-03-31T18:58:40+00:00</published>
+  <updated>2026-04-04T12:17:09+00:00</updated>
+  <media:group>
+   <media:title>Millions of JS devs just got penetrated by a RAT…</media:title>
+   <media:content url="https://www.youtube.com/v/o7NYXvYohYk?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i4.ytimg.com/vi/o7NYXvYohYk/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Mux is the best video API for developers. Get $50 in free credits - https://mux.com/fireship
+
+Yesterday, a precision-guided remote access trojan was discovered in Axios, a JavaScript library with over 100 million downloads on npm. But this wasn't your average RAT - let's take a look at how this highly sophisticated attack was pulled off and what to do if you're compromised.
+
+#coding #programming #hack
+
+ℹ️ More Info:
+- https://www.stepsecurity.io/blog/axios-compromised-on-npm-malicious-versions-drop-remote-access-trojan
+
+🔖 Topics Covered
+- What is Axios
+- Axios RAT attack
+- What to do if you're compromised
+
+Want more Fireship?
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="23213" average="5.00" min="1" max="5"/>
+    <media:statistics views="646851"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:wfeiCZK0mNs</id>
+  <yt:videoId>wfeiCZK0mNs</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>Anthropic just released the real Claude Bot...</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=wfeiCZK0mNs"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-03-26T18:11:51+00:00</published>
+  <updated>2026-03-30T04:07:23+00:00</updated>
+  <media:group>
+   <media:title>Anthropic just released the real Claude Bot...</media:title>
+   <media:content url="https://www.youtube.com/v/wfeiCZK0mNs?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i4.ytimg.com/vi/wfeiCZK0mNs/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Try SerpApi for free to get real-time search data from a single API - https://serpapi.com/?utm_source=fireship
+
+Anthropic just dropped Claude Computer Use to try and take down OpenClaw. But is it actually a gamechanger, or just more slop hype? Let's run it.
+
+#coding #ai #programming
+
+Want more Fireship?
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="31403" average="5.00" min="1" max="5"/>
+    <media:statistics views="1012559"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:nxwkn9Dt9-I</id>
+  <yt:videoId>nxwkn9Dt9-I</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>Tech bros optimized war… and it’s working</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=nxwkn9Dt9-I"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-03-24T18:22:27+00:00</published>
+  <updated>2026-03-31T19:27:17+00:00</updated>
+  <media:group>
+   <media:title>Tech bros optimized war… and it’s working</media:title>
+   <media:content url="https://www.youtube.com/v/nxwkn9Dt9-I?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i3.ytimg.com/vi/nxwkn9Dt9-I/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Try out Traycer’s Epic Mode so your whole team can ship better software with agents - https://traycer.ai/fireship
+
+The US Department of War is rolling out the Maven Smart System - an AI-driven military ops platform powered by companies like Palantir and OpenAI. But what else is it running under the hood?
+
+#coding #programming #ai
+
+🔖 Topics Covered
+- What is the Maven Smart System?
+- Claude vs Pete Hegseth
+- How does the MSS actually work?
+
+Want more Fireship?
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="29735" average="5.00" min="1" max="5"/>
+    <media:statistics views="775970"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:nkY_s9HpL9M</id>
+  <yt:videoId>nkY_s9HpL9M</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>This new Linux distro is breaking the law, by design…</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=nkY_s9HpL9M"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-03-20T19:32:24+00:00</published>
+  <updated>2026-03-27T20:42:28+00:00</updated>
+  <media:group>
+   <media:title>This new Linux distro is breaking the law, by design…</media:title>
+   <media:content url="https://www.youtube.com/v/nkY_s9HpL9M?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i3.ytimg.com/vi/nkY_s9HpL9M/hqdefault.jpg" width="480" height="360"/>
+   <media:description>CodeRabbit can automatically resolve merge conflicts in your PRs - https://coderabbit.link/fireship Free forever for any open source project.
+
+On January 1st, governments will start forcing users to verify their age at the operating system level on all internet-enabled devices. But one brave Linux script is daring to fight back against the mighty surveillance state…
+
+#linux #coding #programming
+
+Want more Fireship?
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="32304" average="5.00" min="1" max="5"/>
+    <media:statistics views="786401"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:qaB5HF4ax9M</id>
+  <yt:videoId>qaB5HF4ax9M</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>Google just changed the future of UI/UX design...</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=qaB5HF4ax9M"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-03-19T19:35:06+00:00</published>
+  <updated>2026-03-26T20:37:35+00:00</updated>
+  <media:group>
+   <media:title>Google just changed the future of UI/UX design...</media:title>
+   <media:content url="https://www.youtube.com/v/qaB5HF4ax9M?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i2.ytimg.com/vi/qaB5HF4ax9M/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Try Clerk for free to get full stack auth and user management - https://go.clerk.com/fireship/
+
+Let's take a look at everything new in Google Stitch to find out if it's just more hype, or if it really is a gamechanger for UI/UX design.
+
+#coding  #programming #ai
+
+Want more Fireship?
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="63899" average="5.00" min="1" max="5"/>
+    <media:statistics views="1788355"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:ReAnFFqvCeA</id>
+  <yt:videoId>ReAnFFqvCeA</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>How to burn $30m on a JavaScript framework...</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=ReAnFFqvCeA"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-03-18T17:56:58+00:00</published>
+  <updated>2026-03-25T04:04:37+00:00</updated>
+  <media:group>
+   <media:title>How to burn $30m on a JavaScript framework...</media:title>
+   <media:content url="https://www.youtube.com/v/ReAnFFqvCeA?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i3.ytimg.com/vi/ReAnFFqvCeA/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Railway is the easiest way to deploy anything. Get $20 in free credits - https://railway.com/?referralCode=fireship
+
+The famo.us rendering engine was supposed to change web dev forever back in 2012. But after raising $30m, that never happened. Let's take a look back in time to understand why.
+
+#coding #javascript #opensource
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="13850" average="5.00" min="1" max="5"/>
+    <media:statistics views="425449"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:Xn-gtHDsaPY</id>
+  <yt:videoId>Xn-gtHDsaPY</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>7 new open source AI tools you need right now…</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=Xn-gtHDsaPY"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-03-12T17:49:19+00:00</published>
+  <updated>2026-03-19T20:41:16+00:00</updated>
+  <media:group>
+   <media:title>7 new open source AI tools you need right now…</media:title>
+   <media:content url="https://www.youtube.com/v/Xn-gtHDsaPY?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i1.ytimg.com/vi/Xn-gtHDsaPY/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Build meeting bots and desktop recording apps in hours - https://www.recall.ai/fireship gets you $100 in free credits
+
+In today's we'll look at 7 open source AI projects you've never heard of that will help you whip your agents into shape and build highly effective slop pipelines.
+
+#coding #programming #ai
+
+🔖 Topics Covered
+- Agency Agents
+- PropmtFoo
+- MicroFish
+- NanoChat
+- Impeccable
+- Heretic
+- OpenViking
+
+Want more Fireship?
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="35226" average="5.00" min="1" max="5"/>
+    <media:statistics views="763933"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:x36UmiSiEzc</id>
+  <yt:videoId>x36UmiSiEzc</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>The greatest unsolved problem in computer science...</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=x36UmiSiEzc"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-03-09T18:31:50+00:00</published>
+  <updated>2026-03-26T20:34:13+00:00</updated>
+  <media:group>
+   <media:title>The greatest unsolved problem in computer science...</media:title>
+   <media:content url="https://www.youtube.com/v/x36UmiSiEzc?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i1.ytimg.com/vi/x36UmiSiEzc/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Try MongoDB Atlas for free - https://fandf.co/4rf61Za and simplify your AI data stack with one platform.
+
+P vs NP is arguably the most famous unsolved problem in computer science. It asks: if you can verify a solution quickly, can you also find the solution quickly? Let's attempt to find out...
+
+Clay Mathematics Institute: https://www.claymath.org/millennium/p-vs-np/
+
+#coding #programming
+
+🔖 Topics Covered
+- What is P vs NP
+- History of P vs NP
+- Why is it so hard to prove?
+- Underlying mathematical concepts
+- Uses for P vs NP
+- What if P really does equal NP?
+
+Want more Fireship?
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="25991" average="5.00" min="1" max="5"/>
+    <media:statistics views="590906"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:abbeIUOCzmw</id>
+  <yt:videoId>abbeIUOCzmw</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>Cloudflare just slop forked Next.js…</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=abbeIUOCzmw"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-03-02T20:36:25+00:00</published>
+  <updated>2026-03-15T15:33:41+00:00</updated>
+  <media:group>
+   <media:title>Cloudflare just slop forked Next.js…</media:title>
+   <media:content url="https://www.youtube.com/v/abbeIUOCzmw?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i2.ytimg.com/vi/abbeIUOCzmw/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Try Brilliant for free for 30 days - https://brilliant.org/fireship and get 20% off a premium annual subscription.
+
+Cloudflare just shipped Vinext - a reimplementation of the Next.js API built on Vite, essentially freeing up your Next.js app to be deployed anywhere. Let's run it.
+
+#coding  #programming #webdevelopment
+
+🔖 Topics Covered
+- What is Vinext?
+- How Cloudflare built Vinext
+- Vercel vs Cloudflare
+- Vinext demo
+
+Want more Fireship?
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="18016" average="5.00" min="1" max="5"/>
+    <media:statistics views="558032"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:wzzh7Not8XE</id>
+  <yt:videoId>wzzh7Not8XE</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>When open-sourcing your code goes wrong...</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=wzzh7Not8XE"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-02-26T18:26:18+00:00</published>
+  <updated>2026-03-05T20:12:14+00:00</updated>
+  <media:group>
+   <media:title>When open-sourcing your code goes wrong...</media:title>
+   <media:content url="https://www.youtube.com/v/wzzh7Not8XE?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i4.ytimg.com/vi/wzzh7Not8XE/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Try out CodeRabbit’s AI code reviewer with custom PR summaries - https://coderabbit.link/fireship. It’s free forever for any open source project.
+
+Everything you use on the internet today is built on the shoulders of OSS - but not every open-source project makes it. Let's take a look at 5 open-source projects that achieved a meteoric rise and then crashed out under the weight of their own success.
+
+#coding #programming #oss
+
+🔖 Topics Covered
+- Mutable Instruments
+- Faker.js
+- Meteor
+- OpenSolaris
+- Netscape
+
+Want more Fireship?
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="22522" average="5.00" min="1" max="5"/>
+    <media:statistics views="706599"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:1fUBWAETmkk</id>
+  <yt:videoId>1fUBWAETmkk</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>TanStack Start in 100 Seconds</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=1fUBWAETmkk"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-02-20T18:20:25+00:00</published>
+  <updated>2026-02-23T23:00:51+00:00</updated>
+  <media:group>
+   <media:title>TanStack Start in 100 Seconds</media:title>
+   <media:content url="https://www.youtube.com/v/1fUBWAETmkk?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i2.ytimg.com/vi/1fUBWAETmkk/hqdefault.jpg" width="480" height="360"/>
+   <media:description>TanStack Start is a dx optimized, full-stack framework, powered by TanStack Router for React and Solid.
+
+🔗 Resources
+- https://tanstack.com/start/latest
+
+🔖 Topics Covered
+-  The problem with React
+- Tanner Linsley
+- How to run TanStack Start
+- TanStack Router
+- Type-safe server functions
+
+Want more Fireship?
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="14968" average="5.00" min="1" max="5"/>
+    <media:statistics views="342981"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:cxcb55zr2Q8</id>
+  <yt:videoId>cxcb55zr2Q8</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>How AI is breaking the SaaS business model...</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=cxcb55zr2Q8"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-02-17T18:17:11+00:00</published>
+  <updated>2026-03-06T15:34:24+00:00</updated>
+  <media:group>
+   <media:title>How AI is breaking the SaaS business model...</media:title>
+   <media:content url="https://www.youtube.com/v/cxcb55zr2Q8?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i4.ytimg.com/vi/cxcb55zr2Q8/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Run hundreds of coding agents in the cloud - https://oz.dev/fireship. Use code FIRESHIP to get one month of their Build plan for $5 (instead of $20).
+
+SaaS companies are getting crushed right now. Let's look at 7 new AI updates from the past few weeks that help explain why...
+
+Want more Fireship?
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="25804" average="5.00" min="1" max="5"/>
+    <media:statistics views="724420"/>
+   </media:community>
+  </media:group>
+ </entry>
+</feed>

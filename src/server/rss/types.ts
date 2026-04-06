@@ -62,6 +62,18 @@ export type RSSFeedWithMetadata = RSSFeed & {
   fetchMetadata: FeedFetchMetadata;
 };
 
+export type NotModifiedResult = {
+  notModified: true;
+  fetchMetadata: FeedFetchMetadata;
+};
+
+export type FeedFetchResult = RSSFeedWithMetadata | NotModifiedResult;
+
+export type ConditionalHeaders = {
+  etag?: string | null;
+  lastModifiedHeader?: string | null;
+};
+
 /**
  * Base schema for RSS feed-level metadata fields.
  * All parser schemas should extend this to capture caching hints.

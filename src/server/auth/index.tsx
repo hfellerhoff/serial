@@ -8,7 +8,7 @@ import { APIError, createAuthMiddleware } from "better-auth/api";
 import { createMiddleware } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { redirect } from "@tanstack/react-router";
-import { and, asc, count, eq } from "drizzle-orm";
+import { and, asc, count, eq, inArray, sql } from "drizzle-orm";
 import { checkout, polar, portal, webhooks } from "@polar-sh/better-auth";
 import { db } from "../db";
 import { account, appConfig, feeds, session, user } from "../db/schema";
@@ -138,13 +138,25 @@ function buildPolarPlugin() {
 
               const interval = config.backgroundRefreshIntervalMs;
               const feedCount = activeFeeds.length;
-              for (let i = 0; i < feedCount; i++) {
-                const offset =
-                  feedCount > 1 ? Math.round((interval / feedCount) * i) : 0;
+              if (feedCount > 0) {
+                const nowMs = Date.now();
+                const cases = activeFeeds.map((f, i) => {
+                  const offset =
+                    feedCount > 1 ? Math.round((interval / feedCount) * i) : 0;
+                  const ts = Math.floor((nowMs + offset) / 1000);
+                  return sql`WHEN ${f.id} THEN ${ts}`;
+                });
                 await db
                   .update(feeds)
-                  .set({ nextFetchAt: new Date(Date.now() + offset) })
-                  .where(eq(feeds.id, activeFeeds[i]!.id));
+                  .set({
+                    nextFetchAt: sql`(CASE ${feeds.id} ${sql.join(cases, sql` `)} END)`,
+                  })
+                  .where(
+                    inArray(
+                      feeds.id,
+                      activeFeeds.map((f) => f.id),
+                    ),
+                  );
               }
             }
           },
