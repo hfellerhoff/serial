@@ -64,6 +64,8 @@ dist-sw/
 .content-collections
 
 .claude
+CLAUDE.md
+AGENTS.md
 
 data/libsql
 

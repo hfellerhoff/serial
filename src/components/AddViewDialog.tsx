@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { AddContentCategoriesButton } from "./AddContentCategoryButton";
 import { Button } from "./ui/button";
+import { ChipCombobox } from "./ui/chip-combobox";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { ControlledResponsiveDialog } from "./ui/responsive-dropdown";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
+import type { Ref } from "react";
 import type React from "react";
 import type { ViewContentType, ViewLayout } from "~/server/db/constants";
 import {
@@ -24,6 +25,8 @@ import {
 } from "~/lib/data/views/mutations";
 import { useViews } from "~/lib/data/views";
 import { useContentCategories } from "~/lib/data/content-categories";
+import { useCreateContentCategoryMutation } from "~/lib/data/content-categories/mutations";
+import { useFeeds } from "~/lib/data/feeds";
 import { useDialogStore } from "~/components/feed/dialogStore";
 
 function AddViewToggleItem({
@@ -43,14 +46,17 @@ function AddViewToggleItem({
 function ViewNameInput({
   name,
   setName,
+  inputRef,
 }: {
   name: string;
   setName: (name: string) => void;
+  inputRef?: Ref<HTMLInputElement>;
 }) {
   return (
     <div className="grid gap-2">
       <Label htmlFor="name">Name</Label>
       <Input
+        ref={inputRef}
         id="name"
         type="text"
         value={name}
@@ -172,6 +178,16 @@ function ViewContentTypeInput({
   );
 }
 
+function useCategoryOptions() {
+  const { contentCategories } = useContentCategories();
+  return contentCategories.map((c) => ({ id: c.id, label: c.name }));
+}
+
+function useFeedOptions() {
+  const { feeds } = useFeeds();
+  return feeds.map((f) => ({ id: f.id, label: f.name }));
+}
+
 export function ViewCategoriesInput({
   selectedCategories,
   setSelectedCategories,
@@ -179,60 +195,64 @@ export function ViewCategoriesInput({
   selectedCategories: number[];
   setSelectedCategories: (categories: number[]) => void;
 }) {
-  const { contentCategories } = useContentCategories();
-
-  if (contentCategories.length === 0) {
-    return (
-      <div className="grid gap-2">
-        <Label htmlFor="categories">Categories</Label>
-        <AddContentCategoriesButton />
-      </div>
-    );
-  }
-
-  const isAllSelected = selectedCategories.length === 0;
+  const categoryOptions = useCategoryOptions();
+  const { mutateAsync: createContentCategory } =
+    useCreateContentCategoryMutation();
 
   return (
-    <div className="grid gap-2">
-      <Label htmlFor="categories">Categories</Label>
-      <ToggleGroup
-        id="categories"
-        type="multiple"
-        value={
-          isAllSelected
-            ? ["all"]
-            : selectedCategories.map((category) => category.toString())
-        }
-        onValueChange={(value) => {
-          // If "all" was just selected, clear all categories
-          if (value.includes("all") && !isAllSelected) {
-            setSelectedCategories([]);
-            return;
+    <ChipCombobox
+      label="Tags"
+      placeholder="Search tags..."
+      options={categoryOptions}
+      selectedIds={selectedCategories}
+      onAdd={(id) => setSelectedCategories([...selectedCategories, id])}
+      onRemove={(id) =>
+        setSelectedCategories(selectedCategories.filter((c) => c !== id))
+      }
+      onCreate={async (name) => {
+        try {
+          const created = await createContentCategory({
+            name,
+            feedCategorizations: [],
+          });
+          if (created) {
+            setSelectedCategories([...selectedCategories, created.id]);
           }
-          // Filter out "all" and set the selected category ids
-          const categoryIds = value
-            .filter((id) => id !== "all")
-            .map((id) => parseInt(id));
-          setSelectedCategories(categoryIds);
-        }}
-        size="sm"
-        className="flex w-fit flex-wrap justify-start gap-1"
-      >
-        <AddViewToggleItem value="all">All</AddViewToggleItem>
-        {contentCategories.map((category) => {
-          return (
-            <AddViewToggleItem key={category.id} value={category.id.toString()}>
-              {category.name}
-            </AddViewToggleItem>
-          );
-        })}
-      </ToggleGroup>
-    </div>
+        } catch {
+          toast.error("Failed to create tag.");
+        }
+      }}
+      createLabel="Create tag"
+    />
+  );
+}
+
+function ViewFeedsInput({
+  selectedFeedIds,
+  setSelectedFeedIds,
+}: {
+  selectedFeedIds: number[];
+  setSelectedFeedIds: (feedIds: number[]) => void;
+}) {
+  const feedOptions = useFeedOptions();
+
+  return (
+    <ChipCombobox
+      label="Feeds"
+      placeholder="Search feeds..."
+      options={feedOptions}
+      selectedIds={selectedFeedIds}
+      onAdd={(id) => setSelectedFeedIds([...selectedFeedIds, id])}
+      onRemove={(id) =>
+        setSelectedFeedIds(selectedFeedIds.filter((f) => f !== id))
+      }
+    />
   );
 }
 
 export function AddViewDialog() {
   const [isAddingView, setIsAddingView] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const { mutateAsync: createView } = useCreateViewMutation();
 
@@ -243,6 +263,7 @@ export function AddViewDialog() {
   );
   const [layout, setLayout] = useState<ViewLayout>(VIEW_LAYOUT.LIST);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [selectedFeedIds, setSelectedFeedIds] = useState<number[]>([]);
 
   const dialog = useDialogStore((store) => store.dialog);
   const onOpenChangeDialog = useDialogStore((store) => store.onOpenChange);
@@ -258,6 +279,7 @@ export function AddViewDialog() {
       setContentType(VIEW_CONTENT_TYPE.LONGFORM);
       setLayout(VIEW_LAYOUT.LIST);
       setSelectedCategories([]);
+      setSelectedFeedIds([]);
     }
   };
 
@@ -266,9 +288,17 @@ export function AddViewDialog() {
       open={dialog === "add-view"}
       onOpenChange={onOpenChange}
       title="Add View"
+      onOpenAutoFocus={(event) => {
+        event.preventDefault();
+        nameInputRef.current?.focus();
+      }}
     >
       <div className="grid gap-6">
-        <ViewNameInput name={name} setName={setName} />
+        <ViewNameInput name={name} setName={setName} inputRef={nameInputRef} />
+        <ViewFeedsInput
+          selectedFeedIds={selectedFeedIds}
+          setSelectedFeedIds={setSelectedFeedIds}
+        />
         <ViewCategoriesInput
           selectedCategories={selectedCategories}
           setSelectedCategories={setSelectedCategories}
@@ -295,6 +325,7 @@ export function AddViewDialog() {
                 contentType: contentType,
                 layout: layout,
                 categoryIds: selectedCategories,
+                feedIds: selectedFeedIds,
               });
               toast.promise(addViewPromise, {
                 loading: "Adding view...",
@@ -320,6 +351,122 @@ export function AddViewDialog() {
   );
 }
 
+export function BulkEditViewsDialog({
+  selectedViewIds,
+  open,
+  onOpenChange,
+}: {
+  selectedViewIds: number[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const { mutateAsync: editView } = useEditViewMutation();
+  const { views } = useViews();
+
+  const [daysWindow, setDaysWindow] = useState<number | null>(null);
+  const [contentType, setContentType] = useState<ViewContentType | null>(null);
+  const [layout, setLayout] = useState<ViewLayout | null>(null);
+
+  // Prefill if all selected views share the same value
+  useEffect(() => {
+    if (!open || selectedViewIds.length === 0) return;
+
+    const selected = views.filter((v) => selectedViewIds.includes(v.id));
+    if (selected.length === 0) return;
+
+    const first = selected[0]!;
+
+    const sharedDays = selected.every((v) => v.daysWindow === first.daysWindow)
+      ? first.daysWindow
+      : null;
+    setDaysWindow(sharedDays);
+
+    const firstContentType = viewContentTypeSchema.safeParse(first.contentType);
+    const sharedContentType =
+      firstContentType.success &&
+      selected.every((v) => v.contentType === first.contentType)
+        ? firstContentType.data
+        : null;
+    setContentType(sharedContentType);
+
+    const firstLayout = viewLayoutSchema.safeParse(first.layout);
+    const sharedLayout =
+      firstLayout.success && selected.every((v) => v.layout === first.layout)
+        ? firstLayout.data
+        : null;
+    setLayout(sharedLayout);
+  }, [open, selectedViewIds, views]);
+
+  const handleSave = async () => {
+    if (selectedViewIds.length === 0) return;
+
+    setIsUpdating(true);
+    const count = selectedViewIds.length;
+
+    const promises = selectedViewIds.map((id) => {
+      const view = views.find((v) => v.id === id);
+      if (!view) return Promise.resolve();
+
+      return editView({
+        id,
+        name: view.name,
+        daysWindow: daysWindow ?? view.daysWindow,
+        readStatus: VIEW_READ_STATUS.UNREAD,
+        contentType: contentType ?? undefined,
+        layout: layout ?? undefined,
+        categoryIds: view.categoryIds,
+        feedIds: view.feedIds,
+      });
+    });
+
+    toast.promise(Promise.all(promises), {
+      loading: `Updating ${count} view${count > 1 ? "s" : ""}...`,
+      success: `Updated ${count} view${count > 1 ? "s" : ""}!`,
+      error: "Failed to update views",
+    });
+
+    onOpenChange(false);
+    setIsUpdating(false);
+  };
+
+  return (
+    <ControlledResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Edit Views"
+      description={`Edit ${selectedViewIds.length} view${selectedViewIds.length > 1 ? "s" : ""}.`}
+    >
+      <div className="grid gap-6">
+        <ViewTimeInput
+          daysWindow={daysWindow ?? 0}
+          setDaysWindow={(value) => setDaysWindow(value)}
+        />
+        <ViewContentTypeInput
+          contentType={contentType ?? VIEW_CONTENT_TYPE.LONGFORM}
+          setContentType={(value) => setContentType(value)}
+        />
+        <ViewLayoutInput
+          layout={layout ?? VIEW_LAYOUT.LIST}
+          setLayout={(value) => setLayout(value)}
+        />
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => onOpenChange(false)}
+          >
+            Cancel
+          </Button>
+          <Button className="flex-1" onClick={handleSave} disabled={isUpdating}>
+            {isUpdating ? "Saving..." : "Save"}
+          </Button>
+        </div>
+      </div>
+    </ControlledResponsiveDialog>
+  );
+}
+
 export function EditViewDialog({
   selectedViewId,
   onClose,
@@ -340,6 +487,7 @@ export function EditViewDialog({
   );
   const [layout, setLayout] = useState<ViewLayout>(VIEW_LAYOUT.LIST);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [selectedFeedIds, setSelectedFeedIds] = useState<number[]>([]);
 
   const isFormDisabled = !name;
 
@@ -361,6 +509,7 @@ export function EditViewDialog({
     const parsedLayout = viewLayoutSchema.safeParse(view.layout);
     setLayout(parsedLayout.success ? parsedLayout.data : VIEW_LAYOUT.LIST);
     setSelectedCategories(view.categoryIds);
+    setSelectedFeedIds(view.feedIds);
   }, [views, selectedViewId]);
 
   return (
@@ -371,6 +520,10 @@ export function EditViewDialog({
     >
       <div className="grid gap-6">
         <ViewNameInput name={name} setName={setName} />
+        <ViewFeedsInput
+          selectedFeedIds={selectedFeedIds}
+          setSelectedFeedIds={setSelectedFeedIds}
+        />
         <ViewCategoriesInput
           selectedCategories={selectedCategories}
           setSelectedCategories={setSelectedCategories}
@@ -431,6 +584,7 @@ export function EditViewDialog({
                   contentType: contentType,
                   layout: layout,
                   categoryIds: selectedCategories,
+                  feedIds: selectedFeedIds,
                 });
                 toast.promise(editViewPromise, {
                   loading: "Updating view...",

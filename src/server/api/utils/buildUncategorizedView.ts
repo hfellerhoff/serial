@@ -44,6 +44,7 @@ export function buildUncategorizedView(
     createdAt: now,
     updatedAt: now,
     categoryIds: uncategorizedCategoryIds,
+    feedIds: [],
     isDefault: true,
   };
 }

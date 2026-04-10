@@ -31,7 +31,7 @@ test.describe("full user lifecycle", () => {
   test("sign up, import, categorize, read, customize, delete feeds, delete account, verify db clean", async ({
     page,
   }) => {
-    test.setTimeout(120000);
+    test.setTimeout(180000);
     testEmail = generateTestEmail();
 
     // ── 1. Sign Up ──────────────────────────────────────────────────
@@ -105,55 +105,53 @@ test.describe("full user lifecycle", () => {
         .first(),
     ).toBeVisible({ timeout: 10000 });
 
-    // ── 3. Create Content Categories ────────────────────────────────
-    // Close right sidebar so the left sidebar categories are accessible
+    // ── 3. Create Tags ──────────────────────────────────────────────
+    // (Tags are stored as content categories internally; UI says "Tags".)
 
-    const categoriesSection = page.locator('[data-sidebar="group"]').filter({
+    const tagsSection = page.locator('[data-sidebar="group"]').filter({
       has: page.locator('[data-sidebar="group-label"]', {
-        hasText: "Categories",
+        hasText: "Tags",
       }),
     });
 
-    // Create "Music" category
-    await categoriesSection
+    // Create "Music" tag
+    await tagsSection
       .locator('[data-sidebar="group-label"]')
       .getByRole("button")
       .click();
-    await expect(
-      page.getByRole("heading", { name: "Add Category" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Add Tag" })).toBeVisible();
     await page.locator("#name").fill("Music");
     await page
       .locator('[role="dialog"]')
-      .getByRole("button", { name: "Add Category" })
+      .getByRole("button", { name: "Add Tag" })
       .click();
 
-    // Wait for dialog to close and category to appear
-    await expect(categoriesSection.getByText("Music")).toBeVisible({
+    // Wait for dialog to close and tag to appear
+    await expect(tagsSection.getByText("Music")).toBeVisible({
       timeout: 10000,
     });
 
-    // Create "Tech" category
-    await categoriesSection
+    // Create "Tech" tag
+    await tagsSection
       .locator('[data-sidebar="group-label"]')
       .getByRole("button")
       .click();
-    await expect(
-      page.getByRole("heading", { name: "Add Category" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Add Tag" })).toBeVisible();
     await page.locator("#name").fill("Tech");
     await page
       .locator('[role="dialog"]')
-      .getByRole("button", { name: "Add Category" })
+      .getByRole("button", { name: "Add Tag" })
       .click();
 
-    await expect(categoriesSection.getByText("Tech")).toBeVisible({
+    await expect(tagsSection.getByText("Tech")).toBeVisible({
       timeout: 10000,
     });
 
     // ── 4. Assign Categories to Feeds ───────────────────────────────
     await page.goto("/feeds");
-    await expect(page.getByText("Manage Feeds")).toBeVisible({
+    await expect(
+      page.getByRole("tab", { name: /feeds/i, selected: true }),
+    ).toBeVisible({
       timeout: 10000,
     });
 
@@ -163,17 +161,31 @@ test.describe("full user lifecycle", () => {
     // Select Scary Pockets and assign "Music"
     await mainContent.getByRole("button", { name: /Scary Pockets/ }).click();
 
-    await page.getByRole("button", { name: /edit categories/i }).click();
+    const editButton = page.getByRole("button", { name: /^edit\b/i });
+    await expect(editButton).toBeVisible({ timeout: 10000 });
+    await editButton.click();
     await expect(
-      page.getByRole("heading", { name: "Edit Categories" }),
+      page.getByRole("heading", { name: "Edit Feeds" }),
     ).toBeVisible();
 
-    // Toggle the "Music" category in the dialog
-    await page.locator('[role="dialog"]').getByText("Music").click();
-    await page
-      .locator('[role="dialog"]')
-      .getByRole("button", { name: "Save" })
+    // Open the tags combobox and select "Music"
+    const editCatDialog = page.locator('[role="dialog"]');
+    // Click the "+" button next to "Tags" label to open combobox
+    await editCatDialog
+      .getByText("Tags", { exact: true })
+      .locator("..")
+      .locator("button")
       .click();
+    await page.waitForTimeout(500);
+    // Use keyboard to search and select
+    await page.keyboard.type("Music", { delay: 30 });
+    await page.waitForTimeout(300);
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(300);
+    // Close combobox by pressing Escape twice (once for combobox, once if needed)
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(300);
+    await editCatDialog.getByRole("button", { name: "Save" }).click();
 
     // Wait for save to complete
     await page.waitForTimeout(1000);
@@ -189,16 +201,26 @@ test.describe("full user lifecycle", () => {
     await mainContent.getByRole("button", { name: /Scary Pockets/ }).click(); // deselect
     await mainContent.getByRole("button", { name: /Fireship/ }).click();
 
-    await page.getByRole("button", { name: /edit categories/i }).click();
+    await page.getByRole("button", { name: /^edit\b/i }).click();
     await expect(
-      page.getByRole("heading", { name: "Edit Categories" }),
+      page.getByRole("heading", { name: "Edit Feeds" }),
     ).toBeVisible();
 
-    await page.locator('[role="dialog"]').getByText("Tech").click();
-    await page
-      .locator('[role="dialog"]')
-      .getByRole("button", { name: "Save" })
+    // Open the tags combobox and select "Tech"
+    const editCatDialog2 = page.locator('[role="dialog"]');
+    await editCatDialog2
+      .getByText("Tags", { exact: true })
+      .locator("..")
+      .locator("button")
       .click();
+    await page.waitForTimeout(500);
+    await page.keyboard.type("Tech", { delay: 30 });
+    await page.waitForTimeout(300);
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(300);
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(300);
+    await editCatDialog2.getByRole("button", { name: "Save" }).click();
 
     await page.waitForTimeout(1000);
 
@@ -265,9 +287,113 @@ test.describe("full user lifecycle", () => {
     // Wait for debounced save
     await page.waitForTimeout(800);
 
+    // ── 6.5 Export Data via Settings → Export Data sub-pane ─────────
+    // Open Settings dialog from the user menu in the left sidebar
+    {
+      const userMenuButton = page.locator(
+        '[data-sidebar="menu-button"][data-size="lg"]',
+      );
+      await expect(userMenuButton).toBeAttached({ timeout: 5000 });
+      await userMenuButton.scrollIntoViewIfNeeded();
+      await userMenuButton.click({ timeout: 10000 });
+
+      const settingsButton = page.getByText("Settings", { exact: true });
+      await expect(settingsButton).toBeVisible({ timeout: 5000 });
+      await settingsButton.click();
+
+      const settingsDialog = page.locator('[role="dialog"]');
+      await expect(
+        settingsDialog.getByRole("heading", { name: "Settings" }),
+      ).toBeVisible({ timeout: 5000 });
+
+      // Navigate into the Export Data sub-pane
+      await settingsDialog
+        .getByRole("button", { name: /export data/i })
+        .click();
+      await expect(
+        settingsDialog.getByRole("heading", { name: "Export Data" }),
+      ).toBeVisible({ timeout: 5000 });
+
+      // Default grouping is "Group by View" — switch to "Group by Tag"
+      await settingsDialog.getByText("Group by Tag").click();
+
+      // Wait for the download triggered by the Export OPML button
+      const downloadPromise = page.waitForEvent("download");
+      await settingsDialog
+        .getByRole("button", { name: /export opml/i })
+        .click();
+      const download = await downloadPromise;
+
+      // Read the downloaded file
+      const downloadPath = await download.path();
+      expect(downloadPath).toBeTruthy();
+      const tagOpmlContent = fs.readFileSync(downloadPath, "utf-8");
+
+      // Validate basic OPML structure
+      expect(tagOpmlContent).toContain('<?xml version="1.0"');
+      expect(tagOpmlContent).toContain('<opml version="2.0">');
+      expect(tagOpmlContent).toContain("<head><title>Serial Export</title>");
+      expect(tagOpmlContent).toContain("</opml>");
+
+      // Validate tag groups: Music contains Scary Pockets; Tech contains Fireship
+      const musicGroupMatch = tagOpmlContent.match(
+        /<outline title="Music"[^>]*>([\s\S]*?)<\/outline>/,
+      );
+      expect(musicGroupMatch).toBeTruthy();
+      expect(musicGroupMatch?.[1]).toMatch(/Scary Pockets/i);
+
+      const techGroupMatch = tagOpmlContent.match(
+        /<outline title="Tech"[^>]*>([\s\S]*?)<\/outline>/,
+      );
+      expect(techGroupMatch).toBeTruthy();
+      expect(techGroupMatch?.[1]).toMatch(/Fireship/i);
+
+      // Validate ungrouped (at root level under <body>) for feeds with no tag.
+      // The OPML test fixture has bare feeds (no real sections), and only
+      // Scary Pockets and Fireship are manually tagged in this test, so the
+      // remaining feeds (CGP Grey, Test Blog) should appear at root level.
+      const bodyMatch = tagOpmlContent.match(/<body>([\s\S]*?)<\/body>/);
+      expect(bodyMatch).toBeTruthy();
+      const bodyContent = bodyMatch?.[1] ?? "";
+      const rootLevelFeedLines = bodyContent
+        .split("\n")
+        .filter((line) => /^\s{4}<outline type="rss"/.test(line));
+      expect(rootLevelFeedLines.length).toBeGreaterThan(0);
+
+      // Now switch to Group by View and re-export to verify view mode works
+      await settingsDialog.getByText("Group by View").click();
+
+      const viewDownloadPromise = page.waitForEvent("download");
+      await settingsDialog
+        .getByRole("button", { name: /export opml/i })
+        .click();
+      const viewDownload = await viewDownloadPromise;
+      const viewDownloadPath = await viewDownload.path();
+      expect(viewDownloadPath).toBeTruthy();
+      const viewOpmlContent = fs.readFileSync(viewDownloadPath, "utf-8");
+
+      // No custom views were created in this test, so all feeds should be
+      // at the root level (no group <outline> wrappers).
+      expect(viewOpmlContent).toContain('<opml version="2.0">');
+      const viewBodyMatch = viewOpmlContent.match(/<body>([\s\S]*?)<\/body>/);
+      expect(viewBodyMatch).toBeTruthy();
+      const viewBodyContent = viewBodyMatch?.[1] ?? "";
+      // Should NOT contain any nested outline groups since no custom views exist
+      expect(viewBodyContent).not.toMatch(/<outline title="[^"]+">/);
+      // But should still have feed entries at the root
+      expect(viewBodyContent).toMatch(/<outline type="rss"/);
+
+      // Go back to main settings, then close the dialog
+      await settingsDialog.getByRole("button", { name: /^back$/i }).click();
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(300);
+    }
+
     // ── 7. Bulk Delete All Feeds ────────────────────────────────────
     await page.goto("/feeds");
-    await expect(page.getByText("Manage Feeds")).toBeVisible({
+    await expect(
+      page.getByRole("tab", { name: /feeds/i, selected: true }),
+    ).toBeVisible({
       timeout: 10000,
     });
 
@@ -289,8 +415,24 @@ test.describe("full user lifecycle", () => {
     ).toBeVisible();
     await deleteDialog.getByRole("button", { name: /^delete$/i }).click();
 
-    // Wait for deletion to complete - should show empty state or no feed rows
-    await page.waitForTimeout(2000);
+    // Wait for the dialog to close
+    await expect(
+      deleteDialog.getByRole("heading", { name: "Delete Feeds" }),
+    ).toBeHidden({ timeout: 10000 });
+
+    // Verify all feed rows are gone from the main feeds list
+    await expect(
+      mainContent.getByRole("button", { name: /Scary Pockets/ }),
+    ).toHaveCount(0, { timeout: 10000 });
+    await expect(
+      mainContent.getByRole("button", { name: /Fireship/ }),
+    ).toHaveCount(0);
+    await expect(
+      mainContent.getByRole("button", { name: /CGP Grey/ }),
+    ).toHaveCount(0);
+    await expect(
+      mainContent.getByRole("button", { name: /Test Blog/ }),
+    ).toHaveCount(0);
 
     // ── 8. Delete User Account ──────────────────────────────────────
     // Navigate to the feeds management page which has visible UI controls
@@ -311,18 +453,25 @@ test.describe("full user lifecycle", () => {
     await userMenuButton.scrollIntoViewIfNeeded();
     await userMenuButton.click({ timeout: 10000 });
 
-    // Wait for dropdown to open, then click Edit Profile
-    // The button is inside a DropdownMenu — try both menuitem and button roles
-    const editProfileButton = page.getByText("Edit Profile", { exact: true });
-    await expect(editProfileButton).toBeVisible({ timeout: 5000 });
-    await editProfileButton.click();
+    // Wait for dropdown to open, then click Settings
+    const settingsButton = page.getByText("Settings", { exact: true });
+    await expect(settingsButton).toBeVisible({ timeout: 5000 });
+    await settingsButton.click();
+    await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible({
+      timeout: 5000,
+    });
+
+    // Navigate into the Delete Account sub-pane
+    const finalSettingsDialog = page.locator('[role="dialog"]');
+    await finalSettingsDialog
+      .getByRole("button", { name: /delete account/i })
+      .click();
     await expect(
-      page.getByRole("heading", { name: "Edit Profile" }),
+      finalSettingsDialog.getByRole("heading", { name: "Delete Account" }),
     ).toBeVisible({ timeout: 5000 });
 
-    // Click initial Delete Account button
-    await page
-      .locator('[role="dialog"]')
+    // Click initial Delete Account button (inside sub-pane)
+    await finalSettingsDialog
       .getByRole("button", { name: /delete account/i })
       .click();
 
@@ -332,8 +481,7 @@ test.describe("full user lifecycle", () => {
       .fill("DELETE MY ACCOUNT");
 
     // Click the submit Delete Account button
-    await page
-      .locator('[role="dialog"]')
+    await finalSettingsDialog
       .getByRole("button", { name: /delete account/i })
       .last()
       .click();

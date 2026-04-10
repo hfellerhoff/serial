@@ -1,4 +1,5 @@
 import { Loader2, Search } from "lucide-react";
+import type { Ref } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 
@@ -8,6 +9,7 @@ interface FeedDiscoveryInputProps {
   onDiscover: () => void;
   isDiscovering: boolean;
   canDiscover: boolean;
+  inputRef?: Ref<HTMLInputElement>;
 }
 
 export function FeedDiscoveryInput({
@@ -16,10 +18,12 @@ export function FeedDiscoveryInput({
   onDiscover,
   isDiscovering,
   canDiscover,
+  inputRef,
 }: FeedDiscoveryInputProps) {
   return (
     <div className="flex gap-2">
       <Input
+        ref={inputRef}
         id="url"
         type="url"
         value={url}

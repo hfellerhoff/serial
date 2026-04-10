@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="1.1">
+  <head>
+    <title>Test Sectioned Subscriptions</title>
+  </head>
+  <body>
+    <outline text="Music" title="Music">
+      <outline text="Scary Pockets" title="Scary Pockets" type="rss" xmlUrl="http://127.0.0.1:3003/feed/scary-pockets" htmlUrl="http://127.0.0.1:3003/scary-pockets"/>
+    </outline>
+    <outline text="Tech" title="Tech">
+      <outline text="Fireship" title="Fireship" type="rss" xmlUrl="http://127.0.0.1:3003/feed/fireship" htmlUrl="http://127.0.0.1:3003/fireship"/>
+    </outline>
+    <outline text="Test Blog" title="Test Blog">
+      <outline text="Test Blog" title="Test Blog" type="rss" xmlUrl="http://127.0.0.1:3003/feed/test-blog" htmlUrl="http://127.0.0.1:3003/test-blog"/>
+    </outline>
+    <outline text="CGP Grey" title="CGP Grey" type="rss" xmlUrl="http://127.0.0.1:3003/feed/cgp-grey" htmlUrl="http://127.0.0.1:3003/cgp-grey"/>
+  </body>
+</opml>

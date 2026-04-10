@@ -1,9 +1,13 @@
 import { and, asc, eq, inArray, notInArray } from "drizzle-orm";
 import { z } from "zod";
+
+import {
+  verifyContentCategoriesOwnedByUser,
+  verifyFeedsOwnedByUser,
+} from "./feed-router/utils";
 import type { ApplicationView } from "~/server/db/schema";
 import { sortViewsByPlacement } from "~/lib/data/views/utils";
 import { buildUncategorizedView } from "~/server/api/utils/buildUncategorizedView";
-
 import { protectedProcedure } from "~/server/orpc/base";
 import {
   contentCategories,
@@ -11,6 +15,7 @@ import {
   deleteViewSchema,
   updateViewSchema,
   viewCategories,
+  viewFeeds,
   views,
 } from "~/server/db/schema";
 
@@ -18,6 +23,30 @@ export const create = protectedProcedure
   .input(createViewSchema)
   .handler(async ({ context, input }) => {
     return await context.db.transaction(async (tx) => {
+      const [categoriesOwned, feedsOwned] = await Promise.all([
+        verifyContentCategoriesOwnedByUser({
+          categoryIds: input.categoryIds ?? [],
+          userId: context.user.id,
+          db: tx,
+        }),
+        verifyFeedsOwnedByUser({
+          feedIds: input.feedIds ?? [],
+          userId: context.user.id,
+          db: tx,
+        }),
+      ]);
+
+      if (!categoriesOwned) {
+        throw new Error(
+          "Unauthorized: One or more categories do not belong to user",
+        );
+      }
+      if (!feedsOwned) {
+        throw new Error(
+          "Unauthorized: One or more feeds do not belong to user",
+        );
+      }
+
       const viewsResult = await tx
         .insert(views)
         .values({
@@ -36,14 +65,21 @@ export const create = protectedProcedure
 
       if (!view) return null;
 
-      if (input.categoryIds) {
-        await Promise.all(
-          input.categoryIds.map(async (categoryId) => {
-            await tx.insert(viewCategories).values({
-              viewId: view.id,
-              categoryId,
-            });
-          }),
+      if (input.categoryIds && input.categoryIds.length > 0) {
+        await tx.insert(viewCategories).values(
+          input.categoryIds.map((categoryId) => ({
+            viewId: view.id,
+            categoryId,
+          })),
+        );
+      }
+
+      if (input.feedIds && input.feedIds.length > 0) {
+        await tx.insert(viewFeeds).values(
+          input.feedIds.map((feedId) => ({
+            viewId: view.id,
+            feedId,
+          })),
         );
       }
 
@@ -55,6 +91,30 @@ export const update = protectedProcedure
   .input(updateViewSchema)
   .handler(async ({ context, input }) => {
     await context.db.transaction(async (tx) => {
+      const [categoriesOwned, feedsOwned] = await Promise.all([
+        verifyContentCategoriesOwnedByUser({
+          categoryIds: input.categoryIds,
+          userId: context.user.id,
+          db: tx,
+        }),
+        verifyFeedsOwnedByUser({
+          feedIds: input.feedIds,
+          userId: context.user.id,
+          db: tx,
+        }),
+      ]);
+
+      if (!categoriesOwned) {
+        throw new Error(
+          "Unauthorized: One or more categories do not belong to user",
+        );
+      }
+      if (!feedsOwned) {
+        throw new Error(
+          "Unauthorized: One or more feeds do not belong to user",
+        );
+      }
+
       const viewsResult = await tx
         .update(views)
         .set({
@@ -71,28 +131,57 @@ export const update = protectedProcedure
 
       const view = viewsResult[0];
 
-      if (input.categoryIds.length === 0 || !view) return;
+      if (!view) return;
 
-      await tx
-        .delete(viewCategories)
-        .where(
-          and(
-            eq(viewCategories.viewId, view.id),
-            notInArray(viewCategories.categoryId, input.categoryIds),
-          ),
-        );
+      // Sync categories
+      if (input.categoryIds.length === 0) {
+        await tx
+          .delete(viewCategories)
+          .where(eq(viewCategories.viewId, view.id));
+      } else {
+        await tx
+          .delete(viewCategories)
+          .where(
+            and(
+              eq(viewCategories.viewId, view.id),
+              notInArray(viewCategories.categoryId, input.categoryIds),
+            ),
+          );
 
-      return await Promise.all(
-        input.categoryIds.map(async (categoryId) => {
-          await tx
-            .insert(viewCategories)
-            .values({
+        await tx
+          .insert(viewCategories)
+          .values(
+            input.categoryIds.map((categoryId) => ({
               viewId: view.id,
               categoryId,
-            })
-            .onConflictDoNothing();
-        }),
-      );
+            })),
+          )
+          .onConflictDoNothing();
+      }
+
+      // Sync directly assigned feeds
+      if (input.feedIds.length === 0) {
+        await tx.delete(viewFeeds).where(eq(viewFeeds.viewId, view.id));
+      } else {
+        await tx
+          .delete(viewFeeds)
+          .where(
+            and(
+              eq(viewFeeds.viewId, view.id),
+              notInArray(viewFeeds.feedId, input.feedIds),
+            ),
+          );
+
+        await tx
+          .insert(viewFeeds)
+          .values(
+            input.feedIds.map((feedId) => ({
+              viewId: view.id,
+              feedId,
+            })),
+          )
+          .onConflictDoNothing();
+      }
     });
   });
 
@@ -145,15 +234,21 @@ export const getAll = protectedProcedure.handler(async ({ context }) => {
       .where(eq(contentCategories.userId, context.user.id)),
   ]);
 
-  // Fetch view categories filtered by user's views
+  // Fetch view categories and view feeds filtered by user's views
   const userViewIds = viewsList.map((v) => v.id);
-  const viewCategoriesList =
+  const [viewCategoriesList, viewFeedsList] =
     userViewIds.length > 0
-      ? await context.db
-          .select()
-          .from(viewCategories)
-          .where(inArray(viewCategories.viewId, userViewIds))
-      : [];
+      ? await Promise.all([
+          context.db
+            .select()
+            .from(viewCategories)
+            .where(inArray(viewCategories.viewId, userViewIds)),
+          context.db
+            .select()
+            .from(viewFeeds)
+            .where(inArray(viewFeeds.viewId, userViewIds)),
+        ])
+      : [[], []];
 
   const customViews: ApplicationView[] = viewsList.map((view) => ({
     ...view,
@@ -162,6 +257,9 @@ export const getAll = protectedProcedure.handler(async ({ context }) => {
       .filter((category) => category.viewId === view.id)
       .map((category) => category.categoryId)
       .filter((id) => id !== null),
+    feedIds: viewFeedsList
+      .filter((vf) => vf.viewId === view.id)
+      .map((vf) => vf.feedId),
   }));
 
   const inboxView = buildUncategorizedView(

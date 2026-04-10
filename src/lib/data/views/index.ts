@@ -11,7 +11,6 @@ import {
 } from "../atoms";
 import { useFeedCategories } from "../feed-categories";
 import { doesFeedItemPassFilters } from "../feed-items";
-import { useFeeds } from "../feeds";
 import { useFeedItemsDict, useFeedItemsOrder } from "../store";
 import { useViewsFetchStatus } from "./store";
 import { INBOX_VIEW_ID, INBOX_VIEW_PLACEMENT } from "./constants";
@@ -56,10 +55,9 @@ export function useCheckFilteredFeedItemsForView() {
   const feedItemsOrder = useFeedItemsOrder();
   const feedItemsDict = useFeedItemsDict();
   const { feedCategories } = useFeedCategories();
-  const { feeds } = useFeeds();
   const { views } = useViews();
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
-  const { customViewCategoryIds } = useCustomViewsData();
+  const { customViewCategoryIds, customViewFeedIds } = useCustomViewsData();
 
   return useCallback(
     (viewId: number) => {
@@ -68,26 +66,27 @@ export function useCheckFilteredFeedItemsForView() {
       return feedItemsOrder.filter(
         (item) =>
           feedItemsDict[item] &&
-          doesFeedItemPassFilters(
-            feedItemsDict[item],
-            viewFilter?.daysWindow ?? 1,
+          doesFeedItemPassFilters({
+            item: feedItemsDict[item],
             visibilityFilter,
-            -1,
+            categoryFilter: -1,
             feedCategories,
-            -1,
-            feeds,
+            feedFilter: -1,
             viewFilter,
             customViewCategoryIds,
-          ),
+            customViews: undefined,
+            softReadItemIds: undefined,
+            customViewFeedIds,
+          }),
       );
     },
     [
       feedItemsOrder,
       feedItemsDict,
       feedCategories,
-      feeds,
       views,
       customViewCategoryIds,
+      customViewFeedIds,
       visibilityFilter,
     ],
   );
@@ -118,5 +117,9 @@ export function useCustomViewsData() {
     return new Set(customViews.flatMap((v) => v.categoryIds));
   }, [customViews]);
 
-  return { customViews, customViewCategoryIds };
+  const customViewFeedIds = useMemo(() => {
+    return new Set(customViews.flatMap((v) => v.feedIds));
+  }, [customViews]);
+
+  return { customViews, customViewCategoryIds, customViewFeedIds };
 }

@@ -55,6 +55,55 @@ export async function verifyFeedsOwnedByUser({
   return userFeeds.length === feedIds.length;
 }
 
+export async function verifyViewsOwnedByUser({
+  viewIds,
+  userId,
+  db,
+}: {
+  viewIds: number[];
+  userId: string;
+  db: Transaction;
+}): Promise<boolean> {
+  if (viewIds.length === 0) {
+    return true;
+  }
+
+  const userViews = await db
+    .select({ id: schema.views.id })
+    .from(schema.views)
+    .where(
+      and(inArray(schema.views.id, viewIds), eq(schema.views.userId, userId)),
+    );
+
+  return userViews.length === viewIds.length;
+}
+
+export async function verifyContentCategoriesOwnedByUser({
+  categoryIds,
+  userId,
+  db,
+}: {
+  categoryIds: number[];
+  userId: string;
+  db: Transaction;
+}): Promise<boolean> {
+  if (categoryIds.length === 0) {
+    return true;
+  }
+
+  const userCategories = await db
+    .select({ id: schema.contentCategories.id })
+    .from(schema.contentCategories)
+    .where(
+      and(
+        inArray(schema.contentCategories.id, categoryIds),
+        eq(schema.contentCategories.userId, userId),
+      ),
+    );
+
+  return userCategories.length === categoryIds.length;
+}
+
 export type InsertFeedWithCategoriesSuccess = {
   success: true;
   feedId: number;

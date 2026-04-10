@@ -51,9 +51,15 @@ test.describe("article progress tracking", () => {
     const scrolledY = await page.evaluate(() => window.scrollY);
     expect(scrolledY).toBeGreaterThan(0);
 
-    // Verify selection tracking is active
-    const hasSelection = await page.locator("[data-article-selected]").count();
-    expect(hasSelection).toBeGreaterThan(0);
+    // Capture the selected element's text so we can verify the *same*
+    // element is reselected after restore (not just any element).
+    const selectedElements = page.locator("[data-article-selected]");
+    const selectionCount = await selectedElements.count();
+    expect(selectionCount).toBeGreaterThan(0);
+    const savedSelectionText = (
+      await selectedElements.first().textContent()
+    )?.trim();
+    expect(savedSelectionText).toBeTruthy();
 
     // Navigate to home
     await page.goto("/");
@@ -70,14 +76,19 @@ test.describe("article progress tracking", () => {
     // Wait for progress restore
     await page.waitForTimeout(500);
 
-    // Verify the page scrolled to the saved position
+    // Verify the page scrolled to the saved position (within a small
+    // tolerance — restoration scrolls to the saved selected element, which
+    // may not land at the exact pixel offset).
     const restoredScrollY = await page.evaluate(() => window.scrollY);
     expect(restoredScrollY).toBeGreaterThan(0);
+    expect(Math.abs(restoredScrollY - scrolledY)).toBeLessThan(200);
 
-    // Verify an element is selected after restore
-    const hasRestoredSelection = await page
-      .locator("[data-article-selected]")
-      .count();
-    expect(hasRestoredSelection).toBeGreaterThan(0);
+    // Verify the *same* element is selected after restore
+    const restoredSelected = page.locator("[data-article-selected]");
+    expect(await restoredSelected.count()).toBeGreaterThan(0);
+    const restoredSelectionText = (
+      await restoredSelected.first().textContent()
+    )?.trim();
+    expect(restoredSelectionText).toBe(savedSelectionText);
   });
 });

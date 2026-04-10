@@ -133,15 +133,24 @@ export function buildViewCategoryFilter(
   customViewCategoryIds?: Set<number>,
   customViews?: ApplicationView[],
   feeds?: DatabaseFeed[],
+  customViewFeedIds?: Set<number>,
 ): SQL | undefined {
-  if (!viewFilter || viewFilter.categoryIds.length === 0) {
+  if (
+    !viewFilter ||
+    (viewFilter.categoryIds.length === 0 && viewFilter.feedIds.length === 0)
+  ) {
     return undefined;
   }
 
   // Get feed IDs that are in any of the view's categories
-  const feedsForView = feedCategories
+  const feedsFromCategories = feedCategories
     .filter((fc) => viewFilter.categoryIds.includes(fc.categoryId))
     .map((fc) => fc.feedId);
+
+  // Union category-based feeds with directly assigned feeds
+  const feedsForView = [
+    ...new Set([...feedsFromCategories, ...viewFilter.feedIds]),
+  ];
 
   // For Uncategorized view, also include uncategorized feeds, but exclude feeds in custom views
   if (viewFilter.id === INBOX_VIEW_ID) {
@@ -156,6 +165,27 @@ export function buildViewCategoryFilter(
     // Exclude feeds that belong to a category assigned to a custom view
     // AND whose platform is compatible with that view's content type
     const feedsInCustomViews = new Set<number>();
+
+    // Also exclude feeds directly assigned to any custom view, but only if
+    // the assigned view's content type is compatible with the feed's platform
+    // (otherwise the feed would be orphaned: filtered out of the custom view
+    // by the content-type filter, and excluded from Inbox here too).
+    if (customViewFeedIds && customViews) {
+      for (const feedId of customViewFeedIds) {
+        const feed = feedsById.get(feedId);
+        if (!feed) continue;
+
+        const wouldAppearInDirectView = customViews.some(
+          (v) =>
+            v.feedIds.includes(feedId) &&
+            isFeedCompatibleWithContentType(feed.platform, v.contentType),
+        );
+
+        if (wouldAppearInDirectView) {
+          feedsInCustomViews.add(feedId);
+        }
+      }
+    }
 
     if (customViews && customViewCategoryIds) {
       for (const fc of feedCategories) {
@@ -190,7 +220,7 @@ export function buildViewCategoryFilter(
     return inArray(feedItems.feedId, allIncludedFeedIds);
   }
 
-  // Regular view - only include feeds in the view's categories
+  // Regular view - include feeds from categories + directly assigned feeds
   if (feedsForView.length === 0) {
     return eq(feedItems.feedId, -1);
   }
@@ -272,67 +302,4 @@ export function buildTimeWindowFilter(
   cutoffDate.setDate(cutoffDate.getDate() - daysWindow);
 
   return gte(feedItems.postedAt, cutoffDate);
-}
-
-/**
- * Parameters for building combined feed item filters
- */
-export interface BuildFeedItemFiltersParams {
-  visibilityFilter: VisibilityFilter;
-  categoryFilter: number;
-  feedFilter: number;
-  viewFilter: ApplicationView | null;
-  feedCategories: DatabaseFeedCategory[];
-  feeds: DatabaseFeed[];
-  customViewCategoryIds?: Set<number>;
-}
-
-/**
- * Build combined Drizzle filter conditions for feed items
- *
- * Combines all individual filters into a single SQL condition using AND.
- * Returns undefined if no filters apply.
- */
-export function buildFeedItemFilters(
-  params: BuildFeedItemFiltersParams,
-): SQL | undefined {
-  const {
-    visibilityFilter,
-    categoryFilter,
-    feedFilter,
-    viewFilter,
-    feedCategories,
-    feeds,
-    customViewCategoryIds,
-  } = params;
-
-  const allFeedIds = feeds.map((feed) => feed.id);
-
-  // Build all individual filters
-  const filters: Array<SQL | undefined> = [
-    buildVisibilityFilter(visibilityFilter),
-    buildCategoryFilter(categoryFilter, feedCategories),
-    buildFeedFilter(feedFilter),
-    buildViewCategoryFilter(
-      viewFilter,
-      feedCategories,
-      allFeedIds,
-      customViewCategoryIds,
-    ),
-    buildContentTypeFilter(viewFilter?.contentType, feeds),
-    buildTimeWindowFilter(viewFilter?.daysWindow),
-  ];
-
-  // Filter out undefined values
-  const activeFilters = filters.filter((f): f is SQL => f !== undefined);
-
-  if (activeFilters.length === 0) {
-    return undefined;
-  }
-
-  if (activeFilters.length === 1) {
-    return activeFilters[0];
-  }
-
-  return and(...activeFilters);
 }

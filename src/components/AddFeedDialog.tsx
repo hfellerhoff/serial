@@ -5,9 +5,9 @@ import {
   ImportIcon,
   LinkIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { ViewCategoriesInput } from "./AddViewDialog";
 import {
   FeedDiscoveryInput,
@@ -16,6 +16,7 @@ import {
   useFeedDiscovery,
 } from "./feed-discovery";
 import { Button } from "./ui/button";
+import { ChipCombobox } from "./ui/chip-combobox";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { ControlledResponsiveDialog } from "./ui/responsive-dropdown";
@@ -35,19 +36,42 @@ import { PLATFORM_TO_FORMATTED_NAME_MAP } from "~/lib/data/feeds/utils";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 import { getAssumedFeedPlatform } from "~/server/rss/validateFeedUrl";
 import { useDialogStore } from "~/components/feed/dialogStore";
+import { useViews } from "~/lib/data/views";
+import { useViewFeeds } from "~/lib/data/view-feeds";
+import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
+import { useQuickCreateViewMutation } from "~/lib/data/views/mutations";
+
+function useViewOptions() {
+  const { views } = useViews();
+  return views
+    .filter((v) => v.id !== INBOX_VIEW_ID)
+    .map((v) => ({ id: v.id, label: v.name }));
+}
 
 export function AddFeedDialog() {
   const [isAddingFeed, setIsAddingFeed] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [selectedViewIds, setSelectedViewIds] = useState<number[]>([]);
 
+  const urlInputRef = useRef<HTMLInputElement>(null);
   const discovery = useFeedDiscovery();
   const { mutateAsync: createFeed } = useCreateFeedMutation();
+  const { mutateAsync: quickCreateView } = useQuickCreateViewMutation();
 
   const dialog = useDialogStore((store) => store.dialog);
   const onDialogOpenChange = useDialogStore((store) => store.onOpenChange);
 
+  // Global "a" shortcut: opens the Add Feed dialog from anywhere except the
+  // /views and /tags routes, which register their own "a" shortcuts.
   const launchDialog = useDialogStore((store) => store.launchDialog);
+  const location = useLocation();
   useShortcut("a", (event) => {
+    if (
+      location.pathname.startsWith("/views") ||
+      location.pathname.startsWith("/tags")
+    ) {
+      return;
+    }
     event.preventDefault();
     launchDialog("add-feed");
   });
@@ -57,17 +81,23 @@ export function AddFeedDialog() {
 
     if (!open) {
       setSelectedCategories([]);
+      setSelectedViewIds([]);
       discovery.reset();
     }
   };
 
   const feedPlatform = getAssumedFeedPlatform(discovery.feedUrl);
+  const viewOptions = useViewOptions();
 
   return (
     <ControlledResponsiveDialog
       open={dialog === "add-feed"}
       onOpenChange={onOpenChange}
       title="Add Feed"
+      onOpenAutoFocus={(event) => {
+        event.preventDefault();
+        urlInputRef.current?.focus();
+      }}
     >
       <div className="grid gap-6">
         <div className="grid gap-2">
@@ -86,6 +116,7 @@ export function AddFeedDialog() {
               onDiscover={discovery.discoverFeeds}
               isDiscovering={discovery.isDiscovering}
               canDiscover={discovery.canDiscover}
+              inputRef={urlInputRef}
             />
           )}
         </div>
@@ -97,6 +128,27 @@ export function AddFeedDialog() {
         )}
         {discovery.isLocked && (
           <>
+            <ChipCombobox
+              label="Views"
+              placeholder="Search views..."
+              options={viewOptions}
+              selectedIds={selectedViewIds}
+              onAdd={(id) => setSelectedViewIds([...selectedViewIds, id])}
+              onRemove={(id) =>
+                setSelectedViewIds(selectedViewIds.filter((v) => v !== id))
+              }
+              onCreate={async (name) => {
+                try {
+                  const created = await quickCreateView({ name });
+                  if (created) {
+                    setSelectedViewIds([...selectedViewIds, created.id]);
+                  }
+                } catch {
+                  toast.error("Failed to create view.");
+                }
+              }}
+              createLabel="Create view"
+            />
             <ViewCategoriesInput
               selectedCategories={selectedCategories}
               setSelectedCategories={setSelectedCategories}
@@ -110,6 +162,7 @@ export function AddFeedDialog() {
                   const createFeedPromise = createFeed({
                     url: discovery.feedUrl,
                     categoryIds: selectedCategories,
+                    viewIds: selectedViewIds,
                   });
                   toast.promise(createFeedPromise, {
                     loading: "Adding feed...",
@@ -205,9 +258,11 @@ export function EditFeedDialog({
   const { mutateAsync: editFeed } = useEditFeedMutation();
   const { mutateAsync: deleteFeed } = useDeleteFeedMutation();
   const { mutate: setFeedActive } = useSetFeedActiveMutation();
+  const { mutateAsync: quickCreateView } = useQuickCreateViewMutation();
 
   const [name, setName] = useState<string>("");
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [selectedViewIds, setSelectedViewIds] = useState<number[]>([]);
   const [selectedOpenLocation, setSelectedOpenLocation] =
     useState<FeedOpenLocation>("serial");
 
@@ -215,6 +270,8 @@ export function EditFeedDialog({
 
   const { feeds } = useFeeds();
   const { feedCategories } = useFeedCategories();
+  const { viewFeeds } = useViewFeeds();
+  const viewOptions = useViewOptions();
 
   useEffect(() => {
     if (selectedFeedId == null) return;
@@ -227,10 +284,15 @@ export function EditFeedDialog({
       .map((category) => category.categoryId)
       .filter((id) => typeof id === "number");
 
+    const _feedViewIds = viewFeeds
+      .filter((vf) => vf.feedId === feed.id)
+      .map((vf) => vf.viewId);
+
     setName(feed.name);
     setSelectedCategories(_feedCategories);
+    setSelectedViewIds(_feedViewIds);
     setSelectedOpenLocation(feed.openLocation);
-  }, [feedCategories, selectedFeedId, feeds]);
+  }, [feedCategories, viewFeeds, selectedFeedId, feeds]);
 
   const feed = feeds.find((v) => v.id === selectedFeedId);
 
@@ -330,6 +392,27 @@ export function EditFeedDialog({
             </Tooltip>
           </div>
         </div>
+        <ChipCombobox
+          label="Views"
+          placeholder="Search views..."
+          options={viewOptions}
+          selectedIds={selectedViewIds}
+          onAdd={(id) => setSelectedViewIds([...selectedViewIds, id])}
+          onRemove={(id) =>
+            setSelectedViewIds(selectedViewIds.filter((v) => v !== id))
+          }
+          onCreate={async (name) => {
+            try {
+              const created = await quickCreateView({ name });
+              if (created) {
+                setSelectedViewIds([...selectedViewIds, created.id]);
+              }
+            } catch {
+              toast.error("Failed to create view.");
+            }
+          }}
+          createLabel="Create view"
+        />
         <ViewCategoriesInput
           selectedCategories={selectedCategories}
           setSelectedCategories={setSelectedCategories}
@@ -379,6 +462,7 @@ export function EditFeedDialog({
                 await editFeed({
                   feedId: selectedFeedId,
                   categoryIds: selectedCategories,
+                  viewIds: selectedViewIds,
                   openLocation: selectedOpenLocation,
                 });
                 toast.success("Feed updated!");

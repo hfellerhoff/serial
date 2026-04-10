@@ -3,7 +3,8 @@
 import { useCallback, useState } from "react";
 
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { CircleSmall, Edit2Icon, PlusIcon } from "lucide-react";
+import { CircleSmall, Edit2Icon, PlusIcon, SettingsIcon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useDialogStore } from "./dialogStore";
 import { EditContentCategoryDialog } from "~/components/AddContentCategoryDialog";
 import {
@@ -37,16 +38,14 @@ function useCheckFilteredFeedItemsForCategory() {
       return feedItemsOrder.filter(
         (item) =>
           feedItemsMap[item] &&
-          doesFeedItemPassFilters(
-            feedItemsMap[item],
-            30,
+          doesFeedItemPassFilters({
+            item: feedItemsMap[item],
             visibilityFilter,
-            category,
+            categoryFilter: category,
             feedCategories,
-            -1,
-            [],
-            null,
-          ),
+            feedFilter: -1,
+            viewFilter: null,
+          }),
       );
     },
     [feedItemsOrder, feedItemsMap, visibilityFilter, feedCategories],
@@ -93,8 +92,13 @@ export function SidebarCategories() {
       />
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
         <SidebarGroupLabel className="pr-0 pb-2">
-          <span className="inline-block flex-1">Categories</span>
+          <span className="inline-block flex-1">Tags</span>
           <div className="flex w-fit items-center justify-end">
+            <SidebarMenuButton asChild>
+              <Link to="/tags">
+                <SettingsIcon size={16} />
+              </Link>
+            </SidebarMenuButton>
             <SidebarMenuButton
               onClick={() => launchDialog("add-content-category")}
             >

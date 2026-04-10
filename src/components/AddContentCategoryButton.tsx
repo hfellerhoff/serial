@@ -14,7 +14,7 @@ export function AddContentCategoriesButton() {
       className="w-fit"
     >
       <PlusIcon size={16} />
-      <span className="pl-1.5">Add a category</span>
+      <span className="pl-1.5">Add a tag</span>
     </Button>
   );
 }

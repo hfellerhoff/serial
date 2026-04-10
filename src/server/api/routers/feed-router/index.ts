@@ -1,7 +1,11 @@
 import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { discoverFeeds as discoverFeedsFromUrl } from "feedscout";
 import { z } from "zod";
-import { findExistingFeedThatMatches } from "./utils";
+import {
+  findExistingFeedThatMatches,
+  verifyContentCategoriesOwnedByUser,
+  verifyViewsOwnedByUser,
+} from "./utils";
 import { parseArrayOfSchema } from "~/lib/schemas/utils";
 
 import { prepareArrayChunks } from "~/lib/iterators";
@@ -13,6 +17,7 @@ import {
   feedsSchema,
   openLocationSchema,
   PLATFORM_DEFAULT_OPEN_LOCATION,
+  viewFeeds,
 } from "~/server/db/schema";
 import { protectedProcedure } from "~/server/orpc/base";
 import { fetchNewFeedDetails } from "~/server/rss/fetchFeeds";
@@ -36,7 +41,13 @@ export type BulkImportFromFileResult =
   | BulkImportFromFileSuccess;
 
 export const create = protectedProcedure
-  .input(z.object({ url: z.string().min(5), categoryIds: z.number().array() }))
+  .input(
+    z.object({
+      url: z.string().min(5),
+      categoryIds: z.number().array(),
+      viewIds: z.number().array().optional(),
+    }),
+  )
   .handler(async ({ context, input }) => {
     const newFeedDetails = await fetchNewFeedDetails(input.url);
     if (!newFeedDetails.length) {
@@ -50,6 +61,30 @@ export const create = protectedProcedure
     );
 
     const results = await context.db.transaction(async (tx) => {
+      const [categoriesOwned, viewsOwned] = await Promise.all([
+        verifyContentCategoriesOwnedByUser({
+          categoryIds: input.categoryIds,
+          userId: context.user.id,
+          db: tx,
+        }),
+        verifyViewsOwnedByUser({
+          viewIds: input.viewIds ?? [],
+          userId: context.user.id,
+          db: tx,
+        }),
+      ]);
+
+      if (!categoriesOwned) {
+        throw new Error(
+          "Unauthorized: One or more categories do not belong to user",
+        );
+      }
+      if (!viewsOwned) {
+        throw new Error(
+          "Unauthorized: One or more views do not belong to user",
+        );
+      }
+
       return await Promise.all(
         newFeedDetails.map(async (newFeed, index) => {
           if (!newFeed.url) return { error: "No feed url found." };
@@ -78,13 +113,20 @@ export const create = protectedProcedure
           const newFeedRow = insertedFeeds[0];
 
           if (!!input.categoryIds.length && !!newFeedRow) {
-            await Promise.all(
-              input.categoryIds.map(async (categoryId) => {
-                return await tx.insert(feedCategories).values({
-                  feedId: Number(newFeedRow.id),
-                  categoryId: categoryId,
-                });
-              }),
+            await tx.insert(feedCategories).values(
+              input.categoryIds.map((categoryId) => ({
+                feedId: Number(newFeedRow.id),
+                categoryId,
+              })),
+            );
+          }
+
+          if (input.viewIds?.length && newFeedRow) {
+            await tx.insert(viewFeeds).values(
+              input.viewIds.map((viewId) => ({
+                viewId,
+                feedId: Number(newFeedRow.id),
+              })),
             );
           }
 
@@ -303,11 +345,36 @@ export const update = protectedProcedure
     z.object({
       feedId: z.number(),
       categoryIds: z.number().array(),
+      viewIds: z.number().array().optional(),
       openLocation: openLocationSchema,
     }),
   )
   .handler(async ({ context, input }) => {
     return await context.db.transaction(async (tx) => {
+      const [categoriesOwned, viewsOwned] = await Promise.all([
+        verifyContentCategoriesOwnedByUser({
+          categoryIds: input.categoryIds,
+          userId: context.user.id,
+          db: tx,
+        }),
+        verifyViewsOwnedByUser({
+          viewIds: input.viewIds ?? [],
+          userId: context.user.id,
+          db: tx,
+        }),
+      ]);
+
+      if (!categoriesOwned) {
+        throw new Error(
+          "Unauthorized: One or more categories do not belong to user",
+        );
+      }
+      if (!viewsOwned) {
+        throw new Error(
+          "Unauthorized: One or more views do not belong to user",
+        );
+      }
+
       const updatedFeeds = await tx
         .update(feeds)
         .set({
@@ -342,6 +409,32 @@ export const update = protectedProcedure
             .onConflictDoNothing();
         }),
       );
+
+      // View feeds - sync direct view assignments
+      if (input.viewIds !== undefined) {
+        if (input.viewIds.length === 0) {
+          await tx.delete(viewFeeds).where(eq(viewFeeds.feedId, input.feedId));
+        } else {
+          await tx
+            .delete(viewFeeds)
+            .where(
+              and(
+                eq(viewFeeds.feedId, input.feedId),
+                notInArray(viewFeeds.viewId, input.viewIds),
+              ),
+            );
+
+          await tx
+            .insert(viewFeeds)
+            .values(
+              input.viewIds.map((viewId) => ({
+                viewId,
+                feedId: input.feedId,
+              })),
+            )
+            .onConflictDoNothing();
+        }
+      }
 
       return feedsSchema.parse(updatedFeed);
     });

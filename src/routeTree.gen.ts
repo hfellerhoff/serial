@@ -22,6 +22,8 @@ import { Route as AuthSignUpRouteImport } from './app/auth.sign-up'
 import { Route as AuthSignInRouteImport } from './app/auth.sign-in'
 import { Route as AuthResetRouteImport } from './app/auth.reset'
 import { Route as ApiHealthRouteImport } from './app/api/health'
+import { Route as AppViewsRouteImport } from './app/_app.views'
+import { Route as AppTagsRouteImport } from './app/_app.tags'
 import { Route as AppImportRouteImport } from './app/_app.import'
 import { Route as AppFeedsRouteImport } from './app/_app.feeds'
 import { Route as AppDebugRouteImport } from './app/_app.debug'
@@ -98,6 +100,16 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppViewsRoute = AppViewsRouteImport.update({
+  id: '/views',
+  path: '/views',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTagsRoute = AppTagsRouteImport.update({
+  id: '/tags',
+  path: '/tags',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppImportRoute = AppImportRouteImport.update({
   id: '/import',
   path: '/import',
@@ -168,6 +180,8 @@ export interface FileRoutesByFullPath {
   '/debug': typeof AppDebugRoute
   '/feeds': typeof AppFeedsRoute
   '/import': typeof AppImportRoute
+  '/tags': typeof AppTagsRoute
+  '/views': typeof AppViewsRoute
   '/api/health': typeof ApiHealthRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
@@ -192,6 +206,8 @@ export interface FileRoutesByTo {
   '/debug': typeof AppDebugRoute
   '/feeds': typeof AppFeedsRoute
   '/import': typeof AppImportRoute
+  '/tags': typeof AppTagsRoute
+  '/views': typeof AppViewsRoute
   '/api/health': typeof ApiHealthRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
@@ -219,6 +235,8 @@ export interface FileRoutesById {
   '/_app/debug': typeof AppDebugRoute
   '/_app/feeds': typeof AppFeedsRoute
   '/_app/import': typeof AppImportRoute
+  '/_app/tags': typeof AppTagsRoute
+  '/_app/views': typeof AppViewsRoute
   '/api/health': typeof ApiHealthRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
@@ -247,6 +265,8 @@ export interface FileRouteTypes {
     | '/debug'
     | '/feeds'
     | '/import'
+    | '/tags'
+    | '/views'
     | '/api/health'
     | '/auth/reset'
     | '/auth/sign-in'
@@ -271,6 +291,8 @@ export interface FileRouteTypes {
     | '/debug'
     | '/feeds'
     | '/import'
+    | '/tags'
+    | '/views'
     | '/api/health'
     | '/auth/reset'
     | '/auth/sign-in'
@@ -297,6 +319,8 @@ export interface FileRouteTypes {
     | '/_app/debug'
     | '/_app/feeds'
     | '/_app/import'
+    | '/_app/tags'
+    | '/_app/views'
     | '/api/health'
     | '/auth/reset'
     | '/auth/sign-in'
@@ -420,6 +444,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/views': {
+      id: '/_app/views'
+      path: '/views'
+      fullPath: '/views'
+      preLoaderRoute: typeof AppViewsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/tags': {
+      id: '/_app/tags'
+      path: '/tags'
+      fullPath: '/tags'
+      preLoaderRoute: typeof AppTagsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/import': {
       id: '/_app/import'
       path: '/import'
@@ -511,6 +549,8 @@ interface AppRouteChildren {
   AppDebugRoute: typeof AppDebugRoute
   AppFeedsRoute: typeof AppFeedsRoute
   AppImportRoute: typeof AppImportRoute
+  AppTagsRoute: typeof AppTagsRoute
+  AppViewsRoute: typeof AppViewsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAdminInfoRoute: typeof AppAdminInfoRoute
   AppReadIdRoute: typeof AppReadIdRoute
@@ -523,6 +563,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppDebugRoute: AppDebugRoute,
   AppFeedsRoute: AppFeedsRoute,
   AppImportRoute: AppImportRoute,
+  AppTagsRoute: AppTagsRoute,
+  AppViewsRoute: AppViewsRoute,
   AppIndexRoute: AppIndexRoute,
   AppAdminInfoRoute: AppAdminInfoRoute,
   AppReadIdRoute: AppReadIdRoute,

@@ -2,6 +2,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useFetchContentCategories } from "../content-categories/store";
 import { useFetchFeedCategories } from "../feed-categories/store";
+import { useFetchViewFeeds } from "../view-feeds/store";
+import { useFetchViews } from "../views/store";
 import {
   feedItemsStore,
   useFeedItemsDict,
@@ -22,6 +24,8 @@ import { orpc } from "~/lib/orpc";
 export function useCreateFeedMutation() {
   const fetchFeedItemsForFeed = useFetchFeedItemsForFeed();
   const fetchFeedCategories = useFetchFeedCategories();
+  const fetchViewFeeds = useFetchViewFeeds();
+  const fetchViews = useFetchViews();
   const addFeed = useAddFeed();
 
   return useMutation(
@@ -32,6 +36,8 @@ export function useCreateFeedMutation() {
           result.feeds.map((feed) => fetchFeedItemsForFeed(feed.id)),
         );
         await fetchFeedCategories();
+        await fetchViewFeeds();
+        await fetchViews();
 
         if (result.deactivatedCount > 0) {
           toast.warning(
@@ -115,6 +121,8 @@ export function useDeleteFeedMutation() {
 
 export function useEditFeedMutation() {
   const fetchFeedCategories = useFetchFeedCategories();
+  const fetchViewFeeds = useFetchViewFeeds();
+  const fetchViews = useFetchViews();
   const updateFeed = useUpdateFeed();
 
   return useMutation(
@@ -123,7 +131,11 @@ export function useEditFeedMutation() {
         if (updatedFeed) {
           updateFeed(updatedFeed.id, updatedFeed);
         }
-        await fetchFeedCategories();
+        await Promise.all([
+          fetchFeedCategories(),
+          fetchViewFeeds(),
+          fetchViews(),
+        ]);
       },
     }),
   );

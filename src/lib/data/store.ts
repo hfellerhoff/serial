@@ -6,6 +6,7 @@ import { contentCategoriesStore } from "./content-categories/store";
 import { createSelectorHooks } from "./createSelectorHooks";
 import { feedCategoriesStore } from "./feed-categories/store";
 import { feedsStore } from "./feeds/store";
+import { viewFeedsStore } from "./view-feeds/store";
 import { viewsStore } from "./views/store";
 import type { VisibilityFilter } from "./atoms";
 import type { FetchFeedsStatus } from "~/server/rss/fetchFeeds";
@@ -666,6 +667,9 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           }
 
           case "initial-data-complete": {
+            // Fetch view-feed assignments (not part of SSE chunks)
+            viewFeedsStore.getState().fetch();
+
             // Mark "unread" visibility filter as fetched for all views
             const allViews = viewsStore.getState().views;
             const fetchedFilters: Record<number, Set<VisibilityFilter>> = {};
@@ -765,6 +769,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
       feedsStore.setState({ fetchStatus: "success" });
       contentCategoriesStore.setState({ fetchStatus: "success" });
       feedCategoriesStore.setState({ fetchStatus: "success" });
+      // viewFeedsStore manages its own fetchStatus via its fetch() method
 
       set({
         fetchFeedItemsStatus: "success",
@@ -958,6 +963,9 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             }
 
             case "initial-data-complete": {
+              // Fetch view-feed assignments (not part of SSE chunks)
+              viewFeedsStore.getState().fetch();
+
               // Mark "unread" visibility filter as fetched for all views
               const allViews = viewsStore.getState().views;
               const lastItemByView = get()._lastItemByView;

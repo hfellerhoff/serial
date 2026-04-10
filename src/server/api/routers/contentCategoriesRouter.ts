@@ -24,7 +24,7 @@ export const create = protectedProcedure
     }),
   )
   .handler(async ({ context, input }) => {
-    await context.db.transaction(async (tx) => {
+    return await context.db.transaction(async (tx) => {
       const feedIdsToCategorize =
         input.feedCategorizations
           ?.filter((categorization) => categorization.selected)
@@ -53,16 +53,20 @@ export const create = protectedProcedure
         .returning();
       const category = categories[0];
 
-      if (!category || feedIdsToCategorize.length === 0) return;
+      if (!category) return null;
 
-      await Promise.all(
-        feedIdsToCategorize.map(async (feedId) => {
-          return await tx.insert(feedCategories).values({
-            categoryId: category.id,
-            feedId,
-          });
-        }),
-      );
+      if (feedIdsToCategorize.length > 0) {
+        await Promise.all(
+          feedIdsToCategorize.map(async (feedId) => {
+            return await tx.insert(feedCategories).values({
+              categoryId: category.id,
+              feedId,
+            });
+          }),
+        );
+      }
+
+      return category;
     });
   });
 

@@ -2,6 +2,7 @@
 
 import { ExternalLinkIcon } from "lucide-react";
 import { useLocation } from "@tanstack/react-router";
+import { ManageFeedsButton } from "./ManageFeedsButton";
 import { OpenRightSidebarButton } from "./OpenRightSidebarButton";
 import { RefetchItemsButton } from "./RefetchItemsButton";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
@@ -62,6 +63,7 @@ export function TopRightHeaderContent() {
 
   return (
     <div className="flex items-center gap-2">
+      <ManageFeedsButton />
       <RefetchItemsButton />
       <div className="lg:hidden">
         <OpenRightSidebarButton />

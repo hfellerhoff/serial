@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 
 import { DragHandleDots2Icon } from "@radix-ui/react-icons";
 import { useAtom } from "jotai";
-import { CircleSmall, Edit2Icon, PlusIcon } from "lucide-react";
+import { CircleSmall, Edit2Icon, PlusIcon, SettingsIcon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 
 import {
   closestCenter,
@@ -182,6 +183,11 @@ export function SidebarViews() {
         <SidebarGroupLabel className="pr-0 pb-2">
           <span className="inline-block flex-1">Views</span>
           <div className="flex w-fit items-center justify-end">
+            <SidebarMenuButton asChild>
+              <Link to="/views">
+                <SettingsIcon size={16} />
+              </Link>
+            </SidebarMenuButton>
             <SidebarMenuButton onClick={() => launchDialog("add-view")}>
               <PlusIcon />
             </SidebarMenuButton>

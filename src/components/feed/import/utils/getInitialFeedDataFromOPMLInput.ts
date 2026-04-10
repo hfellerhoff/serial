@@ -52,12 +52,21 @@ function parseOPMLFeed(
   opmlFeed: OPMLFeed,
   categories?: string[],
 ): ImportFeedDataItem {
+  // Drop any "section" whose name is the same as the feed's own title.
+  // OPML files commonly wrap each bare feed in a synthetic section using the
+  // feed's title as the section name; treating those as real sections would
+  // create one tag/view per feed, which is never the user's intent.
+  const filteredCategories =
+    categories?.filter(
+      (category) => !!category && category !== opmlFeed.title,
+    ) ?? [];
+
   return {
     feedUrl: opmlFeed.xmlUrl,
     websiteUrl: opmlFeed.htmlUrl,
     title: opmlFeed.title,
     shouldImport: true,
-    categories: categories?.filter(Boolean) ?? [],
+    categories: filteredCategories,
     platform: getAssumedFeedPlatform(opmlFeed.xmlUrl),
   };
 }

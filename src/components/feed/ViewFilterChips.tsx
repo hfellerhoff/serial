@@ -8,7 +8,6 @@ import { useDialogStore } from "./dialogStore";
 import { Button } from "~/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
 import { viewFilterIdAtom } from "~/lib/data/atoms";
-import { useContentCategories } from "~/lib/data/content-categories";
 import {
   useCheckFilteredFeedItemsForView,
   useUpdateViewFilter,
@@ -22,7 +21,6 @@ import {
 
 export function ViewFilterChips() {
   const { views } = useViews();
-  const { contentCategories } = useContentCategories();
   const [viewFilter] = useAtom(viewFilterIdAtom);
 
   const updateViewFilter = useUpdateViewFilter();
@@ -38,20 +36,6 @@ export function ViewFilterChips() {
   }, [views, checkFilteredFeedItemsForView]);
 
   const launchDialog = useDialogStore((store) => store.launchDialog);
-
-  if (contentCategories.length === 0) {
-    return (
-      <Button
-        variant="outline"
-        onClick={() => {
-          launchDialog("add-content-category");
-        }}
-      >
-        <PlusIcon size={16} />
-        <span className="pl-1.5">Add a category</span>
-      </Button>
-    );
-  }
 
   if (views.length === 1) {
     return (

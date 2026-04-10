@@ -15,13 +15,15 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ImportDropzone } from "../components/feed/import/ImportDropzone";
 import { getInitialFeedDataFromFileInputElement } from "../components/feed/import/utils/getInitialFeedDataFromFileInputElement";
-import type { FeedPlatform } from "~/server/db/schema";
 import type { ImportFeedDataItem } from "../components/feed/import/utils/shared";
+import type { CardRadioOption } from "~/components/ui/card-radio-group";
+import type { FeedPlatform } from "~/server/db/schema";
 import { YoutubeIcon } from "~/components/brand-icons";
 import { getBlogUrl } from "~/lib/constants";
 import { ImportLoading } from "~/components/ImportLoading";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { CardRadioGroup } from "~/components/ui/card-radio-group";
 import { Checkbox } from "~/components/ui/checkbox";
 import {
   Tooltip,
@@ -75,6 +77,29 @@ export const Route = createFileRoute("/_app/import")({
   component: EditFeedsPage,
 });
 
+type ImportMode = "tags" | "views" | "ignore";
+
+const IMPORT_MODE_OPTIONS: Array<CardRadioOption<ImportMode>> = [
+  {
+    value: "views",
+    title: "Import sections as Views",
+    description:
+      "Each section in the file becomes a view, and feeds are linked directly to it.",
+  },
+  {
+    value: "tags",
+    title: "Import sections as Tags",
+    description:
+      "Each section in the file becomes a tag, and feeds are tagged with it.",
+  },
+  {
+    value: "ignore",
+    title: "Ignore sections",
+    description:
+      "Import the feeds without preserving any of the section groupings.",
+  },
+];
+
 function EditFeedsPage() {
   const inputElementRef = useRef<HTMLInputElement | null>(null);
 
@@ -83,6 +108,7 @@ function EditFeedsPage() {
   >(null);
   const [hasStartedImport, setHasStartedImport] = useState(false);
   const [isImportComplete, setIsImportComplete] = useState(false);
+  const [importMode, setImportMode] = useState<ImportMode>("views");
 
   const channelImportCount = feedsFoundFromFile?.filter(
     (feed) => feed.shouldImport,
@@ -153,7 +179,7 @@ function EditFeedsPage() {
 
     // The RPC resolves when the server finishes publishing, but the
     // subscription may still be processing buffered chunks via rAF.
-    await dataSubscriptionActions.streamingImport(channelsToImport);
+    await dataSubscriptionActions.streamingImport(channelsToImport, importMode);
 
     // Wait for the store to process initial-data-complete from the import,
     // ensuring all feed items are available before showing "Import finished".
@@ -250,6 +276,18 @@ function EditFeedsPage() {
       />
       {!!feedsFoundFromFile && (
         <>
+          {!isPostImportScreen &&
+            feedsFoundFromFile.some((f) => f.categories.length > 0) && (
+              <div className="mt-12 grid gap-3">
+                <h3 className="font-semibold">Sections</h3>
+                <CardRadioGroup
+                  value={importMode}
+                  onValueChange={setImportMode}
+                  options={IMPORT_MODE_OPTIONS}
+                  orientation="vertical"
+                />
+              </div>
+            )}
           <div className="mt-12">
             {!isPostImportScreen && (
               <div className="flex items-center justify-between">

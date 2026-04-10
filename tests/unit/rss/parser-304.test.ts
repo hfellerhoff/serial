@@ -129,6 +129,14 @@ describe("YouTube parser with real RSS server", () => {
     });
 
     expect(result).toHaveProperty("notModified", true);
+    // The 304 response should still echo back the current cache headers so
+    // the caller can refresh its bookkeeping if needed.
+    const notModified = result as NotModifiedResult;
+    expect(notModified.fetchMetadata.etag).toBe(ETAG_V1);
+    // The server doesn't strip Last-Modified on 304, so it should be present.
+    expect(notModified.fetchMetadata.lastModified).toBe(LAST_MODIFIED_V1);
+    // No items field on a NotModifiedResult
+    expect(notModified).not.toHaveProperty("items");
   });
 
   it("returns notModified on second fetch with cached Last-Modified", async () => {
@@ -139,6 +147,10 @@ describe("YouTube parser with real RSS server", () => {
     );
 
     expect(result).toHaveProperty("notModified", true);
+    const notModified = result as NotModifiedResult;
+    expect(notModified.fetchMetadata.lastModified).toBe(LAST_MODIFIED_V1);
+    expect(notModified.fetchMetadata.etag).toBe(ETAG_V1);
+    expect(notModified).not.toHaveProperty("items");
   });
 
   it("returns full data when ETag does not match", async () => {

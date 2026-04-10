@@ -355,6 +355,7 @@ export const applicationViewSchema = createInsertSchema(views)
   .merge(
     z.object({
       categoryIds: z.array(z.number()),
+      feedIds: z.array(z.number()),
       isDefault: z.boolean(),
     }),
   )
@@ -379,6 +380,24 @@ export const viewCategories = sqliteTable(
 );
 export type DatabaseViewCategory = typeof viewCategories.$inferSelect;
 
+export const viewFeeds = sqliteTable(
+  "view_feeds",
+  {
+    viewId: integer("view_id")
+      .notNull()
+      .references(() => views.id, { onDelete: "cascade" }),
+    feedId: integer("feed_id")
+      .notNull()
+      .references(() => feeds.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.viewId, table.feedId] }),
+    index("view_feeds_view_id_idx").on(table.viewId),
+    index("view_feeds_feed_id_idx").on(table.feedId),
+  ],
+);
+export type DatabaseViewFeed = typeof viewFeeds.$inferSelect;
+
 export const createViewSchema = createInsertSchema(views)
   .omit({ userId: true })
   .merge(
@@ -390,6 +409,7 @@ export const createViewSchema = createInsertSchema(views)
       daysWindow: z.number().lte(30).optional(),
       placement: z.number().gte(-1).optional(),
       categoryIds: z.array(z.number()).optional(),
+      feedIds: z.array(z.number()).optional(),
     }),
   );
 
@@ -397,6 +417,7 @@ export const updateViewSchema = createUpdateSchema(views).merge(
   z.object({
     id: z.number(),
     categoryIds: z.array(z.number()),
+    feedIds: z.array(z.number()),
     contentType: viewContentTypeSchema.optional(),
     layout: viewLayoutSchema.optional(),
   }),

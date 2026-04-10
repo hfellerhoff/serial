@@ -200,6 +200,10 @@ export async function verifyUserCleanup(tursoPort: number, email: string) {
       sql: "SELECT count(*) as c FROM serial_view_categories WHERE view_id NOT IN (SELECT id FROM serial_views) OR category_id NOT IN (SELECT id FROM serial_content_categories)",
     },
     {
+      label: "view_feeds",
+      sql: "SELECT count(*) as c FROM serial_view_feeds WHERE view_id NOT IN (SELECT id FROM serial_views) OR feed_id NOT IN (SELECT id FROM serial_feed)",
+    },
+    {
       label: "user_config",
       sql: "SELECT count(*) as c FROM serial_user_config WHERE user_id NOT IN (SELECT id FROM serial_user)",
     },

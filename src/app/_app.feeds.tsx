@@ -9,11 +9,14 @@ import { YoutubeIcon } from "~/components/brand-icons";
 import { ViewCategoriesInput } from "~/components/AddViewDialog";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { useDialogStore } from "~/components/feed/dialogStore";
+import { FeedManagementTabs } from "~/components/feed/FeedManagementTabs";
+import { useFeedManagementShortcuts } from "~/components/feed/useManagementShortcuts";
 import { FeedEmptyState } from "~/components/feed/view-lists/EmptyStates";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
+import { ChipCombobox } from "~/components/ui/chip-combobox";
 import { Input } from "~/components/ui/input";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { Switch } from "~/components/ui/switch";
@@ -29,75 +32,14 @@ import {
   useSetFeedActiveMutation,
 } from "~/lib/data/feeds/mutations";
 import { useSubscription } from "~/lib/data/subscription";
-import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
-
-function useFeedManagementShortcuts({
-  onEscape,
-  onSelectAll,
-  onEditCategories,
-  onClearCategories,
-  onDelete,
-  isDialogOpen,
-  hasSelection,
-}: {
-  onEscape: () => void;
-  onSelectAll: () => void;
-  onEditCategories: () => void;
-  onClearCategories: () => void;
-  onDelete: () => void;
-  isDialogOpen: boolean;
-  hasSelection: boolean;
-}) {
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.repeat) return;
-      if (doesAnyFormElementHaveFocus()) return;
-
-      // Check if event originated from within a dialog
-      const target = event.target as HTMLElement;
-      const isInDialog = target.closest('[role="dialog"]') !== null;
-
-      switch (event.key) {
-        case "Escape":
-          if (!isDialogOpen && !isInDialog) {
-            onEscape();
-          }
-          break;
-        case "s":
-          if (!isDialogOpen) {
-            onSelectAll();
-          }
-          break;
-        case "e":
-          if (!isDialogOpen && hasSelection) {
-            onEditCategories();
-          }
-          break;
-        case "c":
-          if (!isDialogOpen && hasSelection) {
-            onClearCategories();
-          }
-          break;
-        case "d":
-          if (!isDialogOpen && hasSelection) {
-            onDelete();
-          }
-          break;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
-    hasSelection,
-    isDialogOpen,
-    onClearCategories,
-    onDelete,
-    onEditCategories,
-    onEscape,
-    onSelectAll,
-  ]);
-}
+import { useViews } from "~/lib/data/views";
+import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
+import { useQuickCreateViewMutation } from "~/lib/data/views/mutations";
+import { useViewFeeds } from "~/lib/data/view-feeds";
+import {
+  useBulkAssignViewFeedMutation,
+  useBulkRemoveViewFeedMutation,
+} from "~/lib/data/view-feeds/mutations";
 
 export const Route = createFileRoute("/_app/feeds")({
   component: ManageFeedsPage,
@@ -145,6 +87,8 @@ function ManageFeedsPage() {
   const { feeds } = useFeeds();
   const { feedCategories } = useFeedCategories();
   const { contentCategories } = useContentCategories();
+  const { views } = useViews();
+  const { viewFeeds } = useViewFeeds();
   const { launchDialog } = useDialogStore();
   const { billingEnabled, activeFeeds, maxActiveFeeds, planName } =
     useSubscription();
@@ -158,7 +102,7 @@ function ManageFeedsPage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const headerRef = useRef<HTMLHeadingElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -188,9 +132,9 @@ function ManageFeedsPage() {
     observer.observe(bottomRef.current);
     return () => observer.disconnect();
   }, []);
-  const [showEditCategoriesDialog, setShowEditCategoriesDialog] =
-    useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
+  const [selectedViewIds, setSelectedViewIds] = useState<number[]>([]);
 
   const { mutateAsync: bulkDeleteFeeds, isPending: isDeletingFeeds } =
     useBulkDeleteFeedsMutation();
@@ -198,6 +142,11 @@ function ManageFeedsPage() {
     useBulkAssignFeedCategoryMutation();
   const { mutateAsync: bulkRemoveCategory, isPending: isRemovingCategory } =
     useBulkRemoveFeedCategoryMutation();
+  const { mutateAsync: bulkAssignView, isPending: isAssigningView } =
+    useBulkAssignViewFeedMutation();
+  const { mutateAsync: bulkRemoveView, isPending: isRemovingView } =
+    useBulkRemoveViewFeedMutation();
+  const { mutateAsync: quickCreateView } = useQuickCreateViewMutation();
 
   const feedCategoriesMap = useMemo(() => {
     const map = new Map<number, number[]>();
@@ -209,6 +158,16 @@ function ManageFeedsPage() {
     return map;
   }, [feedCategories]);
 
+  const feedViewsMap = useMemo(() => {
+    const map = new Map<number, number[]>();
+    viewFeeds.forEach((vf) => {
+      const existing = map.get(vf.feedId) ?? [];
+      existing.push(vf.viewId);
+      map.set(vf.feedId, existing);
+    });
+    return map;
+  }, [viewFeeds]);
+
   const categoryNamesMap = useMemo(() => {
     const map = new Map<number, string>();
     contentCategories.forEach((c) => {
@@ -216,6 +175,22 @@ function ManageFeedsPage() {
     });
     return map;
   }, [contentCategories]);
+
+  const viewNamesMap = useMemo(() => {
+    const map = new Map<number, string>();
+    views
+      .filter((v) => v.id !== INBOX_VIEW_ID)
+      .forEach((v) => {
+        map.set(v.id, v.name);
+      });
+    return map;
+  }, [views]);
+
+  const customViewOptions = useMemo(() => {
+    return views
+      .filter((v) => v.id !== INBOX_VIEW_ID)
+      .map((v) => ({ id: v.id, label: v.name }));
+  }, [views]);
 
   const filteredFeeds = useMemo(() => {
     const sorted = [...feeds].sort((a, b) => a.name.localeCompare(b.name));
@@ -284,79 +259,112 @@ function ManageFeedsPage() {
     );
   };
 
-  const openEditCategoriesDialog = () => {
-    setSelectedCategoryIds(getSharedCategories());
-    setShowEditCategoriesDialog(true);
+  const getSharedViews = () => {
+    const feedIds = Array.from(selectedFeedIds);
+    if (feedIds.length === 0) return [];
+
+    const firstFeedViews = feedViewsMap.get(feedIds[0]!) ?? [];
+    return firstFeedViews.filter((viewId) =>
+      feedIds.every((feedId) => feedViewsMap.get(feedId)?.includes(viewId)),
+    );
   };
 
-  const handleClearCategories = () => {
+  const openEditDialog = () => {
+    setSelectedCategoryIds(getSharedCategories());
+    setSelectedViewIds(getSharedViews());
+    setShowEditDialog(true);
+  };
+
+  const handleClear = () => {
     const feedIds = Array.from(selectedFeedIds);
     const count = feedIds.length;
 
-    // Get all categories that any selected feed currently has
+    // Get all categories any selected feed currently has
     const allCurrentCategories = new Set<number>();
     feedIds.forEach((feedId) => {
       const categories = feedCategoriesMap.get(feedId) ?? [];
       categories.forEach((c) => allCurrentCategories.add(c));
     });
 
-    if (allCurrentCategories.size === 0) return;
+    // Get all views any selected feed currently has
+    const allCurrentViews = new Set<number>();
+    feedIds.forEach((feedId) => {
+      const views = feedViewsMap.get(feedId) ?? [];
+      views.forEach((v) => allCurrentViews.add(v));
+    });
 
-    const promises = Array.from(allCurrentCategories).map((categoryId) =>
-      bulkRemoveCategory({ feedIds, categoryId }),
-    );
+    if (allCurrentCategories.size === 0 && allCurrentViews.size === 0) return;
+
+    const promises: Array<Promise<void>> = [
+      ...Array.from(allCurrentCategories).map((categoryId) =>
+        bulkRemoveCategory({ feedIds, categoryId }),
+      ),
+      ...Array.from(allCurrentViews).map((viewId) =>
+        bulkRemoveView({ feedIds, viewId }),
+      ),
+    ];
 
     toast.promise(Promise.all(promises), {
-      loading: `Clearing categories from ${count} feed${count > 1 ? "s" : ""}...`,
-      success: `Cleared categories from ${count} feed${count > 1 ? "s" : ""}!`,
-      error: "Failed to clear categories",
+      loading: `Clearing ${count} feed${count > 1 ? "s" : ""}...`,
+      success: `Cleared ${count} feed${count > 1 ? "s" : ""}!`,
+      error: "Failed to clear feeds",
     });
   };
 
   useFeedManagementShortcuts({
     onEscape: deselectAll,
     onSelectAll: toggleSelectAll,
-    onEditCategories: openEditCategoriesDialog,
-    onClearCategories: handleClearCategories,
+    onEdit: openEditDialog,
+    onClear: handleClear,
     onDelete: () => setShowDeleteDialog(true),
-    isDialogOpen: showDeleteDialog || showEditCategoriesDialog,
+    isDialogOpen: showDeleteDialog || showEditDialog,
     hasSelection: selectedCount > 0,
   });
 
-  const handleEditCategories = () => {
+  const handleEditSave = () => {
     const feedIds = Array.from(selectedFeedIds);
     const count = feedIds.length;
     const sharedCategories = getSharedCategories();
-
-    // Categories to add: selected in dialog
-    const categoriesToAdd = selectedCategoryIds;
-
-    // Categories to remove: only those that ALL feeds have (shared) and are unchecked
-    const categoriesToRemove = sharedCategories.filter(
-      (id) => !selectedCategoryIds.includes(id),
-    );
+    const sharedViews = getSharedViews();
 
     const promises: Array<Promise<void>> = [];
 
+    // Categories
+    const categoriesToAdd = selectedCategoryIds;
+    const categoriesToRemove = sharedCategories.filter(
+      (id) => !selectedCategoryIds.includes(id),
+    );
     categoriesToAdd.forEach((categoryId) => {
       promises.push(bulkAssignCategory({ feedIds, categoryId }));
     });
-
     categoriesToRemove.forEach((categoryId) => {
       promises.push(bulkRemoveCategory({ feedIds, categoryId }));
     });
 
+    // Views
+    const viewsToAdd = selectedViewIds;
+    const viewsToRemove = sharedViews.filter(
+      (id) => !selectedViewIds.includes(id),
+    );
+    viewsToAdd.forEach((viewId) => {
+      promises.push(bulkAssignView({ feedIds, viewId }));
+    });
+    viewsToRemove.forEach((viewId) => {
+      promises.push(bulkRemoveView({ feedIds, viewId }));
+    });
+
     setSelectedCategoryIds([]);
-    setShowEditCategoriesDialog(false);
+    setSelectedViewIds([]);
+    setShowEditDialog(false);
 
     if (promises.length === 0) {
       return;
     }
 
     toast.promise(Promise.all(promises), {
-      loading: `Updating categories for ${count} feed${count > 1 ? "s" : ""}...`,
-      success: `Updated categories for ${count} feed${count > 1 ? "s" : ""}!`,
-      error: "Failed to update categories",
+      loading: `Updating ${count} feed${count > 1 ? "s" : ""}...`,
+      success: `Updated ${count} feed${count > 1 ? "s" : ""}!`,
+      error: "Failed to update feeds",
     });
   };
 
@@ -364,7 +372,7 @@ function ManageFeedsPage() {
     return (
       <div className="mx-auto max-w-3xl p-6">
         <div className="flex items-center justify-between">
-          <h2 className="font-sans text-lg">Manage Feeds</h2>
+          <FeedManagementTabs value="feeds" />
           <Button
             variant="outline"
             size="icon"
@@ -380,14 +388,12 @@ function ManageFeedsPage() {
 
   return (
     <div>
-      <div className="mx-auto max-w-3xl px-6 pt-6">
+      <div ref={headerRef} className="mx-auto max-w-3xl px-6 pt-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 ref={headerRef} className="font-sans text-lg">
-              Manage Feeds
-            </h2>
+            <FeedManagementTabs value="feeds" />
             {billingEnabled && maxActiveFeeds > 0 && (
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground mt-1 text-sm">
                 {activeFeeds} / {maxActiveFeeds} feeds active
               </p>
             )}
@@ -459,7 +465,20 @@ function ManageFeedsPage() {
         <div className="-mx-3">
           {filteredFeeds.map((feed) => {
             const isSelected = selectedFeedIds.has(feed.id);
-            const feedCategoryIds = feedCategoriesMap.get(feed.id) ?? [];
+            const feedCategoryIds = (feedCategoriesMap.get(feed.id) ?? [])
+              .slice()
+              .sort((a, b) =>
+                (categoryNamesMap.get(a) ?? "").localeCompare(
+                  categoryNamesMap.get(b) ?? "",
+                ),
+              );
+            const feedViewIds = (feedViewsMap.get(feed.id) ?? [])
+              .slice()
+              .sort((a, b) =>
+                (viewNamesMap.get(a) ?? "").localeCompare(
+                  viewNamesMap.get(b) ?? "",
+                ),
+              );
 
             return (
               <button
@@ -482,16 +501,33 @@ function ManageFeedsPage() {
                   platform={feed.platform}
                 />
                 <span className="line-clamp-1 flex-1">{feed.name}</span>
-                <div className="flex flex-wrap gap-1">
-                  {feedCategoryIds.map((categoryId) => {
-                    const categoryName = categoryNamesMap.get(categoryId);
-                    if (!categoryName) return null;
-                    return (
-                      <Badge key={categoryId} variant="outline">
-                        {categoryName}
-                      </Badge>
-                    );
-                  })}
+                <div className="flex flex-wrap items-center gap-3">
+                  {feedCategoryIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {feedCategoryIds.map((categoryId) => {
+                        const categoryName = categoryNamesMap.get(categoryId);
+                        if (!categoryName) return null;
+                        return (
+                          <Badge key={`cat-${categoryId}`} variant="outline">
+                            {categoryName}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {feedViewIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {feedViewIds.map((viewId) => {
+                        const viewName = viewNamesMap.get(viewId);
+                        if (!viewName) return null;
+                        return (
+                          <Badge key={`view-${viewId}`} variant="secondary">
+                            {viewName}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
                 <Switch
                   checked={feed.isActive}
@@ -534,19 +570,24 @@ function ManageFeedsPage() {
             <div className="flex gap-2">
               <ButtonWithShortcut
                 variant="outline"
-                onClick={openEditCategoriesDialog}
-                disabled={isAssigningCategory || isRemovingCategory}
+                onClick={openEditDialog}
+                disabled={
+                  isAssigningCategory ||
+                  isRemovingCategory ||
+                  isAssigningView ||
+                  isRemovingView
+                }
                 shortcut="e"
               >
-                Edit Categories
+                Edit
               </ButtonWithShortcut>
               <ButtonWithShortcut
                 variant="outline"
-                onClick={handleClearCategories}
-                disabled={isRemovingCategory}
+                onClick={handleClear}
+                disabled={isRemovingCategory || isRemovingView}
                 shortcut="c"
               >
-                Clear Categories
+                Clear
               </ButtonWithShortcut>
             </div>
             <ButtonWithShortcut
@@ -588,12 +629,33 @@ function ManageFeedsPage() {
       </ControlledResponsiveDialog>
 
       <ControlledResponsiveDialog
-        open={showEditCategoriesDialog}
-        onOpenChange={setShowEditCategoriesDialog}
-        title="Edit Categories"
-        description={`Select categories for ${selectedCount} feed${selectedCount > 1 ? "s" : ""}.`}
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        title="Edit Feeds"
+        description={`Edit ${selectedCount} feed${selectedCount > 1 ? "s" : ""}.`}
       >
         <div className="grid gap-4">
+          <ChipCombobox
+            label="Views"
+            placeholder="Search views..."
+            options={customViewOptions}
+            selectedIds={selectedViewIds}
+            onAdd={(id) => setSelectedViewIds([...selectedViewIds, id])}
+            onRemove={(id) =>
+              setSelectedViewIds(selectedViewIds.filter((v) => v !== id))
+            }
+            onCreate={async (name) => {
+              try {
+                const created = await quickCreateView({ name });
+                if (created) {
+                  setSelectedViewIds([...selectedViewIds, created.id]);
+                }
+              } catch {
+                toast.error("Failed to create view.");
+              }
+            }}
+            createLabel="Create view"
+          />
           <ViewCategoriesInput
             selectedCategories={selectedCategoryIds}
             setSelectedCategories={setSelectedCategoryIds}
@@ -602,16 +664,26 @@ function ManageFeedsPage() {
             <Button
               variant="outline"
               className="flex-1"
-              onClick={() => setShowEditCategoriesDialog(false)}
+              onClick={() => setShowEditDialog(false)}
             >
               Cancel
             </Button>
             <Button
               className="flex-1"
-              onClick={handleEditCategories}
-              disabled={isAssigningCategory || isRemovingCategory}
+              onClick={handleEditSave}
+              disabled={
+                isAssigningCategory ||
+                isRemovingCategory ||
+                isAssigningView ||
+                isRemovingView
+              }
             >
-              {isAssigningCategory || isRemovingCategory ? "Saving..." : "Save"}
+              {isAssigningCategory ||
+              isRemovingCategory ||
+              isAssigningView ||
+              isRemovingView
+                ? "Saving..."
+                : "Save"}
             </Button>
           </div>
         </div>

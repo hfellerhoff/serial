@@ -198,7 +198,7 @@ describe("fetchAndInsertFeedData with real RSS server", () => {
   it("skips insert on second fetch when Last-Modified matches (304)", async () => {
     setServerContent("v1");
     const feed = makeFeed({ lastModifiedHeader: LAST_MODIFIED_V1 });
-    const { db, insertValuesCalls } = createMockDb();
+    const { db, insertValuesCalls, updateSetCalls } = createMockDb();
 
     const results: Array<{ status: string }> = [];
     for await (const result of fetchAndInsertFeedData({ db: db as any }, [
@@ -207,9 +207,18 @@ describe("fetchAndInsertFeedData with real RSS server", () => {
       results.push(result);
     }
 
+    expect(results).toHaveLength(1);
     expect(results[0]!.status).toBe("skipped");
     expect(db.insert).not.toHaveBeenCalled();
     expect(insertValuesCalls).toHaveLength(0);
+
+    // Mirror the etag-version assertions: update should bump fetch
+    // bookkeeping but NOT overwrite the cached header fields.
+    const feedUpdate = updateSetCalls[0] as Record<string, unknown>;
+    expect(feedUpdate).toHaveProperty("lastFetchedAt");
+    expect(feedUpdate).toHaveProperty("nextFetchAt");
+    expect(feedUpdate).not.toHaveProperty("etag");
+    expect(feedUpdate).not.toHaveProperty("lastModifiedHeader");
   });
 
   it("full lifecycle: first fetch inserts, second fetch skips", async () => {
@@ -242,7 +251,7 @@ describe("fetchAndInsertFeedData with real RSS server", () => {
   it("re-fetches when stale etag does not match", async () => {
     setServerContent("v1");
     const feed = makeFeed({ etag: '"outdated-etag"' });
-    const { db } = createMockDb();
+    const { db, insertValuesCalls, updateSetCalls } = createMockDb();
 
     const results: Array<{ status: string }> = [];
     for await (const result of fetchAndInsertFeedData({ db: db as any }, [
@@ -251,8 +260,17 @@ describe("fetchAndInsertFeedData with real RSS server", () => {
       results.push(result);
     }
 
+    expect(results).toHaveLength(1);
     expect(results[0]!.status).toBe("success");
     expect(db.insert).toHaveBeenCalled();
+    // All 14 items from the v1 fixture should have been inserted
+    expect(insertValuesCalls).toHaveLength(1);
+    expect((insertValuesCalls[0] as unknown[]).length).toBe(14);
+
+    // The feed update should overwrite the stale etag with the fresh one
+    const feedUpdate = updateSetCalls[0] as Record<string, unknown>;
+    expect(feedUpdate.etag).toBe(ETAG_V1);
+    expect(feedUpdate.lastModifiedHeader).toBe(LAST_MODIFIED_V1);
   });
 });
 
@@ -437,9 +455,10 @@ describe("fetchAndInsertFeedData content diffing", () => {
     }
 
     // Simulate a stale DB entry by using a hash that doesn't match
-    const existingItems = (
-      firstInsert[0] as Array<Record<string, unknown>>
-    ).map((item) => ({
+    const insertedItems = firstInsert[0] as Array<Record<string, unknown>>;
+    const staleItemUrl = insertedItems[0]!.url as string;
+    const freshHash = insertedItems[0]!.contentHash as string;
+    const existingItems = insertedItems.map((item) => ({
       url: item.url as string,
       contentHash: item.contentHash as string,
     }));
@@ -457,6 +476,11 @@ describe("fetchAndInsertFeedData content diffing", () => {
 
     expect(db2.insert).toHaveBeenCalled();
     expect(secondInsert).toHaveLength(1);
-    expect((secondInsert[0] as unknown[]).length).toBe(1);
+    const upserted = secondInsert[0] as Array<Record<string, unknown>>;
+    expect(upserted).toHaveLength(1);
+    // Verify the upserted item is *the one whose hash diverged*, and that
+    // it's being upserted with the fresh content hash (not the stale one).
+    expect(upserted[0]!.url).toBe(staleItemUrl);
+    expect(upserted[0]!.contentHash).toBe(freshHash);
   });
 });

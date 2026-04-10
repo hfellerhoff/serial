@@ -4,10 +4,12 @@ import { INBOX_VIEW_ID, INBOX_VIEW_PLACEMENT, useUpdateViewFilter } from ".";
 import type { ApplicationView } from "~/server/db/schema";
 import { orpc } from "~/lib/orpc";
 import { useRevalidateView } from "~/lib/data/store";
+import { useFetchViewFeeds } from "~/lib/data/view-feeds/store";
 
 export function useCreateViewMutation() {
   const setViews = useSetViews();
   const fetchViews = useFetchViews();
+  const fetchViewFeeds = useFetchViewFeeds();
   const revalidateView = useRevalidateView();
   const updateViewFilter = useUpdateViewFilter();
 
@@ -16,6 +18,7 @@ export function useCreateViewMutation() {
       onSuccess: async (createdView) => {
         setViews([]);
         await fetchViews();
+        await fetchViewFeeds();
 
         if (createdView) {
           await revalidateView(createdView.id);
@@ -26,15 +29,37 @@ export function useCreateViewMutation() {
   );
 }
 
+/**
+ * Like useCreateViewMutation but does not switch the active view filter.
+ * Use when creating a view inline (e.g. from a combobox in another dialog).
+ */
+export function useQuickCreateViewMutation() {
+  const setViews = useSetViews();
+  const fetchViews = useFetchViews();
+  const fetchViewFeeds = useFetchViewFeeds();
+
+  return useMutation(
+    orpc.view.create.mutationOptions({
+      onSuccess: async () => {
+        setViews([]);
+        await fetchViews();
+        await fetchViewFeeds();
+      },
+    }),
+  );
+}
+
 export function useEditViewMutation() {
   const setViews = useSetViews();
   const fetchViews = useFetchViews();
+  const fetchViewFeeds = useFetchViewFeeds();
 
   return useMutation(
     orpc.view.update.mutationOptions({
       onSuccess: async () => {
         setViews([]);
         await fetchViews();
+        await fetchViewFeeds();
       },
     }),
   );
@@ -43,6 +68,7 @@ export function useEditViewMutation() {
 export function useDeleteViewMutation() {
   const setViews = useSetViews();
   const fetchViews = useFetchViews();
+  const fetchViewFeeds = useFetchViewFeeds();
   const updateViewFilter = useUpdateViewFilter();
 
   return useMutation(
@@ -50,6 +76,7 @@ export function useDeleteViewMutation() {
       onSuccess: async () => {
         setViews([]);
         await fetchViews();
+        await fetchViewFeeds();
         updateViewFilter(INBOX_VIEW_ID, viewsStore.getState().views);
       },
     }),

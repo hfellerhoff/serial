@@ -1,18 +1,22 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
+import { ChevronRightIcon, DownloadIcon, Trash2Icon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useDialogStore } from "../dialogStore";
 import { DeleteAccountSection } from "./DeleteAccountSection";
+import { ExportDataSection } from "./ExportDataSection";
 import { EditableSavableTextField } from "~/components/form/EditableSavableTextField";
+import { Button } from "~/components/ui/button";
+import { Label } from "~/components/ui/label";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { authClient } from "~/lib/auth-client";
-
 import { useUpdateEmailMutation } from "~/lib/data/user/useUpdateEmailMutation";
 import { useUpdateNameMutation } from "~/lib/data/user/useUpdateNameMutation";
 import { userEmailSchema, userNameSchema } from "~/server/api/schemas";
-import { Button } from "~/components/ui/button";
-import { Label } from "~/components/ui/label";
 import { AUTH_RESET_PASSWORD_URL } from "~/server/auth/constants";
+
+type SettingsPane = "main" | "export" | "delete";
 
 export function UserProfileEditDialog() {
   const { data, refetch: refetchUser } = authClient.useSession();
@@ -22,14 +26,53 @@ export function UserProfileEditDialog() {
   const { mutateAsync: updateName } = useUpdateNameMutation();
   const { mutateAsync: updateEmail } = useUpdateEmailMutation();
 
+  const [pane, setPane] = useState<SettingsPane>("main");
+
+  const isOpen = dialog === "edit-user-profile";
+
+  // Reset to main pane whenever the dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setPane("main");
+    }
+  }, [isOpen]);
+
   const userEmail = data?.user.email ?? "";
+
+  if (pane === "export") {
+    return (
+      <ControlledResponsiveDialog
+        open={isOpen}
+        onOpenChange={onOpenChange}
+        title="Export Data"
+        description="Download your feeds as an OPML file."
+        onBack={() => setPane("main")}
+      >
+        <ExportDataSection />
+      </ControlledResponsiveDialog>
+    );
+  }
+
+  if (pane === "delete") {
+    return (
+      <ControlledResponsiveDialog
+        open={isOpen}
+        onOpenChange={onOpenChange}
+        title="Delete Account"
+        description="Permanently delete your account and all associated data."
+        onBack={() => setPane("main")}
+      >
+        <DeleteAccountSection />
+      </ControlledResponsiveDialog>
+    );
+  }
 
   return (
     <ControlledResponsiveDialog
-      open={dialog === "edit-user-profile"}
+      open={isOpen}
       onOpenChange={onOpenChange}
-      title="Edit Profile"
-      description="Update your profile information"
+      title="Settings"
+      description="Manage your account and your data"
     >
       <div className="grid gap-6">
         <EditableSavableTextField
@@ -66,8 +109,31 @@ export function UserProfileEditDialog() {
             </Link>
           </Button>
         </div>
-        <hr />
-        <DeleteAccountSection />
+        <div className="grid gap-2">
+          <Label>Data</Label>
+          <Button
+            variant="outline"
+            className="justify-between"
+            onClick={() => setPane("export")}
+          >
+            <span className="flex items-center">
+              <DownloadIcon size={16} />
+              <span className="pl-1.5">Export Data</span>
+            </span>
+            <ChevronRightIcon size={16} />
+          </Button>
+          <Button
+            variant="outline"
+            className="justify-between"
+            onClick={() => setPane("delete")}
+          >
+            <span className="flex items-center">
+              <Trash2Icon size={16} />
+              <span className="pl-1.5">Delete Account</span>
+            </span>
+            <ChevronRightIcon size={16} />
+          </Button>
+        </div>
       </div>
     </ControlledResponsiveDialog>
   );

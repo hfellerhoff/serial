@@ -92,8 +92,20 @@ test.describe("feed limit on self-hosted (no limit)", () => {
       page.locator("button").filter({ hasText: "Test Feed" }).first(),
     ).toBeVisible({ timeout: 15000 });
 
+    // Self-hosted has no billing, so the "X / Y feeds active" counter and
+    // "Max active feeds reached" alert should never appear.
+    await expect(page.getByText(/feeds active/)).toHaveCount(0);
+    await expect(page.getByText("Max active feeds reached")).toHaveCount(0);
+
     // No inactive feed rows
     const inactiveFeedRows = page.locator("button.opacity-50");
     await expect(inactiveFeedRows).toHaveCount(0, { timeout: 10000 });
+
+    // Verify all 110 feed rows are present in the main list
+    const allFeedRows = page
+      .locator("main")
+      .locator("button")
+      .filter({ hasText: /^Test Feed \d+/ });
+    await expect(allFeedRows).toHaveCount(TOTAL_FEEDS, { timeout: 15000 });
   });
 });

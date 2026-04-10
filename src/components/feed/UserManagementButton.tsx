@@ -127,7 +127,7 @@ export function UserManagementNavItem() {
                 launchDialog("edit-user-profile");
               }}
             >
-              Edit Profile
+              Settings
             </Button>
           </ResponsiveDropdownMenuItem>
           <ResponsiveDropdownMenuItem asChild>

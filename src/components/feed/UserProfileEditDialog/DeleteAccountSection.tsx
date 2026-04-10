@@ -3,7 +3,6 @@ import { useState } from "react";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
 import { useDeleteAccountMutation } from "~/lib/data/user/useDeleteAccountMutation";
 
 function DeleteAccountInitialSection({
@@ -82,8 +81,7 @@ export function DeleteAccountSection() {
   const [isConfirmation, setIsConfirmation] = useState(false);
 
   return (
-    <div className="grid gap-2">
-      <Label>Delete Account</Label>
+    <div className="grid gap-3">
       {!isConfirmation && (
         <DeleteAccountInitialSection
           onClickDelete={() => {
