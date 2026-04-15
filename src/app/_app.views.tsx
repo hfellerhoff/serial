@@ -101,8 +101,18 @@ function ManageViewsPage() {
     );
     if (!searchQuery.trim()) return sorted;
     const q = searchQuery.toLowerCase();
-    return sorted.filter((v) => v.name.toLowerCase().includes(q));
-  }, [customViews, searchQuery]);
+    const matches = (name: string | undefined) =>
+      !!name && name.toLowerCase().includes(q);
+
+    return sorted.filter((v) => {
+      if (matches(v.name)) return true;
+      if (v.feedIds.some((id) => matches(feedNamesMap.get(id)))) return true;
+      if (v.categoryIds.some((id) => matches(categoryNamesMap.get(id)))) {
+        return true;
+      }
+      return false;
+    });
+  }, [customViews, searchQuery, feedNamesMap, categoryNamesMap]);
 
   const selectedCount = selectedViewIds.size;
   const allSelected =

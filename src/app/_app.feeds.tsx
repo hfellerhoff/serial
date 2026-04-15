@@ -197,10 +197,32 @@ function ManageFeedsPage() {
     if (!searchQuery.trim()) return sorted;
 
     const lowercaseQuery = searchQuery.toLowerCase();
-    return sorted.filter((feed) =>
-      feed.name.toLowerCase().includes(lowercaseQuery),
-    );
-  }, [feeds, searchQuery]);
+    const matches = (name: string | undefined) =>
+      !!name && name.toLowerCase().includes(lowercaseQuery);
+
+    return sorted.filter((feed) => {
+      if (matches(feed.name)) return true;
+
+      const categoryIds = feedCategoriesMap.get(feed.id);
+      if (categoryIds?.some((id) => matches(categoryNamesMap.get(id)))) {
+        return true;
+      }
+
+      const viewIds = feedViewsMap.get(feed.id);
+      if (viewIds?.some((id) => matches(viewNamesMap.get(id)))) {
+        return true;
+      }
+
+      return false;
+    });
+  }, [
+    feeds,
+    searchQuery,
+    feedCategoriesMap,
+    feedViewsMap,
+    categoryNamesMap,
+    viewNamesMap,
+  ]);
 
   const selectedCount = selectedFeedIds.size;
   const allSelected =

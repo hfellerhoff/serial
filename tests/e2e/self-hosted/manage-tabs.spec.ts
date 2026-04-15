@@ -298,6 +298,108 @@ test.describe("manage feeds/views/tags tabs", () => {
     ).toBeVisible({ timeout: 10000 });
   });
 
+  test("search on /feeds, /views, /tags matches attached entities", async ({
+    page,
+  }) => {
+    test.setTimeout(120000);
+
+    const { email, password } = await seedArticleData(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+      SELF_HOSTED_RSS_SERVER_PORT,
+    );
+    testEmail = email;
+
+    await signIn({ page, email, password });
+    await expect(page.locator("article").first()).toBeVisible({
+      timeout: 30000,
+    });
+
+    const dialog = page.locator('[role="dialog"]');
+
+    // Create a tag "Alpha Tag" attached to the seeded "Test Blog" feed
+    await page.goto("/tags");
+    await expect(
+      page.getByRole("tab", { name: /tags/i, selected: true }),
+    ).toBeVisible({ timeout: 10000 });
+    await pressShortcutForDialog(page, "a", "Add Tag");
+    await dialog
+      .locator('input[placeholder="My Tag"]')
+      .pressSequentially("Alpha Tag", { delay: 30 });
+    const tagFeedsLabel = dialog.getByText("Feeds", { exact: true });
+    await expect(tagFeedsLabel).toBeVisible({ timeout: 3000 });
+    await tagFeedsLabel.locator("..").locator("button").first().click();
+    await page.waitForTimeout(500);
+    const tagFeedOption = page.getByRole("option").first();
+    await expect(tagFeedOption).toBeVisible({ timeout: 3000 });
+    await tagFeedOption.click({ force: true });
+    await page.waitForTimeout(300);
+    await dialog.getByRole("heading", { name: "Add Tag" }).click();
+    await dialog.getByRole("button", { name: /add tag/i }).click();
+    await expect(page.getByText("Tag created!")).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Create a view "Beta View" attached to the seeded "Test Blog" feed
+    await pressShortcutForUrl(page, "2", /\/views$/);
+    await pressShortcutForDialog(page, "a", "Add View");
+    await dialog
+      .locator('input[placeholder="My View"]')
+      .pressSequentially("Beta View", { delay: 30 });
+    const viewFeedsLabel = dialog.getByText("Feeds", { exact: true });
+    await expect(viewFeedsLabel).toBeVisible({ timeout: 3000 });
+    await viewFeedsLabel.locator("..").locator("button").first().click();
+    await page.waitForTimeout(500);
+    const viewFeedOption = page.getByRole("option").first();
+    await expect(viewFeedOption).toBeVisible({ timeout: 3000 });
+    await viewFeedOption.click({ force: true });
+    await page.waitForTimeout(300);
+    await dialog.getByRole("heading", { name: "Add View" }).click();
+    await dialog.getByRole("button", { name: /add view/i }).click();
+    await expect(page.getByText("View added!")).toBeVisible({ timeout: 10000 });
+
+    const mainContent = page.locator("main main");
+
+    // /feeds: search by the attached tag's name surfaces "Test Blog"
+    await pressShortcutForUrl(page, "1", /\/feeds$/);
+    const feedsSearch = page.getByPlaceholder("Search feeds...");
+    await expect(feedsSearch).toBeVisible({ timeout: 10000 });
+    await feedsSearch.fill("Alpha");
+    await expect(
+      mainContent.getByText("Test Blog", { exact: true }),
+    ).toBeVisible({ timeout: 5000 });
+
+    // /feeds: search by the attached view's name surfaces "Test Blog"
+    await feedsSearch.fill("Beta");
+    await expect(
+      mainContent.getByText("Test Blog", { exact: true }),
+    ).toBeVisible({ timeout: 5000 });
+
+    // /feeds: query matching nothing hides all feeds
+    await feedsSearch.fill("zzz_no_match");
+    await expect(
+      mainContent.getByText("Test Blog", { exact: true }),
+    ).toHaveCount(0, { timeout: 5000 });
+
+    // /views: search by the attached feed's name surfaces "Beta View"
+    await pressShortcutForUrl(page, "2", /\/views$/);
+    const viewsSearch = page.getByPlaceholder("Search views...");
+    await expect(viewsSearch).toBeVisible({ timeout: 10000 });
+    await viewsSearch.fill("Test Blog");
+    await expect(
+      mainContent.getByText("Beta View", { exact: true }),
+    ).toBeVisible({ timeout: 5000 });
+
+    // /tags: search by the attached feed's name surfaces "Alpha Tag"
+    await pressShortcutForUrl(page, "3", /\/tags$/);
+    const tagsSearch = page.getByPlaceholder("Search tags...");
+    await expect(tagsSearch).toBeVisible({ timeout: 10000 });
+    await tagsSearch.fill("Test Blog");
+    await expect(
+      mainContent.getByText("Alpha Tag", { exact: true }),
+    ).toBeVisible({ timeout: 5000 });
+  });
+
   test("bulk assign feeds to multiple tags from /tags", async ({ page }) => {
     test.setTimeout(120000);
 

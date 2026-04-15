@@ -24,6 +24,8 @@ import {
 } from "~/lib/data/content-categories/mutations";
 import { useFeedCategories } from "~/lib/data/feed-categories";
 import { useFeeds } from "~/lib/data/feeds";
+import { useViews } from "~/lib/data/views";
+import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 
 export const Route = createFileRoute("/_app/tags")({
@@ -34,6 +36,7 @@ function ManageTagsPage() {
   const { contentCategories } = useContentCategories();
   const { feedCategories } = useFeedCategories();
   const { feeds } = useFeeds();
+  const { views } = useViews();
   const { launchDialog } = useDialogStore();
   useShortcut("a", (event) => {
     event.preventDefault();
@@ -91,14 +94,57 @@ function ManageTagsPage() {
     return map;
   }, [feedCategories]);
 
+  const tagViewsMap = useMemo(() => {
+    const map = new Map<number, number[]>();
+    views.forEach((v) => {
+      if (v.id === INBOX_VIEW_ID) return;
+      v.categoryIds.forEach((categoryId) => {
+        const existing = map.get(categoryId) ?? [];
+        existing.push(v.id);
+        map.set(categoryId, existing);
+      });
+    });
+    return map;
+  }, [views]);
+
+  const viewNamesMap = useMemo(() => {
+    const map = new Map<number, string>();
+    views
+      .filter((v) => v.id !== INBOX_VIEW_ID)
+      .forEach((v) => {
+        map.set(v.id, v.name);
+      });
+    return map;
+  }, [views]);
+
   const filteredTags = useMemo(() => {
     const sorted = [...contentCategories].sort((a, b) =>
       a.name.localeCompare(b.name),
     );
     if (!searchQuery.trim()) return sorted;
     const q = searchQuery.toLowerCase();
-    return sorted.filter((c) => c.name.toLowerCase().includes(q));
-  }, [contentCategories, searchQuery]);
+    const matches = (name: string | undefined) =>
+      !!name && name.toLowerCase().includes(q);
+
+    return sorted.filter((c) => {
+      if (matches(c.name)) return true;
+
+      const feedIds = tagFeedsMap.get(c.id);
+      if (feedIds?.some((id) => matches(feedNamesMap.get(id)))) return true;
+
+      const viewIds = tagViewsMap.get(c.id);
+      if (viewIds?.some((id) => matches(viewNamesMap.get(id)))) return true;
+
+      return false;
+    });
+  }, [
+    contentCategories,
+    searchQuery,
+    tagFeedsMap,
+    tagViewsMap,
+    feedNamesMap,
+    viewNamesMap,
+  ]);
 
   const selectedCount = selectedTagIds.size;
   const allSelected =
