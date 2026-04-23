@@ -517,26 +517,7 @@ export function EditViewDialog({
       open={selectedViewId !== null}
       onOpenChange={onClose}
       title="Edit View"
-    >
-      <div className="grid gap-6">
-        <ViewNameInput name={name} setName={setName} />
-        <ViewFeedsInput
-          selectedFeedIds={selectedFeedIds}
-          setSelectedFeedIds={setSelectedFeedIds}
-        />
-        <ViewCategoriesInput
-          selectedCategories={selectedCategories}
-          setSelectedCategories={setSelectedCategories}
-        />
-        <ViewTimeInput
-          daysWindow={daysTimeWindow}
-          setDaysWindow={setDaysTimeWindow}
-        />
-        <ViewContentTypeInput
-          contentType={contentType}
-          setContentType={setContentType}
-        />
-        <ViewLayoutInput layout={layout} setLayout={setLayout} />
+      footer={
         <div className="flex gap-2">
           <Button
             disabled={isDeletingView}
@@ -607,6 +588,27 @@ export function EditViewDialog({
             {isUpdatingView ? "Saving..." : "Save"}
           </Button>
         </div>
+      }
+    >
+      <div className="grid gap-6">
+        <ViewNameInput name={name} setName={setName} />
+        <ViewFeedsInput
+          selectedFeedIds={selectedFeedIds}
+          setSelectedFeedIds={setSelectedFeedIds}
+        />
+        <ViewCategoriesInput
+          selectedCategories={selectedCategories}
+          setSelectedCategories={setSelectedCategories}
+        />
+        <ViewTimeInput
+          daysWindow={daysTimeWindow}
+          setDaysWindow={setDaysTimeWindow}
+        />
+        <ViewContentTypeInput
+          contentType={contentType}
+          setContentType={setContentType}
+        />
+        <ViewLayoutInput layout={layout} setLayout={setLayout} />
       </div>
     </ControlledResponsiveDialog>
   );

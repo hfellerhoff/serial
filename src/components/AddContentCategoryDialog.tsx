@@ -285,13 +285,7 @@ export function EditContentCategoryDialog({
       open={selectedContentCategoryId !== null}
       onOpenChange={onClose}
       title="Edit Tag"
-    >
-      <div className="grid gap-6">
-        <CategoryNameInput name={name} setName={setName} />
-        <CategoryFeedsInput
-          selectedFeedIds={selectedFeedIds}
-          setSelectedFeedIds={setSelectedFeedIds}
-        />
+      footer={
         <div className="flex gap-2">
           <Button
             disabled={isDeletingContentCategory}
@@ -364,6 +358,14 @@ export function EditContentCategoryDialog({
             {isUpdatingContentCategory ? "Saving..." : "Save"}
           </Button>
         </div>
+      }
+    >
+      <div className="grid gap-6">
+        <CategoryNameInput name={name} setName={setName} />
+        <CategoryFeedsInput
+          selectedFeedIds={selectedFeedIds}
+          setSelectedFeedIds={setSelectedFeedIds}
+        />
       </div>
     </ControlledResponsiveDialog>
   );

@@ -52,9 +52,10 @@ Serial takes a model of progressive enhancement for features. The app can run wi
 
 ### Email support (for password reset, etc)
 
-- Create an account on [Sendgrid](https://sendgrid.com/en-us)
-- Set up a mailing address
-- Add your `SENDGRID_API_KEY` to `.env` or your host's environment variables UI.
+Serial supports [Resend](https://resend.com) and [SendGrid](https://sendgrid.com/en-us) as email providers. Only one is used at a time — if both keys are set, Resend takes priority.
+
+- **Resend**: Create an account, add your `RESEND_API_KEY` to `.env` or your host's environment variables UI.
+- **SendGrid**: Create an account, set up a mailing address, add your `SENDGRID_API_KEY` to `.env` or your host's environment variables UI.
 
 ### Instapaper integration
 

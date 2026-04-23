@@ -23,6 +23,7 @@ export const Route = createFileRoute("/welcome")({
 
 function RouteComponent() {
   const { mostRecentRelease } = Route.useLoaderData();
+  const supportEmail = import.meta.env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS;
 
   return (
     <main className="bg-background text-pretty">
@@ -187,17 +188,16 @@ function RouteComponent() {
           </div>
         </section>
       </div>
-      <section className="space-y-2 px-6 py-16 text-center">
-        <p className="text-lg">
-          Have a question? Reach us at{" "}
-          <a
-            href="mailto:hey@serial.tube?subject=Question%20about%20serial.tube"
-            className="underline"
-          >
-            hey@serial.tube
-          </a>
-        </p>
-      </section>
+      {supportEmail && (
+        <section className="space-y-2 px-6 py-16 text-center">
+          <p className="text-lg">
+            Have a question? Reach us at{" "}
+            <a href={`mailto:${supportEmail}`} className="underline">
+              {supportEmail}
+            </a>
+          </p>
+        </section>
+      )}
     </main>
   );
 }

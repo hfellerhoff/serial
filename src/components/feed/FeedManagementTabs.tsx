@@ -30,23 +30,35 @@ export function FeedManagementTabs({ value }: { value: FeedManagementTab }) {
 
   return (
     <Tabs value={value}>
-      <TabsList variant="line">
+      <TabsList variant="pill">
         <TabsTrigger value="feeds" asChild>
           <Link to="/feeds">
             Feeds
-            <KeyboardShortcutDisplay shortcut="1" position="right" />
+            <KeyboardShortcutDisplay
+              shortcut="1"
+              position="right"
+              isActive={value === "feeds"}
+            />
           </Link>
         </TabsTrigger>
         <TabsTrigger value="views" asChild>
           <Link to="/views">
             Views
-            <KeyboardShortcutDisplay shortcut="2" position="right" />
+            <KeyboardShortcutDisplay
+              shortcut="2"
+              position="right"
+              isActive={value === "views"}
+            />
           </Link>
         </TabsTrigger>
         <TabsTrigger value="tags" asChild>
           <Link to="/tags">
             Tags
-            <KeyboardShortcutDisplay shortcut="3" position="right" />
+            <KeyboardShortcutDisplay
+              shortcut="3"
+              position="right"
+              isActive={value === "tags"}
+            />
           </Link>
         </TabsTrigger>
       </TabsList>

@@ -21,6 +21,9 @@ export default tseslint.config(
   ...reactConfigs,
   ...fixupConfigRules([jsxA11yPlugin.flatConfigs.recommended]),
   {
+    plugins: {
+      "@typescript-eslint": tseslint.plugin,
+    },
     settings: {
       react: {
         version: "detect",

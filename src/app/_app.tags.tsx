@@ -26,6 +26,7 @@ import { useFeedCategories } from "~/lib/data/feed-categories";
 import { useFeeds } from "~/lib/data/feeds";
 import { useViews } from "~/lib/data/views";
 import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
+import { useShiftSelect } from "~/lib/hooks/useShiftSelect";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 
 export const Route = createFileRoute("/_app/tags")({
@@ -146,18 +147,15 @@ function ManageTagsPage() {
     viewNamesMap,
   ]);
 
+  const filteredTagIds = useMemo(
+    () => filteredTags.map((t) => t.id),
+    [filteredTags],
+  );
+  const handleTagSelect = useShiftSelect(filteredTagIds, setSelectedTagIds);
+
   const selectedCount = selectedTagIds.size;
   const allSelected =
     filteredTags.length > 0 && selectedCount === filteredTags.length;
-
-  const toggleTagSelection = (tagId: number) => {
-    setSelectedTagIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(tagId)) next.delete(tagId);
-      else next.add(tagId);
-      return next;
-    });
-  };
 
   const selectAll = () =>
     setSelectedTagIds(new Set(filteredTags.map((t) => t.id)));
@@ -299,12 +297,12 @@ function ManageTagsPage() {
                 type="button"
                 key={tag.id}
                 className="hover:bg-muted/50 flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-3 text-left transition-colors"
-                onClick={() => toggleTagSelection(tag.id)}
+                onClick={(e) => handleTagSelect(tag.id, e)}
               >
                 <Checkbox
                   id={`tag-${tag.id}`}
                   checked={isSelected}
-                  onCheckedChange={() => toggleTagSelection(tag.id)}
+                  onCheckedChange={() => handleTagSelect(tag.id)}
                   onClick={(e) => e.stopPropagation()}
                 />
                 <span className="line-clamp-1 flex-1">{tag.name}</span>

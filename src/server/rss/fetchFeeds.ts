@@ -23,6 +23,9 @@ import type {
 } from "./types";
 import { dbSemaphore } from "~/lib/semaphore";
 
+/** How long to back off a feed after a fetch error, to avoid cascading retries. */
+const ERROR_BACKOFF_MS = 60 * 60 * 1000; // 1 hour
+
 export type FetchFeedsStatus = "success" | "empty" | "error" | "skipped";
 
 export async function fetchNewFeedDetails(
@@ -69,8 +72,13 @@ type FeedResult =
       id: number;
     }
   | {
-      status: "empty" | "error" | "skipped";
+      status: "empty" | "skipped";
       id: number;
+    }
+  | {
+      status: "error";
+      id: number;
+      error: unknown;
     };
 
 export async function* fetchAndInsertFeedData(
@@ -99,21 +107,28 @@ export async function* fetchAndInsertFeedData(
 
       if (feed.platform === "youtube") {
         feedData = await fetchYouTubeFeedData(feed, cached);
-      }
-      if (feed.platform === "peertube") {
+      } else if (feed.platform === "peertube") {
         feedData = await fetchPeerTubeFeedData(feed, cached);
-      }
-      if (feed.platform === "nebula") {
+      } else if (feed.platform === "nebula") {
         feedData = await fetchNebulaFeedData(feed, cached);
-      }
-      if (feed.platform === "website") {
+      } else if (feed.platform === "website") {
         feedData = await fetchWebsiteFeedData(feed, cached);
       }
 
       if (!feedData) {
+        const errorBackoffAt = new Date(now.getTime() + ERROR_BACKOFF_MS);
+        await dbSemaphore.run(() =>
+          context.db
+            .update(feeds)
+            .set({ nextFetchAt: errorBackoffAt })
+            .where(eq(feeds.id, feed.id)),
+        );
         return {
           status: "error",
           id: feed.id,
+          error: new Error(
+            `No feed data returned for platform: ${feed.platform}`,
+          ),
         };
       }
 
@@ -260,10 +275,23 @@ export async function* fetchAndInsertFeedData(
         feedItems: applicationFeedItems,
         id: feed.id,
       };
-    } catch {
+    } catch (e) {
+      // Push back nextFetchAt so a broken feed isn't retried every minute
+      const errorBackoffAt = new Date(now.getTime() + ERROR_BACKOFF_MS);
+      try {
+        await dbSemaphore.run(() =>
+          context.db
+            .update(feeds)
+            .set({ nextFetchAt: errorBackoffAt })
+            .where(eq(feeds.id, feed.id)),
+        );
+      } catch {
+        // Best-effort — don't let the backoff update mask the original error
+      }
       return {
         status: "error",
         id: feed.id,
+        error: e,
       };
     }
   });

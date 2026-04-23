@@ -1,33 +1,23 @@
 import clsx from "clsx";
-import { useRef, useState } from "react";
-import type { DragEvent, RefObject } from "react";
+import { useState } from "react";
+import type { DragEvent } from "react";
 
 type ImportDropzoneProps = {
-  inputElementRef: RefObject<HTMLInputElement | null> | null;
+  inputId: string;
   onSelectFile: () => void;
 };
 
-export function ImportDropzone({
-  inputElementRef,
-  onSelectFile,
-}: ImportDropzoneProps) {
-  const dropzoneRef = useRef<HTMLButtonElement | null>(null);
-
+export function ImportDropzone({ inputId, onSelectFile }: ImportDropzoneProps) {
   const [isDraggingOverDropzone, setIsDraggingOverDropzone] = useState(false);
 
-  const onDragEvent = (e: DragEvent<HTMLButtonElement>) => {
+  const onDragEvent = (e: DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     e.stopPropagation();
   };
 
-  const handleActivate = () => {
-    inputElementRef?.current?.click();
-  };
-
   return (
-    <button
-      type="button"
-      ref={dropzoneRef}
+    <label
+      htmlFor={inputId}
       onDrag={onDragEvent}
       onDragStart={onDragEvent}
       onDragEnter={onDragEvent}
@@ -45,7 +35,10 @@ export function ImportDropzone({
         e.stopPropagation();
         setIsDraggingOverDropzone(false);
 
-        if (!inputElementRef?.current) return;
+        const input = document.getElementById(
+          inputId,
+        ) as HTMLInputElement | null;
+        if (!input) return;
 
         const files = e.dataTransfer.files;
         const dataTransfer = new DataTransfer();
@@ -54,10 +47,9 @@ export function ImportDropzone({
           dataTransfer.items.add(file);
         });
 
-        inputElementRef.current.files = dataTransfer.files;
+        input.files = dataTransfer.files;
         onSelectFile();
       }}
-      onClick={handleActivate}
       className={clsx(
         "hover:bg-muted/30 border-foreground/40 grid h-64 w-full cursor-pointer place-items-center rounded-xl border border-dashed transition-colors",
         {
@@ -68,6 +60,6 @@ export function ImportDropzone({
       <div className="max-w-sm text-center">
         Drag and drop your file here, or click/tap to upload
       </div>
-    </button>
+    </label>
   );
 }

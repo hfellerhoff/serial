@@ -14,7 +14,7 @@ import { isOAuthConfigured } from "~/server/auth/constants";
 import { env } from "~/env";
 import { protectedProcedure, publicProcedure } from "~/server/orpc/base";
 import { auth } from "~/server/auth";
-import { account, appConfig, session, user } from "~/server/db/schema";
+import { account, appConfig, feeds, session, user } from "~/server/db/schema";
 import { db } from "~/server/db";
 
 // Admin procedure that requires admin role
@@ -697,4 +697,77 @@ export const getRetentionStats = adminProcedure.handler(async () => {
   }
 
   return { stats };
+});
+
+// Get distribution of feed counts per user (how many users have N feeds)
+export const getFeedCountDistribution = adminProcedure.handler(async () => {
+  // Count all feeds per user (subquery)
+  const allFeedsSq = db
+    .select({
+      userId: feeds.userId,
+      feedCount: count().as("feed_count"),
+    })
+    .from(feeds)
+    .groupBy(feeds.userId)
+    .as("user_feeds");
+
+  // Aggregate: how many users have each feed count
+  const allFeedCounts = await db
+    .select({
+      feedCount: allFeedsSq.feedCount,
+      userCount: count(),
+    })
+    .from(allFeedsSq)
+    .groupBy(sql`${allFeedsSq.feedCount}`)
+    .orderBy(sql`${allFeedsSq.feedCount}`)
+    .all();
+
+  // Count active feeds per user (subquery)
+  const activeFeedsSq = db
+    .select({
+      userId: feeds.userId,
+      feedCount: count().as("feed_count"),
+    })
+    .from(feeds)
+    .where(eq(feeds.isActive, true))
+    .groupBy(feeds.userId)
+    .as("active_user_feeds");
+
+  // Aggregate: how many users have each active feed count
+  const activeFeedCounts = await db
+    .select({
+      feedCount: activeFeedsSq.feedCount,
+      userCount: count(),
+    })
+    .from(activeFeedsSq)
+    .groupBy(sql`${activeFeedsSq.feedCount}`)
+    .orderBy(sql`${activeFeedsSq.feedCount}`)
+    .all();
+
+  // Merge into a single array keyed by feedCount
+  const allMap = new Map(allFeedCounts.map((r) => [r.feedCount, r.userCount]));
+  const activeMap = new Map(
+    activeFeedCounts.map((r) => [r.feedCount, r.userCount]),
+  );
+
+  const maxFeedCount = Math.max(
+    ...allFeedCounts.map((r) => r.feedCount),
+    ...activeFeedCounts.map((r) => r.feedCount),
+    0,
+  );
+
+  const distribution = [];
+  for (let i = 1; i <= maxFeedCount; i++) {
+    const allUsers = allMap.get(i) ?? 0;
+    const activeUsers = activeMap.get(i) ?? 0;
+    if (allUsers > 0 || activeUsers > 0) {
+      distribution.push({
+        feedCount: i,
+        allUsers,
+        activeUsers,
+      });
+    }
+  }
+
+  return { distribution };
 });

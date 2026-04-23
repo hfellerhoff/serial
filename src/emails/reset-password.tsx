@@ -12,11 +12,15 @@ import {
 
 interface ResetPasswordProps {
   resetUrl?: string;
+  supportEmail?: string;
 }
 
 const baseUrl = `https://serial.tube`;
 
-export default function ResetPasswordEmail({ resetUrl }: ResetPasswordProps) {
+export default function ResetPasswordEmail({
+  resetUrl,
+  supportEmail,
+}: ResetPasswordProps) {
   return (
     <Html>
       <Head />
@@ -56,24 +60,26 @@ export default function ResetPasswordEmail({ resetUrl }: ResetPasswordProps) {
             height="48"
             alt="Serial's Logo"
           />
-          <Text
-            style={{
-              ...text,
-              color: "#666",
-              marginTop: "14px",
-              marginBottom: "16px",
-            }}
-          >
-            Having trouble? Reach out to us at{" "}
-            <Link
+          {supportEmail && (
+            <Text
               style={{
-                textDecoration: "underline",
+                ...text,
+                color: "#666",
+                marginTop: "14px",
+                marginBottom: "16px",
               }}
-              href="mailto:hey@serial.tube?subject=Question%20about%20serial.tube"
             >
-              hey@serial.tube
-            </Link>
-          </Text>
+              Having trouble? Reach out to us at{" "}
+              <Link
+                style={{
+                  textDecoration: "underline",
+                }}
+                href={`mailto:${supportEmail}`}
+              >
+                {supportEmail}
+              </Link>
+            </Text>
+          )}
         </Container>
       </Body>
     </Html>

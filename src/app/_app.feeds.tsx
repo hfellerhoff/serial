@@ -13,6 +13,7 @@ import { FeedManagementTabs } from "~/components/feed/FeedManagementTabs";
 import { useFeedManagementShortcuts } from "~/components/feed/useManagementShortcuts";
 import { FeedEmptyState } from "~/components/feed/view-lists/EmptyStates";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { Progress } from "~/components/ui/progress";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -20,6 +21,11 @@ import { ChipCombobox } from "~/components/ui/chip-combobox";
 import { Input } from "~/components/ui/input";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { Switch } from "~/components/ui/switch";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 import { useContentCategories } from "~/lib/data/content-categories";
 import { useFeedCategories } from "~/lib/data/feed-categories";
 import {
@@ -29,6 +35,7 @@ import {
 import { useFeeds } from "~/lib/data/feeds";
 import {
   useBulkDeleteFeedsMutation,
+  useBulkSetActiveMutation,
   useSetFeedActiveMutation,
 } from "~/lib/data/feeds/mutations";
 import { useSubscription } from "~/lib/data/subscription";
@@ -40,6 +47,7 @@ import {
   useBulkAssignViewFeedMutation,
   useBulkRemoveViewFeedMutation,
 } from "~/lib/data/view-feeds/mutations";
+import { useShiftSelect } from "~/lib/hooks/useShiftSelect";
 
 export const Route = createFileRoute("/_app/feeds")({
   component: ManageFeedsPage,
@@ -94,6 +102,7 @@ function ManageFeedsPage() {
     useSubscription();
   const { mutate: setFeedActive, isPending: isTogglingActive } =
     useSetFeedActiveMutation();
+  const { mutateAsync: bulkSetActive } = useBulkSetActiveMutation();
 
   const [selectedFeedIds, setSelectedFeedIds] = useState<Set<number>>(
     new Set(),
@@ -135,6 +144,7 @@ function ManageFeedsPage() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [selectedViewIds, setSelectedViewIds] = useState<number[]>([]);
+  const [bulkActiveState, setBulkActiveState] = useState(false);
 
   const { mutateAsync: bulkDeleteFeeds, isPending: isDeletingFeeds } =
     useBulkDeleteFeedsMutation();
@@ -224,21 +234,15 @@ function ManageFeedsPage() {
     viewNamesMap,
   ]);
 
+  const filteredFeedIds = useMemo(
+    () => filteredFeeds.map((f) => f.id),
+    [filteredFeeds],
+  );
+  const handleFeedSelect = useShiftSelect(filteredFeedIds, setSelectedFeedIds);
+
   const selectedCount = selectedFeedIds.size;
   const allSelected =
     filteredFeeds.length > 0 && selectedCount === filteredFeeds.length;
-
-  const toggleFeedSelection = (feedId: number) => {
-    setSelectedFeedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(feedId)) {
-        next.delete(feedId);
-      } else {
-        next.add(feedId);
-      }
-      return next;
-    });
-  };
 
   const selectAll = () => {
     setSelectedFeedIds(new Set(filteredFeeds.map((f) => f.id)));
@@ -294,6 +298,11 @@ function ManageFeedsPage() {
   const openEditDialog = () => {
     setSelectedCategoryIds(getSharedCategories());
     setSelectedViewIds(getSharedViews());
+    // If all selected feeds are active, show active; otherwise show deactivated
+    const allActive = Array.from(selectedFeedIds).every(
+      (id) => feeds.find((f) => f.id === id)?.isActive,
+    );
+    setBulkActiveState(allActive);
     setShowEditDialog(true);
   };
 
@@ -349,7 +358,39 @@ function ManageFeedsPage() {
     const sharedCategories = getSharedCategories();
     const sharedViews = getSharedViews();
 
+    // Active state
+    const feedsToToggle = feedIds.filter((id) => {
+      const feed = feeds.find((f) => f.id === id);
+      return feed && feed.isActive !== bulkActiveState;
+    });
+
+    if (bulkActiveState && feedsToToggle.length > 0 && maxActiveFeeds >= 0) {
+      const wouldBeActive = activeFeeds + feedsToToggle.length;
+
+      if (wouldBeActive > maxActiveFeeds) {
+        const overLimit = wouldBeActive - maxActiveFeeds;
+        toast.warning(
+          `${overLimit} feed${overLimit > 1 ? "s would" : " would"} exceed your plan limit. To unlock more active feeds, you can switch to a higher plan.`,
+          {
+            action: {
+              label: "Upgrade",
+              onClick: () =>
+                launchDialog("subscription", { subscriptionView: "picker" }),
+            },
+          },
+        );
+        return;
+      }
+    }
+
     const promises: Array<Promise<void>> = [];
+
+    // Bulk active state toggle
+    if (feedsToToggle.length > 0) {
+      promises.push(
+        bulkSetActive({ feedIds: feedsToToggle, isActive: bulkActiveState }),
+      );
+    }
 
     // Categories
     const categoriesToAdd = selectedCategoryIds;
@@ -414,11 +455,6 @@ function ManageFeedsPage() {
         <div className="flex items-center justify-between">
           <div>
             <FeedManagementTabs value="feeds" />
-            {billingEnabled && maxActiveFeeds > 0 && (
-              <p className="text-muted-foreground mt-1 text-sm">
-                {activeFeeds} / {maxActiveFeeds} feeds active
-              </p>
-            )}
           </div>
           <ButtonWithShortcut
             variant="outline"
@@ -431,6 +467,20 @@ function ManageFeedsPage() {
         </div>
         {billingEnabled &&
           maxActiveFeeds > 0 &&
+          activeFeeds < maxActiveFeeds && (
+            <div className="mt-3 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <p className="text-muted-foreground text-sm">
+                  {activeFeeds} / {maxActiveFeeds} feeds active
+                </p>
+              </div>
+              <Progress
+                value={Math.min(100, (activeFeeds / maxActiveFeeds) * 100)}
+              />
+            </div>
+          )}
+        {billingEnabled &&
+          maxActiveFeeds > 0 &&
           activeFeeds >= maxActiveFeeds && (
             <Alert className="mt-4">
               <AlertTitle>Max active feeds reached</AlertTitle>
@@ -440,7 +490,9 @@ function ManageFeedsPage() {
                 will receive new content.
                 <Button
                   type="button"
-                  onClick={() => launchDialog("subscription")}
+                  onClick={() =>
+                    launchDialog("subscription", { subscriptionView: "picker" })
+                  }
                   className="mt-4"
                 >
                   Upgrade your plan
@@ -509,12 +561,12 @@ function ManageFeedsPage() {
                 className={`hover:bg-muted/50 flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
                   !feed.isActive ? "opacity-50" : ""
                 }`}
-                onClick={() => toggleFeedSelection(feed.id)}
+                onClick={(e) => handleFeedSelect(feed.id, e)}
               >
                 <Checkbox
                   id={`feed-${feed.id}`}
                   checked={isSelected}
-                  onCheckedChange={() => toggleFeedSelection(feed.id)}
+                  onCheckedChange={() => handleFeedSelect(feed.id)}
                   onClick={(e) => e.stopPropagation()}
                 />
                 <FeedImage
@@ -655,6 +707,49 @@ function ManageFeedsPage() {
         onOpenChange={setShowEditDialog}
         title="Edit Feeds"
         description={`Edit ${selectedCount} feed${selectedCount > 1 ? "s" : ""}.`}
+        headerRight={
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center">
+                <Switch
+                  checked={bulkActiveState}
+                  onCheckedChange={setBulkActiveState}
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              {bulkActiveState ? "Feeds active" : "Feeds inactive"}
+            </TooltipContent>
+          </Tooltip>
+        }
+        footer={
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setShowEditDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={handleEditSave}
+              disabled={
+                isAssigningCategory ||
+                isRemovingCategory ||
+                isAssigningView ||
+                isRemovingView
+              }
+            >
+              {isAssigningCategory ||
+              isRemovingCategory ||
+              isAssigningView ||
+              isRemovingView
+                ? "Saving..."
+                : "Save"}
+            </Button>
+          </div>
+        }
       >
         <div className="grid gap-4">
           <ChipCombobox
@@ -682,32 +777,6 @@ function ManageFeedsPage() {
             selectedCategories={selectedCategoryIds}
             setSelectedCategories={setSelectedCategoryIds}
           />
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => setShowEditDialog(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="flex-1"
-              onClick={handleEditSave}
-              disabled={
-                isAssigningCategory ||
-                isRemovingCategory ||
-                isAssigningView ||
-                isRemovingView
-              }
-            >
-              {isAssigningCategory ||
-              isRemovingCategory ||
-              isAssigningView ||
-              isRemovingView
-                ? "Saving..."
-                : "Save"}
-            </Button>
-          </div>
         </div>
       </ControlledResponsiveDialog>
     </div>

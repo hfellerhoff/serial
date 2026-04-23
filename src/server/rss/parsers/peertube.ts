@@ -17,6 +17,7 @@ import type {
   NewFeedDetails,
   RSSContent,
 } from "../types";
+import { captureException } from "~/server/logger";
 
 const parser = new Parser({
   customFields: {
@@ -136,6 +137,11 @@ export async function fetchPeerTubeFeedData(
       fetchMetadata,
     };
   } catch (e) {
+    captureException(e, {
+      context: "peertube-feed-fetch",
+      feedId: feed.id,
+      url: feed.url,
+    });
     console.error("Error fetching PeerTube feed data for URL =", feed.url);
     console.error(e);
     return null;

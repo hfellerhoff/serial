@@ -23,7 +23,11 @@ import type {
 } from "~/server/db/schema";
 import type { ORPCContext } from "~/server/orpc/base";
 import type { FetchFeedsStatus } from "~/server/rss/fetchFeeds";
-import { getFeedsActivationBudget } from "~/server/subscriptions/helpers";
+import { captureException } from "~/server/logger";
+import {
+  checkUserRefreshEligibility,
+  getFeedsActivationBudget,
+} from "~/server/subscriptions/helpers";
 import { visibilityFilterSchema } from "~/lib/data/atoms";
 import {
   buildContentTypeFilter,
@@ -309,6 +313,7 @@ async function fetchContentForView(
       };
     }
   } catch (error) {
+    captureException(error);
     return {
       chunk: {
         type: "error",
@@ -770,6 +775,7 @@ export const requestInitialData = protectedProcedure
     try {
       prerequisiteData = await fetchUserPrerequisiteData(context);
     } catch (error) {
+      captureException(error);
       await publisher.publish(channel, {
         source: "initial",
         chunk: {
@@ -986,6 +992,7 @@ export const requestImportedData = protectedProcedure
     try {
       prerequisiteData = await fetchUserPrerequisiteData(context);
     } catch (error) {
+      captureException(error);
       await publisher.publish(channel, {
         source: "initial",
         chunk: {
@@ -1258,6 +1265,7 @@ export const streamingImport = protectedProcedure
       try {
         return await Promise.race([importPromise, timeoutPromise]);
       } catch (error) {
+        captureException(error);
         await publisher.publish(channel, {
           source: "initial",
           chunk: {
@@ -1410,11 +1418,30 @@ export const requestNewData = protectedProcedure
     const channel = getUserChannel(context.user.id);
     const newerThanTimestamp = input.newerThan;
 
+    // Check user-level refresh rate limit
+    const eligibility = await checkUserRefreshEligibility(
+      context.db,
+      context.user.id,
+    );
+    if (!eligibility.eligible) {
+      await publisher.publish(channel, {
+        source: "new-data",
+        chunk: {
+          type: "error",
+          message: `You can refresh again at ${eligibility.nextRefreshAt.toLocaleTimeString()}`,
+          phase: "initial-fetch",
+          viewId: -1,
+        },
+      });
+      return { status: "rate-limited" };
+    }
+
     // Fetch prerequisite data
     let prerequisiteData: PrerequisiteData;
     try {
       prerequisiteData = await fetchUserPrerequisiteData(context);
     } catch (error) {
+      captureException(error);
       await publisher.publish(channel, {
         source: "new-data",
         chunk: {
@@ -1548,6 +1575,7 @@ export const requestItemsByVisibility = protectedProcedure
     try {
       prerequisiteData = await fetchUserPrerequisiteData(context);
     } catch (error) {
+      captureException(error);
       await publisher.publish(channel, {
         source: "visibility",
         chunk: {
@@ -1679,6 +1707,7 @@ export const requestItemsByVisibility = protectedProcedure
         });
       }
     } catch (error) {
+      captureException(error);
       await publisher.publish(channel, {
         source: "visibility",
         chunk: {
@@ -1793,6 +1822,7 @@ export const requestItemsByFeed = protectedProcedure
         });
       }
     } catch (error) {
+      captureException(error);
       await publisher.publish(channel, {
         source: "feed",
         chunk: {
@@ -1943,6 +1973,7 @@ export const requestItemsByCategoryId = protectedProcedure
         });
       }
     } catch (error) {
+      captureException(error);
       await publisher.publish(channel, {
         source: "category",
         chunk: {
@@ -1975,6 +2006,7 @@ export const getAllByView = protectedProcedure
     try {
       prerequisiteData = await fetchUserPrerequisiteData(context);
     } catch (error) {
+      captureException(error);
       yield {
         type: "error",
         message:
@@ -2104,6 +2136,7 @@ export const revalidateView = protectedProcedure
     try {
       prerequisiteData = await fetchUserPrerequisiteData(context);
     } catch (error) {
+      captureException(error);
       yield {
         type: "error",
         message:
@@ -2213,6 +2246,7 @@ export const revalidateView = protectedProcedure
           feedItems: applicationFeedItems,
         } as RevalidateViewChunk;
       } catch (error) {
+        captureException(error);
         yield {
           type: "error",
           message:
@@ -2290,6 +2324,7 @@ export const getItemsByVisibility = protectedProcedure
     try {
       prerequisiteData = await fetchUserPrerequisiteData(context);
     } catch (error) {
+      captureException(error);
       yield {
         type: "error",
         message:
@@ -2406,6 +2441,7 @@ export const getItemsByVisibility = protectedProcedure
         } as GetItemsByVisibilityChunk;
       }
     } catch (error) {
+      captureException(error);
       yield {
         type: "error",
         message:

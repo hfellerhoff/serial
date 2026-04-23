@@ -17,6 +17,7 @@ import type {
   NewFeedDetails,
   RSSContent,
 } from "../types";
+import { captureException } from "~/server/logger";
 
 const parser = new Parser({
   customFields: {
@@ -111,7 +112,12 @@ export async function fetchYouTubeFeedData(
       }),
       fetchMetadata,
     };
-  } catch {
+  } catch (e) {
+    captureException(e, {
+      context: "youtube-feed-fetch",
+      feedId: feed.id,
+      url: feed.url,
+    });
     return null;
   }
 }

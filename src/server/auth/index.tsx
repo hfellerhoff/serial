@@ -1,5 +1,4 @@
 import { render } from "@react-email/components";
-import sendgrid from "@sendgrid/mail";
 import { betterAuth } from "better-auth";
 import { admin, emailOTP, genericOAuth } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -8,16 +7,16 @@ import { APIError, createAuthMiddleware } from "better-auth/api";
 import { createMiddleware } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { redirect } from "@tanstack/react-router";
-import { and, asc, count, eq, inArray, sql } from "drizzle-orm";
+import { asc, count, eq } from "drizzle-orm";
 import { checkout, polar, portal, webhooks } from "@polar-sh/better-auth";
 import { db } from "../db";
-import { account, appConfig, feeds, session, user } from "../db/schema";
-import { determinePlanFromProductId, PLANS } from "../subscriptions/plans";
+import { account, appConfig, session, user } from "../db/schema";
+import { getPolarProductIds, polarClient } from "../subscriptions/polar";
+import { PLANS } from "../subscriptions/plans";
 import {
-  deactivateExcessFeeds,
-  invalidatePlanCache,
-} from "../subscriptions/helpers";
-import { polarClient } from "../subscriptions/polar";
+  applySubscriptionSideEffects,
+  syncPolarDataToKV,
+} from "../subscriptions/kv";
 import ResetPasswordEmail from "~/emails/reset-password";
 import VerifyEmailEmail from "~/emails/verify-email";
 import {
@@ -27,6 +26,8 @@ import {
   isPublicSignupEnabled,
 } from "~/lib/constants";
 import { isOAuthConfigured } from "~/server/auth/constants";
+import { IS_EMAIL_ENABLED, sendEmail } from "~/server/email";
+import { captureException } from "~/server/logger";
 import { env } from "~/env";
 
 export const authMiddleware = createMiddleware().server(
@@ -34,7 +35,7 @@ export const authMiddleware = createMiddleware().server(
     const headers = getRequestHeaders() as Headers;
     const session = await auth.api.getSession({ headers });
     if (!session) {
-      if (!pathname.includes("auth")) {
+      if (!pathname.startsWith("/auth/") && pathname !== "/auth") {
         throw redirect({ to: BASE_SIGNED_OUT_URL });
       }
     }
@@ -53,50 +54,54 @@ export const adminMiddleware = createMiddleware().server(async ({ next }) => {
   return await next();
 });
 
-async function handleSubscriptionEnd(payload: {
+async function syncAndApply(userId: string) {
+  try {
+    const data = await syncPolarDataToKV(userId);
+    await applySubscriptionSideEffects(db, userId, data);
+  } catch (e) {
+    captureException(e);
+    console.error(
+      `[polar webhook] Failed to sync subscription for user ${userId}:`,
+      e,
+    );
+  }
+}
+
+async function handleSubscriptionWebhook(payload: {
   data: { customer?: { externalId?: string | null } | null };
 }) {
-  const externalId = payload.data.customer?.externalId;
-  if (!externalId) return;
+  const userId = payload.data.customer?.externalId;
+  if (!userId) return;
+  await syncAndApply(userId);
+}
 
-  invalidatePlanCache(externalId);
-  await deactivateExcessFeeds(db, externalId, PLANS.free.maxActiveFeeds);
-  await db
-    .update(feeds)
-    .set({ nextFetchAt: null })
-    .where(eq(feeds.userId, externalId));
+async function handleCustomerStateChanged(payload: {
+  data: { externalId?: string | null };
+}) {
+  const userId = payload.data.externalId;
+  if (!userId) return;
+  await syncAndApply(userId);
 }
 
 function buildPolarPlugin() {
   if (!polarClient) return [];
-  if (!process.env.POLAR_WEBHOOK_SECRET) return [];
+  if (!env.POLAR_WEBHOOK_SECRET) return [];
 
-  const products = [
-    process.env.POLAR_STANDARD_MONTHLY_PRODUCT_ID
-      ? {
-          productId: process.env.POLAR_STANDARD_MONTHLY_PRODUCT_ID,
-          slug: "standard-monthly",
-        }
-      : null,
-    process.env.POLAR_STANDARD_ANNUAL_PRODUCT_ID
-      ? {
-          productId: process.env.POLAR_STANDARD_ANNUAL_PRODUCT_ID,
-          slug: "standard-annual",
-        }
-      : null,
-    process.env.POLAR_PRO_MONTHLY_PRODUCT_ID
-      ? {
-          productId: process.env.POLAR_PRO_MONTHLY_PRODUCT_ID,
-          slug: "pro-monthly",
-        }
-      : null,
-    process.env.POLAR_PRO_ANNUAL_PRODUCT_ID
-      ? {
-          productId: process.env.POLAR_PRO_ANNUAL_PRODUCT_ID,
-          slug: "pro-annual",
-        }
-      : null,
-  ].filter(Boolean);
+  // Build products list from plan config — each plan can have a monthly and/or annual product.
+  const products = Object.values(PLANS).flatMap((plan) => {
+    const productIds = getPolarProductIds(plan.id);
+    const entries: Array<{ productId: string; slug: string }> = [];
+    if (productIds.monthly) {
+      entries.push({
+        productId: productIds.monthly,
+        slug: `${plan.id}-monthly`,
+      });
+    }
+    if (productIds.annual) {
+      entries.push({ productId: productIds.annual, slug: `${plan.id}-annual` });
+    }
+    return entries;
+  });
 
   return [
     polar({
@@ -110,62 +115,14 @@ function buildPolarPlugin() {
         }),
         portal(),
         webhooks({
-          secret: process.env.POLAR_WEBHOOK_SECRET ?? "",
-          onSubscriptionActive: async (payload) => {
-            const externalId = payload.data.customer?.externalId;
-            if (!externalId) return;
-
-            invalidatePlanCache(externalId);
-
-            const productId = payload.data.productId;
-            const planId = determinePlanFromProductId(productId);
-            if (!planId) {
-              console.warn(`[polar webhook] Unknown product ID: ${productId}`);
-              return;
-            }
-
-            const config = PLANS[planId];
-            if (config.backgroundRefreshIntervalMs) {
-              // Stagger nextFetchAt across the refresh interval so feeds
-              // don't all become due at the same instant (thundering herd).
-              const activeFeeds = await db
-                .select({ id: feeds.id })
-                .from(feeds)
-                .where(
-                  and(eq(feeds.userId, externalId), eq(feeds.isActive, true)),
-                )
-                .all();
-
-              const interval = config.backgroundRefreshIntervalMs;
-              const feedCount = activeFeeds.length;
-              if (feedCount > 0) {
-                const nowMs = Date.now();
-                const cases = activeFeeds.map((f, i) => {
-                  const offset =
-                    feedCount > 1 ? Math.round((interval / feedCount) * i) : 0;
-                  const ts = Math.floor((nowMs + offset) / 1000);
-                  return sql`WHEN ${f.id} THEN ${ts}`;
-                });
-                await db
-                  .update(feeds)
-                  .set({
-                    nextFetchAt: sql`(CASE ${feeds.id} ${sql.join(cases, sql` `)} END)`,
-                  })
-                  .where(
-                    inArray(
-                      feeds.id,
-                      activeFeeds.map((f) => f.id),
-                    ),
-                  );
-              }
-            }
-          },
-          onSubscriptionCanceled: async (payload) => {
-            await handleSubscriptionEnd(payload);
-          },
-          onSubscriptionRevoked: async (payload) => {
-            await handleSubscriptionEnd(payload);
-          },
+          secret: env.POLAR_WEBHOOK_SECRET ?? "",
+          onSubscriptionCreated: handleSubscriptionWebhook,
+          onSubscriptionUpdated: handleSubscriptionWebhook,
+          onSubscriptionActive: handleSubscriptionWebhook,
+          onSubscriptionCanceled: handleSubscriptionWebhook,
+          onSubscriptionRevoked: handleSubscriptionWebhook,
+          onSubscriptionUncanceled: handleSubscriptionWebhook,
+          onCustomerStateChanged: handleCustomerStateChanged,
         }),
       ],
     }),
@@ -202,20 +159,27 @@ export const auth = betterAuth({
     enabled: true,
     maxPasswordLength: 64,
     async sendResetPassword(data) {
-      sendgrid.setApiKey(import.meta.env.SENDGRID_API_KEY ?? "");
+      try {
+        const html = await render(
+          <ResetPasswordEmail
+            resetUrl={data.url}
+            supportEmail={env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS}
+          />,
+        );
 
-      const forgotPasswordEmailHtml = await render(
-        <ResetPasswordEmail resetUrl={data.url} />,
-      );
-
-      const options = {
-        from: "hey@serial.tube",
-        to: data.user.email,
-        subject: "Reset your password for Serial",
-        html: forgotPasswordEmailHtml,
-      };
-
-      await sendgrid.send(options);
+        await sendEmail({
+          to: data.user.email,
+          subject: "Reset your password for Serial",
+          html,
+        });
+        console.log(`[auth] Reset password email sent to ${data.user.email}`);
+      } catch (error) {
+        console.error(
+          `[auth] Failed to send reset password email to ${data.user.email}:`,
+          error,
+        );
+        throw error;
+      }
     },
   },
   plugins: [
@@ -223,19 +187,31 @@ export const auth = betterAuth({
     tanstackStartCookies(),
     ...buildPolarPlugin(),
     ...buildGenericOAuthPlugin(),
-    ...(import.meta.env.SENDGRID_API_KEY
+    ...(IS_EMAIL_ENABLED
       ? [
           emailOTP({
             async sendVerificationOTP({ email, otp, type }) {
               if (type === "email-verification") {
-                sendgrid.setApiKey(import.meta.env.SENDGRID_API_KEY ?? "");
-                const html = await render(<VerifyEmailEmail otp={otp} />);
-                await sendgrid.send({
-                  from: "hey@serial.tube",
-                  to: email,
-                  subject: "Verify your email for Serial",
-                  html,
-                });
+                try {
+                  const html = await render(
+                    <VerifyEmailEmail
+                      otp={otp}
+                      supportEmail={env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS}
+                    />,
+                  );
+                  await sendEmail({
+                    to: email,
+                    subject: "Verify your email for Serial",
+                    html,
+                  });
+                  console.log(`[auth] Verification email sent to ${email}`);
+                } catch (error) {
+                  console.error(
+                    `[auth] Failed to send verification email to ${email}:`,
+                    error,
+                  );
+                  throw error;
+                }
               }
             },
             sendVerificationOnSignUp: true,

@@ -17,6 +17,7 @@ import type {
   NewFeedDetails,
   RSSContent,
 } from "../types";
+import { captureException } from "~/server/logger";
 
 function getLongestString(...strings: Array<string | undefined>) {
   return strings.reduce((acc: string, cur) => {
@@ -150,7 +151,7 @@ export const websiteSchema = baseFeedSchema.extend({
   title: z.string(),
   description: z.string().optional(),
   generator: z.string().optional(),
-  link: z.string(),
+  link: z.string().optional(),
   lastBuildDate: z.string().optional(),
 });
 
@@ -238,11 +239,16 @@ export async function fetchWebsiteFeedData(
     return {
       id: feed.id,
       title: data.title,
-      url: data.link,
+      url: data.link ?? new URL(feed.url).origin,
       items: (await Promise.all(itemPromises)).filter(Boolean),
       fetchMetadata,
     };
   } catch (e) {
+    captureException(e, {
+      context: "website-feed-fetch",
+      feedId: feed.id,
+      url: feed.url,
+    });
     console.error("Error fetching website feed data for URL =", feed.url);
     console.error(e);
     return null;

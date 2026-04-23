@@ -48,7 +48,7 @@ test.describe("full user lifecycle", () => {
 
     const dropzone = page.getByText(/drag and drop/i);
     await expect(dropzone).toBeVisible();
-    await page.waitForTimeout(1000);
+    await page.locator('input[data-ready="true"]').waitFor({ timeout: 10000 });
 
     const fileChooserPromise = page.waitForEvent("filechooser");
     await dropzone.click();

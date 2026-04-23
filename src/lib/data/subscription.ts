@@ -4,7 +4,7 @@ import { orpc } from "~/lib/orpc";
 export function useSubscription() {
   const { data, isLoading } = useQuery({
     ...orpc.subscription.getStatus.queryOptions(),
-    staleTime: 60_000,
+    staleTime: 15_000,
   });
 
   return {

@@ -26,12 +26,13 @@ function Tabs({
 }
 
 const tabsListVariants = cva(
-  "group/tabs-list inline-flex w-fit items-center justify-center rounded-lg p-[3px] text-muted-foreground data-[variant=line]:rounded-none",
+  "group/tabs-list inline-flex w-fit items-center justify-center rounded-lg p-[3px] text-muted-foreground data-[variant=line]:rounded-none data-[variant=pill]:rounded-none",
   {
     variants: {
       variant: {
         default: "h-9 bg-muted/30",
         line: "h-9 gap-1 bg-transparent",
+        pill: "h-9 gap-1 rounded-lg bg-transparent p-0",
       },
     },
     defaultVariants: {
@@ -71,6 +72,8 @@ function TabsTrigger({
         "group-data-[variant=line]/tabs-list:data-[state=active]:text-foreground group-data-[variant=line]/tabs-list:bg-transparent group-data-[variant=line]/tabs-list:data-[state=active]:bg-transparent group-data-[variant=line]/tabs-list:data-[state=active]:shadow-none dark:group-data-[variant=line]/tabs-list:data-[state=active]:border-transparent dark:group-data-[variant=line]/tabs-list:data-[state=active]:bg-transparent",
         // underline pseudo-element for line variant
         "after:bg-foreground after:absolute after:inset-x-0 after:bottom-[-5px] after:h-0.5 after:opacity-0 after:transition-opacity group-data-[variant=line]/tabs-list:data-[state=active]:after:opacity-100",
+        // pill variant: muted bg on active, lighter muted on hover, smooth transition
+        "group-data-[variant=pill]/tabs-list:hover:bg-muted/50 group-data-[variant=pill]/tabs-list:data-[state=active]:bg-muted group-data-[variant=pill]/tabs-list:data-[state=active]:text-foreground group-data-[variant=pill]/tabs-list:transition-colors group-data-[variant=pill]/tabs-list:after:hidden group-data-[variant=pill]/tabs-list:data-[state=active]:shadow-none dark:group-data-[variant=pill]/tabs-list:data-[state=active]:border-transparent",
         className,
       )}
       {...props}

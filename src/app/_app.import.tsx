@@ -109,6 +109,11 @@ function EditFeedsPage() {
   const [hasStartedImport, setHasStartedImport] = useState(false);
   const [isImportComplete, setIsImportComplete] = useState(false);
   const [importMode, setImportMode] = useState<ImportMode>("views");
+  // Signal to Playwright tests that React has hydrated and the onChange handler
+  // is attached to the file input, so file-chooser interactions are reliable.
+  useEffect(() => {
+    inputElementRef.current?.setAttribute("data-ready", "true");
+  }, []);
 
   const channelImportCount = feedsFoundFromFile?.filter(
     (feed) => feed.shouldImport,
@@ -132,7 +137,8 @@ function EditFeedsPage() {
         {
           action: {
             label: "Upgrade",
-            onClick: () => launchDialog("subscription"),
+            onClick: () =>
+              launchDialog("subscription", { subscriptionView: "picker" }),
           },
         },
       );
@@ -246,7 +252,7 @@ function EditFeedsPage() {
             </li>
           </ul>
           <ImportDropzone
-            inputElementRef={inputElementRef}
+            inputId="import-file-input"
             onSelectFile={onSelectFiles}
           />
         </>
@@ -267,10 +273,11 @@ function EditFeedsPage() {
         </>
       )}
       <input
+        id="import-file-input"
         ref={inputElementRef}
         type="file"
         accept="text/csv,.opml"
-        className="hidden"
+        className="sr-only"
         multiple
         onChange={onSelectFiles}
       />

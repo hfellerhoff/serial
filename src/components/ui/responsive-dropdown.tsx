@@ -12,6 +12,7 @@ import type {
   DropdownMenuContentProps,
   DropdownMenuItemProps,
 } from "@radix-ui/react-dropdown-menu";
+import { cn } from "~/lib/utils";
 import {
   Dialog,
   DialogClose,
@@ -113,9 +114,13 @@ interface ControlledResponsiveDialogProps {
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
   title?: string;
-  description?: string;
+  description?: React.ReactNode;
+  className?: string;
+  headerClassName?: string;
   onBack?: () => void;
   headerRight?: React.ReactNode;
+  footer?: React.ReactNode;
+  footerBorder?: boolean;
   onOpenAutoFocus?: (event: Event) => void;
 }
 export function ControlledResponsiveDialog({
@@ -126,6 +131,10 @@ export function ControlledResponsiveDialog({
   description,
   onBack,
   headerRight,
+  className,
+  headerClassName,
+  footer,
+  footerBorder = false,
   onOpenAutoFocus,
 }: ControlledResponsiveDialogProps) {
   const isDesktop = useMediaQuery("(min-width: 640px)");
@@ -133,8 +142,12 @@ export function ControlledResponsiveDialog({
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent hideClose onOpenAutoFocus={onOpenAutoFocus}>
-          <DialogHeader>
+        <DialogContent
+          hideClose
+          className={cn("flex max-h-[calc(100vh-6rem)] flex-col", className)}
+          onOpenAutoFocus={onOpenAutoFocus}
+        >
+          <DialogHeader className={cn("shrink-0", headerClassName)}>
             {onBack && (
               <button
                 onClick={onBack}
@@ -144,9 +157,9 @@ export function ControlledResponsiveDialog({
                 <span>Back</span>
               </button>
             )}
-            <div className="flex items-center justify-between">
-              <DialogTitle>{title}</DialogTitle>
-              <div className="flex items-center gap-3">
+            <div className="relative flex items-center justify-between">
+              <DialogTitle className="flex-1">{title}</DialogTitle>
+              <div className="absolute right-0 flex items-center gap-3">
                 {headerRight}
                 <DialogClose className="ring-offset-background focus:ring-ring rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden">
                   <XIcon className="h-4 w-4" />
@@ -156,7 +169,14 @@ export function ControlledResponsiveDialog({
             </div>
             <DialogDescription>{description}</DialogDescription>
           </DialogHeader>
-          {children}
+          <div className="-mx-6 min-h-0 flex-1 overflow-y-auto px-6 py-1">
+            {children}
+          </div>
+          {footer && (
+            <div className={cn("shrink-0 pt-4", footerBorder && "border-t")}>
+              {footer}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     );
@@ -164,8 +184,8 @@ export function ControlledResponsiveDialog({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent>
-        <DrawerHeader className="text-left">
+      <DrawerContent className="max-h-[calc(100vh-6rem)]">
+        <DrawerHeader className="shrink-0 text-left">
           {onBack && (
             <button
               onClick={onBack}
@@ -181,7 +201,20 @@ export function ControlledResponsiveDialog({
           </div>
           <DrawerDescription>{description}</DrawerDescription>
         </DrawerHeader>
-        <div className="px-4 pb-4">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-1">
+          {children}
+        </div>
+        {footer && (
+          <div
+            className={cn(
+              "shrink-0 px-4 pt-4 pb-4",
+              footerBorder && "border-t",
+            )}
+          >
+            {footer}
+          </div>
+        )}
+        {!footer && <div className="pb-4" />}
       </DrawerContent>
     </Drawer>
   );

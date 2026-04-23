@@ -46,7 +46,9 @@ export function useCreateFeedMutation() {
               action: {
                 label: "Upgrade",
                 onClick: () =>
-                  useDialogStore.getState().launchDialog("subscription"),
+                  useDialogStore.getState().launchDialog("subscription", {
+                    subscriptionView: "picker",
+                  }),
               },
             },
           );
@@ -200,6 +202,22 @@ export function useSetFeedActiveMutation() {
           updateFeed(updatedFeed.id, updatedFeed);
         }
         // Invalidate subscription query so active count updates
+        void queryClient.invalidateQueries({
+          queryKey: orpc.subscription.getStatus.queryOptions().queryKey,
+        });
+      },
+    }),
+  );
+}
+
+export function useBulkSetActiveMutation() {
+  const fetchFeeds = useFetchFeeds();
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    orpc.feed.bulkSetActive.mutationOptions({
+      onSuccess: () => {
+        void fetchFeeds();
         void queryClient.invalidateQueries({
           queryKey: orpc.subscription.getStatus.queryOptions().queryKey,
         });

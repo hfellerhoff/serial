@@ -340,6 +340,64 @@ export function EditFeedDialog({
           </TooltipContent>
         </Tooltip>
       }
+      footer={
+        <div className="flex gap-2">
+          <Button
+            disabled={isDeletingFeed}
+            className="flex-1"
+            variant="destructive"
+            onClick={async () => {
+              if (selectedFeedId === null) return;
+
+              setIsDeletingFeed(true);
+              try {
+                const deleteFeedPromise = deleteFeed(selectedFeedId);
+                toast.promise(deleteFeedPromise, {
+                  loading: "Deleting feed...",
+                  success: () => {
+                    return "Feed deleted!";
+                  },
+                  error: () => {
+                    return "Something went wrong deleting your feed.";
+                  },
+                });
+                onClose();
+              } catch {
+                // Error handled by toast.promise
+              }
+
+              setIsDeletingFeed(false);
+            }}
+          >
+            {isDeletingFeed ? "Deleting..." : "Delete"}
+          </Button>
+          <Button
+            disabled={isFormDisabled || isUpdatingFeed}
+            onClick={async () => {
+              if (selectedFeedId === null) return;
+
+              setIsUpdatingFeed(true);
+              try {
+                await editFeed({
+                  feedId: selectedFeedId,
+                  categoryIds: selectedCategories,
+                  viewIds: selectedViewIds,
+                  openLocation: selectedOpenLocation,
+                });
+                toast.success("Feed updated!");
+                onClose();
+              } catch {
+                // Error handled by toast
+              }
+
+              setIsUpdatingFeed(false);
+            }}
+            className="flex-1"
+          >
+            {isUpdatingFeed ? "Saving..." : "Save"}
+          </Button>
+        </div>
+      }
     >
       <div className="grid gap-6">
         <div className="grid gap-2">
@@ -422,62 +480,6 @@ export function EditFeedDialog({
           openLocation={selectedOpenLocation}
           setOpenLocation={setSelectedOpenLocation}
         />
-        <div className="flex gap-2">
-          <Button
-            disabled={isDeletingFeed}
-            className="flex-1"
-            variant="destructive"
-            onClick={async () => {
-              if (selectedFeedId === null) return;
-
-              setIsDeletingFeed(true);
-              try {
-                const deleteFeedPromise = deleteFeed(selectedFeedId);
-                toast.promise(deleteFeedPromise, {
-                  loading: "Deleting feed...",
-                  success: () => {
-                    return "Feed deleted!";
-                  },
-                  error: () => {
-                    return "Something went wrong deleting your feed.";
-                  },
-                });
-                onClose();
-              } catch {
-                // Error handled by toast.promise
-              }
-
-              setIsDeletingFeed(false);
-            }}
-          >
-            {isDeletingFeed ? "Deleting..." : "Delete"}
-          </Button>
-          <Button
-            disabled={isFormDisabled || isUpdatingFeed}
-            onClick={async () => {
-              if (selectedFeedId === null) return;
-
-              setIsUpdatingFeed(true);
-              try {
-                await editFeed({
-                  feedId: selectedFeedId,
-                  categoryIds: selectedCategories,
-                  viewIds: selectedViewIds,
-                  openLocation: selectedOpenLocation,
-                });
-                toast.success("Feed updated!");
-                onClose();
-              } catch {
-                // Error handled by toast
-              }
-
-              setIsUpdatingFeed(false);
-            }}
-            className="flex-1"
-          >
-            {isUpdatingFeed ? "Saving..." : "Save"}
-          </Button>
-        </div>
       </div>
     </ControlledResponsiveDialog>
   );

@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useDialogStore } from "./dialogStore";
-import { SubscriptionDialog } from "./SubscriptionDialog";
 import { Button } from "~/components/ui/button";
 import { DropdownMenuSeparator } from "~/components/ui/dropdown-menu";
 import {
@@ -33,7 +32,7 @@ export function UserManagementNavItem() {
     isPending, // loading state
   } = authClient.useSession();
 
-  const { launchDialog, closeDialog, dialog } = useDialogStore();
+  const { launchDialog } = useDialogStore();
   const { billingEnabled, planName } = useSubscription();
 
   const router = useRouter();
@@ -43,12 +42,6 @@ export function UserManagementNavItem() {
 
   return (
     <SidebarMenu>
-      <SubscriptionDialog
-        open={dialog === "subscription"}
-        onOpenChange={(open) => {
-          if (!open) closeDialog();
-        }}
-      />
       <SidebarMenuItem>
         <ResponsiveDropdown
           side="right"

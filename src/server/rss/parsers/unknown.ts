@@ -1,6 +1,7 @@
 import { getPeerTubeFeedIfMatches } from "./peertube";
 import { getWebsiteFeedIfMatches } from "./website";
 import type { NewFeedDetails } from "../types";
+import { captureException } from "~/server/logger";
 
 export async function fetchUnknownRssFeed(
   url: string,
@@ -17,6 +18,7 @@ export async function fetchUnknownRssFeed(
 
     return null;
   } catch (e) {
+    captureException(e, { context: "unknown-feed-fetch", url });
     console.error(e);
     return null;
   }

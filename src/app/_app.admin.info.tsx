@@ -5,6 +5,7 @@ import { ArrowLeftIcon } from "lucide-react";
 import { UserSignupsChart } from "~/components/admin/UserSignupsChart";
 import { UserSigninsChart } from "~/components/admin/UserSigninsChart";
 import { UserRetentionChart } from "~/components/admin/UserRetentionChart";
+import { UserFeedCountChart } from "~/components/admin/UserFeedCountChart";
 import { adminMiddleware } from "~/server/auth";
 import { Button } from "~/components/ui/button";
 
@@ -29,6 +30,7 @@ function AdminInfoPage() {
         <UserSignupsChart />
         <UserSigninsChart />
         <UserRetentionChart />
+        <UserFeedCountChart />
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ export const Route = createFileRoute("/_web/releases/$slug")({
 
 function RouteComponent() {
   const { release, isAuthed } = Route.useLoaderData();
+  const supportEmail = import.meta.env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS;
 
   return (
     <article>
@@ -39,12 +40,14 @@ function RouteComponent() {
       {isAuthed && (
         <>
           <p className="pt-6 pb-2">
-            Thanks for checking out the release log! If you have any questions
-            or feedback, feel free to send me an email at{" "}
-            <a href="mailto:hey@serial.tube?subject=Question%20about%20serial.tube">
-              hey@serial.tube
-            </a>
-            .
+            Thanks for checking out the release log!
+            {supportEmail && (
+              <>
+                {" "}
+                If you have any questions or feedback, feel free to send me an
+                email at <a href={`mailto:${supportEmail}`}>{supportEmail}</a>.
+              </>
+            )}
           </p>
           <Link to="/">Return to the app →</Link>
         </>

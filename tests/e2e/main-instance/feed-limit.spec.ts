@@ -3,8 +3,8 @@ import { signUp } from "../fixtures/auth";
 import { MAIN_RSS_SERVER_PORT, MAIN_TURSO_PORT } from "../fixtures/ports";
 import { cleanupUser, generateTestEmail } from "../fixtures/seed-db";
 
-const TOTAL_FEEDS = 110;
-const MAX_ACTIVE = 100;
+const TOTAL_FEEDS = 50;
+const MAX_ACTIVE = 40;
 const EXPECTED_INACTIVE = TOTAL_FEEDS - MAX_ACTIVE;
 
 function generateOpml(count: number): Buffer {
@@ -30,7 +30,7 @@ test.describe("feed limit for free plan", () => {
     }
   });
 
-  test("importing 110 feeds limits active to 100 and shows upgrade CTA", async ({
+  test("importing 50 feeds limits active to 40 and shows upgrade CTA", async ({
     page,
   }) => {
     test.setTimeout(180_000);
@@ -51,9 +51,8 @@ test.describe("feed limit for free plan", () => {
 
     const dropzone = page.getByText(/drag and drop/i);
     await expect(dropzone).toBeVisible();
-    await page.waitForTimeout(1000);
+    await page.locator('input[data-ready="true"]').waitFor({ timeout: 10000 });
 
-    // Upload the 110-feed OPML
     const fileChooserPromise = page.waitForEvent("filechooser");
     await dropzone.click();
     const fileChooser = await fileChooserPromise;
@@ -85,25 +84,22 @@ test.describe("feed limit for free plan", () => {
 
     // Click "Upgrade" in the toast to open subscription dialog
     await page.getByRole("button", { name: "Upgrade" }).click();
-    await expect(
-      page.getByText("Choose a plan that fits your needs."),
-    ).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("All prices are taxes-included.")).toBeVisible({
+      timeout: 5000,
+    });
     await page.keyboard.press("Escape");
 
-    // Navigate to /feeds and verify the counter
+    // Navigate to /feeds and verify the "max reached" alert (quota bar is hidden at the limit)
     await page.goto("/feeds");
-    await expect(
-      page.getByText(`${MAX_ACTIVE} / ${MAX_ACTIVE} feeds active`),
-    ).toBeVisible({ timeout: 15000 });
-
-    // Verify "Max active feeds reached" alert
-    await expect(page.getByText("Max active feeds reached")).toBeVisible();
+    await expect(page.getByText("Max active feeds reached")).toBeVisible({
+      timeout: 15000,
+    });
 
     // Click "Upgrade your plan" button and verify subscription dialog opens
     await page.getByRole("button", { name: /upgrade your plan/i }).click();
-    await expect(
-      page.getByText("Choose a plan that fits your needs."),
-    ).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("All prices are taxes-included.")).toBeVisible({
+      timeout: 5000,
+    });
     await page.keyboard.press("Escape");
 
     // Verify exactly 10 inactive feed rows (opacity-50 class)

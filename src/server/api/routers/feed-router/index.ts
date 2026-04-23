@@ -6,6 +6,7 @@ import {
   verifyContentCategoriesOwnedByUser,
   verifyViewsOwnedByUser,
 } from "./utils";
+import { captureException } from "~/server/logger";
 import { parseArrayOfSchema } from "~/lib/schemas/utils";
 
 import { prepareArrayChunks } from "~/lib/iterators";
@@ -24,7 +25,9 @@ import { fetchNewFeedDetails } from "~/server/rss/fetchFeeds";
 import {
   canActivateFeed,
   getFeedsActivationBudget,
+  getUserPlanId,
 } from "~/server/subscriptions/helpers";
+import { getEffectivePlanConfig } from "~/server/subscriptions/plans";
 
 type BulkImportFromFileSuccess = {
   feedUrl: string;
@@ -303,11 +306,22 @@ export const createFromSubscriptionImport = protectedProcedure
       );
 
       const chunkResults: BulkImportFromFileResult[] = promiseResults
-        .map((result) => {
+        .map((result, i) => {
           if (result.status === "fulfilled") {
             return result.value;
           }
-          return null;
+          captureException(result.reason, {
+            context: "bulk-feed-import",
+            feedUrl: chunk[i]?.feedUrl,
+          });
+          return {
+            feedUrl: chunk[i]?.feedUrl ?? "unknown",
+            success: false as const,
+            error:
+              result.reason instanceof Error
+                ? result.reason.message
+                : "Import failed",
+          };
         })
         .filter(Boolean);
 
@@ -470,7 +484,8 @@ async function discoverYouTubeFeeds(url: string) {
       title: channelName,
       format: "atom" as const,
     }));
-  } catch {
+  } catch (e) {
+    captureException(e, { context: "youtube-feed-discovery", url });
     return null;
   }
 }
@@ -522,6 +537,61 @@ export const setActive = protectedProcedure
     return feedsSchema.parse(updatedFeed);
   });
 
+export const bulkSetActive = protectedProcedure
+  .input(z.object({ feedIds: z.number().array(), isActive: z.boolean() }))
+  .handler(async ({ context, input }) => {
+    if (input.feedIds.length === 0) return;
+
+    // Resolve the plan limit outside the transaction (no db needed)
+    const planId = await getUserPlanId(context.user.id);
+    const planConfig = getEffectivePlanConfig(planId);
+
+    await context.db.transaction(async (tx) => {
+      if (input.isActive) {
+        // Count active feeds inside the transaction so the read is
+        // consistent with the subsequent update, preventing TOCTOU races.
+        const activeCountResult = await tx
+          .select({ count: sql<number>`count(*)` })
+          .from(feeds)
+          .where(
+            and(eq(feeds.userId, context.user.id), eq(feeds.isActive, true)),
+          )
+          .get();
+        const activeCount = activeCountResult?.count ?? 0;
+        const remainingSlots = Math.max(
+          0,
+          planConfig.maxActiveFeeds - activeCount,
+        );
+
+        // Count how many of the requested feeds are currently inactive
+        const currentFeeds = await tx.query.feeds.findMany({
+          where: and(
+            inArray(feeds.id, input.feedIds),
+            eq(feeds.userId, context.user.id),
+            eq(feeds.isActive, false),
+          ),
+          columns: { id: true },
+        });
+
+        if (currentFeeds.length > remainingSlots) {
+          throw new Error(
+            "Feed limit reached. Upgrade your plan to activate more feeds.",
+          );
+        }
+      }
+
+      await tx
+        .update(feeds)
+        .set({ isActive: input.isActive })
+        .where(
+          and(
+            inArray(feeds.id, input.feedIds),
+            eq(feeds.userId, context.user.id),
+          ),
+        );
+    });
+  });
+
 export const discoverFeeds = protectedProcedure
   .input(z.object({ url: z.string().url() }))
   .handler(async ({ input }) => {
@@ -540,11 +610,21 @@ export const discoverFeeds = protectedProcedure
 
     if (youtubeResult.status === "fulfilled" && youtubeResult.value) {
       discoveredFeeds.push(...youtubeResult.value);
+    } else if (youtubeResult.status === "rejected") {
+      captureException(youtubeResult.reason, {
+        context: "feed-discovery-youtube",
+        url: input.url,
+      });
     }
 
     if (feedscoutResult.status === "fulfilled") {
       const feedscoutFeeds = feedscoutResult.value.filter((f) => f.isValid);
       discoveredFeeds.push(...feedscoutFeeds);
+    } else if (feedscoutResult.status === "rejected") {
+      captureException(feedscoutResult.reason, {
+        context: "feed-discovery-feedscout",
+        url: input.url,
+      });
     }
 
     // Deduplicate by URL and filter out invalid YouTube feeds

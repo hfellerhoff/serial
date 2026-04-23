@@ -1,14 +1,12 @@
-import { and, asc, count, eq, inArray } from "drizzle-orm";
-import { determinePlanFromProductId, getEffectivePlanConfig } from "./plans";
-import { IS_BILLING_ENABLED, polarClient } from "./polar";
+import { and, asc, count, eq, inArray, sql } from "drizzle-orm";
+import { getEffectivePlanConfig } from "./plans";
+import { IS_BILLING_ENABLED } from "./polar";
+import { getSubscriptionFromKV, syncPolarDataToKV } from "./kv";
 import type { PlanId } from "./plans";
 import type { db as Database } from "~/server/db";
-import { feeds } from "~/server/db/schema";
+import { feeds, user } from "~/server/db/schema";
 
 type DB = typeof Database;
-
-const PLAN_CACHE_TTL_MS = 60_000 * 4; // 4 minutes
-const planCache = new Map<string, { planId: PlanId; expiresAt: number }>();
 
 export async function getActiveFeedCount(db: DB, userId: string) {
   const result = await db
@@ -22,51 +20,27 @@ export async function getActiveFeedCount(db: DB, userId: string) {
 export async function getUserPlanId(userId: string): Promise<PlanId> {
   if (!IS_BILLING_ENABLED) return "pro";
 
-  const cached = planCache.get(userId);
-  if (cached && Date.now() < cached.expiresAt) {
-    return cached.planId;
-  }
-
+  // 1. Try KV cache first (fast, shared across instances)
   try {
-    // Look up active subscriptions by externalCustomerId (Better Auth sets this to user ID)
-    const subscriptions = await polarClient!.subscriptions.list({
-      externalCustomerId: [userId],
-      active: true,
-    });
-
-    const activeSub = subscriptions.result?.items?.[0];
-    const planId: PlanId = activeSub?.productId
-      ? (determinePlanFromProductId(activeSub.productId) ?? "free")
-      : "free";
-
-    planCache.set(userId, {
-      planId,
-      expiresAt: Date.now() + PLAN_CACHE_TTL_MS,
-    });
-
-    return planId;
-  } catch (e) {
-    // On failure, prefer the last-known plan over defaulting to free —
-    // a Polar outage shouldn't downgrade paid users mid-session.
+    const cached = await getSubscriptionFromKV(userId);
     if (cached) {
-      console.warn(
-        `[subscription] Polar API failed for user ${userId}, using cached plan "${cached.planId}":`,
-        e,
-      );
       return cached.planId;
     }
+  } catch {
+    // KV read failed, fall through to sync
+  }
 
+  // 2. KV miss — sync from Polar and write to KV
+  try {
+    const data = await syncPolarDataToKV(userId);
+    return data.planId;
+  } catch (e) {
     console.error(
-      `[subscription] Failed to fetch plan for user ${userId}, no cached value, defaulting to free:`,
+      `[subscription] Failed to fetch plan for user ${userId}, defaulting to free:`,
       e,
     );
     return "free";
   }
-}
-
-/** Evict the cached plan for a user (e.g. after a webhook updates their subscription). */
-export function invalidatePlanCache(userId: string) {
-  planCache.delete(userId);
 }
 
 export async function canActivateFeed(db: DB, userId: string) {
@@ -95,8 +69,54 @@ export async function getUserPlanLimits(db: DB, userId: string) {
     maxActiveFeeds:
       config.maxActiveFeeds === Infinity ? -1 : config.maxActiveFeeds,
     activeFeeds,
+    refreshIntervalMs: config.refreshIntervalMs,
     backgroundRefreshIntervalMs: config.backgroundRefreshIntervalMs,
     billingEnabled: IS_BILLING_ENABLED,
+  };
+}
+
+/**
+ * Check if the user is eligible to refresh based on their plan's refresh interval.
+ * Uses an atomic compare-and-swap UPDATE to avoid TOCTOU races under concurrent requests.
+ */
+export async function checkUserRefreshEligibility(
+  db: DB,
+  userId: string,
+): Promise<{ eligible: true } | { eligible: false; nextRefreshAt: Date }> {
+  const planId = await getUserPlanId(userId);
+  const config = getEffectivePlanConfig(planId);
+
+  const now = new Date();
+  const nowEpoch = Math.floor(now.getTime() / 1000);
+  const nextRefreshAt = new Date(now.getTime() + config.refreshIntervalMs);
+
+  // Atomic: only update nextRefreshAt if the current value is null or in the past.
+  // If a concurrent request already claimed this window, rowsAffected will be 0.
+  const result = await db
+    .update(user)
+    .set({ nextRefreshAt })
+    .where(
+      and(
+        eq(user.id, userId),
+        sql`(${user.nextRefreshAt} IS NULL OR ${user.nextRefreshAt} <= ${nowEpoch})`,
+      ),
+    );
+
+  const rowsAffected = result.rowsAffected ?? 0;
+  if (rowsAffected > 0) {
+    return { eligible: true };
+  }
+
+  // Rate-limited — read back the current nextRefreshAt to report to the user
+  const userRow = await db
+    .select({ nextRefreshAt: user.nextRefreshAt })
+    .from(user)
+    .where(eq(user.id, userId))
+    .get();
+
+  return {
+    eligible: false,
+    nextRefreshAt: userRow?.nextRefreshAt ?? nextRefreshAt,
   };
 }
 

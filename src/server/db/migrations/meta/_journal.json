@@ -288,6 +288,13 @@
       "when": 1775509562655,
       "tag": "0040_skinny_warstar",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1776662638770,
+      "tag": "0041_needy_mongoose",
+      "breakpoints": true
     }
   ]
 }

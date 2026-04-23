@@ -4,10 +4,12 @@ import { onError } from "@orpc/server";
 import { orpcRouter } from "~/server/orpc/router";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import { captureException } from "~/server/logger";
 
 const handler = new RPCHandler(orpcRouter, {
   interceptors: [
     onError((error) => {
+      captureException(error);
       console.error(error);
     }),
   ],

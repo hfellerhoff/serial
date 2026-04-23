@@ -28,7 +28,7 @@ async function importSectionedOpml(
 
   const dropzone = page.getByText(/drag and drop/i);
   await expect(dropzone).toBeVisible();
-  await page.waitForTimeout(500);
+  await page.locator('input[data-ready="true"]').waitFor({ timeout: 10000 });
 
   const fileChooserPromise = page.waitForEvent("filechooser");
   await dropzone.click();

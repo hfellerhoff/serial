@@ -8,16 +8,28 @@ export type DialogType =
   | "edit-user-profile"
   | "connections"
   | "subscription";
+
+export type SubscriptionView = "overview" | "picker";
+
 type DialogStore = {
   dialog: null | DialogType;
-  launchDialog: (dialog: DialogType) => void;
+  subscriptionView: SubscriptionView;
+  launchDialog: (
+    dialog: DialogType,
+    options?: { subscriptionView?: SubscriptionView },
+  ) => void;
   closeDialog: () => void;
   onOpenChange: (open: boolean) => void;
 };
 
 export const useDialogStore = create<DialogStore>((set) => ({
   dialog: null,
-  launchDialog: (dialog: DialogType) => set({ dialog }),
-  closeDialog: () => set({ dialog: null }),
-  onOpenChange: () => set({ dialog: null }),
+  subscriptionView: "overview",
+  launchDialog: (dialog, options) =>
+    set({
+      dialog,
+      subscriptionView: options?.subscriptionView ?? "overview",
+    }),
+  closeDialog: () => set({ dialog: null, subscriptionView: "overview" }),
+  onOpenChange: () => set({ dialog: null, subscriptionView: "overview" }),
 }));

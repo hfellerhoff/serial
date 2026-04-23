@@ -3,7 +3,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { eq } from "drizzle-orm";
 import { auth, isServerAuthed } from ".";
 import type { ArticleFontFamily } from "~/lib/constants/article-fonts";
-import { env } from "~/env";
+import { IS_EMAIL_ENABLED } from "~/server/email";
 import { FONT_FAMILY_CSS } from "~/lib/constants/article-fonts";
 import { parseHSL } from "~/server/api/routers/hsl";
 import { db } from "~/server/db";
@@ -11,7 +11,7 @@ import { userConfig } from "~/server/db/schema";
 
 export const fetchIsForgotPasswordEnabled = createServerFn({
   method: "GET",
-}).handler(async () => !!env.SENDGRID_API_KEY);
+}).handler(async () => IS_EMAIL_ENABLED);
 
 export const fetchIsAuthed = createServerFn({ method: "GET" }).handler(
   async () => {

@@ -1,0 +1,1 @@
+ALTER TABLE `serial_user` ADD `next_refresh_at` integer;

@@ -25,6 +25,7 @@ import {
   useDeleteViewMutation,
   useEditViewMutation,
 } from "~/lib/data/views/mutations";
+import { useShiftSelect } from "~/lib/hooks/useShiftSelect";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 import { VIEW_READ_STATUS } from "~/server/db/constants";
 
@@ -114,18 +115,15 @@ function ManageViewsPage() {
     });
   }, [customViews, searchQuery, feedNamesMap, categoryNamesMap]);
 
+  const filteredViewIds = useMemo(
+    () => filteredViews.map((v) => v.id),
+    [filteredViews],
+  );
+  const handleViewSelect = useShiftSelect(filteredViewIds, setSelectedViewIds);
+
   const selectedCount = selectedViewIds.size;
   const allSelected =
     filteredViews.length > 0 && selectedCount === filteredViews.length;
-
-  const toggleViewSelection = (viewId: number) => {
-    setSelectedViewIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(viewId)) next.delete(viewId);
-      else next.add(viewId);
-      return next;
-    });
-  };
 
   const selectAll = () =>
     setSelectedViewIds(new Set(filteredViews.map((v) => v.id)));
@@ -266,12 +264,12 @@ function ManageViewsPage() {
                 type="button"
                 key={view.id}
                 className="hover:bg-muted/50 flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-3 text-left transition-colors"
-                onClick={() => toggleViewSelection(view.id)}
+                onClick={(e) => handleViewSelect(view.id, e)}
               >
                 <Checkbox
                   id={`view-${view.id}`}
                   checked={isSelected}
-                  onCheckedChange={() => toggleViewSelection(view.id)}
+                  onCheckedChange={() => handleViewSelect(view.id)}
                   onClick={(e) => e.stopPropagation()}
                 />
                 <span className="line-clamp-1 flex-1">{view.name}</span>
