@@ -40,8 +40,29 @@ export const env = createEnv({
     POLAR_STANDARD_LARGE_QUOTA_ANNUAL_PRODUCT_ID: z.string().optional(),
     POLAR_PRO_MONTHLY_PRODUCT_ID: z.string().optional(),
     POLAR_PRO_ANNUAL_PRODUCT_ID: z.string().optional(),
-    UPSTASH_REDIS_REST_URL: z.string().optional(),
-    UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+    POLAR_ENVIRONMENT: z.enum(["production", "sandbox"]).optional(),
+    KV_STORE: z.enum(["none", "ioredis", "upstash"]).default("none"),
+    UPSTASH_REDIS_REST_URL: z
+      .string()
+      .optional()
+      .refine(
+        (val) => !(process.env.KV_STORE === "upstash" && !val),
+        "UPSTASH_REDIS_REST_URL is required when KV_STORE is 'upstash'.",
+      ),
+    UPSTASH_REDIS_REST_TOKEN: z
+      .string()
+      .optional()
+      .refine(
+        (val) => !(process.env.KV_STORE === "upstash" && !val),
+        "UPSTASH_REDIS_REST_TOKEN is required when KV_STORE is 'upstash'.",
+      ),
+    REDIS_URL: z
+      .string()
+      .optional()
+      .refine(
+        (val) => !(process.env.KV_STORE === "ioredis" && !val),
+        "REDIS_URL is required when KV_STORE is 'ioredis'.",
+      ),
     BACKGROUND_REFRESH_ENABLED: z.string().optional().default("true"),
     OAUTH_PROVIDER_ID: z.string().optional(),
     OAUTH_PROVIDER_NAME: z.string().optional(),
@@ -96,8 +117,11 @@ export const env = createEnv({
       process.env.POLAR_STANDARD_LARGE_QUOTA_ANNUAL_PRODUCT_ID,
     POLAR_PRO_MONTHLY_PRODUCT_ID: process.env.POLAR_PRO_MONTHLY_PRODUCT_ID,
     POLAR_PRO_ANNUAL_PRODUCT_ID: process.env.POLAR_PRO_ANNUAL_PRODUCT_ID,
+    POLAR_ENVIRONMENT: process.env.POLAR_ENVIRONMENT,
+    KV_STORE: process.env.KV_STORE,
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+    REDIS_URL: process.env.REDIS_URL,
     BACKGROUND_REFRESH_ENABLED: process.env.BACKGROUND_REFRESH_ENABLED,
     OAUTH_PROVIDER_ID: process.env.OAUTH_PROVIDER_ID,
     OAUTH_PROVIDER_NAME: process.env.OAUTH_PROVIDER_NAME,

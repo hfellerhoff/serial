@@ -18,13 +18,22 @@ function hasAllPolarCredentials(): boolean {
   );
 }
 
-export const polarClient =
-  IS_MAIN_INSTANCE && hasAllPolarCredentials()
-    ? new Polar({
-        accessToken: env.POLAR_ACCESS_TOKEN!,
-        server: env.NODE_ENV === "production" ? "production" : "sandbox",
-      })
-    : null;
+function createPolarClient(): Polar | null {
+  if (!IS_MAIN_INSTANCE || !hasAllPolarCredentials()) return null;
+
+  if (!env.POLAR_ENVIRONMENT) {
+    throw new Error(
+      "POLAR_ENVIRONMENT must be set to 'production' or 'sandbox' when billing is enabled.",
+    );
+  }
+
+  return new Polar({
+    accessToken: env.POLAR_ACCESS_TOKEN!,
+    server: env.POLAR_ENVIRONMENT,
+  });
+}
+
+export const polarClient = createPolarClient();
 
 /** True only when running as the main instance with all Polar credentials configured. */
 export const IS_BILLING_ENABLED = polarClient !== null;

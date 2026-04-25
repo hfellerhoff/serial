@@ -109,6 +109,7 @@
     "gray-matter": "^4.0.3",
     "hast-util-to-string": "^3.0.1",
     "html-react-parser": "^6.0.0",
+    "ioredis": "^5.10.1",
     "jimp": "^1.6.0",
     "jotai": "^2.19.0",
     "jotai-optics": "^0.4.0",

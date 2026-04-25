@@ -1,7 +1,18 @@
 volumes:
   libsql-data:
+  redis-data:
 
 services:
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+      start_period: 2s
   libsql:
     image: ghcr.io/tursodatabase/libsql-server:latest
     volumes:
@@ -20,6 +31,9 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: http://libsql:8080
+      KV_STORE: ioredis
+      REDIS_URL: redis://redis:6379
+      VITE_PUBLIC_IS_MAIN_INSTANCE: "false"
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       FROM_EMAIL_ADDRESS: ${FROM_EMAIL_ADDRESS}
       RESEND_API_KEY: ${RESEND_API_KEY}
@@ -31,5 +45,8 @@ services:
       libsql:
         condition: service_healthy
         required: false
+      redis:
+        condition: service_healthy
+        required: true
     ports:
       - 3000:3000
