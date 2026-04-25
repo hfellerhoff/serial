@@ -3,7 +3,8 @@ import { migrate } from "drizzle-orm/libsql/migrator";
 
 // Load .env.local for local dev/build. In production the platform provides env
 // vars directly; during e2e tests dotenv-cli injects them from .env.test.* files.
-// Using .env.local (not .env) avoids c12/Nitro auto-loading secrets into tests.
+// Note: Nitro's Vite plugin auto-loads both .env AND .env.local in dev mode,
+// so e2e test env files must explicitly empty-override any secrets from .env.local.
 config({ path: ".env.local" });
 
 // Dynamic import so env vars are loaded before env.js evaluates process.env

@@ -4,6 +4,8 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { zodValidator } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { AUTH_SIGNED_IN_URL } from "../server/auth/constants";
 import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";
@@ -13,9 +15,16 @@ import { authClient, signUp } from "~/lib/auth-client";
 import { AuthHeader } from "~/components/auth/AuthHeader";
 import { orpcRouterClient } from "~/lib/orpc";
 
+const signUpSearchSchema = z.object({
+  token: z.string().optional(),
+});
+
 export const Route = createFileRoute("/auth/sign-up")({
   component: SignUp,
-  loader: () => orpcRouterClient.admin.getSignupConfig(),
+  validateSearch: zodValidator(signUpSearchSchema),
+  loaderDeps: ({ search }) => ({ token: search.token }),
+  loader: ({ deps }) =>
+    orpcRouterClient.admin.getSignupConfig({ token: deps.token }),
 });
 
 function SignUp() {
@@ -25,6 +34,7 @@ function SignUp() {
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const { token } = Route.useSearch();
 
   const signupStatus = Route.useLoaderData();
   const signupsEnabled = signupStatus.enabled === true;
@@ -53,7 +63,9 @@ function SignUp() {
 
   return (
     <>
-      <AuthHeader removePadding={!signupStatus.isFirstUser}>
+      <AuthHeader
+        removePadding={!signupStatus.isFirstUser && !signupStatus.inviterName}
+      >
         {signupStatus.isFirstUser && (
           <div className="text-center">
             <div className="text-center font-semibold">
@@ -61,6 +73,14 @@ function SignUp() {
             </div>
             <div className="text-muted-foreground mx-auto max-w-2xs pt-1">
               Welcome to Serial! Let&apos;s create your first account.
+            </div>
+          </div>
+        )}
+        {!signupStatus.isFirstUser && signupStatus.inviterName && (
+          <div className="text-center">
+            <div className="text-center font-semibold">Welcome!</div>
+            <div className="text-muted-foreground mx-auto max-w-2xs pt-1">
+              {signupStatus.inviterName} has invited you to Serial.
             </div>
           </div>
         )}
@@ -126,6 +146,7 @@ function SignUp() {
                     password,
                     name: firstName,
                     callbackURL: AUTH_SIGNED_IN_URL,
+                    ...(token ? { invitationToken: token } : {}),
                     fetchOptions: {
                       onResponse: () => {
                         setLoading(false);

@@ -20,6 +20,7 @@ import {
   getShortcutKey,
   SHORTCUT_KEYS,
 } from "~/lib/constants/shortcuts";
+import { getScrollContainer } from "~/lib/scroll";
 import {
   useSaveToInstapaperMutation,
   useShowInstapaperAction,
@@ -29,12 +30,17 @@ const SCROLL_DURATION_MS = 300;
 const TARGET_VIEWPORT_POSITION = 1 / 3;
 
 function isElementInViewport(element: Element): boolean {
+  const container = getScrollContainer();
+  const containerRect = container.getBoundingClientRect();
   const rect = element.getBoundingClientRect();
-  return rect.top < window.innerHeight && rect.bottom > 0;
+  return rect.top < containerRect.bottom && rect.bottom > containerRect.top;
 }
 
 function getClosestVisibleItem(items: string[]): string | null {
-  const viewportTarget = window.innerHeight * TARGET_VIEWPORT_POSITION;
+  const container = getScrollContainer();
+  const containerRect = container.getBoundingClientRect();
+  const viewportTarget =
+    containerRect.top + containerRect.height * TARGET_VIEWPORT_POSITION;
   let closestItem: string | null = null;
   let closestDistance = Infinity;
 
@@ -43,7 +49,8 @@ function getClosestVisibleItem(items: string[]): string | null {
     if (!element) continue;
 
     const rect = element.getBoundingClientRect();
-    if (rect.bottom < 0 || rect.top > window.innerHeight) continue;
+    if (rect.bottom < containerRect.top || rect.top > containerRect.bottom)
+      continue;
 
     const elementCenter = rect.top + rect.height / 2;
     const distance = Math.abs(elementCenter - viewportTarget);
@@ -126,21 +133,26 @@ export function useFeedItemNavigation(
       const element = document.querySelector(`[data-item-id="${itemId}"]`);
       if (!element) return;
 
+      const container = getScrollContainer();
+      const containerRect = container.getBoundingClientRect();
       const rect = element.getBoundingClientRect();
-      const targetPosition = window.innerHeight * TARGET_VIEWPORT_POSITION;
+      const targetPosition = containerRect.height * TARGET_VIEWPORT_POSITION;
       const scrollTop =
-        window.scrollY + rect.top - targetPosition + rect.height / 2;
+        container.scrollTop +
+        (rect.top - containerRect.top) -
+        targetPosition +
+        rect.height / 2;
 
       const now = performance.now();
       const isRapid = now - lastNavTimeRef.current < SCROLL_DURATION_MS;
       lastNavTimeRef.current = now;
 
       if (forceInstant || isRapid) {
-        window.scrollTo({ top: scrollTop, behavior: "instant" });
+        container.scrollTo({ top: scrollTop, behavior: "instant" });
         return;
       }
 
-      window.scrollTo({ top: scrollTop, behavior: "smooth" });
+      container.scrollTo({ top: scrollTop, behavior: "smooth" });
     },
     [],
   );
@@ -176,7 +188,7 @@ export function useFeedItemNavigation(
       const currentIndex = selectedItemId ? items.indexOf(selectedItemId) : -1;
 
       if (currentIndex === -1) {
-        if (window.scrollY === 0 && items.length > 0) {
+        if (getScrollContainer().scrollTop === 0 && items.length > 0) {
           selectItem(items[0]!);
         } else {
           const closestItem = getClosestVisibleItem(items);
@@ -208,14 +220,14 @@ export function useFeedItemNavigation(
             selectItem(items[nextIndex]!);
           } else {
             setSelectedItemId(null);
-            window.scrollTo({ top: 0, behavior: "instant" });
+            getScrollContainer().scrollTo({ top: 0, behavior: "instant" });
           }
         }
       } else {
         const nextIndex = currentIndex + 1;
         if (nextIndex >= items.length) {
           setSelectedItemId(null);
-          window.scrollTo({ top: 0, behavior: "instant" });
+          getScrollContainer().scrollTo({ top: 0, behavior: "instant" });
         } else {
           selectItem(items[nextIndex]!);
         }
@@ -239,7 +251,7 @@ export function useFeedItemNavigation(
       const currentIndex = selectedItemId ? items.indexOf(selectedItemId) : -1;
 
       if (currentIndex === -1) {
-        if (window.scrollY === 0 && items.length > 0) {
+        if (getScrollContainer().scrollTop === 0 && items.length > 0) {
           selectItem(items[items.length - 1]!, true);
           handleLoadMore();
         } else {
@@ -271,13 +283,13 @@ export function useFeedItemNavigation(
           selectItem(items[prevIndex]!);
         } else {
           setSelectedItemId(null);
-          window.scrollTo({ top: 0, behavior: "instant" });
+          getScrollContainer().scrollTo({ top: 0, behavior: "instant" });
         }
       } else if (currentIndex > 0) {
         selectItem(items[currentIndex - 1]!);
       } else {
         setSelectedItemId(null);
-        window.scrollTo({ top: 0, behavior: "instant" });
+        getScrollContainer().scrollTo({ top: 0, behavior: "instant" });
       }
     },
     [
@@ -354,7 +366,7 @@ export function useFeedItemNavigation(
       if (wasMarkedRead) {
         if (idx === items.length - 1) {
           setSelectedItemId(null);
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          getScrollContainer().scrollTo({ top: 0, behavior: "smooth" });
         } else {
           selectNextItem(idx);
         }
@@ -412,7 +424,7 @@ export function useFeedItemNavigation(
     if (viewChanged || categoryChanged || feedChanged) {
       setSoftReadItemIds(new Set());
       setSelectedItemId(null);
-      window.scrollTo({ top: 0, behavior: "instant" });
+      getScrollContainer().scrollTo({ top: 0, behavior: "instant" });
     }
 
     prevViewFilterIdRef.current = viewFilterId;

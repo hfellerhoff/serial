@@ -58,6 +58,7 @@ interface EditableSavableTextFieldProps {
   initialValue: string;
   label: string;
   helperText?: string;
+  showHelperTextOnlyWhenEditing?: boolean;
   placeholder: string;
   onSave: (updatedValue: string) => Promise<void>;
   schema: z.ZodString;
@@ -67,6 +68,7 @@ export function EditableSavableTextField({
   initialValue,
   label,
   helperText,
+  showHelperTextOnlyWhenEditing = false,
   placeholder,
   onSave,
   schema,
@@ -165,7 +167,7 @@ export function EditableSavableTextField({
           <EditableSavableTextFieldEditingActions onCancel={cancelEditing} />
         )}
       </div>
-      {!!helperText && (
+      {!!helperText && (!showHelperTextOnlyWhenEditing || isEditing) && (
         <p className="text-foreground/70 text-sm">{helperText}</p>
       )}
     </form>

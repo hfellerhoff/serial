@@ -9,16 +9,23 @@ import { getRequestHeaders } from "@tanstack/react-start/server";
 import { redirect } from "@tanstack/react-router";
 import { asc, count, eq } from "drizzle-orm";
 import { checkout, polar, portal, webhooks } from "@polar-sh/better-auth";
+import { createElement } from "react";
 import { db } from "../db";
-import { account, appConfig, session, user } from "../db/schema";
-import { getPolarProductIds, polarClient } from "../subscriptions/polar";
+import { appConfig, session, user } from "../db/schema";
+import {
+  getPolarProductIds,
+  IS_BILLING_ENABLED,
+  polarClient,
+} from "../subscriptions/polar";
 import { PLANS } from "../subscriptions/plans";
 import {
   applySubscriptionSideEffects,
   syncPolarDataToKV,
 } from "../subscriptions/kv";
+import NewUserNotificationEmail from "~/emails/new-user-notification";
 import ResetPasswordEmail from "~/emails/reset-password";
 import VerifyEmailEmail from "~/emails/verify-email";
+import VerifyEmailChangeEmail from "~/emails/verify-email-change";
 import {
   BASE_SIGNED_OUT_URL,
   getAvailableSignupProviders,
@@ -27,6 +34,11 @@ import {
 } from "~/lib/constants";
 import { isOAuthConfigured } from "~/server/auth/constants";
 import { IS_EMAIL_ENABLED, sendEmail } from "~/server/email";
+import {
+  redeemInvitationToken,
+  validateInvitationToken,
+} from "~/server/invitations";
+import { setOtpCooldown } from "~/server/otp";
 import { captureException } from "~/server/logger";
 import { env } from "~/env";
 
@@ -39,6 +51,20 @@ export const authMiddleware = createMiddleware().server(
         throw redirect({ to: BASE_SIGNED_OUT_URL });
       }
     }
+
+    // Redirect unverified users to the verification page.
+    // Exempt /api/auth/* (sign-out, OTP verification) and /auth/* (other auth
+    // pages like sign-in) so the user can still sign out or complete flows.
+    if (
+      IS_EMAIL_ENABLED &&
+      session &&
+      !session.user.emailVerified &&
+      pathname !== "/auth/verify-email" &&
+      !pathname.startsWith("/api/auth/")
+    ) {
+      throw redirect({ to: "/auth/verify-email" });
+    }
+
     return await next();
   },
 );
@@ -182,6 +208,39 @@ export const auth = betterAuth({
       }
     },
   },
+  user: {
+    changeEmail: {
+      enabled: true,
+    },
+    deleteUser: {
+      enabled: true,
+    },
+  },
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url }) => {
+      try {
+        const html = await render(
+          <VerifyEmailChangeEmail
+            verificationUrl={url}
+            supportEmail={env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS}
+          />,
+        );
+
+        void sendEmail({
+          to: user.email,
+          subject: "Verify your new email for Serial",
+          html,
+        });
+        console.log(`[auth] Email change verification sent to ${user.email}`);
+      } catch (error) {
+        console.error(
+          `[auth] Failed to send email change verification to ${user.email}:`,
+          error,
+        );
+        throw error;
+      }
+    },
+  },
   plugins: [
     admin(),
     tanstackStartCookies(),
@@ -192,6 +251,8 @@ export const auth = betterAuth({
           emailOTP({
             async sendVerificationOTP({ email, otp, type }) {
               if (type === "email-verification") {
+                await setOtpCooldown(email);
+
                 try {
                   const html = await render(
                     <VerifyEmailEmail
@@ -269,6 +330,21 @@ export const auth = betterAuth({
 
       // Sign-up gating
       if (isEmailSignUp && !availableSignupProviders.includes("email")) {
+        // Check for a valid invitation token before blocking.
+        // The invitationToken field is an extra body param passed through by
+        // Better Auth — not schema-validated, so we type-check manually.
+        const invitationToken = ctx.body?.invitationToken;
+        if (typeof invitationToken === "string") {
+          const validatedInvitationToken =
+            await validateInvitationToken(invitationToken);
+          if (validatedInvitationToken) {
+            // Token is valid — allow sign-up to proceed. The after hook
+            // atomically records the redemption (with a transaction) to
+            // prevent TOCTOU races with concurrent sign-ups.
+            return;
+          }
+        }
+
         throw new APIError("BAD_REQUEST", {
           message: "Sign ups are currently disabled",
         });
@@ -286,6 +362,31 @@ export const auth = betterAuth({
       if (!ctx.context?.newSession?.user?.id) return;
 
       const userId = ctx.context.newSession.user.id;
+
+      // Atomically record the invitation redemption. The transaction in
+      // redeemInvitationToken re-checks the max-uses count so that two
+      // concurrent sign-ups can't both consume the last slot.
+      if (isEmailSignUp) {
+        const invitationToken = ctx.body?.invitationToken;
+        if (typeof invitationToken === "string") {
+          const redeemed = await redeemInvitationToken(invitationToken, userId);
+          if (!redeemed) {
+            // Another concurrent sign-up consumed the last use between the
+            // before hook and now. Roll back the newly created user via
+            // Better Auth's deleteUser API so all related records
+            // (accounts, sessions, plugin data) are properly cleaned up.
+            const headers = new Headers();
+            headers.set(
+              "Authorization",
+              `Bearer ${ctx.context.newSession.session.token}`,
+            );
+            await auth.api.deleteUser({ headers, body: {} });
+            throw new APIError("BAD_REQUEST", {
+              message: "Sign ups are currently disabled",
+            });
+          }
+        }
+      }
 
       // Check if this user is the first user by creation time
       const firstUser = await db
@@ -352,16 +453,77 @@ export const auth = betterAuth({
           });
 
           if (!availableProviders.includes("oauth")) {
-            await db.delete(account).where(eq(account.userId, userId));
-            await db.delete(session).where(eq(session.userId, userId));
-            await db.delete(user).where(eq(user.id, userId));
+            // Roll back the auto-created user via Better Auth's deleteUser
+            // API so all related records are properly cleaned up.
+            const rollbackHeaders = new Headers();
+            rollbackHeaders.set(
+              "Authorization",
+              `Bearer ${ctx.context.newSession.session.token}`,
+            );
+            await auth.api.deleteUser({
+              headers: rollbackHeaders,
+              body: {},
+            });
             throw new APIError("BAD_REQUEST", {
               message: "Sign ups are currently disabled",
             });
           }
         }
       }
+
+      // Send admin notification email for non-first user sign-ups
+      if (firstUser?.id !== userId && IS_EMAIL_ENABLED) {
+        try {
+          const notifyConfig = await db
+            .select()
+            .from(appConfig)
+            .where(eq(appConfig.key, "admin-notify-on-signup"))
+            .get();
+          const emailConfig = await db
+            .select()
+            .from(appConfig)
+            .where(eq(appConfig.key, "admin-notify-email"))
+            .get();
+
+          if (notifyConfig?.value === "true" && emailConfig?.value) {
+            const newUser = ctx.context.newSession.user;
+            const html = await render(
+              createElement(NewUserNotificationEmail, {
+                userName: newUser.name,
+                userEmail: newUser.email,
+              }),
+            );
+
+            await sendEmail({
+              to: emailConfig.value,
+              subject: `New user signed up: ${newUser.name ?? newUser.email}`,
+              html,
+            });
+          }
+        } catch (err) {
+          // Don't block sign-up if notification email fails
+          captureException(err);
+        }
+      }
     }),
+  },
+
+  databaseHooks: {
+    user: {
+      update: {
+        async after(user) {
+          if (!IS_BILLING_ENABLED || !polarClient || !user.email) return;
+          try {
+            await polarClient.customers.updateExternal({
+              externalId: user.id,
+              customerUpdateExternalID: { email: user.email },
+            });
+          } catch {
+            // Customer may not exist in Polar yet (never checked out)
+          }
+        },
+      },
+    },
   },
 
   /** if no database is provided, the user data will be stored in memory.

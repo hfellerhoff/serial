@@ -3,6 +3,7 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, DownloadIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useDialogStore } from "../dialogStore";
 import { DeleteAccountSection } from "./DeleteAccountSection";
 import { ExportDataSection } from "./ExportDataSection";
@@ -11,7 +12,6 @@ import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { authClient } from "~/lib/auth-client";
-import { useUpdateEmailMutation } from "~/lib/data/user/useUpdateEmailMutation";
 import { useUpdateNameMutation } from "~/lib/data/user/useUpdateNameMutation";
 import { userEmailSchema, userNameSchema } from "~/server/api/schemas";
 import { AUTH_RESET_PASSWORD_URL } from "~/server/auth/constants";
@@ -24,7 +24,6 @@ export function UserProfileEditDialog() {
   const { dialog, onOpenChange } = useDialogStore();
 
   const { mutateAsync: updateName } = useUpdateNameMutation();
-  const { mutateAsync: updateEmail } = useUpdateEmailMutation();
 
   const [pane, setPane] = useState<SettingsPane>("main");
 
@@ -87,12 +86,22 @@ export function UserProfileEditDialog() {
         />
         <EditableSavableTextField
           label="Email"
-          helperText="Be careful! This will be your new sign in email."
+          helperText="A verification email will be sent to confirm the change."
+          showHelperTextOnlyWhenEditing
           placeholder="user@example.com"
           initialValue={userEmail}
           onSave={async (updatedEmail) => {
-            await updateEmail({ email: updatedEmail });
-            void refetchUser();
+            const { error } = await authClient.changeEmail({
+              newEmail: updatedEmail,
+              callbackURL: "/",
+            });
+            if (error) {
+              toast.error(error.message ?? "Failed to change email");
+              return;
+            }
+            toast.success(
+              "Verification email sent! Check your new inbox to confirm.",
+            );
           }}
           schema={userEmailSchema}
         />

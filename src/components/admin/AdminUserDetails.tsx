@@ -45,10 +45,10 @@ export function AdminUserDetails({ data }: AdminUserDetailsProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <Link to="/admin">
+      <Link to="/admin/users">
         <Button variant="ghost" size="sm" className="-ml-2">
           <ArrowLeftIcon className="mr-2" size={16} />
-          Admin Home
+          Users
         </Button>
       </Link>
 

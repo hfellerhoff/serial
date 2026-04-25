@@ -69,7 +69,7 @@ export function LeftSidebarBottomNav() {
           {isAdmin && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <Link to="/admin">
+                <Link to="/admin/settings">
                   <ShieldIcon />
                   <span>Admin</span>
                 </Link>

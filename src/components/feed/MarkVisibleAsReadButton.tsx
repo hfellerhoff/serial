@@ -4,6 +4,7 @@ import { useAtomValue } from "jotai";
 import { useState } from "react";
 import { FlameIcon } from "lucide-react";
 import { PaginationLoader } from "./view-lists/PaginationLoader";
+import { getScrollContainer } from "~/lib/scroll";
 import {
   categoryFilterAtom,
   feedFilterAtom,
@@ -78,7 +79,7 @@ export function MarkVisibleAsReadButton() {
       await bulkMutation.mutateAsync({ items, isWatched: true });
 
       // Scroll to top
-      window.scrollTo({ top: 0, behavior: "instant" });
+      getScrollContainer().scrollTo({ top: 0, behavior: "instant" });
 
       // Reset visible items tracking so it starts fresh for new items
       resetVisibleItems();

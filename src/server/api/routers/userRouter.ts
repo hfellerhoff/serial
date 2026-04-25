@@ -1,31 +1,13 @@
 import { and, eq, like } from "drizzle-orm";
 import { z } from "zod";
 
-import { userEmailSchema, userNameSchema } from "../schemas";
+import { userNameSchema } from "../schemas";
 import { protectedProcedure, publicProcedure } from "~/server/orpc/base";
+import { auth } from "~/server/auth";
+import { getOtpCooldownRemaining, OTP_COOLDOWN_SECONDS } from "~/server/otp";
 import { user } from "~/server/db/schema";
-import { IS_BILLING_ENABLED, polarClient } from "~/server/subscriptions/polar";
 
 export const checkIsLegacyUser = publicProcedure
-  .input(
-    z.object({
-      email: z.string().email(),
-    }),
-  )
-  .handler(async ({ context, input }) => {
-    const users = await context.db
-      .select()
-      .from(user)
-      .where(and(eq(user.email, input.email), like(user.id, "user_%")));
-
-    if (users.length > 0) {
-      return true;
-    }
-
-    return false;
-  });
-
-export const getIsLegacyUser = publicProcedure
   .input(
     z.object({
       email: z.string().email(),
@@ -59,33 +41,32 @@ export const updateName = protectedProcedure
       .where(eq(user.id, context.user.id));
   });
 
-export const updateEmail = protectedProcedure
-  .input(
-    z.object({
-      email: userEmailSchema,
-    }),
-  )
-  .handler(async ({ context, input }) => {
-    await context.db
-      .update(user)
-      .set({
-        email: input.email,
-        emailVerified: false,
-      })
-      .where(eq(user.id, context.user.id));
-
-    if (IS_BILLING_ENABLED && polarClient) {
-      try {
-        await polarClient.customers.updateExternal({
-          externalId: context.user.id,
-          customerUpdateExternalID: { email: input.email },
-        });
-      } catch {
-        // Customer may not exist in Polar yet (never checked out)
-      }
-    }
-  });
-
 export const deleteUser = protectedProcedure.handler(async ({ context }) => {
   await context.db.delete(user).where(eq(user.id, context.user.id));
 });
+
+/**
+ * Request a verification code. Returns the number of seconds until the next
+ * resend is allowed. If a cooldown is active from a prior send (including the
+ * automatic send-on-signup), returns the remaining time without re-sending.
+ */
+export const requestVerificationCode = protectedProcedure.handler(
+  async ({ context }) => {
+    const email = context.user.email;
+
+    // If a cooldown is active (from a prior send or the automatic
+    // send-on-signup), return the remaining time without re-sending.
+    const remaining = await getOtpCooldownRemaining(email);
+    if (remaining > 0) {
+      return { sent: false, retryAfter: remaining };
+    }
+
+    // No cooldown — send a new code. This triggers sendVerificationOTP
+    // in the auth config, which calls setOtpCooldown().
+    await auth.api.sendVerificationOTP({
+      body: { email, type: "email-verification" },
+    });
+
+    return { sent: true, retryAfter: OTP_COOLDOWN_SECONDS };
+  },
+);

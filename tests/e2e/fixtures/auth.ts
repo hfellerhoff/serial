@@ -1,4 +1,7 @@
 import { expect } from "@playwright/test";
+import { createClient } from "@libsql/client";
+import { createId } from "@paralleldrive/cuid2";
+import { hashPassword } from "better-auth/crypto";
 import type { Page } from "@playwright/test";
 
 interface SignUpOptions {
@@ -10,6 +13,13 @@ interface SignUpOptions {
 
 interface SignInOptions {
   page: Page;
+  email: string;
+  password: string;
+}
+
+interface SeedAdminOptions {
+  tursoPort: number;
+  name: string;
   email: string;
   password: string;
 }
@@ -64,6 +74,72 @@ export async function signUp({ page, name, email, password }: SignUpOptions) {
 
   await page.getByRole("button", { name: /create an account/i }).click();
   await expect(page).toHaveURL("/", { timeout: 30000 });
+}
+
+/**
+ * Seeds an admin user directly in the database, bypassing the UI sign-up flow.
+ *
+ * This avoids race conditions in parallel tests where two tests both try to
+ * sign up as the "first user" — only one would get admin via the after-hook.
+ * By inserting directly into the DB with role="admin" and the correct appConfig
+ * entries, the user is guaranteed to be admin regardless of execution order.
+ */
+export async function seedAdmin({
+  tursoPort,
+  name,
+  email,
+  password,
+}: SeedAdminOptions) {
+  const client = createClient({ url: `http://127.0.0.1:${tursoPort}` });
+  const now = Math.floor(Date.now() / 1000);
+  const userId = createId();
+  const accountId = createId();
+  const hashed = await hashPassword(password);
+
+  await client.batch([
+    // Insert user with admin role
+    {
+      sql: `INSERT INTO serial_user (id, name, email, email_verified, image, created_at, updated_at, role)
+            VALUES (?, ?, ?, 1, NULL, ?, ?, 'admin')`,
+      args: [userId, name, email, now, now],
+    },
+    // Insert credential account so sign-in works
+    {
+      sql: `INSERT INTO serial_account (id, account_id, provider_id, user_id, password, created_at, updated_at)
+            VALUES (?, ?, 'credential', ?, ?, ?, ?)`,
+      args: [accountId, userId, userId, hashed, now, now],
+    },
+    // Set enabled-signin-providers to email
+    {
+      sql: `INSERT OR REPLACE INTO serial_app_config (key, value, updated_at)
+            VALUES ('enabled-signin-providers', '["email"]', ?)`,
+      args: [now],
+    },
+    // Set enabled-signup-providers to email
+    {
+      sql: `INSERT OR REPLACE INTO serial_app_config (key, value, updated_at)
+            VALUES ('enabled-signup-providers', '["email"]', ?)`,
+      args: [now],
+    },
+  ]);
+
+  client.close();
+}
+
+/**
+ * Seeds an admin user directly in the DB then signs in via the UI.
+ * Use this instead of signUp when the test needs guaranteed admin access,
+ * regardless of parallel test execution order.
+ */
+export async function signUpAsAdmin({
+  page,
+  tursoPort,
+  name,
+  email,
+  password,
+}: SeedAdminOptions & { page: Page }) {
+  await seedAdmin({ tursoPort, name, email, password });
+  await signIn({ page, email, password });
 }
 
 /**

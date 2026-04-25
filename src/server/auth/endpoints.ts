@@ -6,6 +6,7 @@ import type { ArticleFontFamily } from "~/lib/constants/article-fonts";
 import { IS_EMAIL_ENABLED } from "~/server/email";
 import { FONT_FAMILY_CSS } from "~/lib/constants/article-fonts";
 import { parseHSL } from "~/server/api/routers/hsl";
+import { queryUserById } from "~/server/api/routers/admin/queries";
 import { db } from "~/server/db";
 import { userConfig } from "~/server/db/schema";
 
@@ -81,27 +82,11 @@ export const fetchAdminUserById = createServerFn({ method: "GET" })
       throw new Error("Unauthorized: Admin access required");
     }
 
-    const sessionsResult = await auth.api.listUserSessions({
-      headers,
-      body: { userId },
-    });
+    const result = await queryUserById(userId, headers);
 
-    const allUsers = await auth.api.listUsers({
-      headers,
-      query: {
-        limit: 1000,
-        offset: 0,
-      },
-    });
-
-    const user = allUsers.users.find((u) => u.id === userId);
-
-    if (!user) {
+    if (!result) {
       throw new Error("User not found");
     }
 
-    return {
-      user,
-      sessions: sessionsResult.sessions,
-    };
+    return result;
   });

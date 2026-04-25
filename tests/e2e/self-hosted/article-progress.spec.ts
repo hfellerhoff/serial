@@ -34,22 +34,35 @@ test.describe("article progress tracking", () => {
       page.locator("h1").filter({ hasText: "Test Article" }),
     ).toBeVisible({ timeout: 10000 });
 
-    // Verify we start at the top
-    const initialScrollY = await page.evaluate(() => window.scrollY);
-    expect(initialScrollY).toBe(0);
+    // The scrollable container is the SidebarInset <main> element, not the
+    // window (it has overflow-y: auto).
+    const scrollContainer = page.locator('[data-slot="sidebar-inset"]');
 
-    // Scroll down with mouse wheel to trigger progress tracking
-    for (let i = 0; i < 10; i++) {
+    // Verify we start at the top
+    const initialScrollTop = await scrollContainer.evaluate(
+      (el) => el.scrollTop,
+    );
+    expect(initialScrollTop).toBe(0);
+
+    // Scroll down using mouse wheel events to trigger progress tracking.
+    // The wheel handler in useArticleNavigation listens on window, so
+    // page.mouse.wheel dispatches the right events — it now works because
+    // the scroll container is the SidebarInset element, not the window.
+    // We hover over the scroll container first so the wheel events land on it.
+    const box = await scrollContainer.boundingBox();
+    if (box) {
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    }
+    for (let i = 0; i < 15; i++) {
       await page.mouse.wheel(0, 300);
       await page.waitForTimeout(50);
     }
-
-    // Wait for debounce (500ms) + buffer
-    await page.waitForTimeout(800);
+    // Allow scroll event handlers and debounce (500ms) + buffer
+    await page.waitForTimeout(1000);
 
     // Verify we scrolled
-    const scrolledY = await page.evaluate(() => window.scrollY);
-    expect(scrolledY).toBeGreaterThan(0);
+    const scrolledTop = await scrollContainer.evaluate((el) => el.scrollTop);
+    expect(scrolledTop).toBeGreaterThan(0);
 
     // Capture the selected element's text so we can verify the *same*
     // element is reselected after restore (not just any element).
@@ -79,9 +92,11 @@ test.describe("article progress tracking", () => {
     // Verify the page scrolled to the saved position (within a small
     // tolerance — restoration scrolls to the saved selected element, which
     // may not land at the exact pixel offset).
-    const restoredScrollY = await page.evaluate(() => window.scrollY);
-    expect(restoredScrollY).toBeGreaterThan(0);
-    expect(Math.abs(restoredScrollY - scrolledY)).toBeLessThan(200);
+    const restoredScrollTop = await scrollContainer.evaluate(
+      (el) => el.scrollTop,
+    );
+    expect(restoredScrollTop).toBeGreaterThan(0);
+    expect(Math.abs(restoredScrollTop - scrolledTop)).toBeLessThan(200);
 
     // Verify the *same* element is selected after restore
     const restoredSelected = page.locator("[data-article-selected]");

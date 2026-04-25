@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { authClient, useSession } from "~/lib/auth-client";
-
-const OTP_COOLDOWN_SECONDS = 60;
+import { orpc } from "~/lib/orpc";
 
 export function EmailVerificationBanner({
   onVerified,
@@ -16,11 +16,11 @@ export function EmailVerificationBanner({
   const { data: session } = useSession();
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
-  const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   const isCooldownActive = cooldownRemaining > 0;
+  const email = session?.user?.email;
 
   useEffect(() => {
     if (cooldownRemaining <= 0) return;
@@ -30,45 +30,37 @@ export function EmailVerificationBanner({
     return () => clearTimeout(timer);
   }, [cooldownRemaining]);
 
-  const startCooldown = useCallback(() => {
-    setCooldownRemaining(OTP_COOLDOWN_SECONDS);
-  }, []);
-
-  const email = session?.user?.email;
-
-  async function handleSendOtp() {
-    if (!email || isCooldownActive) return;
-    setSending(true);
-    try {
-      await authClient.emailOtp.sendVerificationOtp({
-        email,
-        type: "email-verification",
-      });
-      setOtpSent(true);
-      startCooldown();
-      toast.success("Verification code sent to your email");
-    } catch {
-      toast.error("Failed to send verification code");
-    } finally {
-      setSending(false);
-    }
-  }
+  const sendMutation = useMutation(
+    orpc.user.requestVerificationCode.mutationOptions({
+      onSuccess: (result) => {
+        setCooldownRemaining(result.retryAfter);
+        setOtpSent(true);
+        if (result.sent) {
+          toast.success("Verification code sent to your email");
+        }
+      },
+      onError: (error) => {
+        toast.error(error.message ?? "Failed to send verification code");
+      },
+    }),
+  );
 
   async function handleVerify() {
     if (!email || !otp) return;
     setVerifying(true);
-    try {
-      await authClient.emailOtp.verifyEmail({
-        email,
-        otp,
-      });
-      toast.success("Email verified!");
-      onVerified();
-    } catch {
-      toast.error("Invalid verification code");
-    } finally {
-      setVerifying(false);
+    const { error } = await authClient.emailOtp.verifyEmail({
+      email,
+      otp,
+    });
+    setVerifying(false);
+
+    if (error) {
+      toast.error(error.message ?? "Invalid verification code");
+      return;
     }
+
+    toast.success("Email verified!");
+    onVerified();
   }
 
   return (
@@ -82,10 +74,10 @@ export function EmailVerificationBanner({
           size="sm"
           variant="outline"
           className="mt-2"
-          disabled={sending || isCooldownActive}
-          onClick={handleSendOtp}
+          disabled={sendMutation.isPending || isCooldownActive}
+          onClick={() => sendMutation.mutate(undefined)}
         >
-          {sending ? "Sending..." : "Send verification code"}
+          {sendMutation.isPending ? "Sending..." : "Send verification code"}
         </Button>
       ) : (
         <div className="mt-2 flex flex-col gap-2">
@@ -110,8 +102,8 @@ export function EmailVerificationBanner({
             size="sm"
             variant="ghost"
             className="text-muted-foreground w-fit text-xs"
-            disabled={sending || isCooldownActive}
-            onClick={handleSendOtp}
+            disabled={sendMutation.isPending || isCooldownActive}
+            onClick={() => sendMutation.mutate(undefined)}
           >
             {isCooldownActive
               ? `Resend code (${cooldownRemaining}s)`

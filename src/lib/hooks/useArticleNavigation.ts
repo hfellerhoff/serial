@@ -9,6 +9,7 @@ import {
   getShortcutKey,
   SHORTCUT_KEYS,
 } from "~/lib/constants/shortcuts";
+import { getScrollContainer } from "~/lib/scroll";
 
 export const articleSelectedElementAtom = atom<HTMLElement | null>(null);
 
@@ -30,18 +31,24 @@ export function getElements(container: HTMLElement | null): HTMLElement[] {
 }
 
 export function isElementInViewport(element: Element): boolean {
+  const container = getScrollContainer();
+  const containerRect = container.getBoundingClientRect();
   const rect = element.getBoundingClientRect();
-  return rect.top < window.innerHeight && rect.bottom > 0;
+  return rect.top < containerRect.bottom && rect.bottom > containerRect.top;
 }
 
 export function getClosestVisibleElement(elements: HTMLElement[]): number {
-  const viewportTarget = window.innerHeight * TARGET_VIEWPORT_POSITION;
+  const container = getScrollContainer();
+  const containerRect = container.getBoundingClientRect();
+  const viewportTarget =
+    containerRect.top + containerRect.height * TARGET_VIEWPORT_POSITION;
   let closestIndex = -1;
   let closestDistance = Infinity;
 
   for (let i = 0; i < elements.length; i++) {
     const rect = elements[i]!.getBoundingClientRect();
-    if (rect.bottom < 0 || rect.top > window.innerHeight) continue;
+    if (rect.bottom < containerRect.top || rect.top > containerRect.bottom)
+      continue;
 
     const elementCenter = rect.top + rect.height / 2;
     const distance = Math.abs(elementCenter - viewportTarget);
@@ -121,22 +128,27 @@ export function useArticleNavigation(
 
   const scrollToElement = useCallback(
     (element: HTMLElement, forceInstant = false) => {
+      const container = getScrollContainer();
+      const containerRect = container.getBoundingClientRect();
       const rect = element.getBoundingClientRect();
       const hasImage =
         element.tagName === "IMG" ||
         element.tagName === "FIGURE" ||
         !!element.querySelector("img");
       const targetPosition = hasImage
-        ? window.innerHeight / 2
-        : window.innerHeight * TARGET_VIEWPORT_POSITION;
+        ? containerRect.height / 2
+        : containerRect.height * TARGET_VIEWPORT_POSITION;
       const scrollTop =
-        window.scrollY + rect.top - targetPosition + rect.height / 2;
+        container.scrollTop +
+        (rect.top - containerRect.top) -
+        targetPosition +
+        rect.height / 2;
 
       const now = performance.now();
       const isRapid = now - lastNavTimeRef.current < SCROLL_DURATION_MS;
       lastNavTimeRef.current = now;
 
-      window.scrollTo({
+      container.scrollTo({
         top: scrollTop,
         behavior: forceInstant || isRapid ? "instant" : "smooth",
       });
@@ -163,7 +175,7 @@ export function useArticleNavigation(
 
       if (selectedIndex === -1) {
         // No selection: pick closest visible or first
-        if (window.scrollY === 0) {
+        if (getScrollContainer().scrollTop === 0) {
           selectElement(elements, 0);
         } else {
           const closest = getClosestVisibleElement(elements);
@@ -189,7 +201,7 @@ export function useArticleNavigation(
       } else {
         setSelectedIndex(-1);
         applySelection(elements, -1);
-        window.scrollTo({ top: 0, behavior: "instant" });
+        getScrollContainer().scrollTo({ top: 0, behavior: "instant" });
       }
     },
     [containerRef, selectedIndex, selectElement, applySelection],
@@ -202,7 +214,7 @@ export function useArticleNavigation(
       if (elements.length === 0) return;
 
       if (selectedIndex === -1) {
-        if (window.scrollY === 0) {
+        if (getScrollContainer().scrollTop === 0) {
           selectElement(elements, elements.length - 1, true);
         } else {
           const closest = getClosestVisibleElement(elements);
@@ -227,7 +239,7 @@ export function useArticleNavigation(
       } else {
         setSelectedIndex(-1);
         applySelection(elements, -1);
-        window.scrollTo({ top: 0, behavior: "instant" });
+        getScrollContainer().scrollTo({ top: 0, behavior: "instant" });
       }
     },
     [containerRef, selectedIndex, selectElement, applySelection],

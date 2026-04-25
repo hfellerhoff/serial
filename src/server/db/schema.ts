@@ -124,6 +124,47 @@ export const accountRelations = relations(account, ({ one }) => ({
   }),
 }));
 
+export const invitation = sqliteTable(
+  "invitation",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    token: text("token").notNull().unique(),
+    inviterId: text("inviter_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("active"), // "active" | "disabled"
+    maxUses: integer("max_uses"), // null = unlimited
+    expiresAt: integer("expires_at", { mode: "timestamp" }), // null = never expires
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .$default(() => new Date())
+      .notNull(),
+  },
+  (table) => [index("invitation_inviter_id_idx").on(table.inviterId)],
+);
+
+export const invitationRedemption = sqliteTable(
+  "invitation_redemption",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    invitationId: text("invitation_id")
+      .notNull()
+      .references(() => invitation.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .$default(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("invitation_redemption_invitation_id_idx").on(table.invitationId),
+  ],
+);
+
 // === End: Better Auth ===
 
 export const feeds = sqliteTable(
@@ -459,6 +500,8 @@ export type AppConfigKeys = {
   "public-signup-enabled": "true" | "false";
   "enabled-signin-providers": string; // JSON array, e.g. '["email","oauth"]'
   "enabled-signup-providers": string; // JSON array, e.g. '["email","oauth"]'
+  "admin-notify-on-signup": "true" | "false";
+  "admin-notify-email": string; // email address to notify
 };
 
 export type AppConfigKey = keyof AppConfigKeys;
