@@ -1,6 +1,6 @@
 services:
   server:
-    image: ghcr.io/hfellerhoff/serial:latest
+    image: ghcr.io/megaflorasoftware/serial:latest
     environment:
       NODE_ENV: production
       DATABASE_URL: ${DATABASE_URL}

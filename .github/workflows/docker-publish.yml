@@ -34,7 +34,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/hfellerhoff/serial
+          images: ghcr.io/megaflorasoftware/serial
           tags: |
             type=sha,prefix=
             type=raw,value=latest
