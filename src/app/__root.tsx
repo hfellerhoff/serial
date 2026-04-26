@@ -38,7 +38,7 @@ export const Route = createRootRoute({
       { title: title },
       { name: "description", content: description },
       { name: "application-name", content: title },
-      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-title", content: title },
       { name: "format-detection", content: "telephone=no" },
       {
@@ -95,11 +95,11 @@ export const Route = createRootRoute({
       { rel: "preconnect", href: "https://img.youtube.com" },
       { rel: "dns-prefetch", href: "https://www.youtube-nocookie.com" },
       // Preload YouTube IFrame API
-      {
-        rel: "preload",
-        href: "https://www.youtube.com/iframe_api",
-        as: "script",
-      },
+      // {
+      //   rel: "preload",
+      //   href: "https://www.youtube.com/iframe_api",
+      //   as: "script",
+      // },
     ],
     styles: loaderData?.configCss ? [{ children: loaderData.configCss }] : [],
   }),

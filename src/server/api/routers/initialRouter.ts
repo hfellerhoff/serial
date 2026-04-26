@@ -905,69 +905,72 @@ export const requestInitialData = protectedProcedure
         (feed) => !feed.nextFetchAt || feed.nextFetchAt <= now,
       ).length;
 
-      // Publish count of feeds that need actual fetching for progress tracking
-      await publisher.publish(channel, {
-        source: "initial",
-        chunk: { type: "refresh-start", totalFeeds: feedsToFetchCount },
-      });
-
       // Step 5: Run fetch and insert for fresh RSS items in background
-      for await (const feedResult of fetchAndInsertFeedData(
-        context,
-        activeFeedsList,
-      )) {
-        // Skip publishing status for cached feeds (they complete instantly with no network activity)
-        if (feedResult.status === "skipped") {
-          continue;
-        }
-
-        // Publish feed status for actual fetches
+      // Skip entirely when all feeds have been recently fetched (nextFetchAt > now)
+      if (feedsToFetchCount > 0) {
+        // Publish count of feeds that need actual fetching for progress tracking
         await publisher.publish(channel, {
           source: "initial",
-          chunk: {
-            type: "feed-status",
-            status: feedResult.status,
-            feedId: feedResult.id,
-          },
+          chunk: { type: "refresh-start", totalFeeds: feedsToFetchCount },
         });
 
-        // Stream newly fetched items that belong to views
-        if (
-          feedResult.status === "success" &&
-          feedResult.feedItems.length > 0
-        ) {
-          const viewIdsForFeed = feedIdToViewIds?.get(feedResult.id) ?? [];
-
-          // Filter items per view and collect results
-          const viewFilteredItems = new Map<number, ApplicationFeedItem[]>();
-
-          for (const viewId of viewIdsForFeed) {
-            const boundary = viewBoundaries.get(viewId);
-            const feedIdsForView = feedIdsByView.get(viewId);
-
-            if (!boundary || !feedIdsForView) continue;
-
-            const itemsForView = filterNewItemsForView(
-              feedResult.feedItems,
-              boundary,
-              feedIdsForView,
-            );
-
-            if (itemsForView.length > 0) {
-              viewFilteredItems.set(viewId, itemsForView);
-            }
+        for await (const feedResult of fetchAndInsertFeedData(
+          context,
+          activeFeedsList,
+        )) {
+          // Skip publishing status for cached feeds (they complete instantly with no network activity)
+          if (feedResult.status === "skipped") {
+            continue;
           }
 
-          // Publish feed-items using the filtered data
-          for (const [viewId, itemsForView] of viewFilteredItems) {
-            await publisher.publish(channel, {
-              source: "initial",
-              chunk: {
-                type: "feed-items",
-                viewId,
-                feedItems: itemsForView,
-              },
-            });
+          // Publish feed status for actual fetches
+          await publisher.publish(channel, {
+            source: "initial",
+            chunk: {
+              type: "feed-status",
+              status: feedResult.status,
+              feedId: feedResult.id,
+            },
+          });
+
+          // Stream newly fetched items that belong to views
+          if (
+            feedResult.status === "success" &&
+            feedResult.feedItems.length > 0
+          ) {
+            const viewIdsForFeed = feedIdToViewIds?.get(feedResult.id) ?? [];
+
+            // Filter items per view and collect results
+            const viewFilteredItems = new Map<number, ApplicationFeedItem[]>();
+
+            for (const viewId of viewIdsForFeed) {
+              const boundary = viewBoundaries.get(viewId);
+              const feedIdsForView = feedIdsByView.get(viewId);
+
+              if (!boundary || !feedIdsForView) continue;
+
+              const itemsForView = filterNewItemsForView(
+                feedResult.feedItems,
+                boundary,
+                feedIdsForView,
+              );
+
+              if (itemsForView.length > 0) {
+                viewFilteredItems.set(viewId, itemsForView);
+              }
+            }
+
+            // Publish feed-items using the filtered data
+            for (const [viewId, itemsForView] of viewFilteredItems) {
+              await publisher.publish(channel, {
+                source: "initial",
+                chunk: {
+                  type: "feed-items",
+                  viewId,
+                  feedItems: itemsForView,
+                },
+              });
+            }
           }
         }
       }
@@ -1466,19 +1469,20 @@ export const requestNewData = protectedProcedure
       (feed) => !feed.nextFetchAt || feed.nextFetchAt <= now,
     ).length;
 
-    // Publish count of feeds that need actual fetching for progress tracking
-    await publisher.publish(channel, {
-      source: "new-data",
-      chunk: { type: "refresh-start", totalFeeds: feedsToFetchCount },
-    });
-
-    if (activeFeedsList.length === 0) {
+    // Skip entirely when no feeds need fetching (all cached by background refresh)
+    if (activeFeedsList.length === 0 || feedsToFetchCount === 0) {
       await publisher.publish(channel, {
         source: "new-data",
         chunk: { type: "new-data-complete" },
       });
       return { status: "completed" };
     }
+
+    // Publish count of feeds that need actual fetching for progress tracking
+    await publisher.publish(channel, {
+      source: "new-data",
+      chunk: { type: "refresh-start", totalFeeds: feedsToFetchCount },
+    });
 
     // Run RSS fetch and publish new items
     for await (const feedResult of fetchAndInsertFeedData(

@@ -20,7 +20,7 @@ export const Route = createFileRoute("/auth/reset")({
   validateSearch: zodValidator(authSearchSchema),
 });
 
-export default function AuthResetPage() {
+function AuthResetPage() {
   const { isForgotPasswordEnabled } = Route.useLoaderData();
 
   if (!isForgotPasswordEnabled) {

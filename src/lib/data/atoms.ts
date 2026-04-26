@@ -55,3 +55,6 @@ export const selectedItemIdAtom = atom<string | null>(null);
 export const softReadItemIdsAtom = atom<Set<string>>(new Set<string>());
 export const isReturningFromRouteAtom = atom(false);
 export const altKeyHeldAtom = atom(false);
+
+/** When true, the header and footer bars should be hidden (e.g. scrolling down in article view). */
+export const barsHiddenAtom = atom(false);

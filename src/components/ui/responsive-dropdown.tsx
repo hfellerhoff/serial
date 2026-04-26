@@ -184,7 +184,7 @@ export function ControlledResponsiveDialog({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[calc(100vh-6rem)]">
+      <DrawerContent className="max-h-[calc(100dvh-6rem)]">
         <DrawerHeader className="shrink-0 text-left">
           {onBack && (
             <button

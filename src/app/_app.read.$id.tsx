@@ -3,7 +3,8 @@
 import clsx from "clsx";
 
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import { useAtomValue, useSetAtom } from "jotai";
 import rehypeParse from "rehype-parse";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeStringify from "rehype-stringify";
@@ -11,6 +12,7 @@ import { unified } from "unified";
 import { useZoom } from "../components/feed/watch/[id]/useZoom";
 import { ContentActions } from "../components/feed/watch/[id]/ContentActions";
 import { useFeeds } from "~/lib/data/feeds";
+import { barsHiddenAtom } from "~/lib/data/atoms";
 import { useFlagState } from "~/lib/hooks/useFlagState";
 import classes from "~/components/feed/read/article.module.css";
 import { useFeedItemValue } from "~/lib/data/store";
@@ -21,6 +23,7 @@ import {
   useArticleNavigation,
 } from "~/lib/hooks/useArticleNavigation";
 import { useDebouncedSaveProgress } from "~/lib/hooks/useDebouncedSaveProgress";
+import { useScrollDirection } from "~/lib/hooks/useScrollDirection";
 
 const parser = unified()
   .use(rehypeParse, { fragment: true })
@@ -60,6 +63,24 @@ function ReadPage() {
   }
 
   const articleRef = useRef<HTMLDivElement>(null);
+
+  // Show/hide header and footer bars based on scroll direction
+  const setBarsHidden = useSetAtom(barsHiddenAtom);
+  const barsHidden = useAtomValue(barsHiddenAtom);
+  const handleScrollDirection = useCallback(
+    (direction: "up" | "down") => {
+      setBarsHidden(direction === "down");
+    },
+    [setBarsHidden],
+  );
+  useScrollDirection(handleScrollDirection);
+
+  // Reset bars visibility when leaving the article
+  useEffect(() => {
+    return () => {
+      setBarsHidden(false);
+    };
+  }, [setBarsHidden]);
 
   // Shortcut to open original URL
   useOpenOriginalShortcut(feedItem?.url);
@@ -146,7 +167,14 @@ function ReadPage() {
           <ArticleContent content={content} />
         )}
       </div>
-      <div className="sticky inset-x-0 bottom-0 left-0 grid place-items-center">
+      <div
+        className={clsx(
+          "sticky inset-x-0 bottom-0 left-0 grid place-items-center transition-transform duration-300",
+          {
+            "translate-y-full": barsHidden,
+          },
+        )}
+      >
         <ContentActions contentID={params.id} />
       </div>
     </div>

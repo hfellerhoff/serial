@@ -936,8 +936,10 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               break;
 
             case "refresh-start":
-              // Update totalFeeds for progress tracking (only counts feeds that need fetching)
+              // Re-enter fetching state for RSS refresh phase and update totalFeeds for progress tracking
               set({
+                fetchFeedItemsStatus: "fetching",
+                feedStatusDict: {},
                 progressState: {
                   ...get().progressState,
                   totalFeeds: initialChunk.totalFeeds,
@@ -995,7 +997,10 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 };
               }
 
+              // Mark initial data loading as complete. If feeds need RSS fetching,
+              // the subsequent "refresh-start" chunk will re-enter the "fetching" state.
               set({
+                fetchFeedItemsStatus: "success",
                 fetchFeedItemsLastFetchedAt: Date.now(),
                 fetchedVisibilityFilters: fetchedFilters,
                 viewPaginationState: paginationState,

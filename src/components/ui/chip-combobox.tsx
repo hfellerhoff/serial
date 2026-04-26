@@ -65,15 +65,17 @@ function measureVisibleCount(container: HTMLElement): {
   const children = Array.from(container.children) as HTMLElement[];
   if (children.length === 0) return { count: 0, clipHeight: 0 };
 
-  const containerTop = container.getBoundingClientRect().top;
+  // Use offsetTop/offsetHeight instead of getBoundingClientRect so that
+  // measurements are immune to CSS transforms on ancestor elements (e.g. the
+  // dialog's zoom-in-95 open animation which scales to 0.95 on mount).
+  // The container must have `position: relative` so it is the offsetParent.
   let rowCount = 0;
   let lastTop = -Infinity;
   let count = 0;
   let clipBottom = 0;
 
   for (const child of children) {
-    const rect = child.getBoundingClientRect();
-    const top = Math.round(rect.top);
+    const top = child.offsetTop;
     if (top > lastTop + 1) {
       // New row (with 1px tolerance for sub-pixel rounding)
       rowCount++;
@@ -81,12 +83,12 @@ function measureVisibleCount(container: HTMLElement): {
       lastTop = top;
     }
     count++;
-    clipBottom = Math.round(rect.bottom);
+    clipBottom = top + child.offsetHeight;
   }
 
   return {
     count,
-    clipHeight: rowCount > MAX_ROWS ? clipBottom - Math.round(containerTop) : 0,
+    clipHeight: rowCount > MAX_ROWS ? clipBottom : 0,
   };
 }
 
@@ -130,12 +132,15 @@ export function ChipCombobox({
   const estimatedTotalPages =
     firstPageCount > 0 ? Math.ceil(totalCount / firstPageCount) : 1;
 
-  // Reset pagination when selection count changes
+  // Reset pagination navigation when selection count changes.
+  // Note: visibleCount and firstPageCount are measurement outputs —
+  // they are recalculated by the useLayoutEffect below whenever
+  // offset or totalCount changes.  Resetting them here (in a regular
+  // useEffect that fires *after* paint) would clobber the values the
+  // layout effect already computed, leaving pagination stuck at "1/1".
   useEffect(() => {
     setOffset(0);
-    setVisibleCount(0);
     setCurrentPage(1);
-    setFirstPageCount(0);
     maxClipHeightRef.current = 0;
     prevOffsets.current = [];
   }, [totalCount]);
@@ -154,9 +159,7 @@ export function ChipCombobox({
 
     // Track the tallest page so the container doesn't collapse on the last page
     const effectiveHeight =
-      clipHeight > 0
-        ? clipHeight
-        : Math.round(container.getBoundingClientRect().height);
+      clipHeight > 0 ? clipHeight : container.offsetHeight;
     if (effectiveHeight > maxClipHeightRef.current) {
       maxClipHeightRef.current = effectiveHeight;
     }
@@ -325,7 +328,7 @@ export function ChipCombobox({
       {selectedOptions.length > 0 ? (
         <div
           ref={badgeContainerRef}
-          className="flex flex-wrap content-start gap-1 overflow-hidden"
+          className="relative flex flex-wrap content-start gap-1 overflow-hidden"
         >
           {renderOptions.map((option) => (
             <Badge
