@@ -143,6 +143,7 @@ export const setWatchedValue = protectedProcedure
         .update(feedItems)
         .set({
           isWatched: input.isWatched,
+          updatedAt: new Date(),
         })
         .where(
           and(eq(feedItems.feedId, input.feedId), eq(feedItems.id, input.id)),
@@ -185,7 +186,7 @@ export const setBulkWatchedValue = protectedProcedure
       const itemIds = input.items.map((item) => item.id);
       await tx
         .update(feedItems)
-        .set({ isWatched: input.isWatched })
+        .set({ isWatched: input.isWatched, updatedAt: new Date() })
         .where(inArray(feedItems.id, itemIds));
     });
   });
@@ -214,6 +215,7 @@ export const setWatchLaterValue = protectedProcedure
         .update(feedItems)
         .set({
           isWatchLater: input.isWatchLater,
+          updatedAt: new Date(),
         })
         .where(
           and(eq(feedItems.feedId, input.feedId), eq(feedItems.id, input.id)),
@@ -247,6 +249,7 @@ export const setProgress = protectedProcedure
         .set({
           progress: input.progress,
           duration: input.duration,
+          updatedAt: new Date(),
         })
         .where(
           and(eq(feedItems.feedId, input.feedId), eq(feedItems.id, input.id)),

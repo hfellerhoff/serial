@@ -16,13 +16,13 @@ export function FeedLoader() {
   const isFetching = status === "fetching";
   const hasFeeds = feeds.length > 0;
   const isImporting = progressState.fetchType === "import";
+  const isManualRefresh = progressState.fetchType === "refresh";
   const nothingToFetch =
-    (progressState.fetchType === "initial" ||
-      progressState.fetchType === "refresh") &&
-    progressState.totalFeeds === 0;
+    progressState.fetchType === "initial" && progressState.totalFeeds === 0;
 
-  // Hide when importing (ImportLoading handles that), when no feeds, or when all feeds are cached
-  if (!hasFeeds || isImporting || nothingToFetch) {
+  // Hide when importing (ImportLoading handles that), when no feeds,
+  // during manual refresh (the RefetchItemsButton handles that), or when all feeds are cached
+  if (!hasFeeds || isImporting || isManualRefresh || nothingToFetch) {
     return null;
   }
 

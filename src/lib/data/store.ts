@@ -795,7 +795,20 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           return get().fetchByView();
         }
 
-        // Progress is initialized by "refresh-start" chunk from server
+        // Show loading state immediately so the refresh button responds
+        // before SSE chunks arrive. The server's "refresh-start" chunk will
+        // update totalFeeds, and "new-data-complete" or "error" will set
+        // fetchFeedItemsStatus back to "success".
+        set({
+          fetchFeedItemsStatus: "fetching",
+          feedStatusDict: {},
+          progressState: {
+            ...get().progressState,
+            fetchType: "refresh",
+            totalFeeds: 0,
+          },
+        });
+
         await orpcRouterClient.initial.requestNewData({
           newerThan: new Date(newerThan),
         });
@@ -976,12 +989,16 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 break;
 
               case "refresh-start":
-                // Re-enter fetching state for RSS refresh phase and update totalFeeds for progress tracking
+                // Re-enter fetching state for RSS refresh phase and update totalFeeds for progress tracking.
+                // Explicitly set fetchType to "initial" so that returning visits (where the views handler
+                // skipped initialising progressState) still drive the FeedLoader progress bar rather than
+                // the refresh button's loading state, which uses fetchType === "refresh".
                 set({
                   fetchFeedItemsStatus: "fetching",
                   feedStatusDict: {},
                   progressState: {
                     ...get().progressState,
+                    fetchType: "initial",
                     totalFeeds: initialChunk.totalFeeds,
                   },
                 });
@@ -1742,8 +1759,16 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
         // feeds store will no longer contain the deleted feed — but the
         // application store may still have its items. Filtering here
         // prevents a flash of deleted items on first load.
-        const cachedFeeds = feedsStore.getState().feeds;
-        if (cachedFeeds.length > 0 && merged.feedItemsDict) {
+        //
+        // We gate on fetchStatus === "success" (set by the feeds store's own
+        // merge function) rather than just feeds.length > 0 — this ensures the
+        // feeds store has actually hydrated from IDB, not just initialized with
+        // its default empty array. If the feeds store hasn't hydrated yet, we
+        // skip filtering entirely and let the server correction handle it.
+        const feedsState = feedsStore.getState();
+        const feedsHydrated = feedsState.fetchStatus === "success";
+        if (feedsHydrated && merged.feedItemsDict) {
+          const cachedFeeds = feedsState.feeds;
           const validFeedIds = new Set(cachedFeeds.map((f) => f.id));
           const dict = merged.feedItemsDict;
           const order = merged.feedItemsOrder ?? [];
