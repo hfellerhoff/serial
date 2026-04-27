@@ -23,13 +23,15 @@ export function useScrollDirection(
 
     if (Math.abs(delta) < SCROLL_THRESHOLD) return;
 
-    // Treat reaching the bottom of the document as scrolling up (show bars)
-    const BOTTOM_THRESHOLD = 100;
+    // Treat reaching the top or bottom of the document as scrolling up (show bars)
+    const EDGE_THRESHOLD = 100;
+    const isAtTop = currentScrollTop < EDGE_THRESHOLD;
     const isAtBottom =
       container.scrollHeight - currentScrollTop - container.clientHeight <
-      BOTTOM_THRESHOLD;
+      EDGE_THRESHOLD;
 
-    const direction: ScrollDirection = isAtBottom || delta < 0 ? "up" : "down";
+    const isNearEdge = isAtTop || isAtBottom;
+    const direction: ScrollDirection = isNearEdge || delta < 0 ? "up" : "down";
 
     if (direction !== lastDirectionRef.current) {
       lastDirectionRef.current = direction;

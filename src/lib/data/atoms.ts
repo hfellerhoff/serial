@@ -1,8 +1,10 @@
 import { atom, useSetAtom } from "jotai";
+import { clear } from "idb-keyval";
 import { z } from "zod";
 import { feedItemsStore } from "./store";
 import { contentCategoriesStore } from "./content-categories/store";
 import { feedCategoriesStore } from "./feed-categories/store";
+import { viewFeedsStore } from "./view-feeds/store";
 import { viewsStore } from "./views/store";
 import { feedsStore } from "./feeds/store";
 import type { ApplicationView } from "~/server/db/schema";
@@ -33,6 +35,7 @@ export const useClearAllUserData = () => {
   const resetFeedItems = feedItemsStore.useReset();
   const resetContentCategories = contentCategoriesStore.useReset();
   const resetFeedCategories = feedCategoriesStore.useReset();
+  const resetViewFeeds = viewFeedsStore.useReset();
   const resetViews = viewsStore.useReset();
   const setViewsAtom = useSetAtom(viewsAtom);
 
@@ -41,8 +44,13 @@ export const useClearAllUserData = () => {
     resetFeedItems();
     resetContentCategories();
     resetFeedCategories();
+    resetViewFeeds();
     resetViews();
     setViewsAtom([]);
+    // Wipe all persisted state from IndexedDB immediately.
+    // The reset() calls handle in-memory state but write through a 2-second
+    // throttle — clear() bypasses that so nothing survives sign-out.
+    void clear();
   };
 };
 

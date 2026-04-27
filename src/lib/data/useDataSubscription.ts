@@ -102,9 +102,15 @@ export function useDataSubscription() {
 
   // Request methods that trigger data fetching via the publisher
   const requestInitialData = useCallback(
-    (visibilityFilter?: VisibilityFilter) => {
+    (options?: {
+      visibilityFilter?: VisibilityFilter;
+      hasCachedData?: boolean;
+    }) => {
+      const hasOptions =
+        options?.visibilityFilter !== undefined ||
+        options?.hasCachedData !== undefined;
       return orpcRouterClient.initial.requestInitialData(
-        visibilityFilter ? { visibilityFilter } : undefined,
+        hasOptions ? options : undefined,
       );
     },
     [],
@@ -175,10 +181,17 @@ export function useDataSubscription() {
  * This allows accessing request methods from anywhere in the app.
  */
 export const dataSubscriptionActions = {
-  requestInitialData: (visibilityFilter?: VisibilityFilter) =>
-    orpcRouterClient.initial.requestInitialData(
-      visibilityFilter ? { visibilityFilter } : undefined,
-    ),
+  requestInitialData: (options?: {
+    visibilityFilter?: VisibilityFilter;
+    hasCachedData?: boolean;
+  }) => {
+    const hasOptions =
+      options?.visibilityFilter !== undefined ||
+      options?.hasCachedData !== undefined;
+    return orpcRouterClient.initial.requestInitialData(
+      hasOptions ? options : undefined,
+    );
+  },
   requestImportedData: (newFeedIds: number[]) =>
     orpcRouterClient.initial.requestImportedData({ newFeedIds }),
   streamingImport: (

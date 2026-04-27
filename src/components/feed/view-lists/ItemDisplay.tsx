@@ -319,7 +319,7 @@ function ItemActions({
         >
           <SendIcon size={isGrid ? 14 : 16} />
           {showShortcuts && (
-            <kbd className="bg-muted rounded px-1 text-xs">
+            <kbd className="bg-muted hidden rounded px-1 text-xs md:inline-block">
               {SHORTCUT_KEYS.SEND_TO_INSTAPAPER}
             </kbd>
           )}
@@ -337,7 +337,7 @@ function ItemActions({
           <ClockIcon size={isGrid ? 14 : 16} />
         )}
         {showShortcuts && (
-          <kbd className="bg-muted ml-1.5 rounded px-1 text-xs">
+          <kbd className="bg-muted ml-1.5 hidden rounded px-1 text-xs md:inline-block">
             {SHORTCUT_KEYS.TOGGLE_LATER}
           </kbd>
         )}
@@ -350,7 +350,7 @@ function ItemActions({
       >
         <EyeIcon size={isGrid ? 14 : 16} />
         {showShortcuts && (
-          <kbd className="bg-muted ml-1.5 rounded px-1 text-xs">
+          <kbd className="bg-muted ml-1.5 hidden rounded px-1 text-xs md:inline-block">
             {SHORTCUT_KEYS.TOGGLE_READ}
           </kbd>
         )}

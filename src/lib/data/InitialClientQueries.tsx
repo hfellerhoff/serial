@@ -10,9 +10,10 @@ import {
   viewsAtom,
 } from "./atoms";
 import { useUpdateViewFilter } from "./views";
-import { useCurrentViewId, useHasInitialData } from "./store";
+import { feedItemsStore, useCurrentViewId, useHasInitialData } from "./store";
 import { useViewsFetchStatus, useViews as useViewsStore } from "./views/store";
 import { useDataSubscription } from "./useDataSubscription";
+import { useStoresHydrated } from "./hydration";
 import type { PropsWithChildren } from "react";
 
 export function InitialClientQueries({ children }: PropsWithChildren) {
@@ -21,6 +22,7 @@ export function InitialClientQueries({ children }: PropsWithChildren) {
   const hasInitialData = useHasInitialData();
   const hasSetInitialView = useRef(false);
   const hasRequestedInitialData = useRef(false);
+  const hydrated = useStoresHydrated();
 
   // Sync views store with viewsAtom for compatibility
   const viewsFromStore = useViewsStore();
@@ -33,13 +35,21 @@ export function InitialClientQueries({ children }: PropsWithChildren) {
   const feedFilter = useAtomValue(feedFilterAtom);
   const categoryFilter = useAtomValue(categoryFilterAtom);
 
-  // Request initial data once on mount (after subscription is established)
+  // Request initial data once stores have hydrated from IDB.
+  // Gating on hydration ensures cached data is loaded first, preventing
+  // fresh SSE data from being overwritten by a late hydration merge.
+  // If the client has cached feed items, request a lightweight manifest
+  // instead of full items so the server only sends what changed.
   useEffect(() => {
-    if (!hasRequestedInitialData.current) {
+    if (!hasRequestedInitialData.current && hydrated) {
       hasRequestedInitialData.current = true;
-      void requestInitialData();
+      const hasCachedData =
+        Object.keys(feedItemsStore.getState().feedItemsDict).length > 0;
+      void requestInitialData(
+        hasCachedData ? { hasCachedData: true } : undefined,
+      );
     }
-  }, [requestInitialData]);
+  }, [requestInitialData, hydrated]);
 
   // Keep viewsAtom always in sync with store
   useEffect(() => {

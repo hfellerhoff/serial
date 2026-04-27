@@ -1,5 +1,7 @@
 import { createStore } from "zustand";
+import { persist } from "zustand/middleware";
 import { createSelectorHooks } from "../createSelectorHooks";
+import { createIDBStorage } from "../idb-storage";
 import { sortViewsByPlacement } from "./utils";
 import type { ApplicationView } from "~/server/db/schema";
 import { orpcRouterClient } from "~/lib/orpc";
@@ -16,93 +18,116 @@ export type ViewsStore = {
   remove: (id: number) => void;
 };
 
-const vanillaViewsStore = createStore<ViewsStore>()((set, get) => ({
-  reset: () =>
-    set({
+const vanillaViewsStore = createStore<ViewsStore>()(
+  persist(
+    (set, get) => ({
+      reset: () =>
+        set({
+          views: [],
+          viewsDict: {},
+          fetchStatus: "idle",
+        }),
       views: [],
       viewsDict: {},
       fetchStatus: "idle",
+
+      fetch: async () => {
+        if (get().fetchStatus === "fetching") return;
+
+        set({ fetchStatus: "fetching" });
+
+        const data = await orpcRouterClient.view.getAll();
+
+        const dict: Record<number, ApplicationView> = {};
+        data.forEach((view) => {
+          dict[view.id] = view;
+        });
+
+        set({
+          views: data,
+          viewsDict: dict,
+          fetchStatus: "success",
+        });
+      },
+
+      set: (views) => {
+        const sortedViews = sortViewsByPlacement(views);
+        const dict: Record<number, ApplicationView> = {};
+        sortedViews.forEach((view) => {
+          dict[view.id] = view;
+        });
+
+        set({
+          views: sortedViews,
+          viewsDict: dict,
+        });
+      },
+
+      add: (view) => {
+        const newViews = sortViewsByPlacement([...get().views, view]);
+        const dict: Record<number, ApplicationView> = {};
+        newViews.forEach((v) => {
+          dict[v.id] = v;
+        });
+
+        set({
+          views: newViews,
+          viewsDict: dict,
+        });
+      },
+
+      update: (id, updates) => {
+        const existingView = get().viewsDict[id];
+        if (!existingView) return;
+
+        const updatedView = { ...existingView, ...updates };
+        const newViews = sortViewsByPlacement(
+          get().views.map((v) => (v.id === id ? updatedView : v)),
+        );
+
+        const dict: Record<number, ApplicationView> = {};
+        newViews.forEach((v) => {
+          dict[v.id] = v;
+        });
+
+        set({
+          views: newViews,
+          viewsDict: dict,
+        });
+      },
+
+      remove: (id) => {
+        const { [id]: _removed, ...rest } = get().viewsDict;
+        void _removed;
+        const newViews = get().views.filter((v) => v.id !== id);
+
+        set({
+          views: newViews,
+          viewsDict: rest,
+        });
+      },
     }),
-  views: [],
-  viewsDict: {},
-  fetchStatus: "idle",
-
-  fetch: async () => {
-    if (get().fetchStatus === "fetching") return;
-
-    set({ fetchStatus: "fetching" });
-
-    const data = await orpcRouterClient.view.getAll();
-
-    const dict: Record<number, ApplicationView> = {};
-    data.forEach((view) => {
-      dict[view.id] = view;
-    });
-
-    set({
-      views: data,
-      viewsDict: dict,
-      fetchStatus: "success",
-    });
-  },
-
-  set: (views) => {
-    const sortedViews = sortViewsByPlacement(views);
-    const dict: Record<number, ApplicationView> = {};
-    sortedViews.forEach((view) => {
-      dict[view.id] = view;
-    });
-
-    set({
-      views: sortedViews,
-      viewsDict: dict,
-    });
-  },
-
-  add: (view) => {
-    const newViews = sortViewsByPlacement([...get().views, view]);
-    const dict: Record<number, ApplicationView> = {};
-    newViews.forEach((v) => {
-      dict[v.id] = v;
-    });
-
-    set({
-      views: newViews,
-      viewsDict: dict,
-    });
-  },
-
-  update: (id, updates) => {
-    const existingView = get().viewsDict[id];
-    if (!existingView) return;
-
-    const updatedView = { ...existingView, ...updates };
-    const newViews = sortViewsByPlacement(
-      get().views.map((v) => (v.id === id ? updatedView : v)),
-    );
-
-    const dict: Record<number, ApplicationView> = {};
-    newViews.forEach((v) => {
-      dict[v.id] = v;
-    });
-
-    set({
-      views: newViews,
-      viewsDict: dict,
-    });
-  },
-
-  remove: (id) => {
-    const { [id]: _removed, ...rest } = get().viewsDict;
-    void _removed;
-    const newViews = get().views.filter((v) => v.id !== id);
-
-    set({
-      views: newViews,
-      viewsDict: rest,
-    });
-  },
-}));
+    {
+      name: "serial-views-store",
+      storage: createIDBStorage(),
+      version: 1,
+      partialize: (state) => ({
+        views: state.views,
+        viewsDict: state.viewsDict,
+      }),
+      merge: (persistedState, currentState) => {
+        const merged = {
+          ...currentState,
+          ...(persistedState as Partial<ViewsStore>),
+        };
+        if (merged.views.length > 0) {
+          merged.fetchStatus = "success";
+        }
+        return merged;
+      },
+    },
+  ),
+);
 
 export const viewsStore = createSelectorHooks(vanillaViewsStore);
 

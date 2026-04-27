@@ -43,6 +43,13 @@ export function ReloadPrompt() {
 
     const registerServiceWorker = async () => {
       try {
+        // Track whether a SW was already controlling this page. On a fresh
+        // install the controller is null; on an update it's the old SW.
+        // We use this to distinguish first-install (don't reload — the
+        // activate handler warms the cache) from updates (reload to pick up
+        // the new SW).
+        const hadController = !!navigator.serviceWorker.controller;
+
         const reg = await navigator.serviceWorker.register("/sw.js", {
           scope: "/",
         });
@@ -66,14 +73,32 @@ export function ReloadPrompt() {
           });
         });
 
-        // Handle controller change (after skipWaiting)
+        // Handle controller change (after skipWaiting on update).
+        // On first install, clients.claim() fires controllerchange (null →
+        // new SW). We intentionally skip the reload in that case to avoid a
+        // jarring double page-load — the activate handler already warms the
+        // navigation cache for offline support.
         let refreshing = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
-          if (!refreshing) {
+          if (!refreshing && hadController) {
             refreshing = true;
             window.location.reload();
           }
         });
+
+        // iOS Safari: force an update check. Safari caches the SW script
+        // itself more aggressively than Chrome, so an explicit update()
+        // ensures the user gets the latest SW on each visit.
+        await reg.update().catch(() => {
+          // Non-critical — the browser will still check within 24 hours.
+        });
+
+        // iOS Safari: re-warm the navigation cache on every launch. iOS
+        // evicts all cached data after ~7 days of inactivity. The activate
+        // handler only runs once (on install/update), so each online visit
+        // needs to reset that clock by re-caching the root page.
+        const activeWorker = reg.active ?? reg.installing ?? reg.waiting;
+        activeWorker?.postMessage({ type: "WARM_NAVIGATION_CACHE" });
       } catch (error) {
         console.error("Service worker registration failed:", error);
       }

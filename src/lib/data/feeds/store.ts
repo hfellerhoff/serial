@@ -1,5 +1,7 @@
 import { createStore } from "zustand";
+import { persist } from "zustand/middleware";
 import { createSelectorHooks } from "../createSelectorHooks";
+import { createIDBStorage } from "../idb-storage";
 import type { ApplicationFeed } from "~/server/db/schema";
 import { orpcRouterClient } from "~/lib/orpc";
 import { assembleIteratorResult } from "~/lib/iterators";
@@ -23,98 +25,121 @@ function sortFeedsByUpdatedAt(feeds: ApplicationFeed[]) {
   });
 }
 
-const vanillaFeedsStore = createStore<FeedsStore>()((set, get) => ({
-  reset: () =>
-    set({
+const vanillaFeedsStore = createStore<FeedsStore>()(
+  persist(
+    (set, get) => ({
+      reset: () =>
+        set({
+          feeds: [],
+          feedsDict: {},
+          fetchStatus: "idle",
+        }),
       feeds: [],
       feedsDict: {},
       fetchStatus: "idle",
+
+      fetch: async () => {
+        if (get().fetchStatus === "fetching") return;
+
+        set({ fetchStatus: "fetching" });
+
+        const chunks: ApplicationFeed[][] = [];
+        for await (const chunk of await orpcRouterClient.feed.getAll()) {
+          chunks.push(chunk);
+        }
+
+        const data = sortFeedsByUpdatedAt(assembleIteratorResult(chunks));
+
+        const dict: Record<number, ApplicationFeed> = {};
+        data.forEach((feed) => {
+          dict[feed.id] = feed;
+        });
+
+        set({
+          feeds: data,
+          feedsDict: dict,
+          fetchStatus: "success",
+        });
+      },
+
+      set: (feeds) => {
+        const sortedFeeds = sortFeedsByUpdatedAt(feeds);
+        const dict: Record<number, ApplicationFeed> = {};
+        sortedFeeds.forEach((feed) => {
+          dict[feed.id] = feed;
+        });
+
+        set({
+          feeds: sortedFeeds,
+          feedsDict: dict,
+        });
+      },
+
+      add: (feed) => {
+        const newFeeds = sortFeedsByUpdatedAt([...get().feeds, feed]);
+        const dict: Record<number, ApplicationFeed> = {};
+        newFeeds.forEach((f) => {
+          dict[f.id] = f;
+        });
+
+        set({
+          feeds: newFeeds,
+          feedsDict: dict,
+        });
+      },
+
+      update: (id, updates) => {
+        const existingFeed = get().feedsDict[id];
+        if (!existingFeed) return;
+
+        const updatedFeed = { ...existingFeed, ...updates };
+        const newFeeds = sortFeedsByUpdatedAt(
+          get().feeds.map((f) => (f.id === id ? updatedFeed : f)),
+        );
+
+        const dict: Record<number, ApplicationFeed> = {};
+        newFeeds.forEach((f) => {
+          dict[f.id] = f;
+        });
+
+        set({
+          feeds: newFeeds,
+          feedsDict: dict,
+        });
+      },
+
+      remove: (id) => {
+        const { [id]: _removed, ...rest } = get().feedsDict;
+        void _removed;
+        const newFeeds = get().feeds.filter((f) => f.id !== id);
+
+        set({
+          feeds: newFeeds,
+          feedsDict: rest,
+        });
+      },
     }),
-  feeds: [],
-  feedsDict: {},
-  fetchStatus: "idle",
-
-  fetch: async () => {
-    if (get().fetchStatus === "fetching") return;
-
-    set({ fetchStatus: "fetching" });
-
-    const chunks: ApplicationFeed[][] = [];
-    for await (const chunk of await orpcRouterClient.feed.getAll()) {
-      chunks.push(chunk);
-    }
-
-    const data = sortFeedsByUpdatedAt(assembleIteratorResult(chunks));
-
-    const dict: Record<number, ApplicationFeed> = {};
-    data.forEach((feed) => {
-      dict[feed.id] = feed;
-    });
-
-    set({
-      feeds: data,
-      feedsDict: dict,
-      fetchStatus: "success",
-    });
-  },
-
-  set: (feeds) => {
-    const sortedFeeds = sortFeedsByUpdatedAt(feeds);
-    const dict: Record<number, ApplicationFeed> = {};
-    sortedFeeds.forEach((feed) => {
-      dict[feed.id] = feed;
-    });
-
-    set({
-      feeds: sortedFeeds,
-      feedsDict: dict,
-    });
-  },
-
-  add: (feed) => {
-    const newFeeds = sortFeedsByUpdatedAt([...get().feeds, feed]);
-    const dict: Record<number, ApplicationFeed> = {};
-    newFeeds.forEach((f) => {
-      dict[f.id] = f;
-    });
-
-    set({
-      feeds: newFeeds,
-      feedsDict: dict,
-    });
-  },
-
-  update: (id, updates) => {
-    const existingFeed = get().feedsDict[id];
-    if (!existingFeed) return;
-
-    const updatedFeed = { ...existingFeed, ...updates };
-    const newFeeds = sortFeedsByUpdatedAt(
-      get().feeds.map((f) => (f.id === id ? updatedFeed : f)),
-    );
-
-    const dict: Record<number, ApplicationFeed> = {};
-    newFeeds.forEach((f) => {
-      dict[f.id] = f;
-    });
-
-    set({
-      feeds: newFeeds,
-      feedsDict: dict,
-    });
-  },
-
-  remove: (id) => {
-    const { [id]: _removed, ...rest } = get().feedsDict;
-    void _removed;
-    const newFeeds = get().feeds.filter((f) => f.id !== id);
-
-    set({
-      feeds: newFeeds,
-      feedsDict: rest,
-    });
-  },
-}));
+    {
+      name: "serial-feeds-store",
+      storage: createIDBStorage(),
+      version: 1,
+      partialize: (state) => ({
+        feeds: state.feeds,
+        feedsDict: state.feedsDict,
+      }),
+      merge: (persistedState, currentState) => {
+        const merged = {
+          ...currentState,
+          ...(persistedState as Partial<FeedsStore>),
+        };
+        if (merged.feeds.length > 0) {
+          merged.fetchStatus = "success";
+        }
+        return merged;
+      },
+    },
+  ),
+);
 
 export const feedsStore = createSelectorHooks(vanillaFeedsStore);
 

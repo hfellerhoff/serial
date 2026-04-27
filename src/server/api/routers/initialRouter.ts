@@ -81,6 +81,12 @@ export type ViewDataChunk =
     }
   | { type: "error"; message: string; phase: string; viewId: number };
 
+export type ManifestItem = {
+  id: string;
+  contentHash: string | null;
+  updatedAt: Date;
+};
+
 export type GetByViewChunk =
   | { type: "views"; views: ApplicationView[] }
   | { type: "feeds"; feeds: ApplicationFeed[] }
@@ -92,6 +98,12 @@ export type GetByViewChunk =
   | { type: "new-data-complete" }
   | { type: "refresh-start"; totalFeeds: number }
   | { type: "view-items"; viewId: number; feedItemIds: string[] }
+  | {
+      type: "item-manifest";
+      items: ManifestItem[];
+      viewCursors: Record<number, PaginationCursor>;
+      initialScopeIds: string[];
+    }
   | {
       type: "import-feed-inserted";
       feedUrl: string;
@@ -371,6 +383,84 @@ async function* fetchContentForViews(
   }
 
   return;
+}
+
+type ManifestQueryResult = {
+  viewId: number;
+  visibilityFilter: string;
+  items: ManifestItem[];
+  cursor: PaginationCursor;
+};
+
+/**
+ * Lightweight query that returns manifest data (id, contentHash, updatedAt) plus cursor
+ * for a specific view and visibility filter. Used in manifest mode to build a scoped
+ * manifest covering the initial items per view per visibility, rather than all items globally.
+ */
+async function fetchManifestItemsForView(
+  context: ORPCContext,
+  view: ApplicationView,
+  visibilityFilter: VisibilityFilter,
+  params: FetchContentForViewParams,
+): Promise<ManifestQueryResult> {
+  const {
+    feedIds,
+    feedCategoriesList,
+    customViewCategoryIds,
+    customViews,
+    applicationFeeds,
+  } = params;
+
+  try {
+    const filterConditions = [
+      inArray(feedItems.feedId, feedIds),
+      buildVisibilityFilter(visibilityFilter),
+      buildViewCategoryFilter(
+        view,
+        feedCategoriesList,
+        feedIds,
+        customViewCategoryIds,
+        customViews,
+        applicationFeeds,
+      ),
+      buildContentTypeFilter(view.contentType, applicationFeeds),
+      buildTimeWindowFilter(view.daysWindow),
+    ].filter(Boolean);
+
+    const filter =
+      filterConditions.length > 0 ? and(...filterConditions) : undefined;
+
+    const items = await context.db
+      .select({
+        id: feedItems.id,
+        contentHash: feedItems.contentHash,
+        updatedAt: feedItems.updatedAt,
+        postedAt: feedItems.postedAt,
+      })
+      .from(feedItems)
+      .where(filter)
+      .orderBy(desc(feedItems.postedAt))
+      .limit(INITIAL_ITEMS_PER_VIEW);
+
+    const lastItem = items[items.length - 1];
+    const cursor: PaginationCursor = lastItem
+      ? { postedAt: lastItem.postedAt, id: lastItem.id }
+      : null;
+
+    return {
+      viewId: view.id,
+      visibilityFilter,
+      items: items.map(({ id, contentHash, updatedAt }) => ({
+        id,
+        contentHash,
+        updatedAt,
+      })),
+      cursor,
+    };
+  } catch (error) {
+    captureException(error);
+    return { viewId: view.id, visibilityFilter, items: [], cursor: null };
+  }
 }
 
 function filterNewItemsForView(
@@ -764,11 +854,20 @@ export const subscribe = protectedProcedure.handler(async function* ({
  * Request initial data load. Data is published to the user's channel.
  */
 export const requestInitialData = protectedProcedure
-  .input(z.object({ visibilityFilter: visibilityFilterSchema }).optional())
+  .input(
+    z
+      .object({
+        visibilityFilter: visibilityFilterSchema,
+        hasCachedData: z.boolean(),
+      })
+      .partial()
+      .optional(),
+  )
   .handler(async ({ context, input }) => {
     const channel = getUserChannel(context.user.id);
     const visibilityFilter = input?.visibilityFilter;
     const isVisibilityFilterFetch = !!visibilityFilter;
+    const hasCachedData = input?.hasCachedData ?? false;
 
     // Step 1: Fetch all prerequisite data using helper
     let prerequisiteData: PrerequisiteData;
@@ -871,20 +970,92 @@ export const requestInitialData = protectedProcedure
     // Track boundaries for each view to filter new items after RSS fetch
     const viewBoundaries = new Map<number, ViewBoundary>();
 
-    // Step 4: Query and publish initial items (first 100) for EACH view
-    for await (const { chunk, boundary } of fetchContentForViews(
-      context,
-      allViews,
-      fetchContentForViewParams,
-    )) {
+    // Step 4: Query and publish initial items (or manifest for cached clients)
+    if (hasCachedData && !isVisibilityFilterFetch) {
+      // Manifest mode: send a scoped manifest covering the initial items per view
+      // per visibility filter. Bounded to N_views × 3 × INITIAL_ITEMS_PER_VIEW items.
+      // The client diffs its cache against the manifest to detect deletions,
+      // changes, and new items — then requests only the stale subset.
+      const manifestVisibilityFilters: VisibilityFilter[] = [
+        "unread",
+        "read",
+        "later",
+      ];
+
+      // Query manifest items for each view × visibility in parallel
+      const manifestQueries: Array<Promise<ManifestQueryResult>> = [];
+      for (const view of allViews) {
+        for (const vf of manifestVisibilityFilters) {
+          manifestQueries.push(
+            fetchManifestItemsForView(
+              context,
+              view,
+              vf,
+              fetchContentForViewParams,
+            ),
+          );
+        }
+      }
+      const manifestResults = await Promise.all(manifestQueries);
+
+      // Combine manifest items (deduped by id)
+      const manifestMap = new Map<string, ManifestItem>();
+      const viewCursors: Record<number, PaginationCursor> = {};
+      const allInitialScopeIds: string[] = [];
+      const initialScopeIdSet = new Set<string>();
+
+      for (const result of manifestResults) {
+        for (const item of result.items) {
+          if (!manifestMap.has(item.id)) {
+            manifestMap.set(item.id, item);
+          }
+        }
+
+        // Only use "unread" results for cursors, initial scope, and view boundaries
+        if (result.visibilityFilter === "unread") {
+          viewCursors[result.viewId] = result.cursor;
+
+          for (const item of result.items) {
+            if (!initialScopeIdSet.has(item.id)) {
+              allInitialScopeIds.push(item.id);
+              initialScopeIdSet.add(item.id);
+            }
+          }
+
+          // Build viewBoundary from cursor data for RSS refresh dedup
+          viewBoundaries.set(result.viewId, {
+            oldestPostedAt: result.cursor?.postedAt ?? null,
+            sentItemIds: new Set(result.items.map((i) => i.id)),
+          });
+        }
+      }
+
+      // Publish scoped item-manifest chunk
       await publisher.publish(channel, {
         source: "initial",
-        chunk,
+        chunk: {
+          type: "item-manifest",
+          items: [...manifestMap.values()],
+          viewCursors,
+          initialScopeIds: allInitialScopeIds,
+        },
       });
+    } else {
+      // Normal mode: fetch and publish full items for each view
+      for await (const { chunk, boundary } of fetchContentForViews(
+        context,
+        allViews,
+        fetchContentForViewParams,
+      )) {
+        await publisher.publish(channel, {
+          source: "initial",
+          chunk,
+        });
 
-      // Track boundary for this view
-      if (chunk.type === "feed-items" && chunk.viewId !== undefined) {
-        viewBoundaries.set(chunk.viewId, boundary);
+        // Track boundary for this view
+        if (chunk.type === "feed-items" && chunk.viewId !== undefined) {
+          viewBoundaries.set(chunk.viewId, boundary);
+        }
       }
     }
 
@@ -972,6 +1143,63 @@ export const requestInitialData = protectedProcedure
               });
             }
           }
+        }
+      }
+    }
+
+    return { status: "completed" };
+  });
+
+/**
+ * Request full item data for specific item IDs.
+ * Used by the manifest-based delta sync to fetch items that are new or have changed.
+ * The client sends the IDs it needs after diffing its cache against the manifest.
+ */
+export const requestStaleItems = protectedProcedure
+  .input(z.object({ itemIds: z.array(z.string()).max(5000) }))
+  .handler(async ({ context, input }) => {
+    const channel = getUserChannel(context.user.id);
+
+    if (input.itemIds.length === 0) {
+      return { status: "completed" };
+    }
+
+    // Get user's feeds for ownership check and platform lookup
+    const userFeeds = await context.db.query.feeds.findMany({
+      where: eq(feeds.userId, context.user.id),
+    });
+    const userFeedIds = userFeeds.map((f) => f.id);
+    const feedsById = new Map(userFeeds.map((f) => [f.id, f]));
+
+    if (userFeedIds.length === 0) {
+      return { status: "completed" };
+    }
+
+    // Query items in batches to stay within SQLite variable limits
+    const BATCH_SIZE = 500;
+    for (let i = 0; i < input.itemIds.length; i += BATCH_SIZE) {
+      const batchIds = input.itemIds.slice(i, i + BATCH_SIZE);
+      const items = await context.db.query.feedItems.findMany({
+        where: and(
+          inArray(feedItems.id, batchIds),
+          inArray(feedItems.feedId, userFeedIds),
+        ),
+      });
+
+      if (items.length > 0) {
+        const applicationItems = mapToApplicationFeedItems(items, feedsById);
+
+        for (const itemChunk of prepareArrayChunks(
+          applicationItems,
+          GET_BY_VIEW_CHUNK_SIZE,
+        )) {
+          await publisher.publish(channel, {
+            source: "initial",
+            chunk: {
+              type: "feed-items",
+              feedItems: itemChunk,
+            },
+          });
         }
       }
     }

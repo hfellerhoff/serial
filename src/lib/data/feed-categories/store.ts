@@ -1,5 +1,7 @@
 import { createStore } from "zustand";
+import { persist } from "zustand/middleware";
 import { createSelectorHooks } from "../createSelectorHooks";
+import { createIDBStorage } from "../idb-storage";
 import type { DatabaseFeedCategory } from "~/server/db/schema";
 import { orpcRouterClient } from "~/lib/orpc";
 
@@ -19,75 +21,96 @@ function getFeedCategoryKey(feedId: number, categoryId: number) {
 }
 
 const vanillaFeedCategoriesStore = createStore<FeedCategoriesStore>()(
-  (set, get) => ({
-    reset: () =>
-      set({
-        feedCategories: [],
-        feedCategoriesDict: {},
-        fetchStatus: "idle",
+  persist(
+    (set, get) => ({
+      reset: () =>
+        set({
+          feedCategories: [],
+          feedCategoriesDict: {},
+          fetchStatus: "idle",
+        }),
+      feedCategories: [],
+      feedCategoriesDict: {},
+      fetchStatus: "idle",
+
+      fetch: async () => {
+        if (get().fetchStatus === "fetching") return;
+
+        set({ fetchStatus: "fetching" });
+
+        const data = await orpcRouterClient.feedCategories.getAll();
+
+        const dict: Record<string, DatabaseFeedCategory> = {};
+        data.forEach((category) => {
+          const key = getFeedCategoryKey(category.feedId, category.categoryId);
+          dict[key] = category;
+        });
+
+        set({
+          feedCategories: data,
+          feedCategoriesDict: dict,
+          fetchStatus: "success",
+        });
+      },
+
+      set: (categories) => {
+        const dict: Record<string, DatabaseFeedCategory> = {};
+        categories.forEach((category) => {
+          const key = getFeedCategoryKey(category.feedId, category.categoryId);
+          dict[key] = category;
+        });
+
+        set({
+          feedCategories: categories,
+          feedCategoriesDict: dict,
+        });
+      },
+
+      add: (category) => {
+        const key = getFeedCategoryKey(category.feedId, category.categoryId);
+
+        set({
+          feedCategories: [...get().feedCategories, category],
+          feedCategoriesDict: {
+            ...get().feedCategoriesDict,
+            [key]: category,
+          },
+        });
+      },
+
+      remove: (feedId, categoryId) => {
+        const key = getFeedCategoryKey(feedId, categoryId);
+        const { [key]: _removed, ...rest } = get().feedCategoriesDict;
+        void _removed;
+
+        set({
+          feedCategories: get().feedCategories.filter(
+            (c) => !(c.feedId === feedId && c.categoryId === categoryId),
+          ),
+          feedCategoriesDict: rest,
+        });
+      },
+    }),
+    {
+      name: "serial-feed-categories-store",
+      storage: createIDBStorage(),
+      version: 1,
+      partialize: (state) => ({
+        feedCategories: state.feedCategories,
+        feedCategoriesDict: state.feedCategoriesDict,
       }),
-    feedCategories: [],
-    feedCategoriesDict: {},
-    fetchStatus: "idle",
-
-    fetch: async () => {
-      if (get().fetchStatus === "fetching") return;
-
-      set({ fetchStatus: "fetching" });
-
-      const data = await orpcRouterClient.feedCategories.getAll();
-
-      const dict: Record<string, DatabaseFeedCategory> = {};
-      data.forEach((category) => {
-        const key = getFeedCategoryKey(category.feedId, category.categoryId);
-        dict[key] = category;
-      });
-
-      set({
-        feedCategories: data,
-        feedCategoriesDict: dict,
-        fetchStatus: "success",
-      });
+      merge: (persistedState, currentState) => {
+        const merged = {
+          ...currentState,
+          ...(persistedState as Partial<FeedCategoriesStore>),
+        };
+        if (merged.feedCategories.length > 0) {
+          merged.fetchStatus = "success";
+        }
+        return merged;
+      },
     },
-
-    set: (categories) => {
-      const dict: Record<string, DatabaseFeedCategory> = {};
-      categories.forEach((category) => {
-        const key = getFeedCategoryKey(category.feedId, category.categoryId);
-        dict[key] = category;
-      });
-
-      set({
-        feedCategories: categories,
-        feedCategoriesDict: dict,
-      });
-    },
-
-    add: (category) => {
-      const key = getFeedCategoryKey(category.feedId, category.categoryId);
-
-      set({
-        feedCategories: [...get().feedCategories, category],
-        feedCategoriesDict: {
-          ...get().feedCategoriesDict,
-          [key]: category,
-        },
-      });
-    },
-
-    remove: (feedId, categoryId) => {
-      const key = getFeedCategoryKey(feedId, categoryId);
-      const { [key]: _removed, ...rest } = get().feedCategoriesDict;
-      void _removed;
-
-      set({
-        feedCategories: get().feedCategories.filter(
-          (c) => !(c.feedId === feedId && c.categoryId === categoryId),
-        ),
-        feedCategoriesDict: rest,
-      });
-    },
-  }),
+  ),
 );
 
 export const feedCategoriesStore = createSelectorHooks(

@@ -32,7 +32,7 @@ export function useLazyVisibilityFilter() {
 
     if (needsFetch) {
       // Single request fetches items for all views with this visibility filter
-      void dataSubscriptionActions.requestInitialData(visibilityFilter);
+      void dataSubscriptionActions.requestInitialData({ visibilityFilter });
     }
   }, [visibilityFilter]);
 }
