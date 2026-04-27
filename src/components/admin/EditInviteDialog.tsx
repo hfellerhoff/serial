@@ -171,7 +171,7 @@ export function EditInviteDialog({
             ref={nameRef}
             id="edit-invite-name"
             type="text"
-            placeholder="e.g. Beta testers"
+            placeholder="Jane Doe, my friends, etc."
             value={name}
             onChange={(e) => setName(e.target.value)}
           />

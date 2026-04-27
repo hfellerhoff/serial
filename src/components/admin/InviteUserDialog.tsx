@@ -175,7 +175,7 @@ export function InviteUserDialog({
             <Input
               id="invite-name"
               type="text"
-              placeholder="Jane Doe, My friends, etc."
+              placeholder="Jane Doe, my friends, etc."
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
