@@ -64,10 +64,9 @@ export function ViewFilterChips() {
       rovingFocus={false}
     >
       {views.map((view, index) => {
-        const isActive = view.id === viewFilter;
         return (
           <ToggleGroupItem
-            className={clsx({
+            className={clsx("relative", {
               "opacity-50": !viewHasEntriesMap.get(view.id),
             })}
             key={view.id}
@@ -77,11 +76,7 @@ export function ViewFilterChips() {
           >
             {view.name}
             {index < MAX_VIEW_SHORTCUTS && (
-              <KeyboardShortcutDisplay
-                shortcut={VIEW_SHORTCUT_KEYS[index]!}
-                position="right"
-                isActive={isActive}
-              />
+              <KeyboardShortcutDisplay shortcut={VIEW_SHORTCUT_KEYS[index]!} />
             )}
           </ToggleGroupItem>
         );

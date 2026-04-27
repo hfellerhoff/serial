@@ -36,7 +36,9 @@ export function getPlanFeatures(plan: PlanConfig): string[] {
     features.push(`Up to ${plan.maxActiveFeeds.toLocaleString()} active feeds`);
   }
 
-  features.push(formatRefreshInterval(plan.refreshIntervalMs));
+  const refreshInterval =
+    plan.backgroundRefreshIntervalMs ?? plan.refreshIntervalMs;
+  features.push(formatRefreshInterval(refreshInterval));
 
   if (plan.backgroundRefreshIntervalMs != null) {
     features.push("Refresh in background");

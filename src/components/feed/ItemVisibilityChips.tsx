@@ -35,9 +35,9 @@ export function ItemVisibilityChips() {
       rovingFocus={false}
     >
       {(["unread", "read", "later"] as const).map((filter) => {
-        const isActive = visibilityFilter === filter;
         return (
           <ToggleGroupItem
+            className="relative"
             key={filter}
             value={filter}
             tabIndex={-1}
@@ -46,8 +46,6 @@ export function ItemVisibilityChips() {
             {filter.charAt(0).toUpperCase() + filter.slice(1)}
             <KeyboardShortcutDisplay
               shortcut={VISIBILITY_FILTER_SHORTCUTS[filter]}
-              position="right"
-              isActive={isActive}
             />
           </ToggleGroupItem>
         );

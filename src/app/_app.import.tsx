@@ -31,11 +31,8 @@ import {
   TooltipTrigger,
 } from "~/components/ui/tooltip";
 import { useFeeds } from "~/lib/data/feeds";
-import {
-  feedItemsStore,
-  useFetchFeedItemsStatus,
-  useProgressState,
-} from "~/lib/data/store";
+import { feedItemsStore } from "~/lib/data/store";
+import { useImportResults, useLoadingMode } from "~/lib/data/loading-machine";
 import { dataSubscriptionActions } from "~/lib/data/useDataSubscription";
 import { useDialogStore } from "~/components/feed/dialogStore";
 
@@ -120,18 +117,17 @@ function EditFeedsPage() {
   ).length;
 
   const { feeds } = useFeeds();
-  const fetchStatus = useFetchFeedItemsStatus();
-  const progressState = useProgressState();
-  const isFetchingRss =
-    fetchStatus === "fetching" && progressState.fetchType === "import";
-  const failedImportUrls = progressState.failedImportUrls;
+  const loading = useLoadingMode();
+  const importResults = useImportResults();
+  const isFetchingRss = loading.mode === "importing";
+  const { failedImportUrls, importDeactivatedCount } = importResults;
   const { launchDialog } = useDialogStore();
 
   const isPostImportScreen = isImportComplete || hasStartedImport;
 
   useEffect(() => {
-    if (isImportComplete && progressState.importDeactivatedCount > 0) {
-      const count = progressState.importDeactivatedCount;
+    if (isImportComplete && importDeactivatedCount > 0) {
+      const count = importDeactivatedCount;
       toast.warning(
         `${count} feed${count > 1 ? "s were" : " was"} added as inactive. To unlock more active feeds, you can switch to a higher plan.`,
         {
@@ -143,7 +139,7 @@ function EditFeedsPage() {
         },
       );
     }
-  }, [isImportComplete, progressState.importDeactivatedCount, launchDialog]);
+  }, [isImportComplete, importDeactivatedCount, launchDialog]);
 
   const onSelectFiles = async () => {
     if (!inputElementRef.current) return;

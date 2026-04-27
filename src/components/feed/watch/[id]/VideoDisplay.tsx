@@ -122,7 +122,6 @@ export function VideoDisplay({
               className={clsx("mr-4 shrink-0", {
                 invisible: !canGoToNext,
               })}
-              shortcutPosition="left"
             >
               <ChevronRightIcon />
             </ButtonWithShortcut>

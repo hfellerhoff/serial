@@ -196,7 +196,7 @@ test.describe("manage feeds/views/tags tabs", () => {
 
     // Select all rows by clicking the visible "Select All" button (more
     // reliable than the "s" shortcut in CI).
-    await mainContent.getByRole("button", { name: "Select All s" }).click();
+    await mainContent.getByRole("button", { name: "s Select All" }).click();
 
     // Open bulk edit dialog with "e"
     await pressShortcutForDialog(page, "e", "Edit Views");
@@ -437,7 +437,7 @@ test.describe("manage feeds/views/tags tabs", () => {
     // Select all rows by clicking the visible "Select All" button
     await page
       .locator("main main")
-      .getByRole("button", { name: "Select All s" })
+      .getByRole("button", { name: "s Select All" })
       .click();
 
     // Open Assign Feeds bulk dialog with "e"

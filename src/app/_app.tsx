@@ -16,6 +16,7 @@ import { ImpersonationBanner } from "~/components/ImpersonationBanner";
 import { ReleaseNotifier } from "~/components/releases/ReleaseNotifier";
 import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
 import { InitialClientQueries } from "~/lib/data/InitialClientQueries";
+import { loadingActor } from "~/lib/data/loading-machine";
 import { usePlanSuccessStore } from "~/lib/data/plan-success";
 import { useSubscription } from "~/lib/data/subscription";
 import { useAltKeyHeld } from "~/lib/hooks/useAltKeyHeld";
@@ -106,6 +107,13 @@ function useCheckoutSuccess() {
         const planChanged =
           previousPlanId !== null && result.planId !== previousPlanId;
         if (planChanged) {
+          // Clear the stale refresh cooldown so the button re-enables
+          // immediately with the new plan's interval.
+          loadingActor.send({
+            type: "REFRESH_COOLDOWN_UPDATE",
+            nextRefreshAt: null,
+          });
+
           setAwaitingUpgrade(false);
           openPlanSuccess();
           return true;

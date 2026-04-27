@@ -161,7 +161,7 @@ test.describe("full user lifecycle", () => {
     // Select Scary Pockets and assign "Music"
     await mainContent.getByRole("button", { name: /Scary Pockets/ }).click();
 
-    const editButton = page.getByRole("button", { name: /^edit\b/i });
+    const editButton = page.getByRole("button", { name: /\bedit\b/i });
     await expect(editButton).toBeVisible({ timeout: 10000 });
     await editButton.click();
     await expect(
@@ -201,7 +201,7 @@ test.describe("full user lifecycle", () => {
     await mainContent.getByRole("button", { name: /Scary Pockets/ }).click(); // deselect
     await mainContent.getByRole("button", { name: /Fireship/ }).click();
 
-    await page.getByRole("button", { name: /^edit\b/i }).click();
+    await page.getByRole("button", { name: /\bedit\b/i }).click();
     await expect(
       page.getByRole("heading", { name: "Edit Feeds" }),
     ).toBeVisible();

@@ -135,6 +135,7 @@ export async function seedArticleData(
     isWatchLater: false,
     progress: 0,
     duration: 0,
+    orientation: "horizontal",
     postedAt: now,
     createdAt: now,
     updatedAt: now,

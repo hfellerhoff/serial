@@ -13,8 +13,7 @@ export type PublishedChunk =
   | { source: "revalidate"; chunk: RevalidateViewChunk }
   | { source: "visibility"; chunk: GetItemsByVisibilityChunk }
   | { source: "feed"; chunk: GetItemsByFeedChunk }
-  | { source: "category"; chunk: GetItemsByCategoryIdChunk }
-  | { source: "new-data"; chunk: GetByViewChunk };
+  | { source: "category"; chunk: GetItemsByCategoryIdChunk };
 
 const RESUME_RETENTION_SECONDS = 60 * 2;
 const REDIS_KEY_PREFIX = "serial:pub:";
@@ -79,4 +78,56 @@ async function createPublisher() {
   });
 }
 
-export const publisher = await createPublisher();
+// Use a global symbol to ensure a single publisher instance across all
+// module contexts. Nitro tasks can re-instantiate modules in a separate
+// context, which would create a second MemoryPublisher that has no
+// subscribers — causing publishes from background-refresh to silently
+// go nowhere. globalThis guarantees the same instance is shared.
+const PUBLISHER_KEY = Symbol.for("serial:publisher");
+const globalRef = globalThis as unknown as Record<
+  symbol,
+  Awaited<ReturnType<typeof createPublisher>>
+>;
+
+if (!globalRef[PUBLISHER_KEY]) {
+  globalRef[PUBLISHER_KEY] = await createPublisher();
+}
+
+export const publisher = globalRef[PUBLISHER_KEY];
+
+// ---------------------------------------------------------------------------
+// Connected-channel tracking
+// ---------------------------------------------------------------------------
+// Tracks which SSE channels have at least one active subscriber.
+// Used by the background-refresh task to skip publishing for users
+// with no connected client.
+
+const CONNECTED_KEY = Symbol.for("serial:connectedChannels");
+const connectedRef = globalThis as unknown as Record<
+  symbol,
+  Map<string, number>
+>;
+if (!connectedRef[CONNECTED_KEY]) {
+  connectedRef[CONNECTED_KEY] = new Map<string, number>();
+}
+
+const connectedChannels = connectedRef[CONNECTED_KEY];
+
+/** Call when a client subscribes to a channel. Returns a cleanup function. */
+export function trackChannelConnection(channel: string): () => void {
+  const count = connectedChannels.get(channel) ?? 0;
+  connectedChannels.set(channel, count + 1);
+  return () => {
+    const current = connectedChannels.get(channel) ?? 1;
+    if (current <= 1) {
+      connectedChannels.delete(channel);
+    } else {
+      connectedChannels.set(channel, current - 1);
+    }
+  };
+}
+
+/** Check whether a channel has any active subscribers. */
+export function hasSubscribers(channel: string): boolean {
+  return (connectedChannels.get(channel) ?? 0) > 0;
+}

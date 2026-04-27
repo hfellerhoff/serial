@@ -9,18 +9,17 @@ import {
   viewFilterIdAtom,
   viewsAtom,
 } from "./atoms";
-import { useUpdateViewFilter } from "./views";
-import { feedItemsStore, useCurrentViewId, useHasInitialData } from "./store";
-import { useViewsFetchStatus, useViews as useViewsStore } from "./views/store";
-import { useDataSubscription } from "./useDataSubscription";
+import { buildViewManifests } from "./buildViewManifests";
 import { useStoresHydrated } from "./hydration";
+import { loadingActor } from "./loading-machine";
+import { feedItemsStore } from "./store";
+import { useDataSubscription } from "./useDataSubscription";
+import { useUpdateViewFilter } from "./views";
+import { useViewsFetchStatus, useViews as useViewsStore } from "./views/store";
 import type { PropsWithChildren } from "react";
 
 export function InitialClientQueries({ children }: PropsWithChildren) {
   const { requestInitialData } = useDataSubscription();
-  const currentViewId = useCurrentViewId();
-  const hasInitialData = useHasInitialData();
-  const hasSetInitialView = useRef(false);
   const hasRequestedInitialData = useRef(false);
   const hydrated = useStoresHydrated();
 
@@ -38,16 +37,25 @@ export function InitialClientQueries({ children }: PropsWithChildren) {
   // Request initial data once stores have hydrated from IDB.
   // Gating on hydration ensures cached data is loaded first, preventing
   // fresh SSE data from being overwritten by a late hydration merge.
-  // If the client has cached feed items, request a lightweight manifest
-  // instead of full items so the server only sends what changed.
+  // Build per-view manifests so the server can diff against the client's
+  // cached items and only send what changed.
   useEffect(() => {
     if (!hasRequestedInitialData.current && hydrated) {
       hasRequestedInitialData.current = true;
-      const hasCachedData =
-        Object.keys(feedItemsStore.getState().feedItemsDict).length > 0;
-      void requestInitialData(
-        hasCachedData ? { hasCachedData: true } : undefined,
-      );
+
+      // Enter loading state immediately so the UI reflects it before
+      // the first SSE chunk arrives (avoids a brief idle flash).
+      loadingActor.send({ type: "INITIAL_LOAD_START" });
+
+      const state = feedItemsStore.getState();
+      const hasCachedData = Object.keys(state.feedItemsDict).length > 0;
+
+      if (hasCachedData) {
+        const viewManifests = buildViewManifests(state);
+        void requestInitialData({ viewManifests });
+      } else {
+        void requestInitialData();
+      }
     }
   }, [requestInitialData, hydrated]);
 
@@ -57,26 +65,6 @@ export function InitialClientQueries({ children }: PropsWithChildren) {
       setViewsAtom(viewsFromStore);
     }
   }, [viewsFetchStatus, viewsFromStore, setViewsAtom]);
-
-  // Set initial view filter once when initial data is ready
-  useEffect(() => {
-    if (
-      !hasSetInitialView.current &&
-      hasInitialData &&
-      viewsFetchStatus === "success" &&
-      viewsFromStore.length > 0 &&
-      currentViewId !== null
-    ) {
-      hasSetInitialView.current = true;
-      updateViewFilter(currentViewId, viewsFromStore);
-    }
-  }, [
-    hasInitialData,
-    viewsFetchStatus,
-    viewsFromStore,
-    currentViewId,
-    updateViewFilter,
-  ]);
 
   // Auto-select first view when nothing is selected
   useEffect(() => {

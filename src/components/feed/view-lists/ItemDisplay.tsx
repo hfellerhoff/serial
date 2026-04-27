@@ -3,6 +3,7 @@
 import { Link } from "@tanstack/react-router";
 import clsx from "clsx";
 import { CheckIcon, ClockIcon, EyeIcon, SendIcon } from "lucide-react";
+import { KeyboardShortcutDisplay } from "~/components/ButtonWithShortcut";
 import { Button } from "~/components/ui/button";
 import { useFeedItemsSetWatchLaterValueMutation } from "~/lib/data/feed-items/mutations";
 import { useFeeds as useFeedsArray } from "~/lib/data/feeds/store";
@@ -311,49 +312,45 @@ function ItemActions({
     >
       {showInstapaperAction && (
         <Button
-          size={isGrid || showShortcuts ? "sm" : "icon"}
+          size={isGrid ? "icon" : "icon"}
           variant="ghost"
           disabled={isSavingToInstapaper}
           onClick={handleSaveToInstapaper}
-          className={clsx({ "h-8 w-8 p-0": isGrid && !showShortcuts })}
+          className={clsx("relative overflow-visible", {
+            "h-8 w-8 p-0": isGrid,
+          })}
         >
           <SendIcon size={isGrid ? 14 : 16} />
-          {showShortcuts && (
-            <kbd className="bg-muted hidden rounded px-1 text-xs md:inline-block">
-              {SHORTCUT_KEYS.SEND_TO_INSTAPAPER}
-            </kbd>
-          )}
+          <KeyboardShortcutDisplay
+            shortcut={SHORTCUT_KEYS.SEND_TO_INSTAPAPER}
+          />
         </Button>
       )}
       <Button
-        size={isGrid || showShortcuts ? "sm" : "icon"}
+        size="icon"
         variant="ghost"
         onClick={handleToggleWatchLater}
-        className={clsx({ "h-8 w-8 p-0": isGrid && !showShortcuts })}
+        className={clsx("relative overflow-visible", {
+          "h-8 w-8 p-0": isGrid,
+        })}
       >
         {item.isWatchLater ? (
           <CheckIcon size={isGrid ? 14 : 16} />
         ) : (
           <ClockIcon size={isGrid ? 14 : 16} />
         )}
-        {showShortcuts && (
-          <kbd className="bg-muted ml-1.5 hidden rounded px-1 text-xs md:inline-block">
-            {SHORTCUT_KEYS.TOGGLE_LATER}
-          </kbd>
-        )}
+        <KeyboardShortcutDisplay shortcut={SHORTCUT_KEYS.TOGGLE_LATER} />
       </Button>
       <Button
-        size={isGrid || showShortcuts ? "sm" : "icon"}
+        size="icon"
         variant="ghost"
         onClick={handleToggleWatched}
-        className={clsx({ "h-8 w-8 p-0": isGrid && !showShortcuts })}
+        className={clsx("relative overflow-visible", {
+          "h-8 w-8 p-0": isGrid,
+        })}
       >
         <EyeIcon size={isGrid ? 14 : 16} />
-        {showShortcuts && (
-          <kbd className="bg-muted ml-1.5 hidden rounded px-1 text-xs md:inline-block">
-            {SHORTCUT_KEYS.TOGGLE_READ}
-          </kbd>
-        )}
+        <KeyboardShortcutDisplay shortcut={SHORTCUT_KEYS.TOGGLE_READ} />
       </Button>
     </div>
   );

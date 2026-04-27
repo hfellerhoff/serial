@@ -30,19 +30,21 @@ export type PlanConfig = {
  * Small buffer subtracted from refresh intervals so users don't hit the
  * rate-limit boundary when refreshing right on the dot (e.g. every 15 min).
  */
-const REFRESH_PERIOD_BUFFER = 15_000;
+const REFRESH_PERIOD_BUFFER = 59_000;
 
-const STANDARD_REFRESH_MS = 15 * 60 * 1000 - REFRESH_PERIOD_BUFFER; // ~15 minutes
-const STANDARD_BACKGROUND_REFRESH_MS = 4 * 60 * 60 * 1000; // 4 hours
-const PRO_REFRESH_MS = 1 * 60 * 1000 - REFRESH_PERIOD_BUFFER; // ~1 minute
+const STANDARD_BACKGROUND_REFRESH_MS = 15 * 60 * 1000; // ~15 minutes
+const STANDARD_REFRESH_MS =
+  STANDARD_BACKGROUND_REFRESH_MS - REFRESH_PERIOD_BUFFER;
+
 const PRO_BACKGROUND_REFRESH_MS = 1 * 60 * 1000; // 1 minute
+const PRO_REFRESH_MS = PRO_BACKGROUND_REFRESH_MS - REFRESH_PERIOD_BUFFER;
 
 export const PLANS: Record<PlanId, PlanConfig> = {
   free: {
     id: "free",
     name: "Free",
     maxActiveFeeds: 40,
-    refreshIntervalMs: 60 * 60 * 1000 - REFRESH_PERIOD_BUFFER, // ~1 hour
+    refreshIntervalMs: 60 * 60 * 1000, // 1 hour
     backgroundRefreshIntervalMs: null,
   },
   "standard-small": {
@@ -83,7 +85,10 @@ const UNLIMITED_CONFIG: PlanConfig = {
   backgroundRefreshIntervalMs: PRO_BACKGROUND_REFRESH_MS,
 };
 
-export function getEffectivePlanConfig(planId: PlanId): PlanConfig {
-  if (!IS_MAIN_INSTANCE) return UNLIMITED_CONFIG;
+export function getEffectivePlanConfig(
+  planId: PlanId,
+  options?: { isAdmin?: boolean },
+): PlanConfig {
+  if (!IS_MAIN_INSTANCE || options?.isAdmin) return UNLIMITED_CONFIG;
   return PLANS[planId];
 }

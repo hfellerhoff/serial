@@ -42,11 +42,10 @@ import {
   useFeedItemsDict,
   useFeedItemsOrder,
   useFeedStatusDict,
-  useFetchFeedItemsLastFetchedAt,
-  useFetchFeedItemsStatus,
   useHasInitialData,
   useViewFeedIds,
 } from "~/lib/data/store";
+import { useLoadingMode } from "~/lib/data/loading-machine";
 import { useCustomViewsData } from "~/lib/data/views";
 
 function useCheckFilteredFeedItemsForFeed() {
@@ -137,8 +136,7 @@ export function SidebarFeeds() {
   const viewFilter = useAtomValue(viewFilterAtom);
   const feedStatusDict = useFeedStatusDict();
   const hasInitialData = useHasInitialData();
-  const fetchFeedItemsStatus = useFetchFeedItemsStatus();
-  const fetchFeedItemsLastFetchedAt = useFetchFeedItemsLastFetchedAt();
+  const loading = useLoadingMode();
 
   const checkFilteredFeedItemsForFeed = useCheckFilteredFeedItemsForFeed();
   const viewFeedIds = useViewFeedIds();
@@ -146,10 +144,7 @@ export function SidebarFeeds() {
     ? (viewFeedIds[viewFilter.id] ?? [])
     : [];
 
-  if (
-    !hasInitialData ||
-    (fetchFeedItemsStatus === "fetching" && !fetchFeedItemsLastFetchedAt)
-  ) {
+  if (!hasInitialData || loading.mode === "initialLoad") {
     return (
       <div>
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">

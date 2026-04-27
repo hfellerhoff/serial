@@ -1,39 +1,22 @@
-import clsx from "clsx";
 import { Progress } from "~/components/ui/progress";
-import {
-  useFetchFeedItemsStatus,
-  useLoadingProgress,
-  useProgressState,
-} from "~/lib/data/store";
+import { useLoadingMode } from "~/lib/data/loading-machine";
 import { useFeeds } from "~/lib/data/feeds/store";
 
 export function FeedLoader() {
-  const status = useFetchFeedItemsStatus();
-  const progress = useLoadingProgress();
+  const loading = useLoadingMode();
   const feeds = useFeeds();
-  const progressState = useProgressState();
 
-  const isFetching = status === "fetching";
-  const hasFeeds = feeds.length > 0;
-  const isImporting = progressState.fetchType === "import";
-  const isManualRefresh = progressState.fetchType === "refresh";
-  const nothingToFetch =
-    progressState.fetchType === "initial" && progressState.totalFeeds === 0;
-
-  // Hide when importing (ImportLoading handles that), when no feeds,
-  // during manual refresh (the RefetchItemsButton handles that), or when all feeds are cached
-  if (!hasFeeds || isImporting || isManualRefresh || nothingToFetch) {
+  if (
+    feeds.length === 0 ||
+    loading.mode !== "backgroundRefresh" ||
+    loading.progress <= 0
+  ) {
     return null;
   }
 
   return (
-    <div
-      className={clsx("w-32 transition-opacity", {
-        "opacity-0": !isFetching,
-        "opacity-100": isFetching,
-      })}
-    >
-      <Progress value={progress} className="w-full" />
+    <div className="w-32">
+      <Progress value={loading.progress} className="w-full" />
     </div>
   );
 }

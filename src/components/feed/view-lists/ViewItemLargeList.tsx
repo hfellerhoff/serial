@@ -1,6 +1,5 @@
 "use client";
 
-import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { useAtomValue } from "jotai";
 import { ItemDisplay } from "./ItemDisplay";
 import { PaginationEnd } from "./PaginationEnd";
@@ -8,6 +7,7 @@ import { PaginationLoader } from "./PaginationLoader";
 import { VisibleItemTracker } from "./VisibleItemTracker";
 import { useViewListScroll } from "./useViewListScroll";
 import { selectedItemIdAtom } from "~/lib/data/atoms";
+import { useDeferredAutoAnimate } from "~/lib/hooks/useDeferredAutoAnimate";
 
 interface ViewItemLargeListProps {
   items: string[];
@@ -18,7 +18,7 @@ export function ViewItemLargeList({
   items,
   handleMouseSelect,
 }: ViewItemLargeListProps) {
-  const [parent] = useAutoAnimate();
+  const [parent] = useDeferredAutoAnimate();
   const selectedItemId = useAtomValue(selectedItemIdAtom);
 
   const { sentinelRef, sentinelIndex, paginationState } =

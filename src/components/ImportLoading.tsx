@@ -1,34 +1,24 @@
 import { Loader2Icon } from "lucide-react";
 import { Progress } from "~/components/ui/progress";
-import {
-  useFeedStatusDict,
-  useFetchFeedItemsStatus,
-  useLoadingProgress,
-  useProgressState,
-} from "~/lib/data/store";
+import { useLoadingMode } from "~/lib/data/loading-machine";
 
 export function ImportLoading() {
-  const status = useFetchFeedItemsStatus();
-  const progress = useLoadingProgress();
-  const progressState = useProgressState();
-  const feedStatusDict = useFeedStatusDict();
+  const loading = useLoadingMode();
 
-  const isFetching = status === "fetching";
-  const feedsCompleted = Object.keys(feedStatusDict).length;
-  const totalFeeds = progressState.totalFeeds;
-  const importErrors = progressState.importErrors;
+  const isImporting = loading.mode === "importing";
+  const showFeedProgress = isImporting && loading.total > 0;
 
   return (
     <div className="bg-background fixed inset-0 flex h-screen w-screen flex-col items-center justify-center">
-      {isFetching && totalFeeds > 0 ? (
+      {showFeedProgress ? (
         <>
-          <Progress value={progress} className="w-48" />
+          <Progress value={loading.progress} className="w-48" />
           <p className="text-muted-foreground pt-4 font-sans text-sm">
-            Importing {feedsCompleted} of {totalFeeds} feeds...
+            Importing {loading.completed} of {loading.total} feeds...
           </p>
-          {importErrors > 0 && (
+          {loading.errors > 0 && (
             <p className="text-muted-foreground/50 pt-2 font-sans text-sm">
-              {importErrors} feed{importErrors !== 1 ? "s" : ""} failed to
+              {loading.errors} feed{loading.errors !== 1 ? "s" : ""} failed to
               import
             </p>
           )}

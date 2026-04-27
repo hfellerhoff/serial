@@ -1,53 +1,28 @@
 "use client";
 
-import { cva } from "class-variance-authority";
 import { ResponsiveButton } from "./ui/button";
 import type { ButtonProps } from "./ui/button";
+import { cn } from "~/lib/utils";
 import { useShowShortcuts } from "~/lib/hooks/useShowShortcuts";
-
-const kbdVariants = cva("hidden rounded px-1 text-xs md:inline-block", {
-  variants: {
-    variant: {
-      default: "bg-muted",
-      destructive: "bg-destructive-foreground/20 text-destructive-foreground",
-      outline: "bg-muted",
-      secondary: "bg-muted",
-      ghost: "bg-muted",
-      link: "bg-muted",
-    },
-    position: {
-      left: "md:mr-1.5",
-      right: "md:ml-1.5",
-    },
-    isActive: {
-      true: "!bg-foreground text-background",
-      false: "bg-muted",
-    },
-  },
-  defaultVariants: {
-    variant: "default",
-    position: "right",
-    isActive: false,
-  },
-});
 
 export const KeyboardShortcutDisplay = ({
   shortcut,
-  variant,
-  position = "right",
-  isActive,
+  className,
 }: {
   shortcut: string;
-  variant?: ButtonProps["variant"];
-  position?: "left" | "right";
-  isActive?: boolean;
+  className?: string;
 }) => {
   const showShortcuts = useShowShortcuts();
 
   if (!showShortcuts) return null;
 
   return (
-    <kbd className={kbdVariants({ variant, position, isActive })}>
+    <kbd
+      className={cn(
+        "bg-muted text-foreground absolute -top-1.5 -right-1.5 z-10 hidden h-4 min-w-4 items-center justify-center rounded px-1 text-[10px] leading-none shadow-[0_1px_0_1px_hsl(var(--foreground)/0.2)] md:flex",
+        className,
+      )}
+    >
       {shortcut}
     </kbd>
   );
@@ -55,31 +30,22 @@ export const KeyboardShortcutDisplay = ({
 
 export const ButtonWithShortcut = ({
   shortcut,
-  shortcutPosition = "right",
   children,
-  variant,
+  className,
   ...props
 }: ButtonProps & {
   shortcut: string;
-  shortcutPosition?: "left" | "right";
 }) => {
   return (
-    <ResponsiveButton variant={variant} {...props}>
-      {shortcutPosition === "left" && (
-        <KeyboardShortcutDisplay
-          shortcut={shortcut}
-          variant={variant}
-          position="left"
-        />
-      )}
+    <ResponsiveButton
+      className={cn("relative overflow-visible", className)}
+      {...props}
+    >
+      <KeyboardShortcutDisplay
+        shortcut={shortcut}
+        className="-top-2 -right-3"
+      />
       {children}
-      {shortcutPosition === "right" && (
-        <KeyboardShortcutDisplay
-          shortcut={shortcut}
-          variant={variant}
-          position="right"
-        />
-      )}
     </ResponsiveButton>
   );
 };

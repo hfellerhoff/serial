@@ -7,7 +7,7 @@ import {
   ITEMS_PER_PAGE,
   REVALIDATE_VIEW_CHUNK_SIZE,
 } from "../constants";
-import { publisher } from "../publisher";
+import { publisher, trackChannelConnection } from "../publisher";
 import { insertFeedWithCategories } from "./feed-router/utils";
 import type { VisibilityFilter } from "~/lib/data/atoms";
 import type {
@@ -56,8 +56,20 @@ import {
 } from "~/server/db/schema";
 import { protectedProcedure } from "~/server/orpc/base";
 import { fetchAndInsertFeedData } from "~/server/rss/fetchFeeds";
+import { refreshUserFeeds } from "~/server/rss/refreshUserFeeds";
 
 export type PaginationCursor = { postedAt: Date; id: string } | null;
+
+export type ClientManifestEntry = {
+  id: string;
+  contentHash: string | null;
+};
+
+export type DiffEntry =
+  | { status: "unchanged"; id: string }
+  | { status: "updated"; item: ApplicationFeedItem }
+  | { status: "new"; item: ApplicationFeedItem }
+  | { status: "deleted"; id: string };
 
 type ViewBoundary = {
   oldestPostedAt: Date | null;
@@ -81,12 +93,6 @@ export type ViewDataChunk =
     }
   | { type: "error"; message: string; phase: string; viewId: number };
 
-export type ManifestItem = {
-  id: string;
-  contentHash: string | null;
-  updatedAt: Date;
-};
-
 export type GetByViewChunk =
   | { type: "views"; views: ApplicationView[] }
   | { type: "feeds"; feeds: ApplicationFeed[] }
@@ -95,15 +101,9 @@ export type GetByViewChunk =
   | { type: "feed-status"; feedId: number; status: FetchFeedsStatus }
   | { type: "view-feeds"; viewId: number; feedIds: number[] }
   | { type: "initial-data-complete" }
-  | { type: "new-data-complete" }
-  | { type: "refresh-start"; totalFeeds: number }
+  | { type: "refresh-start"; totalFeeds: number; nextRefreshAt: Date | null }
+  | { type: "refresh-complete" }
   | { type: "view-items"; viewId: number; feedItemIds: string[] }
-  | {
-      type: "item-manifest";
-      items: ManifestItem[];
-      viewCursors: Record<number, PaginationCursor>;
-      initialScopeIds: string[];
-    }
   | {
       type: "import-feed-inserted";
       feedUrl: string;
@@ -116,6 +116,14 @@ export type GetByViewChunk =
       type: "import-limit-warning";
       deactivatedCount: number;
       maxActiveFeeds: number;
+    }
+  | {
+      type: "view-diff";
+      viewId: number;
+      visibilityFilter: string;
+      diff: DiffEntry[];
+      cursor: PaginationCursor;
+      hasMore: boolean;
     }
   | ViewDataChunk;
 
@@ -385,105 +393,56 @@ async function* fetchContentForViews(
   return;
 }
 
-type ManifestQueryResult = {
-  viewId: number;
-  visibilityFilter: string;
-  items: ManifestItem[];
-  cursor: PaginationCursor;
-};
-
 /**
- * Lightweight query that returns manifest data (id, contentHash, updatedAt) plus cursor
- * for a specific view and visibility filter. Used in manifest mode to build a scoped
- * manifest covering the initial items per view per visibility, rather than all items globally.
+ * Compute a diff between the server's authoritative items and the client's
+ * cached manifest for a view. Returns DiffEntry[] describing what changed.
+ *
+ * - "unchanged": client has correct version (matched by contentHash)
+ * - "updated": client has stale version (hash mismatch or null hash)
+ * - "new": client doesn't have this item
+ * - "deleted": client has item but server doesn't (no longer in scope)
  */
-async function fetchManifestItemsForView(
-  context: ORPCContext,
-  view: ApplicationView,
-  visibilityFilter: VisibilityFilter,
-  params: FetchContentForViewParams,
-): Promise<ManifestQueryResult> {
-  const {
-    feedIds,
-    feedCategoriesList,
-    customViewCategoryIds,
-    customViews,
-    applicationFeeds,
-  } = params;
-
-  try {
-    const filterConditions = [
-      inArray(feedItems.feedId, feedIds),
-      buildVisibilityFilter(visibilityFilter),
-      buildViewCategoryFilter(
-        view,
-        feedCategoriesList,
-        feedIds,
-        customViewCategoryIds,
-        customViews,
-        applicationFeeds,
-      ),
-      buildContentTypeFilter(view.contentType, applicationFeeds),
-      buildTimeWindowFilter(view.daysWindow),
-    ].filter(Boolean);
-
-    const filter =
-      filterConditions.length > 0 ? and(...filterConditions) : undefined;
-
-    const items = await context.db
-      .select({
-        id: feedItems.id,
-        contentHash: feedItems.contentHash,
-        updatedAt: feedItems.updatedAt,
-        postedAt: feedItems.postedAt,
-      })
-      .from(feedItems)
-      .where(filter)
-      .orderBy(desc(feedItems.postedAt))
-      .limit(INITIAL_ITEMS_PER_VIEW);
-
-    const lastItem = items[items.length - 1];
-    const cursor: PaginationCursor = lastItem
-      ? { postedAt: lastItem.postedAt, id: lastItem.id }
-      : null;
-
-    return {
-      viewId: view.id,
-      visibilityFilter,
-      items: items.map(({ id, contentHash, updatedAt }) => ({
-        id,
-        contentHash,
-        updatedAt,
-      })),
-      cursor,
-    };
-  } catch (error) {
-    captureException(error);
-    return { viewId: view.id, visibilityFilter, items: [], cursor: null };
+function computeViewDiff(
+  serverItems: ApplicationFeedItem[],
+  clientManifest: ClientManifestEntry[],
+): DiffEntry[] {
+  const clientMap = new Map<string, string | null>();
+  for (const entry of clientManifest) {
+    clientMap.set(entry.id, entry.contentHash);
   }
-}
 
-function filterNewItemsForView(
-  items: ApplicationFeedItem[],
-  boundary: ViewBoundary,
-  feedIdsForView: Set<number>,
-): ApplicationFeedItem[] {
-  return items.filter((item) => {
-    // Item must be unread (not watched, not watch later)
-    if (item.isWatched || item.isWatchLater) return false;
+  const serverIds = new Set<string>();
+  const diff: DiffEntry[] = [];
 
-    // Item must belong to a feed in this view
-    if (!feedIdsForView.has(item.feedId)) return false;
+  for (const item of serverItems) {
+    serverIds.add(item.id);
 
-    // Item must not have been sent in initial data
-    if (boundary.sentItemIds.has(item.id)) return false;
+    if (!clientMap.has(item.id)) {
+      diff.push({ status: "new", item });
+    } else {
+      const clientHash = clientMap.get(item.id);
+      // null hash on either side means we can't confirm match — treat as updated
+      const hashesMatch =
+        clientHash !== null &&
+        item.contentHash !== null &&
+        clientHash === item.contentHash;
 
-    // If no initial items, include all matching items
-    if (!boundary.oldestPostedAt) return true;
+      if (hashesMatch) {
+        diff.push({ status: "unchanged", id: item.id });
+      } else {
+        diff.push({ status: "updated", item });
+      }
+    }
+  }
 
-    // Item must be newer than or equal to the oldest initial item
-    return item.postedAt >= boundary.oldestPostedAt;
-  });
+  // Items the client has that the server doesn't → deleted
+  for (const entry of clientManifest) {
+    if (!serverIds.has(entry.id)) {
+      diff.push({ status: "deleted", id: entry.id });
+    }
+  }
+
+  return diff;
 }
 
 function getUserChannel(userId: string): string {
@@ -721,7 +680,7 @@ function prepareApplicationData(
  */
 async function publishPrerequisiteDataChunks(
   channel: string,
-  source: "initial" | "new-data",
+  source: "initial",
   data: {
     allViews: ApplicationView[];
     applicationFeeds: ApplicationFeed[];
@@ -763,7 +722,7 @@ type PublishViewFeedsResult = {
  */
 async function publishViewFeedsChunks(
   channel: string,
-  source: "initial" | "new-data",
+  source: "initial",
   params: {
     allViews: ApplicationView[];
     applicationFeeds: ApplicationFeed[];
@@ -839,10 +798,16 @@ export const subscribe = protectedProcedure.handler(async function* ({
   lastEventId,
 }) {
   const channel = getUserChannel(context.user.id);
-  const iterator = publisher.subscribe(channel, { signal, lastEventId });
+  const untrack = trackChannelConnection(channel);
 
-  for await (const payload of iterator) {
-    yield payload;
+  try {
+    const iterator = publisher.subscribe(channel, { signal, lastEventId });
+
+    for await (const payload of iterator) {
+      yield payload;
+    }
+  } finally {
+    untrack();
   }
 });
 
@@ -852,22 +817,43 @@ export const subscribe = protectedProcedure.handler(async function* ({
 
 /**
  * Request initial data load. Data is published to the user's channel.
+ *
+ * The client sends a `viewManifests` map of its cached items per view so the
+ * server can compute a diff and stream only what changed. If no manifests are
+ * provided (fresh client), all items are streamed as "new".
+ *
+ * Flow:
+ *   1. Publish metadata (views, feeds, categories, view-feeds)
+ *   2. For each view, query server's correct initial items per visibility
+ *      filter and publish a view-diff chunk. Unread is published first,
+ *      followed by read/later after initial-data-complete.
+ *   3. Publish initial-data-complete (client can show UI)
+ *   4. Publish read/later diffs
+ *   5. If feeds are due for refresh, call refreshUserFeeds
  */
 export const requestInitialData = protectedProcedure
   .input(
     z
       .object({
-        visibilityFilter: visibilityFilterSchema,
-        hasCachedData: z.boolean(),
+        viewManifests: z.record(
+          z.coerce.number(),
+          z.record(
+            z.string(), // visibility filter key ("unread", "read", "later")
+            z.array(
+              z.object({
+                id: z.string(),
+                contentHash: z.string().nullable(),
+              }),
+            ),
+          ),
+        ),
       })
       .partial()
       .optional(),
   )
   .handler(async ({ context, input }) => {
     const channel = getUserChannel(context.user.id);
-    const visibilityFilter = input?.visibilityFilter;
-    const isVisibilityFilterFetch = !!visibilityFilter;
-    const hasCachedData = input?.hasCachedData ?? false;
+    const viewManifests = input?.viewManifests ?? {};
 
     // Step 1: Fetch all prerequisite data using helper
     let prerequisiteData: PrerequisiteData;
@@ -904,305 +890,176 @@ export const requestInitialData = protectedProcedure
       feedIds,
     } = prepareApplicationData(context.user.id, prerequisiteData);
 
-    // Step 2: Publish prerequisite data chunks (skip when fetching for visibility filter)
-    // Track feedIdToViewIds for streaming new items after RSS fetch
-    let feedIdToViewIds: Map<number, number[]> | undefined;
+    // Step 2: Publish prerequisite data chunks
+    await publishPrerequisiteDataChunks(channel, "initial", {
+      allViews,
+      applicationFeeds,
+      contentCategoriesList,
+      feedCategoriesList,
+    });
 
-    if (!isVisibilityFilterFetch) {
-      await publishPrerequisiteDataChunks(channel, "initial", {
-        allViews,
-        applicationFeeds,
-        contentCategoriesList,
-        feedCategoriesList,
-      });
-
-      // Step 3: Publish view-feeds chunks for each view and build feedIdToViewIds mapping
-      const result = await publishViewFeedsChunks(channel, "initial", {
-        allViews,
-        applicationFeeds,
-        feedCategoriesList,
-        customViews,
-        customViewCategoryIds,
-        customViewFeedIds,
-        buildFeedIdToViewIds: true,
-      });
-      feedIdToViewIds = result.feedIdToViewIds!;
-    }
+    // Step 3: Publish view-feeds chunks for each view
+    await publishViewFeedsChunks(channel, "initial", {
+      allViews,
+      applicationFeeds,
+      feedCategoriesList,
+      customViews,
+      customViewCategoryIds,
+      customViewFeedIds,
+    });
 
     const firstView = allViews[0];
 
     if (feedIds.length === 0 || !firstView) {
-      if (!isVisibilityFilterFetch) {
-        await publisher.publish(channel, {
-          source: "initial",
-          chunk: { type: "initial-data-complete" },
-        });
-      }
-      return { status: "completed" };
-    }
-
-    // Build feed IDs per view for filtering new items
-    const feedCategoriesMap = buildFeedCategoriesMap(feedCategoriesList);
-    const feedIdsByView = new Map<number, Set<number>>();
-    for (const view of allViews) {
-      const feedIdsForView = computeFeedsForView(
-        view,
-        applicationFeeds,
-        feedCategoriesList,
-        customViews,
-        customViewCategoryIds,
-        feedCategoriesMap,
-        customViewFeedIds,
-      );
-      feedIdsByView.set(view.id, new Set(feedIdsForView));
-    }
-
-    const fetchContentForViewParams: FetchContentForViewParams = {
-      feedIds,
-      visibilityFilter,
-      feedCategoriesList,
-      customViewCategoryIds,
-      customViews,
-      applicationFeeds,
-      feedsById,
-    };
-
-    // Track boundaries for each view to filter new items after RSS fetch
-    const viewBoundaries = new Map<number, ViewBoundary>();
-
-    // Step 4: Query and publish initial items (or manifest for cached clients)
-    if (hasCachedData && !isVisibilityFilterFetch) {
-      // Manifest mode: send a scoped manifest covering the initial items per view
-      // per visibility filter. Bounded to N_views × 3 × INITIAL_ITEMS_PER_VIEW items.
-      // The client diffs its cache against the manifest to detect deletions,
-      // changes, and new items — then requests only the stale subset.
-      const manifestVisibilityFilters: VisibilityFilter[] = [
-        "unread",
-        "read",
-        "later",
-      ];
-
-      // Query manifest items for each view × visibility in parallel
-      const manifestQueries: Array<Promise<ManifestQueryResult>> = [];
-      for (const view of allViews) {
-        for (const vf of manifestVisibilityFilters) {
-          manifestQueries.push(
-            fetchManifestItemsForView(
-              context,
-              view,
-              vf,
-              fetchContentForViewParams,
-            ),
-          );
-        }
-      }
-      const manifestResults = await Promise.all(manifestQueries);
-
-      // Combine manifest items (deduped by id)
-      const manifestMap = new Map<string, ManifestItem>();
-      const viewCursors: Record<number, PaginationCursor> = {};
-      const allInitialScopeIds: string[] = [];
-      const initialScopeIdSet = new Set<string>();
-
-      for (const result of manifestResults) {
-        for (const item of result.items) {
-          if (!manifestMap.has(item.id)) {
-            manifestMap.set(item.id, item);
-          }
-        }
-
-        // Only use "unread" results for cursors, initial scope, and view boundaries
-        if (result.visibilityFilter === "unread") {
-          viewCursors[result.viewId] = result.cursor;
-
-          for (const item of result.items) {
-            if (!initialScopeIdSet.has(item.id)) {
-              allInitialScopeIds.push(item.id);
-              initialScopeIdSet.add(item.id);
-            }
-          }
-
-          // Build viewBoundary from cursor data for RSS refresh dedup
-          viewBoundaries.set(result.viewId, {
-            oldestPostedAt: result.cursor?.postedAt ?? null,
-            sentItemIds: new Set(result.items.map((i) => i.id)),
-          });
-        }
-      }
-
-      // Publish scoped item-manifest chunk
-      await publisher.publish(channel, {
-        source: "initial",
-        chunk: {
-          type: "item-manifest",
-          items: [...manifestMap.values()],
-          viewCursors,
-          initialScopeIds: allInitialScopeIds,
-        },
-      });
-    } else {
-      // Normal mode: fetch and publish full items for each view
-      for await (const { chunk, boundary } of fetchContentForViews(
-        context,
-        allViews,
-        fetchContentForViewParams,
-      )) {
-        await publisher.publish(channel, {
-          source: "initial",
-          chunk,
-        });
-
-        // Track boundary for this view
-        if (chunk.type === "feed-items" && chunk.viewId !== undefined) {
-          viewBoundaries.set(chunk.viewId, boundary);
-        }
-      }
-    }
-
-    // Skip initial-data-complete and RSS fetch when fetching for visibility filter
-    if (!isVisibilityFilterFetch) {
-      // Signal that initial data is complete - client can hide loading screen
       await publisher.publish(channel, {
         source: "initial",
         chunk: { type: "initial-data-complete" },
       });
+      return { status: "completed" };
+    }
 
-      // Only fetch active feeds
-      const activeFeedsList = feedsList.filter((feed) => feed.isActive);
+    // Helper: query initial items for a view + visibility, diff against
+    // client manifest, and publish a view-diff chunk.
+    async function queryAndPublishViewDiff(
+      view: ApplicationView,
+      visibilityFilter: VisibilityFilter,
+    ) {
+      try {
+        const filterConditions = [
+          inArray(feedItems.feedId, feedIds),
+          buildVisibilityFilter(visibilityFilter),
+          buildViewCategoryFilter(
+            view,
+            feedCategoriesList,
+            feedIds,
+            customViewCategoryIds,
+            customViews,
+            applicationFeeds,
+          ),
+          buildContentTypeFilter(view.contentType, applicationFeeds),
+          buildTimeWindowFilter(view.daysWindow),
+        ].filter(Boolean);
 
-      // Count feeds that will actually be fetched (not cached)
-      const now = new Date();
-      const feedsToFetchCount = activeFeedsList.filter(
-        (feed) => !feed.nextFetchAt || feed.nextFetchAt <= now,
-      ).length;
+        const filter =
+          filterConditions.length > 0 ? and(...filterConditions) : undefined;
 
-      // Step 5: Run fetch and insert for fresh RSS items in background
-      // Skip entirely when all feeds have been recently fetched (nextFetchAt > now)
-      if (feedsToFetchCount > 0) {
-        // Publish count of feeds that need actual fetching for progress tracking
-        await publisher.publish(channel, {
-          source: "initial",
-          chunk: { type: "refresh-start", totalFeeds: feedsToFetchCount },
+        // Query limit + 1 to determine hasMore
+        const itemsData = await context.db.query.feedItems.findMany({
+          where: filter,
+          orderBy: desc(feedItems.postedAt),
+          limit: INITIAL_ITEMS_PER_VIEW + 1,
         });
 
-        for await (const feedResult of fetchAndInsertFeedData(
-          context,
-          activeFeedsList,
-        )) {
-          // Skip publishing status for cached feeds (they complete instantly with no network activity)
-          if (feedResult.status === "skipped") {
-            continue;
-          }
+        const hasMore = itemsData.length > INITIAL_ITEMS_PER_VIEW;
+        const serverItems = hasMore
+          ? itemsData.slice(0, INITIAL_ITEMS_PER_VIEW)
+          : itemsData;
 
-          // Publish feed status for actual fetches
-          await publisher.publish(channel, {
-            source: "initial",
-            chunk: {
-              type: "feed-status",
-              status: feedResult.status,
-              feedId: feedResult.id,
-            },
-          });
+        const lastItem = serverItems[serverItems.length - 1];
+        const cursor: PaginationCursor = lastItem
+          ? { postedAt: lastItem.postedAt, id: lastItem.id }
+          : null;
 
-          // Stream newly fetched items that belong to views
-          if (
-            feedResult.status === "success" &&
-            feedResult.feedItems.length > 0
-          ) {
-            const viewIdsForFeed = feedIdToViewIds?.get(feedResult.id) ?? [];
+        // Map to ApplicationFeedItem with platform
+        const applicationItems = serverItems.map((item) => {
+          const itemFeed = feedsById.get(item.feedId);
+          return {
+            ...item,
+            platform: itemFeed?.platform ?? "youtube",
+          } as ApplicationFeedItem;
+        });
 
-            // Filter items per view and collect results
-            const viewFilteredItems = new Map<number, ApplicationFeedItem[]>();
+        // Get the client manifest for this specific view + visibility filter.
+        // Each visibility filter is diffed independently, so we must only
+        // compare against items the client has for that same filter.
+        // Using the full manifest would cause read/later items to appear
+        // as "deleted" during the unread diff (and vice versa).
+        const clientManifest = viewManifests[view.id]?.[visibilityFilter] ?? [];
 
-            for (const viewId of viewIdsForFeed) {
-              const boundary = viewBoundaries.get(viewId);
-              const feedIdsForView = feedIdsByView.get(viewId);
+        const diff = computeViewDiff(applicationItems, clientManifest);
 
-              if (!boundary || !feedIdsForView) continue;
-
-              const itemsForView = filterNewItemsForView(
-                feedResult.feedItems,
-                boundary,
-                feedIdsForView,
-              );
-
-              if (itemsForView.length > 0) {
-                viewFilteredItems.set(viewId, itemsForView);
-              }
-            }
-
-            // Publish feed-items using the filtered data
-            for (const [viewId, itemsForView] of viewFilteredItems) {
-              await publisher.publish(channel, {
-                source: "initial",
-                chunk: {
-                  type: "feed-items",
-                  viewId,
-                  feedItems: itemsForView,
-                },
-              });
-            }
-          }
-        }
+        await publisher.publish(channel, {
+          source: "initial",
+          chunk: {
+            type: "view-diff",
+            viewId: view.id,
+            visibilityFilter,
+            diff,
+            cursor,
+            hasMore,
+          },
+        });
+      } catch (error) {
+        captureException(error);
+        await publisher.publish(channel, {
+          source: "initial",
+          chunk: {
+            type: "error",
+            message:
+              error instanceof Error
+                ? error.message
+                : `Failed to diff items for view ${view.id}`,
+            phase: "view-diff",
+            viewId: view.id,
+          },
+        });
       }
     }
 
-    return { status: "completed" };
-  });
-
-/**
- * Request full item data for specific item IDs.
- * Used by the manifest-based delta sync to fetch items that are new or have changed.
- * The client sends the IDs it needs after diffing its cache against the manifest.
- */
-export const requestStaleItems = protectedProcedure
-  .input(z.object({ itemIds: z.array(z.string()).max(5000) }))
-  .handler(async ({ context, input }) => {
-    const channel = getUserChannel(context.user.id);
-
-    if (input.itemIds.length === 0) {
-      return { status: "completed" };
+    // Step 4: Publish unread diffs for all views (highest priority)
+    for (const view of allViews) {
+      await queryAndPublishViewDiff(view, "unread");
     }
 
-    // Get user's feeds for ownership check and platform lookup
-    const userFeeds = await context.db.query.feeds.findMany({
-      where: eq(feeds.userId, context.user.id),
+    // Signal that initial (unread) data is complete — client can show UI
+    await publisher.publish(channel, {
+      source: "initial",
+      chunk: { type: "initial-data-complete" },
     });
-    const userFeedIds = userFeeds.map((f) => f.id);
-    const feedsById = new Map(userFeeds.map((f) => [f.id, f]));
 
-    if (userFeedIds.length === 0) {
-      return { status: "completed" };
+    // Step 5: Publish read and later diffs for all views
+    for (const view of allViews) {
+      await queryAndPublishViewDiff(view, "read");
+      await queryAndPublishViewDiff(view, "later");
     }
 
-    // Query items in batches to stay within SQLite variable limits
-    const BATCH_SIZE = 500;
-    for (let i = 0; i < input.itemIds.length; i += BATCH_SIZE) {
-      const batchIds = input.itemIds.slice(i, i + BATCH_SIZE);
-      const items = await context.db.query.feedItems.findMany({
-        where: and(
-          inArray(feedItems.id, batchIds),
-          inArray(feedItems.feedId, userFeedIds),
-        ),
+    // Step 6: Check refresh rate limit and publish refresh-start. The
+    // cooldown + total feeds are streamed before the slow RSS fetch so the
+    // client can show loading state immediately.
+    const eligibility = await checkUserRefreshEligibility(
+      context.db,
+      context.user.id,
+    );
+
+    const feedsDue = eligibility.eligible
+      ? feedsList.filter(
+          (f) => f.isActive && (!f.nextFetchAt || f.nextFetchAt <= new Date()),
+        )
+      : [];
+
+    await publisher.publish(channel, {
+      source: "initial",
+      chunk: {
+        type: "refresh-start",
+        totalFeeds: feedsDue.length,
+        nextRefreshAt: eligibility.nextRefreshAt,
+      },
+    });
+
+    // Step 7: Run RSS fetch if eligible.
+    if (eligibility.eligible) {
+      await refreshUserFeeds({
+        db: context.db,
+        feedsList,
+        channel,
       });
-
-      if (items.length > 0) {
-        const applicationItems = mapToApplicationFeedItems(items, feedsById);
-
-        for (const itemChunk of prepareArrayChunks(
-          applicationItems,
-          GET_BY_VIEW_CHUNK_SIZE,
-        )) {
-          await publisher.publish(channel, {
-            source: "initial",
-            chunk: {
-              type: "feed-items",
-              feedItems: itemChunk,
-            },
-          });
-        }
-      }
     }
+
+    // Step 8: Always signal completion so the client exits loading state.
+    await publisher.publish(channel, {
+      source: "initial",
+      chunk: { type: "refresh-complete" },
+    });
 
     return { status: "completed" };
   });
@@ -1393,7 +1250,7 @@ export const streamingImport = protectedProcedure
     }));
 
     // Publish import start with total feeds count (must come before
-    // import-limit-warning so the client's progressState is initialized first)
+    // import-limit-warning so the client's loading machine is initialized first)
     await publisher.publish(channel, {
       source: "initial",
       chunk: { type: "import-start", totalFeeds: input.feeds.length },
@@ -1640,127 +1497,6 @@ export const streamingImport = protectedProcedure
   });
 
 /**
- * Request new data (refresh). Only performs RSS fetching and returns items
- * newer than the client-provided timestamp.
- */
-export const requestNewData = protectedProcedure
-  .input(z.object({ newerThan: z.coerce.date() }))
-  .handler(async ({ context, input }) => {
-    const channel = getUserChannel(context.user.id);
-    const newerThanTimestamp = input.newerThan;
-
-    // Check user-level refresh rate limit
-    const eligibility = await checkUserRefreshEligibility(
-      context.db,
-      context.user.id,
-    );
-    if (!eligibility.eligible) {
-      await publisher.publish(channel, {
-        source: "new-data",
-        chunk: {
-          type: "error",
-          message: `You can refresh again at ${eligibility.nextRefreshAt.toLocaleTimeString()}`,
-          phase: "initial-fetch",
-          viewId: -1,
-        },
-      });
-      return { status: "rate-limited" };
-    }
-
-    // Fetch prerequisite data
-    let prerequisiteData: PrerequisiteData;
-    try {
-      prerequisiteData = await fetchUserPrerequisiteData(context);
-    } catch (error) {
-      captureException(error);
-      await publisher.publish(channel, {
-        source: "new-data",
-        chunk: {
-          type: "error",
-          message:
-            error instanceof Error ? error.message : "Failed to fetch data",
-          phase: "initial-fetch",
-          viewId: -1,
-        },
-      });
-      return { status: "error" };
-    }
-
-    const { feedsList } = prerequisiteData;
-
-    // Only fetch active feeds
-    const activeFeedsList = feedsList.filter((feed) => feed.isActive);
-
-    // Count feeds that will actually be fetched (not cached)
-    const now = new Date();
-    const feedsToFetchCount = activeFeedsList.filter(
-      (feed) => !feed.nextFetchAt || feed.nextFetchAt <= now,
-    ).length;
-
-    // Skip entirely when no feeds need fetching (all cached by background refresh)
-    if (activeFeedsList.length === 0 || feedsToFetchCount === 0) {
-      await publisher.publish(channel, {
-        source: "new-data",
-        chunk: { type: "new-data-complete" },
-      });
-      return { status: "completed" };
-    }
-
-    // Publish count of feeds that need actual fetching for progress tracking
-    await publisher.publish(channel, {
-      source: "new-data",
-      chunk: { type: "refresh-start", totalFeeds: feedsToFetchCount },
-    });
-
-    // Run RSS fetch and publish new items
-    for await (const feedResult of fetchAndInsertFeedData(
-      context,
-      activeFeedsList,
-    )) {
-      // Skip publishing status for cached feeds (they complete instantly with no network activity)
-      if (feedResult.status === "skipped") {
-        continue;
-      }
-
-      // Publish feed status for actual fetches
-      await publisher.publish(channel, {
-        source: "new-data",
-        chunk: {
-          type: "feed-status",
-          status: feedResult.status,
-          feedId: feedResult.id,
-        },
-      });
-
-      if (feedResult.status === "success" && feedResult.feedItems.length > 0) {
-        // Filter items newer than the client-provided timestamp
-        const newItems = feedResult.feedItems.filter(
-          (item) => item.postedAt > newerThanTimestamp,
-        );
-
-        if (newItems.length > 0) {
-          // Stream feed items once per feed (not per view)
-          await publisher.publish(channel, {
-            source: "new-data",
-            chunk: {
-              type: "feed-items",
-              feedId: feedResult.id,
-              feedItems: newItems,
-            },
-          });
-        }
-      }
-    }
-
-    await publisher.publish(channel, {
-      source: "new-data",
-      chunk: { type: "new-data-complete" },
-    });
-
-    return { status: "completed" };
-  });
-
-/**
  * Cursor schema for pagination
  */
 const cursorSchema = z
@@ -1796,11 +1532,20 @@ export const requestItemsByVisibility = protectedProcedure
       visibilityFilter: visibilityFilterSchema,
       cursor: cursorSchema.optional(),
       limit: z.number().min(1).max(500).optional(),
+      clientItems: z
+        .array(
+          z.object({
+            id: z.string(),
+            contentHash: z.string().nullable(),
+          }),
+        )
+        .optional(),
     }),
   )
   .handler(async ({ context, input }) => {
     const channel = getUserChannel(context.user.id);
     const limit = input.limit ?? ITEMS_PER_PAGE;
+    const clientItems = input.clientItems;
 
     // Fetch prerequisite data using helper
     let prerequisiteData: PrerequisiteData;
@@ -1839,12 +1584,12 @@ export const requestItemsByVisibility = protectedProcedure
       await publisher.publish(channel, {
         source: "visibility",
         chunk: {
-          type: "feed-items",
+          type: "view-diff",
           viewId: input.viewId,
-          feedItems: [],
           visibilityFilter: input.visibilityFilter,
+          diff: [],
+          cursor: null,
           hasMore: false,
-          nextCursor: null,
         },
       });
       return { status: "completed" };
@@ -1906,38 +1651,20 @@ export const requestItemsByVisibility = protectedProcedure
         feedsById,
       );
 
-      // Publish items in chunks for large result sets
-      for (const chunk of prepareArrayChunks(
-        applicationFeedItems,
-        ITEMS_BY_VISIBILITY_CHUNK_SIZE,
-      )) {
-        await publisher.publish(channel, {
-          source: "visibility",
-          chunk: {
-            type: "feed-items",
-            viewId: input.viewId,
-            feedItems: chunk,
-            visibilityFilter: input.visibilityFilter,
-            hasMore,
-            nextCursor,
-          },
-        });
-      }
+      // Always use diff-based response
+      const diff = computeViewDiff(applicationFeedItems, clientItems ?? []);
 
-      // If no items, still publish an empty response
-      if (applicationFeedItems.length === 0) {
-        await publisher.publish(channel, {
-          source: "visibility",
-          chunk: {
-            type: "feed-items",
-            viewId: input.viewId,
-            feedItems: [],
-            visibilityFilter: input.visibilityFilter,
-            hasMore: false,
-            nextCursor: null,
-          },
-        });
-      }
+      await publisher.publish(channel, {
+        source: "visibility",
+        chunk: {
+          type: "view-diff",
+          viewId: input.viewId,
+          visibilityFilter: input.visibilityFilter,
+          diff,
+          cursor: nextCursor,
+          hasMore,
+        },
+      });
     } catch (error) {
       captureException(error);
       await publisher.publish(channel, {
@@ -2509,6 +2236,14 @@ export type GetItemsByVisibilityChunk =
       visibilityFilter: string;
       hasMore: boolean;
       nextCursor: PaginationCursor;
+    }
+  | {
+      type: "view-diff";
+      viewId: number;
+      visibilityFilter: string;
+      diff: DiffEntry[];
+      cursor: PaginationCursor;
+      hasMore: boolean;
     }
   | { type: "error"; message: string; phase: string };
 

@@ -26,6 +26,7 @@ import {
   canActivateFeed,
   getFeedsActivationBudget,
   getUserPlanId,
+  isAdminUser,
 } from "~/server/subscriptions/helpers";
 import { getEffectivePlanConfig } from "~/server/subscriptions/plans";
 
@@ -542,9 +543,12 @@ export const bulkSetActive = protectedProcedure
   .handler(async ({ context, input }) => {
     if (input.feedIds.length === 0) return;
 
-    // Resolve the plan limit outside the transaction (no db needed)
-    const planId = await getUserPlanId(context.user.id);
-    const planConfig = getEffectivePlanConfig(planId);
+    // Resolve the plan limit outside the transaction
+    const [planId, isAdmin] = await Promise.all([
+      getUserPlanId(context.user.id),
+      isAdminUser(context.db, context.user.id),
+    ]);
+    const planConfig = getEffectivePlanConfig(planId, { isAdmin });
 
     await context.db.transaction(async (tx) => {
       if (input.isActive) {

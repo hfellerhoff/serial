@@ -37,43 +37,27 @@ export function AdminTabs({ value }: { value: AdminTab }) {
     <Tabs value={value}>
       <TabsList variant="pill">
         <TabsTrigger value="settings" asChild>
-          <Link to="/admin/settings">
+          <Link to="/admin/settings" className="relative">
             Settings
-            <KeyboardShortcutDisplay
-              shortcut="1"
-              position="right"
-              isActive={value === "settings"}
-            />
+            <KeyboardShortcutDisplay shortcut="1" />
           </Link>
         </TabsTrigger>
         <TabsTrigger value="stats" asChild>
-          <Link to="/admin/stats">
+          <Link to="/admin/stats" className="relative">
             Stats
-            <KeyboardShortcutDisplay
-              shortcut="2"
-              position="right"
-              isActive={value === "stats"}
-            />
+            <KeyboardShortcutDisplay shortcut="2" />
           </Link>
         </TabsTrigger>
         <TabsTrigger value="users" asChild>
-          <Link to="/admin/users">
+          <Link to="/admin/users" className="relative">
             Users
-            <KeyboardShortcutDisplay
-              shortcut="3"
-              position="right"
-              isActive={value === "users"}
-            />
+            <KeyboardShortcutDisplay shortcut="3" />
           </Link>
         </TabsTrigger>
         <TabsTrigger value="invites" asChild>
-          <Link to="/admin/invites">
+          <Link to="/admin/invites" className="relative">
             Invites
-            <KeyboardShortcutDisplay
-              shortcut="4"
-              position="right"
-              isActive={value === "invites"}
-            />
+            <KeyboardShortcutDisplay shortcut="4" />
           </Link>
         </TabsTrigger>
       </TabsList>

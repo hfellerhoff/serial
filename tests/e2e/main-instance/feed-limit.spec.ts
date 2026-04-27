@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { signUp } from "../fixtures/auth";
+import { seedAdmin, signUp } from "../fixtures/auth";
 import { MAIN_RSS_SERVER_PORT, MAIN_TURSO_PORT } from "../fixtures/ports";
 import { cleanupUser, generateTestEmail } from "../fixtures/seed-db";
 
@@ -23,11 +23,25 @@ ${outlines}
 
 test.describe("feed limit for free plan", () => {
   let testEmail: string;
+  const adminEmail = "admin-feed-limit@example.com";
+
+  // Seed an admin user first so the test user is a non-admin (second user).
+  // The first user to sign up is automatically promoted to admin, which
+  // gets unlimited feeds — bypassing the limit this test needs to verify.
+  test.beforeEach(async () => {
+    await seedAdmin({
+      tursoPort: MAIN_TURSO_PORT,
+      name: "Admin User",
+      email: adminEmail,
+      password: "adminpassword123",
+    });
+  });
 
   test.afterEach(async () => {
     if (testEmail) {
       await cleanupUser(MAIN_TURSO_PORT, testEmail);
     }
+    await cleanupUser(MAIN_TURSO_PORT, adminEmail);
   });
 
   test("importing 50 feeds limits active to 40 and shows upgrade CTA", async ({

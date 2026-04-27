@@ -115,7 +115,7 @@ test.describe("view-feed direct assignment CRUD", () => {
     await feedRow.click();
 
     // Click "Edit" button in the action bar
-    const editBtn = page.getByRole("button", { name: /^edit\b/i });
+    const editBtn = page.getByRole("button", { name: /\bedit\b/i });
     await expect(editBtn).toBeVisible({ timeout: 5000 });
     await editBtn.click();
 
