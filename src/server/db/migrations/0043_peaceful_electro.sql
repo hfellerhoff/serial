@@ -1,0 +1,1 @@
+ALTER TABLE `serial_invitation` ADD `name` text;

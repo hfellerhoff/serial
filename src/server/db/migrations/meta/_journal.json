@@ -302,6 +302,13 @@
       "when": 1777102540349,
       "tag": "0042_curly_abomination",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "6",
+      "when": 1777265780943,
+      "tag": "0043_peaceful_electro",
+      "breakpoints": true
     }
   ]
 }

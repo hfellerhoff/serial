@@ -130,6 +130,7 @@ export const invitation = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => createId()),
+    name: text("name"), // optional human-readable label
     token: text("token").notNull().unique(),
     inviterId: text("inviter_id")
       .notNull()

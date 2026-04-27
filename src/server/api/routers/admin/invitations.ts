@@ -41,6 +41,7 @@ function getOriginFromRequest(): string | undefined {
 export const createInvitation = adminProcedure
   .input(
     z.object({
+      name: z.string().trim().nullable().optional(),
       maxUses: z.number().int().positive().nullable(),
       expiresAt: z.coerce.date().nullable(),
     }),
@@ -55,6 +56,7 @@ export const createInvitation = adminProcedure
         token,
         inviterId: context.user.id,
         status: "active",
+        name: input.name ?? null,
         maxUses: input.maxUses,
         expiresAt: input.expiresAt,
       })
@@ -77,6 +79,7 @@ export const listInvitations = adminProcedure.handler(async () => {
   const rows = await db
     .select({
       id: invitation.id,
+      name: invitation.name,
       token: invitation.token,
       status: invitation.status,
       maxUses: invitation.maxUses,
@@ -163,6 +166,39 @@ export const sendInvitationEmail = adminProcedure
     });
 
     return { sent: true };
+  });
+
+// Update an invitation's details
+export const updateInvitation = adminProcedure
+  .input(
+    z.object({
+      invitationId: z.string(),
+      name: z.string().trim().nullable(),
+      maxUses: z.number().int().positive().nullable(),
+      expiresAt: z.coerce.date().nullable(),
+    }),
+  )
+  .handler(async ({ input }) => {
+    const inv = await db
+      .select({ id: invitation.id })
+      .from(invitation)
+      .where(eq(invitation.id, input.invitationId))
+      .get();
+
+    if (!inv) {
+      throw new ORPCError("NOT_FOUND", { message: "Invitation not found" });
+    }
+
+    await db
+      .update(invitation)
+      .set({
+        name: input.name,
+        maxUses: input.maxUses,
+        expiresAt: input.expiresAt,
+      })
+      .where(eq(invitation.id, input.invitationId));
+
+    return { updated: true };
   });
 
 // Delete an invitation

@@ -6,11 +6,13 @@ import {
   CheckIcon,
   CopyIcon,
   Loader2Icon,
+  PencilIcon,
   SendIcon,
   Trash2Icon,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { EditInviteDialog } from "~/components/admin/EditInviteDialog";
 import { SendInviteDialog } from "~/components/admin/SendInviteDialog";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -112,6 +114,7 @@ function InviteRow({
 }: {
   invite: {
     id: string;
+    name: string | null;
     inviteUrl: string;
     status: string;
     maxUses: number | null;
@@ -125,6 +128,7 @@ function InviteRow({
 }) {
   const [copied, setCopied] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const displayStatus = getDisplayStatus(
     invite.status,
@@ -148,12 +152,21 @@ function InviteRow({
       <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-3">
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="text-base font-medium">
+            {invite.name ? (
+              <>
+                {invite.name}
+                <span className="text-muted-foreground ml-2 text-sm font-normal">
+                  {formatUseCount(invite.maxUses, invite.useCount)}
+                </span>
+              </>
+            ) : (
+              formatUseCount(invite.maxUses, invite.useCount)
+            )}
+          </span>
+          <span className="text-muted-foreground text-sm">
             {invite.expiresAt
               ? `Expires ${dayjs(invite.expiresAt).format("MMM D, YYYY")}`
               : "Never expires"}
-          </span>
-          <span className="text-muted-foreground text-sm">
-            {formatUseCount(invite.maxUses, invite.useCount)}
             {" · Created "}
             {dayjs(invite.createdAt).format("MMM D, YYYY")}
             {invite.inviterName ? ` by ${invite.inviterName}` : ""}
@@ -163,6 +176,14 @@ function InviteRow({
           <Badge variant={STATUS_VARIANTS[displayStatus]}>
             {STATUS_LABELS[displayStatus]}
           </Badge>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Edit invitation"
+            onClick={() => setEditDialogOpen(true)}
+          >
+            <PencilIcon size={16} className="text-muted-foreground" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -198,6 +219,16 @@ function InviteRow({
         open={sendDialogOpen}
         onOpenChange={setSendDialogOpen}
         invitationId={invite.id}
+      />
+      <EditInviteDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        invitation={{
+          id: invite.id,
+          name: invite.name,
+          maxUses: invite.maxUses,
+          expiresAt: invite.expiresAt,
+        }}
       />
     </>
   );

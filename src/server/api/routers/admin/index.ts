@@ -21,6 +21,7 @@ export {
   createInvitation,
   listInvitations,
   sendInvitationEmail,
+  updateInvitation,
   deleteInvitation,
 } from "./invitations";
 export {

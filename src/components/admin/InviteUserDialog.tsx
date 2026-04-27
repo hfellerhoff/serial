@@ -78,6 +78,7 @@ export function InviteUserDialog({
   const [customExpiryDate, setCustomExpiryDate] = useState<Date | undefined>(
     undefined,
   );
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [copied, setCopied] = useState(false);
 
@@ -111,6 +112,7 @@ export function InviteUserDialog({
     if (!value) {
       setInviteUrl(null);
       setInvitationId(null);
+      setName("");
       setUsageMode("one-time");
       setCustomUsesInput("");
       setExpiryMode("week");
@@ -139,7 +141,11 @@ export function InviteUserDialog({
     }
 
     const expiresAt = getExpiryDate(expiryMode, customExpiryDate);
-    createMutation.mutate({ maxUses, expiresAt: expiresAt ?? null });
+    createMutation.mutate({
+      name: name.trim() || null,
+      maxUses,
+      expiresAt: expiresAt ?? null,
+    });
   };
 
   const handleCopy = async () => {
@@ -164,6 +170,16 @@ export function InviteUserDialog({
     >
       {!inviteUrl ? (
         <div className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="invite-name">Name (optional)</Label>
+            <Input
+              id="invite-name"
+              type="text"
+              placeholder="Jane Doe, My friends, etc."
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
           <div className="grid gap-2">
             <Label>Max uses</Label>
             <ToggleGroup
