@@ -42,21 +42,7 @@ export function RefetchItemsButton() {
   const isMachineActive = useIsLoadingActive();
   const isRateLimited = nextRefreshAt !== null && nextRefreshAt > now;
 
-  // On mount the button should show as loading until we receive the first
-  // cooldown timestamp (i.e. isRateLimited becomes true), which signals
-  // that initial data + refresh are complete.
-  const [hasReceivedCooldown, setHasReceivedCooldown] = useState(false);
-
-  useEffect(() => {
-    if (isRateLimited && !hasReceivedCooldown) {
-      const id = setTimeout(() => setHasReceivedCooldown(true), 0);
-      return () => clearTimeout(id);
-    }
-  }, [isRateLimited, hasReceivedCooldown]);
-
-  const awaitingFirstCooldown = !hasReceivedCooldown;
-
-  const isRefreshing = isMachineActive || awaitingFirstCooldown;
+  const isRefreshing = isMachineActive;
   const isDisabled =
     isRefreshing ||
     isRateLimited ||
