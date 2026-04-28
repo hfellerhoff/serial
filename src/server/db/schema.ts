@@ -37,20 +37,27 @@ import {
 export const sqliteTable = sqliteTableCreator((name) => `serial_${name}`);
 
 // === Start: Better Auth ===
-export const user = sqliteTable("user", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  emailVerified: integer("email_verified", { mode: "boolean" }).notNull(),
-  image: text("image"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-  role: text("role"),
-  banned: integer("banned", { mode: "boolean" }).default(false),
-  banReason: text("ban_reason"),
-  banExpires: integer("ban_expires", { mode: "timestamp_ms" }),
-  nextRefreshAt: integer("next_refresh_at", { mode: "timestamp" }),
-});
+export const user = sqliteTable(
+  "user",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull().unique(),
+    emailVerified: integer("email_verified", { mode: "boolean" }).notNull(),
+    image: text("image"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+    role: text("role"),
+    banned: integer("banned", { mode: "boolean" }).default(false),
+    banReason: text("ban_reason"),
+    banExpires: integer("ban_expires", { mode: "timestamp_ms" }),
+    nextRefreshAt: integer("next_refresh_at", { mode: "timestamp" }),
+  },
+  (table) => [
+    index("user_created_at_idx").on(table.createdAt),
+    index("user_next_refresh_at_idx").on(table.nextRefreshAt),
+  ],
+);
 
 export const session = sqliteTable(
   "session",
@@ -67,7 +74,10 @@ export const session = sqliteTable(
       .references(() => user.id, { onDelete: "cascade" }),
     impersonatedBy: text("impersonated_by"),
   },
-  (table) => [index("session_user_id_idx").on(table.userId)],
+  (table) => [
+    index("session_user_id_idx").on(table.userId),
+    index("session_created_at_idx").on(table.createdAt),
+  ],
 );
 
 export const account = sqliteTable(
@@ -195,10 +205,13 @@ export const feeds = sqliteTable(
     lastModifiedHeader: text("last_modified_header"),
   },
   (example) => [
-    index("feed_name_idx").on(example.name),
     index("feed_user_id_idx").on(example.userId),
     index("feed_user_id_url_idx").on(example.userId, example.url),
-    index("feed_user_id_is_active_idx").on(example.userId, example.isActive),
+    index("feed_user_id_is_active_idx").on(
+      example.userId,
+      example.isActive,
+      example.lastFetchedAt,
+    ),
     index("feed_is_active_next_fetch_at_idx").on(
       example.isActive,
       example.nextFetchAt,
@@ -266,19 +279,28 @@ export const feedItems = sqliteTable(
     contentHash: text("content_hash"),
   },
   (example) => [
-    index("feed_item_id_idx").on(example.id),
     unique().on(example.url, example.feedId),
     index("feed_item_feed_id_posted_at_idx").on(
       example.feedId,
       example.postedAt,
     ),
-    index("feed_item_feed_id_is_watched_idx").on(
+    // Composite index for the main view-diff queries:
+    //   WHERE feed_id IN (...) AND is_watched = ? AND is_watch_later = ?
+    //   ORDER BY posted_at DESC LIMIT 31
+    // Lets SQLite seek directly to (feedId, isWatched, isWatchLater) and
+    // scan posted_at in order — avoids scanning/sorting watched items.
+    index("feed_item_feed_id_visibility_posted_at_idx").on(
       example.feedId,
       example.isWatched,
+      example.isWatchLater,
+      example.postedAt,
     ),
-    index("feed_item_feed_id_is_watch_later_idx").on(
+    // Covers the "later" visibility filter which only checks isWatchLater
+    // without constraining isWatched, so it can't use the wider composite.
+    index("feed_item_feed_id_is_watch_later_posted_at_idx").on(
       example.feedId,
       example.isWatchLater,
+      example.postedAt,
     ),
   ],
 );
@@ -311,8 +333,10 @@ export const contentCategories = sqliteTable(
       .notNull(),
   },
   (example) => [
-    index("content_categories_name_idx").on(example.name),
-    index("content_categories_user_id_idx").on(example.userId),
+    index("content_categories_user_id_name_idx").on(
+      example.userId,
+      example.name,
+    ),
   ],
 );
 export const contentCategorySchema = createSelectSchema(contentCategories);
@@ -385,7 +409,6 @@ export const views = sqliteTable(
       .notNull(),
   },
   (example) => [
-    index("view_name_idx").on(example.name),
     index("view_user_id_idx").on(example.userId),
     index("view_user_id_placement_idx").on(example.userId, example.placement),
   ],
