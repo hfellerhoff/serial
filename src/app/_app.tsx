@@ -1,6 +1,6 @@
 import "~/styles/globals.css";
 
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckIcon } from "lucide-react";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -28,11 +28,19 @@ import {
   getPlanFeatures,
   PLAN_ICONS,
 } from "~/components/feed/subscription-dialog";
+import { env } from "~/env";
 
 export const Route = createFileRoute("/_app")({
   component: RootLayout,
   server: {
     middleware: [authMiddleware],
+  },
+  beforeLoad: () => {
+    if (env.VITE_PUBLIC_IS_MAINTENANCE_MODE === "true") {
+      throw redirect({
+        to: "/maintenance",
+      });
+    }
   },
   loader: () => {
     const mostRecentRelease = getMostRecentRelease();

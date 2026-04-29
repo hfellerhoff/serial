@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './app/__root'
 import { Route as WelcomeRouteImport } from './app/welcome'
 import { Route as SitemapRouteImport } from './app/sitemap'
+import { Route as MaintenanceRouteImport } from './app/maintenance'
 import { Route as BlogRouteImport } from './app/blog'
 import { Route as AuthRouteImport } from './app/auth'
 import { Route as WebRouteImport } from './app/_web'
@@ -50,6 +51,11 @@ const WelcomeRoute = WelcomeRouteImport.update({
 const SitemapRoute = SitemapRouteImport.update({
   id: '/sitemap',
   path: '/sitemap',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MaintenanceRoute = MaintenanceRouteImport.update({
+  id: '/maintenance',
+  path: '/maintenance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogRoute = BlogRouteImport.update({
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/blog': typeof BlogRouteWithChildren
+  '/maintenance': typeof MaintenanceRoute
   '/sitemap': typeof SitemapRoute
   '/welcome': typeof WelcomeRoute
   '/debug': typeof AppDebugRoute
@@ -236,6 +243,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/maintenance': typeof MaintenanceRoute
   '/sitemap': typeof SitemapRoute
   '/welcome': typeof WelcomeRoute
   '/debug': typeof AppDebugRoute
@@ -270,6 +278,7 @@ export interface FileRoutesById {
   '/_web': typeof WebRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/blog': typeof BlogRouteWithChildren
+  '/maintenance': typeof MaintenanceRoute
   '/sitemap': typeof SitemapRoute
   '/welcome': typeof WelcomeRoute
   '/_app/debug': typeof AppDebugRoute
@@ -305,6 +314,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/blog'
+    | '/maintenance'
     | '/sitemap'
     | '/welcome'
     | '/debug'
@@ -336,6 +346,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/maintenance'
     | '/sitemap'
     | '/welcome'
     | '/debug'
@@ -369,6 +380,7 @@ export interface FileRouteTypes {
     | '/_web'
     | '/auth'
     | '/blog'
+    | '/maintenance'
     | '/sitemap'
     | '/welcome'
     | '/_app/debug'
@@ -404,6 +416,7 @@ export interface RootRouteChildren {
   WebRoute: typeof WebRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   BlogRoute: typeof BlogRouteWithChildren
+  MaintenanceRoute: typeof MaintenanceRoute
   SitemapRoute: typeof SitemapRoute
   WelcomeRoute: typeof WelcomeRoute
   ApiHealthRoute: typeof ApiHealthRoute
@@ -425,6 +438,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap'
       fullPath: '/sitemap'
       preLoaderRoute: typeof SitemapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/maintenance': {
+      id: '/maintenance'
+      path: '/maintenance'
+      fullPath: '/maintenance'
+      preLoaderRoute: typeof MaintenanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog': {
@@ -723,6 +743,7 @@ const rootRouteChildren: RootRouteChildren = {
   WebRoute: WebRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   BlogRoute: BlogRouteWithChildren,
+  MaintenanceRoute: MaintenanceRoute,
   SitemapRoute: SitemapRoute,
   WelcomeRoute: WelcomeRoute,
   ApiHealthRoute: ApiHealthRoute,

@@ -10,6 +10,7 @@ export const env = createEnv({
   client: {
     VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS: z.string().email().optional(),
     VITE_PUBLIC_SENTRY_DSN_WEB: z.string().url().optional(),
+    VITE_PUBLIC_IS_MAINTENANCE_MODE: z.string().optional().default("false"),
   },
   /**
    * Specify your server-side environment variables schema here. This way you can ensure the app
@@ -96,6 +97,9 @@ export const env = createEnv({
     VITE_PUBLIC_SENTRY_DSN_WEB:
       import.meta.env?.VITE_PUBLIC_SENTRY_DSN_WEB ??
       process.env.VITE_PUBLIC_SENTRY_DSN_WEB,
+    VITE_PUBLIC_IS_MAINTENANCE_MODE:
+      import.meta.env?.VITE_PUBLIC_IS_MAINTENANCE_MODE ??
+      process.env.VITE_PUBLIC_IS_MAINTENANCE_MODE,
     DATABASE_URL: process.env.DATABASE_URL,
     DATABASE_AUTH_TOKEN: process.env.DATABASE_AUTH_TOKEN,
     NODE_ENV: process.env.NODE_ENV,
