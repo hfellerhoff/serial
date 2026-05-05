@@ -48,16 +48,11 @@ export const Route = createRootRoute({
       },
       { name: "author", content: "Henry Fellerhoff" },
       { name: "theme-color", content: "hsl(20 14.3% 4.1%)" },
-      // Twitter
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:creator", content: "@henryfellerhoff" },
-      { name: "twitter:title", content: title },
-      { name: "twitter:description", content: description },
       // Open Graph
       { property: "og:title", content: title },
       { property: "og:description", content: description },
       { property: "og:type", content: "website" },
-      { property: "og:image", content: "/masonry-preview.png" },
+      { property: "og:image", content: "/og-image.png" },
       { property: "og:image:alt", content: title },
     ],
     links: [

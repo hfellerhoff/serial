@@ -1,4 +1,4 @@
-![Preview of different feeds](/public/masonry-preview.png)
+![Preview of different feeds](/public/og-image.png)
 
 # Serial
 
