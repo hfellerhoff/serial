@@ -1,10 +1,13 @@
 import { and, eq, like } from "drizzle-orm";
+import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { userNameSchema } from "../schemas";
 import { protectedProcedure, publicProcedure } from "~/server/orpc/base";
 import { auth } from "~/server/auth";
 import { getOtpCooldownRemaining, OTP_COOLDOWN_SECONDS } from "~/server/otp";
+import { getUserPlanId } from "~/server/subscriptions/helpers";
+import { IS_BILLING_ENABLED } from "~/server/subscriptions/polar";
 import { user } from "~/server/db/schema";
 
 export const checkIsLegacyUser = publicProcedure
@@ -42,6 +45,16 @@ export const updateName = protectedProcedure
   });
 
 export const deleteUser = protectedProcedure.handler(async ({ context }) => {
+  if (IS_BILLING_ENABLED) {
+    const planId = await getUserPlanId(context.user.id);
+    if (planId !== "free") {
+      throw new ORPCError("PRECONDITION_FAILED", {
+        message:
+          "Please cancel your active subscription before deleting your account.",
+      });
+    }
+  }
+
   await context.db.delete(user).where(eq(user.id, context.user.id));
 });
 

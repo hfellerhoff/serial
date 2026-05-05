@@ -354,7 +354,7 @@ export function SubscriptionDialog({
           </a>{" "}
           or{" "}
           <a
-            href="https://github.com/hfellerhoff/serial?tab=readme-ov-file#self-hosting"
+            href="https://github.com/megaflorasoftware/serial?tab=readme-ov-file#self-hosting"
             target="_blank"
             rel="noopener noreferrer"
             className="underline"
@@ -442,14 +442,8 @@ export function SubscriptionDialog({
                 <EmailVerificationBanner onVerified={handleVerified} />
               </div>
             )}
-
-            {/* Free plan */}
             <FreePlanCard />
-
-            {/* Paid plans */}
             <StandardPlanCards />
-
-            {/* Pro plan */}
             <ProPlanCard />
           </div>
         )}

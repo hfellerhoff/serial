@@ -10,7 +10,7 @@
 2. Create or pick a project for Serial to live in.
 3. Create a new resource, then choose `Public Repository`.
 4. Choose the server to deploy Serial on. If you run Coolify on a single VPS, this will be `localhost`.
-5. For the repository, enter `https://github.com/hfellerhoff/serial`.
+5. For the repository, enter `https://github.com/megaflorasoftware/serial`.
 6. Update `Build Pack` to be `Docker Compose` and choose a compose file:
    - Use `docker-compose.yaml` to use a local DB on an x86 architecture (default)
    - Use `docker-compose.arm.yaml` to use a local DB on an ARM architecture
@@ -28,7 +28,7 @@
 
 You can access the app through the domain you added (which can always be found in the `Links` header item). To update the app in the future, hit `Redeploy` in Coolify.
 
-If you'd like to support additional features, [see this section](https://github.com/hfellerhoff/serial#enabling-additional-features)!
+If you'd like to support additional features, [see this section](https://github.com/megaflorasoftware/serial#enabling-additional-features)!
 
 ## Deploy using Docker Compose file
 
@@ -41,9 +41,9 @@ If you'd like to support additional features, [see this section](https://github.
 3. Create a new resource, then choose `Docker Compose Empty`.
 4. Choose the server to deploy Serial on. If you run Coolify on a single VPS, this will be `localhost`.
 5. Determine the best Serial docker compose file for your needs:
-   - Use [`docker-compose.yaml`](https://raw.githubusercontent.com/hfellerhoff/serial/refs/heads/main/docker-compose.yaml) to use a local DB on an x86 architecture (default)
-   - Use [`docker-compose.arm.yaml`](https://raw.githubusercontent.com/hfellerhoff/serial/refs/heads/main/docker-compose.arm.yaml) to use a local DB on an ARM architecture
-   - Use [`docker-compose.standalone.yaml`](https://raw.githubusercontent.com/hfellerhoff/serial/refs/heads/main/docker-compose.standalone.yaml) for standalone deployments (for plugging in your own cloud services or external DB)
+   - Use [`docker-compose.yaml`](https://raw.githubusercontent.com/megaflorasoftware/serial/refs/heads/main/docker-compose.yaml) to use a local DB on an x86 architecture (default)
+   - Use [`docker-compose.arm.yaml`](https://raw.githubusercontent.com/megaflorasoftware/serial/refs/heads/main/docker-compose.arm.yaml) to use a local DB on an ARM architecture
+   - Use [`docker-compose.standalone.yaml`](https://raw.githubusercontent.com/megaflorasoftware/serial/refs/heads/main/docker-compose.standalone.yaml) for standalone deployments (for plugging in your own cloud services or external DB)
 6. Paste the file content into Coolify
 7. (optional) Add your custom domain:
    - Click `Settings` for the `Serial` service
@@ -56,11 +56,11 @@ If you'd like to support additional features, [see this section](https://github.
 
 You can access the app through the domain you added (which can always be found in the `Links` header item). To update the app in the future, hit `Redeploy` in Coolify.
 
-If you'd like to support additional features, [see this section](https://github.com/hfellerhoff/serial#enabling-additional-features)!
+If you'd like to support additional features, [see this section](https://github.com/megaflorasoftware/serial#enabling-additional-features)!
 
 ## Deploy using Private Repository (with GitHub App)
 
-1. Fork the `hfellerhoff/serial` respository to your own GitHub account.
+1. Fork the `megaflorasoftware/serial` respository to your own GitHub account.
 2. If you don't have a [Coolify](https://coolify.io/) instance set up:
    1. Set up a locally hosted server, or purchase a VPS.
       - The cheapest option (that I know of in January 2026) is through Hetzner, where a VPS based in Germany or Finland will be around $4 a month. An `x86` architecure is recommended, but not required.
@@ -86,4 +86,4 @@ If you'd like to support additional features, [see this section](https://github.
 
 You can access the app through the domain you added (which can always be found in the `Links` header item). To update the app in the future, sync your branch with the upstream repository and Coolify will redeploy it automatically.
 
-If you'd like to support additional features, [see this section](https://github.com/hfellerhoff/serial#enabling-additional-features)!
+If you'd like to support additional features, [see this section](https://github.com/megaflorasoftware/serial#enabling-additional-features)!

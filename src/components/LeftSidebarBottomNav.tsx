@@ -47,7 +47,7 @@ export function LeftSidebarBottomNav() {
               <a
                 target="_blank"
                 rel="noopener noreferrer"
-                href="https://github.com/hfellerhoff/serial/issues/new?template=bug-report.md"
+                href="https://github.com/megaflorasoftware/serial/issues/new?template=bug-report.md"
               >
                 <LifeBuoyIcon />
                 <span>Report Issue</span>
@@ -59,7 +59,7 @@ export function LeftSidebarBottomNav() {
               <a
                 target="_blank"
                 rel="noopener noreferrer"
-                href="https://github.com/hfellerhoff/serial/issues/new?template=feature_request.md"
+                href="https://github.com/megaflorasoftware/serial/issues/new?template=feature_request.md"
               >
                 <LightbulbIcon />
                 <span>Share Idea</span>

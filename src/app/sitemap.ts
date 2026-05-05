@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { IS_MAIN_INSTANCE } from "~/lib/constants";
-import { getAllBlogPosts, getAllReleases } from "~/lib/markdown/loaders";
+import { getAllGuidePosts, getAllReleases } from "~/lib/markdown/loaders";
 
 export const Route = createFileRoute("/sitemap")({
   server: {
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/sitemap")({
 
         if (IS_MAIN_INSTANCE) {
           const releases = getAllReleases();
-          const blogPosts = getAllBlogPosts();
+          const guidePosts = getAllGuidePosts();
 
           urls.push(
             { loc: "/welcome" },
@@ -21,9 +21,9 @@ export const Route = createFileRoute("/sitemap")({
               loc: `/releases/${r.slug}`,
               lastmod: r.publish_date,
             })),
-            { loc: "/blog" },
-            ...blogPosts.map((p) => ({
-              loc: `/blog/${p.slug}`,
+            { loc: "/guides" },
+            ...guidePosts.map((p) => ({
+              loc: `/guides/${p.slug}`,
               lastmod: p.updated_at ?? p.publish_date,
             })),
           );

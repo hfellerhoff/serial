@@ -1,40 +1,44 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import dayjs from "dayjs";
-import { ContainerIcon } from "lucide-react";
+import { BookIcon } from "lucide-react";
 import { WebsiteHeader } from "~/components/welcome/WebsiteHeader";
-import { getAllReleases } from "~/lib/markdown/loaders";
+import { getAllGuidePosts } from "~/lib/markdown/loaders";
 import { fetchIsAuthed } from "~/server/auth/endpoints";
 
-export const Route = createFileRoute("/_web/releases/")({
+export const Route = createFileRoute("/_web/guides/")({
   component: RouteComponent,
   loader: async () => {
     const isAuthed = await fetchIsAuthed();
 
     return {
       isAuthed,
-      releases: getAllReleases(),
+      posts: getAllGuidePosts(),
     };
   },
 });
 
 function RouteComponent() {
-  const { releases } = Route.useLoaderData();
+  const { posts } = Route.useLoaderData();
 
   return (
     <div>
-      <WebsiteHeader Icon={ContainerIcon} title="Releases" />
+      <WebsiteHeader
+        Icon={BookIcon}
+        title="Guides"
+        description="Walkthroughs for both the main Serial instance and self-hosted Serial instances."
+      />
       <div className="mx-auto max-w-3xl px-6">
         <ul className="mt-8 list-none space-y-8 p-0">
-          {!releases.length && (
+          {!posts.length && (
             <p className="text-xl">Nothing to see here. Check back soon!</p>
           )}
-          {releases.map(({ slug, title, description, publish_date }) => {
+          {posts.map(({ slug, title, description, publish_date }) => {
             return (
               <li key={slug}>
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                   <Link
                     // @ts-expect-error this is fine
-                    to={`/releases/${slug}`}
+                    to={`/guides/${slug}`}
                     className="text-xl font-bold underline"
                     preload="intent"
                   >

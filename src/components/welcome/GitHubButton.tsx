@@ -5,7 +5,7 @@ export function GitHubButton() {
   return (
     <div className="mt-4 mb-8 flex gap-2 md:mb-12">
       <a
-        href="https://github.com/hfellerhoff/serial"
+        href="https://github.com/megaflorasoftware/serial"
         className="hover:bg-transparent"
       >
         <Button variant="outline" size="default">

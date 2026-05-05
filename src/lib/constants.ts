@@ -8,9 +8,9 @@ export const BASE_SIGNED_OUT_URL = IS_MAIN_INSTANCE
   ? "/welcome"
   : "/auth/sign-in";
 
-export function getBlogUrl(path = "") {
-  if (IS_MAIN_INSTANCE) return `/blog${path}`;
-  return `https://serial.tube/blog${path}`;
+export function getGuidesUrl(path = "") {
+  if (IS_MAIN_INSTANCE) return `/guides${path}`;
+  return `https://serial.tube/guides${path}`;
 }
 
 /**

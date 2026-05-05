@@ -16,6 +16,10 @@ vi.mock("~/server/logger", () => ({
 vi.mock("~/lib/semaphore", () => ({
   dbSemaphore: { run: <T>(fn: () => T) => fn() },
 }));
+vi.mock("~/server/rss/feedCache", () => ({
+  getCachedFeedResult: vi.fn(() => Promise.resolve(null)),
+  setCachedFeedResult: vi.fn(() => Promise.resolve()),
+}));
 
 const FIRESHIP_OLD_XML = readFileSync(
   resolvePath(__dirname, "../../e2e/fixtures/fireship-old.xml"),

@@ -1,5 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import dayjs from "dayjs";
+import { NotebookTextIcon } from "lucide-react";
 import { Markdown } from "~/components/Markdown";
+import { Button } from "~/components/ui/button";
 import { getReleaseWithSlug } from "~/lib/markdown/loaders";
 import { fetchIsAuthed } from "~/server/auth/endpoints";
 
@@ -13,54 +16,44 @@ export const Route = createFileRoute("/_web/releases/$slug")({
 });
 
 function RouteComponent() {
-  const { release, isAuthed } = Route.useLoaderData();
-  const supportEmail = import.meta.env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS;
+  const { release } = Route.useLoaderData();
 
   return (
-    <article>
-      <div className="flex items-center justify-between pb-6">
-        {isAuthed && (
-          <>
-            <Link to="/">⭠ Back to App</Link>
-            <Link to="/releases">↑ All Releases</Link>
-          </>
-        )}
-        {!isAuthed && (
-          <>
-            <Link to="/welcome">⭠ Back to Home</Link>
-            <Link to="/releases">↑ All Releases</Link>
-          </>
-        )}
+    <div>
+      <article className="mx-auto max-w-3xl px-6 text-xl text-pretty">
+        <div className="mx-auto mt-20 mb-12 max-w-2xl text-center text-balance">
+          <div className="bg-muted mb-6 inline-flex items-center justify-center rounded-xl p-4">
+            <NotebookTextIcon className="text-muted-foreground size-8" />
+          </div>
+          <h1 className="text-3xl leading-tight font-bold md:text-4xl">
+            {release.title}
+          </h1>
+          {release.description && (
+            <p className="mt-3 text-lg">{release.description}</p>
+          )}
+          <p className="text-muted-foreground mt-2 text-lg">
+            {dayjs(release.publish_date).format("MMMM DD, YYYY")}
+          </p>
+        </div>
+        <Markdown content={release.content} className="guides" />
+      </article>
+      <div className="border-foreground mx-auto mt-16 max-w-4xl border-4 border-x-0 border-dashed px-6 py-16 md:border-x-4">
+        <section className="relative mx-auto max-w-xl space-y-6 text-center text-2xl text-pretty md:py-16 md:text-3xl">
+          <p>Ready to take back control of your content?</p>
+          <div className="space-x-2">
+            <Link to="/auth/sign-up">
+              <Button size="lg" className="text-base">
+                Get Started
+              </Button>
+            </Link>
+            <Link to="/welcome">
+              <Button size="lg" className="text-base" variant="outline">
+                Learn More
+              </Button>
+            </Link>
+          </div>
+        </section>
       </div>
-      <p className="pb-0 font-sans">{release.publish_date}</p>
-      <h2>{release.title}</h2>
-      <p>{release.description}</p>
-      <hr />
-      <Markdown content={release.content} className="prose" />
-      {isAuthed && (
-        <>
-          <p className="pt-6 pb-2">
-            Thanks for checking out the release log!
-            {supportEmail && (
-              <>
-                {" "}
-                If you have any questions or feedback, feel free to send me an
-                email at <a href={`mailto:${supportEmail}`}>{supportEmail}</a>.
-              </>
-            )}
-          </p>
-          <Link to="/">Return to the app →</Link>
-        </>
-      )}
-      {!isAuthed && (
-        <>
-          <p className="pt-6 pb-1">
-            Thanks for checking out the release log! If you think Serial would
-            be a great fit for you, you can{" "}
-            <Link to="/auth/sign-up">sign up here</Link>.
-          </p>
-        </>
-      )}
-    </article>
+    </div>
   );
 }

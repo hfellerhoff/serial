@@ -1,6 +1,5 @@
 import { randomBytes } from "node:crypto";
 import { ORPCError } from "@orpc/server";
-import { getRequest } from "@tanstack/react-start/server";
 import { createElement } from "react";
 import { render } from "@react-email/components";
 import { count, desc, eq } from "drizzle-orm";
@@ -14,27 +13,8 @@ import { invitation, invitationRedemption, user } from "~/server/db/schema";
 import { db } from "~/server/db";
 import { IS_EMAIL_ENABLED, sendEmail } from "~/server/email";
 
-function getInviteUrl(token: string, origin?: string) {
-  const baseUrl = origin || env.BETTER_AUTH_BASE_URL;
-  return `${baseUrl}/auth/sign-up?token=${token}`;
-}
-
-function getOriginFromRequest(): string | undefined {
-  try {
-    const request = getRequest();
-    const host = request.headers.get("host");
-    if (host) {
-      const isLocalhost =
-        host.startsWith("localhost") || host.startsWith("127.0.0.1");
-      const fallbackProtocol = isLocalhost ? "http" : "https";
-      const protocol =
-        request.headers.get("x-forwarded-proto") ?? fallbackProtocol;
-      return `${protocol}://${host}`;
-    }
-    return new URL(request.url).origin;
-  } catch {
-    return undefined;
-  }
+function getInviteUrl(token: string) {
+  return `${env.VITE_PUBLIC_BASE_URL}/auth/sign-up?token=${token}`;
 }
 
 // Create an invitation link
@@ -48,7 +28,6 @@ export const createInvitation = adminProcedure
   )
   .handler(async ({ context, input }) => {
     const token = randomBytes(32).toString("base64url");
-    const origin = getOriginFromRequest();
 
     const [created] = await db
       .insert(invitation)
@@ -68,14 +47,13 @@ export const createInvitation = adminProcedure
       });
     }
 
-    const inviteUrl = getInviteUrl(created.token, origin);
+    const inviteUrl = getInviteUrl(created.token);
 
     return { id: created.id, inviteUrl };
   });
 
 // List all invitations
 export const listInvitations = adminProcedure.handler(async () => {
-  const origin = getOriginFromRequest();
   const rows = await db
     .select({
       id: invitation.id,
@@ -100,7 +78,7 @@ export const listInvitations = adminProcedure.handler(async () => {
 
   const invitations = rows.map(({ token, ...rest }) => ({
     ...rest,
-    inviteUrl: getInviteUrl(token, origin),
+    inviteUrl: getInviteUrl(token),
   }));
 
   return { invitations };
@@ -148,8 +126,7 @@ export const sendInvitationEmail = adminProcedure
       });
     }
 
-    const origin = getOriginFromRequest();
-    const inviteUrl = getInviteUrl(inv.token, origin);
+    const inviteUrl = getInviteUrl(inv.token);
 
     const html = await render(
       createElement(InviteUserEmail, {

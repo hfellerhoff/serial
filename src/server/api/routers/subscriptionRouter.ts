@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import type { PaidPlanId } from "~/server/subscriptions/plans";
-import { protectedProcedure } from "~/server/orpc/base";
+
+import { protectedProcedure, publicProcedure } from "~/server/orpc/base";
 import {
   getUserPlanId,
   getUserPlanLimits,
@@ -20,18 +20,18 @@ import {
   redis,
   syncPolarDataToKV,
 } from "~/server/subscriptions/kv";
+import { fetchProducts } from "~/server/subscriptions/products";
 import { user } from "~/server/db/schema";
 import { IS_EMAIL_ENABLED } from "~/server/email";
 import { captureException } from "~/server/logger";
-
-const BASE_URL = process.env.BETTER_AUTH_BASE_URL ?? "http://localhost:3000";
+import { env } from "~/env";
 
 function getValidatedOrigin(headers: Headers): string {
   const origin = headers.get("origin") ?? headers.get("referer");
   if (origin) {
     try {
       const parsed = new URL(origin);
-      const base = new URL(BASE_URL);
+      const base = new URL(env.VITE_PUBLIC_BASE_URL);
       if (parsed.origin === base.origin) {
         return base.origin;
       }
@@ -39,25 +39,8 @@ function getValidatedOrigin(headers: Headers): string {
       // invalid URL, fall through
     }
   }
-  return BASE_URL;
+  return env.VITE_PUBLIC_BASE_URL;
 }
-
-type CachedProducts = {
-  data: PlanProduct[];
-  expiresAt: number;
-};
-
-type PlanProduct = {
-  planId: PaidPlanId;
-  planName: string;
-  monthlyPrice: number | null;
-  annualPrice: number | null;
-  monthlyProductId: string | null;
-  annualProductId: string | null;
-};
-
-let productsCache: CachedProducts | null = null;
-const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
 
 /** Cooldown window for syncAfterCheckout per user (seconds). */
 const SYNC_COOLDOWN_SECONDS = 30;
@@ -83,90 +66,11 @@ export const refreshStatus = protectedProcedure.handler(async ({ context }) => {
 });
 
 export const getProducts = protectedProcedure.handler(async () => {
-  if (!IS_BILLING_ENABLED || !polarClient) {
-    return [];
-  }
+  return fetchProducts();
+});
 
-  // Check cache
-  if (productsCache && Date.now() < productsCache.expiresAt) {
-    return productsCache.data;
-  }
-
-  const productIds = PAID_PLAN_IDS.flatMap((planId) => {
-    const ids = getPolarProductIds(planId);
-    return [ids.monthly, ids.annual];
-  }).filter(Boolean);
-
-  if (productIds.length === 0) {
-    return [];
-  }
-
-  try {
-    const results: PlanProduct[] = [];
-
-    for (const planId of PAID_PLAN_IDS) {
-      const plan = PLANS[planId];
-      const planProductIds = getPolarProductIds(planId);
-
-      // Skip plans that have no Polar product IDs configured
-      if (!planProductIds.monthly && !planProductIds.annual) continue;
-
-      let monthlyPrice: number | null = null;
-      let annualPrice: number | null = null;
-
-      if (planProductIds.monthly) {
-        try {
-          const product = await polarClient.products.get({
-            id: planProductIds.monthly,
-          });
-          const price = product.prices?.[0];
-          if (price && "amountType" in price && price.amountType === "fixed") {
-            monthlyPrice = (price as { priceAmount: number }).priceAmount;
-          }
-        } catch (e) {
-          captureException(e);
-        }
-      }
-
-      if (planProductIds.annual) {
-        try {
-          const product = await polarClient.products.get({
-            id: planProductIds.annual,
-          });
-          const price = product.prices?.[0];
-          if (price && "amountType" in price && price.amountType === "fixed") {
-            annualPrice = (price as { priceAmount: number }).priceAmount;
-          }
-        } catch (e) {
-          captureException(e);
-          console.error(
-            `[subscription] Failed to fetch annual product for ${planId}:`,
-            e,
-          );
-        }
-      }
-
-      results.push({
-        planId,
-        planName: plan.name,
-        monthlyPrice,
-        annualPrice,
-        monthlyProductId: planProductIds.monthly,
-        annualProductId: planProductIds.annual,
-      });
-    }
-
-    productsCache = {
-      data: results,
-      expiresAt: Date.now() + CACHE_TTL_MS,
-    };
-
-    return results;
-  } catch (e) {
-    captureException(e);
-    console.error("[subscription] Failed to fetch products:", e);
-    return [];
-  }
+export const getPublicProducts = publicProcedure.handler(async () => {
+  return fetchProducts();
 });
 
 export const createCheckout = protectedProcedure

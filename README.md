@@ -33,7 +33,7 @@ Self hosting Serial is relatively easy. Here are the current step by step platfo
 
 If your preferred platform doesn't have a guide, follow these rough steps:
 
-1. Fork the `hfellerhoff/serial` respository to your own GitHub account.
+1. Fork the `megaflorasoftware/serial` respository to your own GitHub account.
 2. Use a git-based deployment system to deploy when a new commit happens. This will make it easy to keep your deploment up to date.
 3. Set up a custom domain (if desired)
 4. Set up your database:

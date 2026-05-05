@@ -6,6 +6,7 @@ import {
   CheckIcon,
   ExternalLinkIcon,
   GlobeIcon,
+  Loader2Icon,
   MinusIcon,
   PauseIcon,
   PlayCircleIcon,
@@ -13,13 +14,17 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useSetAtom } from "jotai";
 import { ImportDropzone } from "../components/feed/import/ImportDropzone";
 import { getInitialFeedDataFromFileInputElement } from "../components/feed/import/utils/getInitialFeedDataFromFileInputElement";
-import type { ImportFeedDataItem } from "../components/feed/import/utils/shared";
+import type {
+  ImportFeedDataFromFilesError,
+  ImportFeedDataItem,
+} from "../components/feed/import/utils/shared";
 import type { CardRadioOption } from "~/components/ui/card-radio-group";
 import type { FeedPlatform } from "~/server/db/schema";
 import { YoutubeIcon } from "~/components/brand-icons";
-import { getBlogUrl } from "~/lib/constants";
+import { getGuidesUrl } from "~/lib/constants";
 import { ImportLoading } from "~/components/ImportLoading";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -35,6 +40,7 @@ import { feedItemsStore } from "~/lib/data/store";
 import { useImportResults, useLoadingMode } from "~/lib/data/loading-machine";
 import { dataSubscriptionActions } from "~/lib/data/useDataSubscription";
 import { useDialogStore } from "~/components/feed/dialogStore";
+import { shouldAlwaysKeepSSEConnectionAlive } from "~/lib/data/atoms";
 
 function ImportedFeedStatus({
   feedUrl,
@@ -105,7 +111,12 @@ function EditFeedsPage() {
   >(null);
   const [hasStartedImport, setHasStartedImport] = useState(false);
   const [isImportComplete, setIsImportComplete] = useState(false);
+  const [isImportPending, setIsImportPending] = useState(false);
   const [importMode, setImportMode] = useState<ImportMode>("views");
+
+  const [fileInputErrorList, setFileInputErrorList] =
+    useState<ImportFeedDataFromFilesError | null>(null);
+
   // Signal to Playwright tests that React has hydrated and the onChange handler
   // is attached to the file input, so file-chooser interactions are reliable.
   useEffect(() => {
@@ -124,6 +135,30 @@ function EditFeedsPage() {
   const { launchDialog } = useDialogStore();
 
   const isPostImportScreen = isImportComplete || hasStartedImport;
+  const setShouldAlwaysKeepSSEConnectionAlive = useSetAtom(
+    shouldAlwaysKeepSSEConnectionAlive,
+  );
+
+  // Keep SSE open during import so visibility changes don't disconnect the
+  // streaming import. Reset when the import loader is hidden.
+  useEffect(() => {
+    if (!isFetchingRss && hasStartedImport) {
+      setShouldAlwaysKeepSSEConnectionAlive(false);
+    }
+  }, [isFetchingRss, hasStartedImport, setShouldAlwaysKeepSSEConnectionAlive]);
+
+  useEffect(() => {
+    return () => {
+      setShouldAlwaysKeepSSEConnectionAlive(false);
+    };
+  }, [setShouldAlwaysKeepSSEConnectionAlive]);
+
+  useEffect(() => {
+    if (isImportPending && loading.mode === "importing" && !hasStartedImport) {
+      const id = requestAnimationFrame(() => setHasStartedImport(true));
+      return () => cancelAnimationFrame(id);
+    }
+  }, [isImportPending, loading.mode, hasStartedImport]);
 
   useEffect(() => {
     if (isImportComplete && importDeactivatedCount > 0) {
@@ -158,15 +193,17 @@ function EditFeedsPage() {
         ),
       }));
       setFeedsFoundFromFile(feedsWithImportStatus);
+      setFileInputErrorList(null);
+    } else {
+      setFileInputErrorList(feedResult);
     }
   };
 
   const onFeedImport = async () => {
     if (!feedsFoundFromFile?.length) return;
 
-    setTimeout(() => {
-      setHasStartedImport(true);
-    }, 500);
+    setShouldAlwaysKeepSSEConnectionAlive(true);
+    setIsImportPending(true);
 
     const channelsToImport = feedsFoundFromFile
       .filter((channel) => channel.shouldImport)
@@ -207,12 +244,15 @@ function EditFeedsPage() {
     ]);
 
     setIsImportComplete(true);
+    setIsImportPending(false);
   };
 
   const onReset = () => {
     setFeedsFoundFromFile(null);
     setHasStartedImport(false);
     setIsImportComplete(false);
+    setIsImportPending(false);
+    setShouldAlwaysKeepSSEConnectionAlive(false);
   };
 
   if (isFetchingRss) {
@@ -232,7 +272,7 @@ function EditFeedsPage() {
               </code>{" "}
               files from{" "}
               <a
-                href={getBlogUrl("/how-to-export-youtube-subscriptions")}
+                href={getGuidesUrl("/how-to-export-youtube-subscriptions")}
                 className="underline"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -272,11 +312,18 @@ function EditFeedsPage() {
         id="import-file-input"
         ref={inputElementRef}
         type="file"
-        accept="text/csv,.opml"
+        accept="text"
         className="sr-only"
         multiple
         onChange={onSelectFiles}
       />
+      {!!fileInputErrorList?.errors?.length && (
+        <div className="text-destructive mt-2">
+          {fileInputErrorList.errors.map((error) => (
+            <div key={error}>{error}</div>
+          ))}
+        </div>
+      )}
       {!!feedsFoundFromFile && (
         <>
           {!isPostImportScreen &&
@@ -459,12 +506,19 @@ function EditFeedsPage() {
             <div className="fixed inset-x-0 bottom-0">
               <div className="mx-auto box-border max-w-2xl p-6">
                 <Button
-                  className="w-full"
+                  className="w-full gap-2"
                   size="lg"
                   onClick={onFeedImport}
-                  disabled={channelImportCount === 0}
+                  disabled={channelImportCount === 0 || isImportPending}
                 >
-                  Import {channelImportCount} feeds
+                  {isImportPending && !hasStartedImport ? (
+                    <>
+                      Importing...
+                      <Loader2Icon size={16} className="animate-spin" />
+                    </>
+                  ) : (
+                    <>Import {channelImportCount} feeds</>
+                  )}
                 </Button>
               </div>
             </div>

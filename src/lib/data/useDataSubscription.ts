@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import { getDefaultStore } from "jotai";
 import { orpcRouterClient } from "../orpc";
 import { buildViewManifests } from "./buildViewManifests";
 import { loadingActor } from "./loading-machine";
 import { feedItemsStore } from "./store";
+import { shouldAlwaysKeepSSEConnectionAlive } from "./atoms";
 import type { PublishedChunk } from "~/server/api/publisher";
 import type { VisibilityFilter } from "./atoms";
 import type {
@@ -139,16 +141,21 @@ export function useDataSubscription() {
     // Disconnect on page hide, reconnect on refocus. Keeping the SSE
     // pipe open while the tab is hidden wastes server resources and the
     // connection often goes stale anyway.
-    const handleVisibilityChange = () => {
+    const updateConnectionState = () => {
       if (controller.signal.aborted) return;
 
-      if (document.visibilityState === "hidden") {
+      const shouldStayAlive = getDefaultStore().get(
+        shouldAlwaysKeepSSEConnectionAlive,
+      );
+      const wasPaused = paused;
+
+      if (document.visibilityState === "hidden" && !shouldStayAlive) {
         paused = true;
         connectionController?.abort();
-      } else if (document.visibilityState === "visible") {
-        // Reset the machine so stale in-flight state doesn't confuse
-        // the freshly requested data stream.
-        loadingActor.send({ type: "RESET" });
+      } else if (
+        document.visibilityState === "visible" ||
+        (document.visibilityState === "hidden" && shouldStayAlive)
+      ) {
         paused = false;
         visibilityReconnect = true;
         // If the loop is waiting on the paused promise, the
@@ -156,13 +163,33 @@ export function useDataSubscription() {
         // If it's in a backoff sleep, the next iteration will
         // see paused=false and proceed normally.
       }
+
+      // Only reset the loading machine when transitioning from paused
+      // to unpaused (i.e. the SSE is actually resuming after being
+      // disconnected due to visibility rules).
+      if (wasPaused && !paused) {
+        loadingActor.send({ type: "RESET" });
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      updateConnectionState();
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Recompute connection logic when the keep-alive atom changes
+    const unsubscribeAtom = getDefaultStore().sub(
+      shouldAlwaysKeepSSEConnectionAlive,
+      () => {
+        updateConnectionState();
+      },
+    );
 
     subscribe();
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      unsubscribeAtom();
       controller.abort();
       isConnectedRef.current = false;
       // Cancel any pending RAF flush

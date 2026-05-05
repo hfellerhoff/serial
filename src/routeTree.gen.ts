@@ -11,29 +11,30 @@
 import { Route as rootRouteImport } from './app/__root'
 import { Route as WelcomeRouteImport } from './app/welcome'
 import { Route as SitemapRouteImport } from './app/sitemap'
+import { Route as PricingRouteImport } from './app/pricing'
 import { Route as MaintenanceRouteImport } from './app/maintenance'
-import { Route as BlogRouteImport } from './app/blog'
 import { Route as AuthRouteImport } from './app/auth'
 import { Route as WebRouteImport } from './app/_web'
 import { Route as AppRouteImport } from './app/_app'
-import { Route as BlogIndexRouteImport } from './app/blog.index'
 import { Route as AppIndexRouteImport } from './app/_app.index'
-import { Route as BlogSlugRouteImport } from './app/blog.$slug'
 import { Route as AuthVerifyEmailRouteImport } from './app/auth.verify-email'
 import { Route as AuthSignUpRouteImport } from './app/auth.sign-up'
 import { Route as AuthSignInRouteImport } from './app/auth.sign-in'
 import { Route as AuthResetRouteImport } from './app/auth.reset'
 import { Route as ApiHealthRouteImport } from './app/api/health'
+import { Route as WebGuidesRouteImport } from './app/_web.guides'
 import { Route as AppViewsRouteImport } from './app/_app.views'
 import { Route as AppTagsRouteImport } from './app/_app.tags'
 import { Route as AppImportRouteImport } from './app/_app.import'
 import { Route as AppFeedsRouteImport } from './app/_app.feeds'
 import { Route as AppDebugRouteImport } from './app/_app.debug'
 import { Route as WebReleasesIndexRouteImport } from './app/_web.releases.index'
+import { Route as WebGuidesIndexRouteImport } from './app/_web.guides.index'
 import { Route as AppAdminIndexRouteImport } from './app/_app.admin.index'
 import { Route as ApiRpcSplatRouteImport } from './app/api/rpc.$'
 import { Route as ApiAuthSplatRouteImport } from './app/api/auth.$'
 import { Route as WebReleasesSlugRouteImport } from './app/_web.releases.$slug'
+import { Route as WebGuidesSlugRouteImport } from './app/_web.guides.$slug'
 import { Route as AppWatchIdRouteImport } from './app/_app.watch.$id'
 import { Route as AppReadIdRouteImport } from './app/_app.read.$id'
 import { Route as AppAdminUsersRouteImport } from './app/_app.admin.users'
@@ -53,14 +54,14 @@ const SitemapRoute = SitemapRouteImport.update({
   path: '/sitemap',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MaintenanceRoute = MaintenanceRouteImport.update({
   id: '/maintenance',
   path: '/maintenance',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BlogRoute = BlogRouteImport.update({
-  id: '/blog',
-  path: '/blog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -76,20 +77,10 @@ const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BlogIndexRoute = BlogIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => BlogRoute,
-} as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
-} as any)
-const BlogSlugRoute = BlogSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => BlogRoute,
 } as any)
 const AuthVerifyEmailRoute = AuthVerifyEmailRouteImport.update({
   id: '/verify-email',
@@ -115,6 +106,11 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
+} as any)
+const WebGuidesRoute = WebGuidesRouteImport.update({
+  id: '/guides',
+  path: '/guides',
+  getParentRoute: () => WebRoute,
 } as any)
 const AppViewsRoute = AppViewsRouteImport.update({
   id: '/views',
@@ -146,6 +142,11 @@ const WebReleasesIndexRoute = WebReleasesIndexRouteImport.update({
   path: '/releases/',
   getParentRoute: () => WebRoute,
 } as any)
+const WebGuidesIndexRoute = WebGuidesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WebGuidesRoute,
+} as any)
 const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
@@ -165,6 +166,11 @@ const WebReleasesSlugRoute = WebReleasesSlugRouteImport.update({
   id: '/releases/$slug',
   path: '/releases/$slug',
   getParentRoute: () => WebRoute,
+} as any)
+const WebGuidesSlugRoute = WebGuidesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => WebGuidesRoute,
 } as any)
 const AppWatchIdRoute = AppWatchIdRouteImport.update({
   id: '/watch/$id',
@@ -210,8 +216,8 @@ const AppAdminUserIdRoute = AppAdminUserIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/auth': typeof AuthRouteWithChildren
-  '/blog': typeof BlogRouteWithChildren
   '/maintenance': typeof MaintenanceRoute
+  '/pricing': typeof PricingRoute
   '/sitemap': typeof SitemapRoute
   '/welcome': typeof WelcomeRoute
   '/debug': typeof AppDebugRoute
@@ -219,13 +225,12 @@ export interface FileRoutesByFullPath {
   '/import': typeof AppImportRoute
   '/tags': typeof AppTagsRoute
   '/views': typeof AppViewsRoute
+  '/guides': typeof WebGuidesRouteWithChildren
   '/api/health': typeof ApiHealthRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
-  '/blog/$slug': typeof BlogSlugRoute
-  '/blog/': typeof BlogIndexRoute
   '/admin/info': typeof AppAdminInfoRoute
   '/admin/invites': typeof AppAdminInvitesRoute
   '/admin/settings': typeof AppAdminSettingsRoute
@@ -233,10 +238,12 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AppAdminUsersRoute
   '/read/$id': typeof AppReadIdRoute
   '/watch/$id': typeof AppWatchIdRoute
+  '/guides/$slug': typeof WebGuidesSlugRoute
   '/releases/$slug': typeof WebReleasesSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/admin/': typeof AppAdminIndexRoute
+  '/guides/': typeof WebGuidesIndexRoute
   '/releases/': typeof WebReleasesIndexRoute
   '/admin/user/$id': typeof AppAdminUserIdRoute
 }
@@ -244,6 +251,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/maintenance': typeof MaintenanceRoute
+  '/pricing': typeof PricingRoute
   '/sitemap': typeof SitemapRoute
   '/welcome': typeof WelcomeRoute
   '/debug': typeof AppDebugRoute
@@ -256,8 +264,6 @@ export interface FileRoutesByTo {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
-  '/blog/$slug': typeof BlogSlugRoute
-  '/blog': typeof BlogIndexRoute
   '/admin/info': typeof AppAdminInfoRoute
   '/admin/invites': typeof AppAdminInvitesRoute
   '/admin/settings': typeof AppAdminSettingsRoute
@@ -265,10 +271,12 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AppAdminUsersRoute
   '/read/$id': typeof AppReadIdRoute
   '/watch/$id': typeof AppWatchIdRoute
+  '/guides/$slug': typeof WebGuidesSlugRoute
   '/releases/$slug': typeof WebReleasesSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/admin': typeof AppAdminIndexRoute
+  '/guides': typeof WebGuidesIndexRoute
   '/releases': typeof WebReleasesIndexRoute
   '/admin/user/$id': typeof AppAdminUserIdRoute
 }
@@ -277,8 +285,8 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_web': typeof WebRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
-  '/blog': typeof BlogRouteWithChildren
   '/maintenance': typeof MaintenanceRoute
+  '/pricing': typeof PricingRoute
   '/sitemap': typeof SitemapRoute
   '/welcome': typeof WelcomeRoute
   '/_app/debug': typeof AppDebugRoute
@@ -286,14 +294,13 @@ export interface FileRoutesById {
   '/_app/import': typeof AppImportRoute
   '/_app/tags': typeof AppTagsRoute
   '/_app/views': typeof AppViewsRoute
+  '/_web/guides': typeof WebGuidesRouteWithChildren
   '/api/health': typeof ApiHealthRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
-  '/blog/$slug': typeof BlogSlugRoute
   '/_app/': typeof AppIndexRoute
-  '/blog/': typeof BlogIndexRoute
   '/_app/admin/info': typeof AppAdminInfoRoute
   '/_app/admin/invites': typeof AppAdminInvitesRoute
   '/_app/admin/settings': typeof AppAdminSettingsRoute
@@ -301,10 +308,12 @@ export interface FileRoutesById {
   '/_app/admin/users': typeof AppAdminUsersRoute
   '/_app/read/$id': typeof AppReadIdRoute
   '/_app/watch/$id': typeof AppWatchIdRoute
+  '/_web/guides/$slug': typeof WebGuidesSlugRoute
   '/_web/releases/$slug': typeof WebReleasesSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/_app/admin/': typeof AppAdminIndexRoute
+  '/_web/guides/': typeof WebGuidesIndexRoute
   '/_web/releases/': typeof WebReleasesIndexRoute
   '/_app/admin/user/$id': typeof AppAdminUserIdRoute
 }
@@ -313,8 +322,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
-    | '/blog'
     | '/maintenance'
+    | '/pricing'
     | '/sitemap'
     | '/welcome'
     | '/debug'
@@ -322,13 +331,12 @@ export interface FileRouteTypes {
     | '/import'
     | '/tags'
     | '/views'
+    | '/guides'
     | '/api/health'
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/auth/verify-email'
-    | '/blog/$slug'
-    | '/blog/'
     | '/admin/info'
     | '/admin/invites'
     | '/admin/settings'
@@ -336,10 +344,12 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/read/$id'
     | '/watch/$id'
+    | '/guides/$slug'
     | '/releases/$slug'
     | '/api/auth/$'
     | '/api/rpc/$'
     | '/admin/'
+    | '/guides/'
     | '/releases/'
     | '/admin/user/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -347,6 +357,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/maintenance'
+    | '/pricing'
     | '/sitemap'
     | '/welcome'
     | '/debug'
@@ -359,8 +370,6 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/auth/verify-email'
-    | '/blog/$slug'
-    | '/blog'
     | '/admin/info'
     | '/admin/invites'
     | '/admin/settings'
@@ -368,10 +377,12 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/read/$id'
     | '/watch/$id'
+    | '/guides/$slug'
     | '/releases/$slug'
     | '/api/auth/$'
     | '/api/rpc/$'
     | '/admin'
+    | '/guides'
     | '/releases'
     | '/admin/user/$id'
   id:
@@ -379,8 +390,8 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_web'
     | '/auth'
-    | '/blog'
     | '/maintenance'
+    | '/pricing'
     | '/sitemap'
     | '/welcome'
     | '/_app/debug'
@@ -388,14 +399,13 @@ export interface FileRouteTypes {
     | '/_app/import'
     | '/_app/tags'
     | '/_app/views'
+    | '/_web/guides'
     | '/api/health'
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/auth/verify-email'
-    | '/blog/$slug'
     | '/_app/'
-    | '/blog/'
     | '/_app/admin/info'
     | '/_app/admin/invites'
     | '/_app/admin/settings'
@@ -403,10 +413,12 @@ export interface FileRouteTypes {
     | '/_app/admin/users'
     | '/_app/read/$id'
     | '/_app/watch/$id'
+    | '/_web/guides/$slug'
     | '/_web/releases/$slug'
     | '/api/auth/$'
     | '/api/rpc/$'
     | '/_app/admin/'
+    | '/_web/guides/'
     | '/_web/releases/'
     | '/_app/admin/user/$id'
   fileRoutesById: FileRoutesById
@@ -415,8 +427,8 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   WebRoute: typeof WebRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
-  BlogRoute: typeof BlogRouteWithChildren
   MaintenanceRoute: typeof MaintenanceRoute
+  PricingRoute: typeof PricingRoute
   SitemapRoute: typeof SitemapRoute
   WelcomeRoute: typeof WelcomeRoute
   ApiHealthRoute: typeof ApiHealthRoute
@@ -440,18 +452,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/maintenance': {
       id: '/maintenance'
       path: '/maintenance'
       fullPath: '/maintenance'
       preLoaderRoute: typeof MaintenanceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/blog': {
-      id: '/blog'
-      path: '/blog'
-      fullPath: '/blog'
-      preLoaderRoute: typeof BlogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -475,26 +487,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/blog/': {
-      id: '/blog/'
-      path: '/'
-      fullPath: '/blog/'
-      preLoaderRoute: typeof BlogIndexRouteImport
-      parentRoute: typeof BlogRoute
-    }
     '/_app/': {
       id: '/_app/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
-    }
-    '/blog/$slug': {
-      id: '/blog/$slug'
-      path: '/$slug'
-      fullPath: '/blog/$slug'
-      preLoaderRoute: typeof BlogSlugRouteImport
-      parentRoute: typeof BlogRoute
     }
     '/auth/verify-email': {
       id: '/auth/verify-email'
@@ -530,6 +528,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/health'
       preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_web/guides': {
+      id: '/_web/guides'
+      path: '/guides'
+      fullPath: '/guides'
+      preLoaderRoute: typeof WebGuidesRouteImport
+      parentRoute: typeof WebRoute
     }
     '/_app/views': {
       id: '/_app/views'
@@ -573,6 +578,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WebReleasesIndexRouteImport
       parentRoute: typeof WebRoute
     }
+    '/_web/guides/': {
+      id: '/_web/guides/'
+      path: '/'
+      fullPath: '/guides/'
+      preLoaderRoute: typeof WebGuidesIndexRouteImport
+      parentRoute: typeof WebGuidesRoute
+    }
     '/_app/admin/': {
       id: '/_app/admin/'
       path: '/admin'
@@ -600,6 +612,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/releases/$slug'
       preLoaderRoute: typeof WebReleasesSlugRouteImport
       parentRoute: typeof WebRoute
+    }
+    '/_web/guides/$slug': {
+      id: '/_web/guides/$slug'
+      path: '/$slug'
+      fullPath: '/guides/$slug'
+      preLoaderRoute: typeof WebGuidesSlugRouteImport
+      parentRoute: typeof WebGuidesRoute
     }
     '/_app/watch/$id': {
       id: '/_app/watch/$id'
@@ -698,12 +717,28 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface WebGuidesRouteChildren {
+  WebGuidesSlugRoute: typeof WebGuidesSlugRoute
+  WebGuidesIndexRoute: typeof WebGuidesIndexRoute
+}
+
+const WebGuidesRouteChildren: WebGuidesRouteChildren = {
+  WebGuidesSlugRoute: WebGuidesSlugRoute,
+  WebGuidesIndexRoute: WebGuidesIndexRoute,
+}
+
+const WebGuidesRouteWithChildren = WebGuidesRoute._addFileChildren(
+  WebGuidesRouteChildren,
+)
+
 interface WebRouteChildren {
+  WebGuidesRoute: typeof WebGuidesRouteWithChildren
   WebReleasesSlugRoute: typeof WebReleasesSlugRoute
   WebReleasesIndexRoute: typeof WebReleasesIndexRoute
 }
 
 const WebRouteChildren: WebRouteChildren = {
+  WebGuidesRoute: WebGuidesRouteWithChildren,
   WebReleasesSlugRoute: WebReleasesSlugRoute,
   WebReleasesIndexRoute: WebReleasesIndexRoute,
 }
@@ -726,24 +761,12 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
-interface BlogRouteChildren {
-  BlogSlugRoute: typeof BlogSlugRoute
-  BlogIndexRoute: typeof BlogIndexRoute
-}
-
-const BlogRouteChildren: BlogRouteChildren = {
-  BlogSlugRoute: BlogSlugRoute,
-  BlogIndexRoute: BlogIndexRoute,
-}
-
-const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   WebRoute: WebRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
-  BlogRoute: BlogRouteWithChildren,
   MaintenanceRoute: MaintenanceRoute,
+  PricingRoute: PricingRoute,
   SitemapRoute: SitemapRoute,
   WelcomeRoute: WelcomeRoute,
   ApiHealthRoute: ApiHealthRoute,

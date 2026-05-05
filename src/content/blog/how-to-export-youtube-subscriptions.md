@@ -12,37 +12,37 @@ If you want to import your YouTube subscriptions into Serial, you'll first need 
 
 Navigate to [Google Takeout](https://takeout.google.com). Once there, hit **"Deselect all"** to exclude unneeded app data. This ensures we only export what we need, keeping the process fast.
 
-![Step 1: Deselect all in Google Takeout](/blog/images/youtube-subscription-import/step_1.png)
+![Step 1: Deselect all in Google Takeout](/guides/images/youtube-subscription-import/step_1.png)
 
 ## Step 2: Select YouTube Data
 
 Scroll down and check **"YouTube and YouTube Music"**, then click on **"All YouTube data included"**.
 
-![Step 2: Select YouTube and YouTube Music](/blog/images/youtube-subscription-import/step_2.png)
+![Step 2: Select YouTube and YouTube Music](/guides/images/youtube-subscription-import/step_2.png)
 
 ## Step 3: Select Only Subscriptions
 
 In the popup, deselect all options, then check only **"subscriptions"** and hit **"OK"**.
 
-![Step 3: Select only subscriptions](/blog/images/youtube-subscription-import/step_3.png)
+![Step 3: Select only subscriptions](/guides/images/youtube-subscription-import/step_3.png)
 
 ## Step 4: Create the Export
 
 Hit **"Next step"**, then hit **"Create export"**. Google will start preparing your data.
 
-![Step 4: Create the export](/blog/images/youtube-subscription-import/step_4.png)
+![Step 4: Create the export](/guides/images/youtube-subscription-import/step_4.png)
 
 ## Step 5: Wait for the Email
 
 Soon, you will receive an email from Google with your subscription data. Since we deselected everything we didn't need, this should be nearly instant.
 
-![Step 5: Wait for the email](/blog/images/youtube-subscription-import/step_5.png)
+![Step 5: Wait for the email](/guides/images/youtube-subscription-import/step_5.png)
 
 ## Step 6: Find Your File
 
 Download and unzip the file from Google. You will find the `subscriptions.csv` file nested a few folders inside the archive.
 
-![Step 6: Find subscriptions.csv](/blog/images/youtube-subscription-import/step_6.png)
+![Step 6: Find subscriptions.csv](/guides/images/youtube-subscription-import/step_6.png)
 
 ## That's it!
 

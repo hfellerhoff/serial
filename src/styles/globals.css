@@ -34,6 +34,7 @@
 @layer base {
   html {
     background: hsl(var(--sidebar));
+    overflow-y: scroll;
   }
 
   :root {
@@ -341,100 +342,100 @@
     @apply pb-8 md:pb-10;
   }
 
-  .blog {
+  .guides {
     color: var(--foreground);
     @apply mx-auto max-w-2xl;
   }
 
-  .blog h1 {
+  .guides h1 {
     @apply font-sans text-3xl leading-relaxed font-bold md:text-4xl;
   }
 
-  .blog h2 {
+  .guides h2 {
     @apply font-sans text-2xl leading-relaxed font-bold md:text-3xl;
   }
 
-  .blog h3 {
+  .guides h3 {
     @apply font-sans text-xl leading-relaxed font-bold md:text-2xl;
   }
 
-  .blog h4 {
+  .guides h4 {
     @apply font-sans text-lg leading-relaxed font-bold md:text-xl;
   }
 
-  .blog h5 {
+  .guides h5 {
     @apply font-sans text-lg leading-relaxed font-bold;
   }
 
-  .blog h6 {
+  .guides h6 {
     @apply font-sans text-lg leading-relaxed font-bold;
   }
 
-  .blog a {
+  .guides a {
     @apply text-foreground underline;
   }
 
-  .blog h1 a,
-  .blog h2 a,
-  .blog h3 a,
-  .blog h4 a,
-  .blog h5 a,
-  .blog h6 a {
+  .guides h1 a,
+  .guides h2 a,
+  .guides h3 a,
+  .guides h4 a,
+  .guides h5 a,
+  .guides h6 a {
     @apply pointer-events-none no-underline;
   }
 
-  .blog hr {
+  .guides hr {
     @apply my-12;
   }
 
-  .blog ul {
+  .guides ul {
     @apply text-foreground my-1 list-disc pl-5 text-lg;
   }
 
-  .blog ol {
+  .guides ol {
     @apply text-foreground my-1 list-decimal pl-5 text-lg;
   }
 
-  .blog p {
+  .guides p {
     @apply text-foreground text-lg;
   }
 
-  .blog kbd {
+  .guides kbd {
     @apply bg-muted border-muted-foreground/20 rounded border border-b-2 border-solid px-1.5 py-0.5 text-sm;
   }
 
-  .blog code {
+  .guides code {
     @apply bg-muted rounded px-px py-px text-base;
   }
 
-  .blog img {
+  .guides img {
     @apply my-8 rounded;
   }
 
-  .blog p:has(+ p),
-  .blog ul:has(+ p),
-  .blog ol:has(+ p) {
+  .guides p:has(+ p),
+  .guides ul:has(+ p),
+  .guides ol:has(+ p) {
     @apply pb-4 md:pb-6;
   }
 
-  .blog p:has(+ h1),
-  .blog ul:has(+ h1),
-  .blog ol:has(+ h1),
-  .blog p:has(+ h2),
-  .blog ul:has(+ h2),
-  .blog ol:has(+ h2),
-  .blog p:has(+ h3),
-  .blog ul:has(+ h3),
-  .blog ol:has(+ h3),
-  .blog p:has(+ h4),
-  .blog ul:has(+ h4),
-  .blog ol:has(+ h4),
-  .blog p:has(+ h5),
-  .blog ul:has(+ h5),
-  .blog ol:has(+ h5),
-  .blog p:has(+ h6),
-  .blog ul:has(+ h6),
-  .blog ol:has(+ h6) {
+  .guides p:has(+ h1),
+  .guides ul:has(+ h1),
+  .guides ol:has(+ h1),
+  .guides p:has(+ h2),
+  .guides ul:has(+ h2),
+  .guides ol:has(+ h2),
+  .guides p:has(+ h3),
+  .guides ul:has(+ h3),
+  .guides ol:has(+ h3),
+  .guides p:has(+ h4),
+  .guides ul:has(+ h4),
+  .guides ol:has(+ h4),
+  .guides p:has(+ h5),
+  .guides ul:has(+ h5),
+  .guides ol:has(+ h5),
+  .guides p:has(+ h6),
+  .guides ul:has(+ h6),
+  .guides ol:has(+ h6) {
     @apply pb-8 md:pb-10;
   }
 }

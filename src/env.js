@@ -8,6 +8,7 @@ export const env = createEnv({
    * These are exposed to the browser via Vite's VITE_PUBLIC_ prefix.
    */
   client: {
+    VITE_PUBLIC_BASE_URL: z.url(),
     VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS: z.string().email().optional(),
     VITE_PUBLIC_SENTRY_DSN_WEB: z.string().url().optional(),
     VITE_PUBLIC_IS_MAINTENANCE_MODE: z.string().optional().default("false"),
@@ -25,10 +26,6 @@ export const env = createEnv({
         (str) => !(!!str && process.env.DATABASE_URL?.includes("https://")),
         "A DATABASE_AUTH_TOKEN is needed.",
       ),
-    BETTER_AUTH_BASE_URL: z
-      .string()
-      .optional()
-      .default("http://localhost:3000"),
     BETTER_AUTH_SECRET: z.string(),
     RESEND_API_KEY: z.string().optional(),
     SENDGRID_API_KEY: z.string().optional(),
@@ -103,7 +100,8 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     DATABASE_AUTH_TOKEN: process.env.DATABASE_AUTH_TOKEN,
     NODE_ENV: process.env.NODE_ENV,
-    BETTER_AUTH_BASE_URL: process.env.BETTER_AUTH_BASE_URL,
+    VITE_PUBLIC_BASE_URL:
+      import.meta.env?.VITE_PUBLIC_BASE_URL ?? process.env.VITE_PUBLIC_BASE_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,

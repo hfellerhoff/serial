@@ -66,3 +66,6 @@ export const altKeyHeldAtom = atom(false);
 
 /** When true, the header and footer bars should be hidden (e.g. scrolling down in article view). */
 export const barsHiddenAtom = atom(false);
+
+/** When true, the SSE connection should stay open even when the page is hidden/defocused. */
+export const shouldAlwaysKeepSSEConnectionAlive = atom(false);

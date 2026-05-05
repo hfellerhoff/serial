@@ -3,31 +3,29 @@ import dayjs from "dayjs";
 import { BookOpenIcon, PenLineIcon, RssIcon } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { YoutubeIcon } from "~/components/brand-icons";
-import { DemoColorThemePopoverButton } from "~/components/color-theme/ColorThemePopoverButton";
 import { Markdown } from "~/components/Markdown";
-
 import { Button } from "~/components/ui/button";
-import { getBlogPostWithSlug } from "~/lib/markdown/loaders";
+import { getGuidePostWithSlug } from "~/lib/markdown/loaders";
 import { fetchIsAuthed } from "~/server/auth/endpoints";
 
-export const Route = createFileRoute("/blog/$slug")({
+export const Route = createFileRoute("/_web/guides/$slug")({
   component: RouteComponent,
   loader: async ({ params }) => {
     const isAuthed = await fetchIsAuthed();
-    const post = getBlogPostWithSlug(params.slug);
+    const post = getGuidePostWithSlug(params.slug);
     return { post, isAuthed };
   },
 });
 
-const BLOG_ICONS: Record<string, LucideIcon | typeof YoutubeIcon> = {
+const GUIDE_ICONS: Record<string, LucideIcon | typeof YoutubeIcon> = {
   youtube: YoutubeIcon,
   rss: RssIcon,
   "book-open": BookOpenIcon,
   "pen-line": PenLineIcon,
 };
 
-function BlogIcon({ name }: { name: string }) {
-  const Icon = BLOG_ICONS[name];
+function GuideIcon({ name }: { name: string }) {
+  const Icon = GUIDE_ICONS[name];
   if (!Icon) return null;
 
   return (
@@ -38,30 +36,13 @@ function BlogIcon({ name }: { name: string }) {
 }
 
 function RouteComponent() {
-  const { post, isAuthed } = Route.useLoaderData();
+  const { post } = Route.useLoaderData();
 
   return (
     <div>
       <article className="mx-auto max-w-3xl px-6 text-xl text-pretty">
-        <div className="relative flex items-center justify-between text-lg font-semibold">
-          <Link
-            to={isAuthed ? "/" : "/welcome"}
-            className="hover:bg-primary hover:text-background -m-1 rounded p-1"
-          >
-            ← Back to {isAuthed ? "App" : "Home"}
-          </Link>
-          <div className="absolute left-1/2 -translate-x-1/2">
-            <DemoColorThemePopoverButton />
-          </div>
-          <Link
-            to="/blog"
-            className="hover:bg-primary hover:text-background -m-1 rounded p-1"
-          >
-            ↑ All Posts
-          </Link>
-        </div>
         <div className="mx-auto mt-20 mb-12 max-w-2xl text-center text-balance">
-          {post.icon && <BlogIcon name={post.icon} />}
+          {post.icon && <GuideIcon name={post.icon} />}
           <h1 className="text-3xl leading-tight font-bold md:text-4xl">
             {post.title}
           </h1>
@@ -80,7 +61,7 @@ function RouteComponent() {
             )}
           </p>
         </div>
-        <Markdown content={post.content} className="blog" />
+        <Markdown content={post.content} className="guides" />
       </article>
       <div className="border-foreground mx-auto mt-16 max-w-4xl border-4 border-x-0 border-dashed px-6 py-16 md:border-x-4">
         <section className="relative mx-auto max-w-xl space-y-6 text-center text-2xl text-pretty md:py-16 md:text-3xl">
