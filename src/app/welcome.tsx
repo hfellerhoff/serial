@@ -169,7 +169,7 @@ function RouteComponent() {
           <div className="flex-1">
             <p className="font-bold">Minimal in all the right ways</p>
             <p className="mt-2 text-lg">
-              Serial is clean and uncluttered, putting the focus soley on your
+              Serial is clean and uncluttered, putting the focus solely on your
               content. The UI is designed for intentionality above all else.
             </p>
           </div>
