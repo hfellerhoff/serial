@@ -21,7 +21,7 @@ import "@fontsource-variable/noto-serif";
 
 const title = "Serial";
 const description =
-  "A snappy, customizable video feed. Designed to show you exactly the content you want to see and nothing else.";
+  "A calm, customizable, and non-algorithmic RSS reader. Lots of customization options and great support for video content. Fully open source and easily self-hostable.";
 
 export const Route = createRootRoute({
   loader: async () => {

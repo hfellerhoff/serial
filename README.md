@@ -2,7 +2,9 @@
 
 # Serial
 
-A snappy, customizable RSS reader specifically designed for video content. Designed to show you exactly the content you want to see and nothing else.
+A calm, customizable, and non-algorithmic RSS reader. Lots of
+customization options and great support for video content. Fully
+open source and easily self-hostable.
 
 [Check it out →](https://serial.tube/welcome)
 
