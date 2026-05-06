@@ -41,11 +41,28 @@ import {
 import { setOtpCooldown } from "~/server/otp";
 import { captureException } from "~/server/logger";
 import { env } from "~/env";
+import { IS_DEMO_INSTANCE } from "~/lib/demo";
 
 export const authMiddleware = createMiddleware().server(
   async ({ pathname, next }) => {
     const headers = getRequestHeaders() as Headers;
     const session = await auth.api.getSession({ headers });
+
+    // Demo mode: auto-provision unauthenticated users and keep authed users
+    // away from auth pages.
+    if (IS_DEMO_INSTANCE) {
+      if (!session) {
+        if (
+          !pathname.startsWith("/api/") &&
+          pathname !== "/api/demo/provision"
+        ) {
+          throw redirect({ to: "/api/demo/provision" });
+        }
+      } else if (pathname.startsWith("/auth/")) {
+        throw redirect({ to: "/" });
+      }
+    }
+
     if (!session) {
       if (!pathname.startsWith("/auth/") && pathname !== "/auth") {
         throw redirect({ to: BASE_SIGNED_OUT_URL });
@@ -290,6 +307,10 @@ export const auth = betterAuth({
         ctx.path.startsWith("/oauth2/callback/");
 
       if (!isEmailSignUp && !isEmailSignIn && !isOAuth) return;
+
+      // In demo mode, allow all sign-ups without gating so auto-provisioning
+      // can create users on demand.
+      if (IS_DEMO_INSTANCE && isEmailSignUp) return;
 
       // Allow first user to use any available method
       const userCount = await db.select({ count: count() }).from(user).get();

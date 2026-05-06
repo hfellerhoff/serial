@@ -1,6 +1,7 @@
 "use client";
 
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useSetAtom } from "jotai";
 import {
   AlertTriangleIcon,
   CheckIcon,
@@ -14,17 +15,16 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useSetAtom } from "jotai";
 import { ImportDropzone } from "../components/feed/import/ImportDropzone";
 import { getInitialFeedDataFromFileInputElement } from "../components/feed/import/utils/getInitialFeedDataFromFileInputElement";
+import type { CardRadioOption } from "~/components/ui/card-radio-group";
+import type { FeedPlatform } from "~/server/db/schema";
 import type {
   ImportFeedDataFromFilesError,
   ImportFeedDataItem,
 } from "../components/feed/import/utils/shared";
-import type { CardRadioOption } from "~/components/ui/card-radio-group";
-import type { FeedPlatform } from "~/server/db/schema";
 import { YoutubeIcon } from "~/components/brand-icons";
-import { getGuidesUrl } from "~/lib/constants";
+import { useDialogStore } from "~/components/feed/dialogStore";
 import { ImportLoading } from "~/components/ImportLoading";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -35,12 +35,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "~/components/ui/tooltip";
-import { useFeeds } from "~/lib/data/feeds";
-import { feedItemsStore } from "~/lib/data/store";
-import { useImportResults, useLoadingMode } from "~/lib/data/loading-machine";
-import { dataSubscriptionActions } from "~/lib/data/useDataSubscription";
-import { useDialogStore } from "~/components/feed/dialogStore";
+import { getGuidesUrl } from "~/lib/constants";
 import { shouldAlwaysKeepSSEConnectionAlive } from "~/lib/data/atoms";
+import { useFeeds } from "~/lib/data/feeds";
+import { useImportResults, useLoadingMode } from "~/lib/data/loading-machine";
+import { feedItemsStore } from "~/lib/data/store";
+import { dataSubscriptionActions } from "~/lib/data/useDataSubscription";
+import { IS_DEMO_INSTANCE } from "~/lib/demo";
 
 function ImportedFeedStatus({
   feedUrl,
@@ -163,16 +164,23 @@ function EditFeedsPage() {
   useEffect(() => {
     if (isImportComplete && importDeactivatedCount > 0) {
       const count = importDeactivatedCount;
-      toast.warning(
-        `${count} feed${count > 1 ? "s were" : " was"} added as inactive. To unlock more active feeds, you can switch to a higher plan.`,
-        {
-          action: {
-            label: "Upgrade",
-            onClick: () =>
-              launchDialog("subscription", { subscriptionView: "picker" }),
+
+      if (IS_DEMO_INSTANCE) {
+        toast.warning(
+          `${count} feed${count > 1 ? "s were" : " was"} added as inactive. This is the limit for the demo instance.`,
+        );
+      } else {
+        toast.warning(
+          `${count} feed${count > 1 ? "s were" : " was"} added as inactive. To unlock more active feeds, you can switch to a higher plan.`,
+          {
+            action: {
+              label: "Upgrade",
+              onClick: () =>
+                launchDialog("subscription", { subscriptionView: "picker" }),
+            },
           },
-        },
-      );
+        );
+      }
     }
   }, [isImportComplete, importDeactivatedCount, launchDialog]);
 

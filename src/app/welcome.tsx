@@ -1,10 +1,12 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { ExternalLinkIcon } from "lucide-react";
+import { ArrowRightIcon, ExternalLinkIcon } from "lucide-react";
 import { DemoColorThemePopoverButton } from "~/components/color-theme/ColorThemePopoverButton";
 import { Button } from "~/components/ui/button";
 import { RecentReleaseBanner } from "~/components/welcome/RecentReleaseBanner";
+import { WebFooterCTA } from "~/components/welcome/WebFooterCTA";
 import { WebsiteNavigation } from "~/components/welcome/WebsiteNavigation";
 import { BASE_SIGNED_OUT_URL, IS_MAIN_INSTANCE } from "~/lib/constants";
+import { IS_DEMO_INSTANCE } from "~/lib/demo";
 import { getMostRecentRelease } from "~/lib/markdown/loaders";
 import { AUTH_PAGE_URL } from "~/server/auth/constants";
 import { fetchIsAuthed } from "~/server/auth/endpoints";
@@ -18,6 +20,9 @@ export const Route = createFileRoute("/welcome")({
   component: RouteComponent,
   loader: async () => {
     const isAuthed = await fetchIsAuthed();
+    if (IS_DEMO_INSTANCE && !isAuthed) {
+      throw redirect({ to: "/api/demo/provision" });
+    }
     const mostRecentRelease = getMostRecentRelease();
     return { isAuthed, mostRecentRelease };
   },
@@ -26,7 +31,6 @@ export const Route = createFileRoute("/welcome")({
 
 function RouteComponent() {
   const { isAuthed, mostRecentRelease } = Route.useLoaderData();
-  const supportEmail = import.meta.env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS;
 
   return (
     <main className="bg-background text-pretty">
@@ -54,13 +58,25 @@ function RouteComponent() {
               </Button>
             </Link>
             <a
-              href="https://github.com/megaflorasoftware/serial?tab=readme-ov-file#self-hosting"
+              href="https://demo.serial.tube"
               className="hover:bg-transparent"
               target="_blank"
               rel="noopener noreferrer"
             >
               <Button variant="outline" size="lg" className="gap-2 text-base">
-                Self Host <ExternalLinkIcon size={16} />
+                Try Demo <ExternalLinkIcon size={16} />
+              </Button>
+            </a>
+          </div>
+          <div className="mt-2">
+            <a
+              href="https://github.com/megaflorasoftware/serial?tab=readme-ov-file#self-hosting"
+              className="hover:bg-transparent"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="link" size="lg" className="gap-2 text-base">
+                Host your own instance <ArrowRightIcon size={16} />
               </Button>
             </a>
           </div>
@@ -221,38 +237,7 @@ function RouteComponent() {
           on how to host your own Serial instance.
         </p>
       </section>
-      <div className="border-foreground mx-auto max-w-4xl border-4 border-x-0 border-dashed px-6 py-16 md:border-x-4">
-        <section className="relative mx-auto max-w-xl space-y-6 text-center text-2xl text-pretty md:py-16 md:text-3xl">
-          <p>Ready to take back control of your content?</p>
-          <div className="space-x-2">
-            <Link to={AUTH_PAGE_URL}>
-              <Button size="lg" className="text-base">
-                Get Started
-              </Button>
-            </Link>
-            <a
-              href="https://github.com/megaflorasoftware/serial?tab=readme-ov-file#self-hosting"
-              className="hover:bg-transparent"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button variant="outline" size="lg" className="gap-2 text-base">
-                Self Host <ExternalLinkIcon size={16} />
-              </Button>
-            </a>
-          </div>
-        </section>
-      </div>
-      {supportEmail && (
-        <section className="space-y-2 px-6 py-16 text-center">
-          <p className="text-lg">
-            Have a question? Reach us at{" "}
-            <a href={`mailto:${supportEmail}`} className="underline">
-              {supportEmail}
-            </a>
-          </p>
-        </section>
-      )}
+      <WebFooterCTA />
     </main>
   );
 }

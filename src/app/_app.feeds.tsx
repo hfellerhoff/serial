@@ -5,20 +5,20 @@ import { GlobeIcon, PlayCircleIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { FeedPlatform } from "~/server/db/schema";
-import { YoutubeIcon } from "~/components/brand-icons";
 import { ViewCategoriesInput } from "~/components/AddViewDialog";
+import { YoutubeIcon } from "~/components/brand-icons";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { useDialogStore } from "~/components/feed/dialogStore";
 import { FeedManagementTabs } from "~/components/feed/FeedManagementTabs";
 import { useFeedManagementShortcuts } from "~/components/feed/useManagementShortcuts";
 import { FeedEmptyState } from "~/components/feed/view-lists/EmptyStates";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
-import { Progress } from "~/components/ui/progress";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { ChipCombobox } from "~/components/ui/chip-combobox";
 import { Input } from "~/components/ui/input";
+import { Progress } from "~/components/ui/progress";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { Switch } from "~/components/ui/switch";
 import {
@@ -39,14 +39,15 @@ import {
   useSetFeedActiveMutation,
 } from "~/lib/data/feeds/mutations";
 import { useSubscription } from "~/lib/data/subscription";
-import { useViews } from "~/lib/data/views";
-import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
-import { useQuickCreateViewMutation } from "~/lib/data/views/mutations";
 import { useViewFeeds } from "~/lib/data/view-feeds";
 import {
   useBulkAssignViewFeedMutation,
   useBulkRemoveViewFeedMutation,
 } from "~/lib/data/view-feeds/mutations";
+import { useViews } from "~/lib/data/views";
+import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
+import { useQuickCreateViewMutation } from "~/lib/data/views/mutations";
+import { IS_DEMO_INSTANCE } from "~/lib/demo";
 import { useShiftSelect } from "~/lib/hooks/useShiftSelect";
 
 export const Route = createFileRoute("/_app/feeds")({
@@ -369,16 +370,24 @@ function ManageFeedsPage() {
 
       if (wouldBeActive > maxActiveFeeds) {
         const overLimit = wouldBeActive - maxActiveFeeds;
-        toast.warning(
-          `${overLimit} feed${overLimit > 1 ? "s would" : " would"} exceed your plan limit. To unlock more active feeds, you can switch to a higher plan.`,
-          {
-            action: {
-              label: "Upgrade",
-              onClick: () =>
-                launchDialog("subscription", { subscriptionView: "picker" }),
+
+        if (IS_DEMO_INSTANCE) {
+          toast.warning(
+            `${overLimit} feed${overLimit > 1 ? "s would" : " would"} exceed the limit of active feeds you can have on the demo instance.`,
+          );
+        } else {
+          toast.warning(
+            `${overLimit} feed${overLimit > 1 ? "s would" : " would"} exceed your plan limit. To unlock more active feeds, you can switch to a higher plan.`,
+            {
+              action: {
+                label: "Upgrade",
+                onClick: () =>
+                  launchDialog("subscription", { subscriptionView: "picker" }),
+              },
             },
-          },
-        );
+          );
+        }
+
         return;
       }
     }
@@ -465,9 +474,11 @@ function ManageFeedsPage() {
             <PlusIcon size={16} />
           </ButtonWithShortcut>
         </div>
-        {billingEnabled &&
+        {(billingEnabled || IS_DEMO_INSTANCE) &&
           maxActiveFeeds > 0 &&
-          activeFeeds < maxActiveFeeds && (
+          (IS_DEMO_INSTANCE
+            ? activeFeeds <= maxActiveFeeds
+            : activeFeeds < maxActiveFeeds) && (
             <div className="mt-3 space-y-1.5">
               <div className="flex items-center justify-between">
                 <p className="text-muted-foreground text-sm">
@@ -614,9 +625,15 @@ function ManageFeedsPage() {
                     ) {
                       setFeedActive({ feedId: feed.id, isActive: checked });
                     } else {
-                      toast.error(
-                        "Feed limit reached. Upgrade your plan to activate more feeds.",
-                      );
+                      if (IS_DEMO_INSTANCE) {
+                        toast.error(
+                          "Feed limit reached. This is the limit for the demo instance.",
+                        );
+                      } else {
+                        toast.error(
+                          "Feed limit reached. Upgrade your plan to activate more feeds.",
+                        );
+                      }
                     }
                   }}
                   onClick={(e) => e.stopPropagation()}

@@ -1,8 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import dayjs from "dayjs";
 import { NotebookTextIcon } from "lucide-react";
 import { Markdown } from "~/components/Markdown";
-import { Button } from "~/components/ui/button";
+import { WebFooterCTA } from "~/components/welcome/WebFooterCTA";
 import { getReleaseWithSlug } from "~/lib/markdown/loaders";
 import { fetchIsAuthed } from "~/server/auth/endpoints";
 
@@ -37,23 +37,8 @@ function RouteComponent() {
         </div>
         <Markdown content={release.content} className="guides" />
       </article>
-      <div className="border-foreground mx-auto mt-16 max-w-4xl border-4 border-x-0 border-dashed px-6 py-16 md:border-x-4">
-        <section className="relative mx-auto max-w-xl space-y-6 text-center text-2xl text-pretty md:py-16 md:text-3xl">
-          <p>Ready to take back control of your content?</p>
-          <div className="space-x-2">
-            <Link to="/auth/sign-up">
-              <Button size="lg" className="text-base">
-                Get Started
-              </Button>
-            </Link>
-            <Link to="/welcome">
-              <Button size="lg" className="text-base" variant="outline">
-                Learn More
-              </Button>
-            </Link>
-          </div>
-        </section>
-      </div>
+      <div className="mt-12 lg:mt-16" />
+      <WebFooterCTA />
     </div>
   );
 }

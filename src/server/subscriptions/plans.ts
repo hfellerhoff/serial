@@ -1,4 +1,5 @@
 import { IS_MAIN_INSTANCE } from "~/lib/constants";
+import { IS_DEMO_INSTANCE } from "~/lib/demo";
 
 export const PLAN_IDS = [
   "free",
@@ -89,6 +90,7 @@ export function getEffectivePlanConfig(
   planId: PlanId,
   options?: { isAdmin?: boolean },
 ): PlanConfig {
+  if (IS_DEMO_INSTANCE) return PLANS.free;
   if (!IS_MAIN_INSTANCE || options?.isAdmin) return UNLIMITED_CONFIG;
   return PLANS[planId];
 }

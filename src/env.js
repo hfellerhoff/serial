@@ -12,6 +12,8 @@ export const env = createEnv({
     VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS: z.string().email().optional(),
     VITE_PUBLIC_SENTRY_DSN_WEB: z.string().url().optional(),
     VITE_PUBLIC_IS_MAINTENANCE_MODE: z.string().optional().default("false"),
+    VITE_PUBLIC_IS_MAIN_INSTANCE: z.string().optional().default("false"),
+    VITE_PUBLIC_IS_DEMO_INSTANCE: z.string().optional().default("false"),
   },
   /**
    * Specify your server-side environment variables schema here. This way you can ensure the app
@@ -81,6 +83,7 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
+    IS_DEMO_INSTANCE: z.string().optional().default("false"),
   },
 
   /**
@@ -97,6 +100,12 @@ export const env = createEnv({
     VITE_PUBLIC_IS_MAINTENANCE_MODE:
       import.meta.env?.VITE_PUBLIC_IS_MAINTENANCE_MODE ??
       process.env.VITE_PUBLIC_IS_MAINTENANCE_MODE,
+    VITE_PUBLIC_IS_DEMO_INSTANCE:
+      import.meta.env?.VITE_PUBLIC_IS_DEMO_INSTANCE ??
+      process.env.VITE_PUBLIC_IS_DEMO_INSTANCE,
+    VITE_PUBLIC_IS_MAIN_INSTANCE:
+      import.meta.env?.VITE_PUBLIC_IS_MAIN_INSTANCE ??
+      process.env.VITE_PUBLIC_IS_MAIN_INSTANCE,
     DATABASE_URL: process.env.DATABASE_URL,
     DATABASE_AUTH_TOKEN: process.env.DATABASE_AUTH_TOKEN,
     NODE_ENV: process.env.NODE_ENV,
@@ -142,6 +151,7 @@ export const env = createEnv({
     OAUTH_PKCE: process.env.OAUTH_PKCE,
     SENTRY_DSN_BACKEND: process.env.SENTRY_DSN_BACKEND,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
+    IS_DEMO_INSTANCE: process.env.IS_DEMO_INSTANCE,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

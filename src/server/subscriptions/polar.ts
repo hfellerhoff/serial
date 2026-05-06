@@ -1,6 +1,7 @@
 import { Polar } from "@polar-sh/sdk";
 import type { PlanId } from "./plans";
 import { IS_MAIN_INSTANCE } from "~/lib/constants";
+import { IS_DEMO_INSTANCE } from "~/lib/demo";
 import { env } from "~/env";
 
 function hasAllPolarCredentials(): boolean {
@@ -36,7 +37,7 @@ function createPolarClient(): Polar | null {
 export const polarClient = createPolarClient();
 
 /** True only when running as the main instance with all Polar credentials configured. */
-export const IS_BILLING_ENABLED = polarClient !== null;
+export const IS_BILLING_ENABLED = polarClient !== null && !IS_DEMO_INSTANCE;
 
 // ---------------------------------------------------------------------------
 // Product ID map — keyed by plan ID, contains monthly/annual Polar product IDs.

@@ -1,8 +1,7 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import {
   CheckIcon,
   CoinsIcon,
-  ExternalLinkIcon,
   SproutIcon,
   TreeDeciduousIcon,
   TreesIcon,
@@ -12,7 +11,6 @@ import {
   STANDARD_PLAN_IDS,
 } from "~/components/feed/subscription-dialog/constants";
 import { getPlanFeatures } from "~/components/feed/subscription-dialog/utils";
-import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import {
   Tooltip,
@@ -20,11 +18,11 @@ import {
   TooltipTrigger,
 } from "~/components/ui/tooltip";
 import { RecentReleaseBanner } from "~/components/welcome/RecentReleaseBanner";
+import { WebFooterCTA } from "~/components/welcome/WebFooterCTA";
 import { WebsiteHeader } from "~/components/welcome/WebsiteHeader";
 import { WebsiteNavigation } from "~/components/welcome/WebsiteNavigation";
 import { BASE_SIGNED_OUT_URL, IS_MAIN_INSTANCE } from "~/lib/constants";
 import { getMostRecentRelease } from "~/lib/markdown/loaders";
-import { AUTH_PAGE_URL } from "~/server/auth/constants";
 import { fetchIsAuthed } from "~/server/auth/endpoints";
 import { PLANS } from "~/server/subscriptions/plans";
 
@@ -198,38 +196,7 @@ function RouteComponent() {
             – we&apos;d be happy to work something out.
           </p>
         </section>
-        <div className="border-foreground mx-auto max-w-4xl border-4 border-x-0 border-dashed px-6 py-16 md:border-x-4">
-          <section className="relative mx-auto max-w-xl space-y-6 text-center text-2xl text-pretty md:py-16 md:text-3xl">
-            <p>Ready to take back control of your content?</p>
-            <div className="space-x-2">
-              <Link to={AUTH_PAGE_URL}>
-                <Button size="lg" className="text-base">
-                  Get Started
-                </Button>
-              </Link>
-              <a
-                href="https://github.com/megaflorasoftware/serial?tab=readme-ov-file#self-hosting"
-                className="hover:bg-transparent"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button variant="outline" size="lg" className="gap-2 text-base">
-                  Self Host <ExternalLinkIcon size={16} />
-                </Button>
-              </a>
-            </div>
-          </section>
-        </div>
-        {supportEmail && (
-          <section className="space-y-2 px-6 py-16 text-center">
-            <p className="text-lg">
-              Have a question? Reach us at{" "}
-              <a href={`mailto:${supportEmail}`} className="underline">
-                {supportEmail}
-              </a>
-            </p>
-          </section>
-        )}
+        <WebFooterCTA />
       </main>
     </div>
   );

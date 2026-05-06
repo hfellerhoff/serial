@@ -32,6 +32,7 @@ import { Route as WebReleasesIndexRouteImport } from './app/_web.releases.index'
 import { Route as WebGuidesIndexRouteImport } from './app/_web.guides.index'
 import { Route as AppAdminIndexRouteImport } from './app/_app.admin.index'
 import { Route as ApiRpcSplatRouteImport } from './app/api/rpc.$'
+import { Route as ApiDemoProvisionRouteImport } from './app/api.demo.provision'
 import { Route as ApiAuthSplatRouteImport } from './app/api/auth.$'
 import { Route as WebReleasesSlugRouteImport } from './app/_web.releases.$slug'
 import { Route as WebGuidesSlugRouteImport } from './app/_web.guides.$slug'
@@ -157,6 +158,11 @@ const ApiRpcSplatRoute = ApiRpcSplatRouteImport.update({
   path: '/api/rpc/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDemoProvisionRoute = ApiDemoProvisionRouteImport.update({
+  id: '/api/demo/provision',
+  path: '/api/demo/provision',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -241,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/guides/$slug': typeof WebGuidesSlugRoute
   '/releases/$slug': typeof WebReleasesSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/demo/provision': typeof ApiDemoProvisionRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/admin/': typeof AppAdminIndexRoute
   '/guides/': typeof WebGuidesIndexRoute
@@ -274,6 +281,7 @@ export interface FileRoutesByTo {
   '/guides/$slug': typeof WebGuidesSlugRoute
   '/releases/$slug': typeof WebReleasesSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/demo/provision': typeof ApiDemoProvisionRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/admin': typeof AppAdminIndexRoute
   '/guides': typeof WebGuidesIndexRoute
@@ -311,6 +319,7 @@ export interface FileRoutesById {
   '/_web/guides/$slug': typeof WebGuidesSlugRoute
   '/_web/releases/$slug': typeof WebReleasesSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/demo/provision': typeof ApiDemoProvisionRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/_app/admin/': typeof AppAdminIndexRoute
   '/_web/guides/': typeof WebGuidesIndexRoute
@@ -347,6 +356,7 @@ export interface FileRouteTypes {
     | '/guides/$slug'
     | '/releases/$slug'
     | '/api/auth/$'
+    | '/api/demo/provision'
     | '/api/rpc/$'
     | '/admin/'
     | '/guides/'
@@ -380,6 +390,7 @@ export interface FileRouteTypes {
     | '/guides/$slug'
     | '/releases/$slug'
     | '/api/auth/$'
+    | '/api/demo/provision'
     | '/api/rpc/$'
     | '/admin'
     | '/guides'
@@ -416,6 +427,7 @@ export interface FileRouteTypes {
     | '/_web/guides/$slug'
     | '/_web/releases/$slug'
     | '/api/auth/$'
+    | '/api/demo/provision'
     | '/api/rpc/$'
     | '/_app/admin/'
     | '/_web/guides/'
@@ -433,6 +445,7 @@ export interface RootRouteChildren {
   WelcomeRoute: typeof WelcomeRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiDemoProvisionRoute: typeof ApiDemoProvisionRoute
   ApiRpcSplatRoute: typeof ApiRpcSplatRoute
 }
 
@@ -597,6 +610,13 @@ declare module '@tanstack/react-router' {
       path: '/api/rpc/$'
       fullPath: '/api/rpc/$'
       preLoaderRoute: typeof ApiRpcSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/demo/provision': {
+      id: '/api/demo/provision'
+      path: '/api/demo/provision'
+      fullPath: '/api/demo/provision'
+      preLoaderRoute: typeof ApiDemoProvisionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -771,6 +791,7 @@ const rootRouteChildren: RootRouteChildren = {
   WelcomeRoute: WelcomeRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiDemoProvisionRoute: ApiDemoProvisionRoute,
   ApiRpcSplatRoute: ApiRpcSplatRoute,
 }
 export const routeTree = rootRouteImport

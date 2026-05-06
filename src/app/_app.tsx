@@ -12,6 +12,7 @@ import { AppLeftSidebar, AppRightSidebar } from "~/components/app-sidebar";
 import { Button } from "~/components/ui/button";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { useDialogStore } from "~/components/feed/dialogStore";
+import { DemoBanner } from "~/components/DemoBanner";
 import { ImpersonationBanner } from "~/components/ImpersonationBanner";
 import { ReleaseNotifier } from "~/components/releases/ReleaseNotifier";
 import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
@@ -255,6 +256,7 @@ function RootLayout() {
         >
           <AppLeftSidebar />
           <SidebarInset>
+            <DemoBanner />
             <Header />
             <main className="flex flex-col">
               <div className="h-full w-full pb-6">

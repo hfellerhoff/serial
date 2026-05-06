@@ -25,6 +25,7 @@ import {
 import { authClient, signOut } from "~/lib/auth-client";
 import { useClearAllUserData } from "~/lib/data/atoms";
 import { useSubscription } from "~/lib/data/subscription";
+import { env } from "~/env";
 
 export function UserManagementNavItem() {
   const {
@@ -57,9 +58,11 @@ export function UserManagementNavItem() {
                     {" "}
                     {data?.user.name || "Account"}
                   </span>
-                  <span className="text-muted-foreground truncate text-xs">
-                    {data?.user.email}
-                  </span>
+                  {env.VITE_PUBLIC_IS_DEMO_INSTANCE !== "true" && (
+                    <span className="text-muted-foreground truncate text-xs">
+                      {data?.user.email}
+                    </span>
+                  )}
                 </div>
               )}
               <EllipsisVerticalIcon className="ml-auto size-4" />
@@ -71,9 +74,11 @@ export function UserManagementNavItem() {
               <h2 className="text-sm font-semibold">
                 {data?.user.name || "Serial User"}
               </h2>
-              <p className="text-muted-foreground text-xs">
-                {data?.user.email}
-              </p>
+              {env.VITE_PUBLIC_IS_DEMO_INSTANCE !== "true" && (
+                <p className="text-muted-foreground text-xs">
+                  {data?.user.email}
+                </p>
+              )}
               {billingEnabled && (
                 <p className="text-muted-foreground text-xs">{planName} plan</p>
               )}
@@ -85,18 +90,20 @@ export function UserManagementNavItem() {
               </Link>
             </div>
           </ResponsiveDropdownLabel>
-          <ResponsiveDropdownMenuItem asChild>
-            <Button
-              variant="outline"
-              className="mb-2 w-full"
-              onClick={() => {
-                launchDialog("connections");
-              }}
-            >
-              <PlugIcon size={16} />
-              <span className="pl-1.5">Connections</span>
-            </Button>
-          </ResponsiveDropdownMenuItem>
+          {env.VITE_PUBLIC_IS_DEMO_INSTANCE !== "true" && (
+            <ResponsiveDropdownMenuItem asChild>
+              <Button
+                variant="outline"
+                className="mb-2 w-full"
+                onClick={() => {
+                  launchDialog("connections");
+                }}
+              >
+                <PlugIcon size={16} />
+                <span className="pl-1.5">Connections</span>
+              </Button>
+            </ResponsiveDropdownMenuItem>
+          )}
           {billingEnabled && (
             <ResponsiveDropdownMenuItem asChild>
               <Button
@@ -109,9 +116,11 @@ export function UserManagementNavItem() {
               </Button>
             </ResponsiveDropdownMenuItem>
           )}
-          <div className="my-4">
-            <DropdownMenuSeparator />
-          </div>
+          {env.VITE_PUBLIC_IS_DEMO_INSTANCE !== "true" && (
+            <div className="my-4">
+              <DropdownMenuSeparator />
+            </div>
+          )}
           <ResponsiveDropdownMenuItem asChild>
             <Button
               variant="outline"

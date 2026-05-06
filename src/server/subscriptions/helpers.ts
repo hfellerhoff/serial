@@ -5,6 +5,7 @@ import { getSubscriptionFromKV, syncPolarDataToKV } from "./kv";
 import type { PlanId } from "./plans";
 import type { db as Database } from "~/server/db";
 import { feeds, user } from "~/server/db/schema";
+import { IS_DEMO_INSTANCE } from "~/lib/demo";
 
 type DB = typeof Database;
 
@@ -18,6 +19,7 @@ export async function getActiveFeedCount(db: DB, userId: string) {
 }
 
 export async function getUserPlanId(userId: string): Promise<PlanId> {
+  if (IS_DEMO_INSTANCE) return "free";
   if (!IS_BILLING_ENABLED) return "pro";
 
   // 1. Try KV cache first (fast, shared across instances)
@@ -90,7 +92,7 @@ export async function getUserPlanLimits(db: DB, userId: string) {
     activeFeeds,
     refreshIntervalMs: config.refreshIntervalMs,
     backgroundRefreshIntervalMs: config.backgroundRefreshIntervalMs,
-    billingEnabled: IS_BILLING_ENABLED,
+    billingEnabled: IS_BILLING_ENABLED && !IS_DEMO_INSTANCE,
   };
 }
 

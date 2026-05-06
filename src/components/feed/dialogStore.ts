@@ -10,13 +10,18 @@ export type DialogType =
   | "subscription";
 
 export type SubscriptionView = "overview" | "picker";
+export type SettingsPane = "main" | "export" | "delete";
 
 type DialogStore = {
   dialog: null | DialogType;
   subscriptionView: SubscriptionView;
+  settingsPane: SettingsPane;
   launchDialog: (
     dialog: DialogType,
-    options?: { subscriptionView?: SubscriptionView },
+    options?: {
+      subscriptionView?: SubscriptionView;
+      settingsPane?: SettingsPane;
+    },
   ) => void;
   closeDialog: () => void;
   onOpenChange: (open: boolean) => void;
@@ -25,11 +30,15 @@ type DialogStore = {
 export const useDialogStore = create<DialogStore>((set) => ({
   dialog: null,
   subscriptionView: "overview",
+  settingsPane: "main",
   launchDialog: (dialog, options) =>
     set({
       dialog,
       subscriptionView: options?.subscriptionView ?? "overview",
+      settingsPane: options?.settingsPane ?? "main",
     }),
-  closeDialog: () => set({ dialog: null, subscriptionView: "overview" }),
-  onOpenChange: () => set({ dialog: null, subscriptionView: "overview" }),
+  closeDialog: () =>
+    set({ dialog: null, subscriptionView: "overview", settingsPane: "main" }),
+  onOpenChange: () =>
+    set({ dialog: null, subscriptionView: "overview", settingsPane: "main" }),
 }));

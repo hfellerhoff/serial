@@ -1,10 +1,22 @@
 import contentCollections from "@content-collections/vite";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import tailwindcss from "@tailwindcss/vite";
-import viteReact from "@vitejs/plugin-react";
 import { sentryTanstackStart } from "@sentry/tanstackstart-react/vite";
+import tailwindcss from "@tailwindcss/vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
+
+const BACKGROUND_REFRESH_ENABLED = process.env.BACKGROUND_REFRESH_ENABLED;
+const VITE_PUBLIC_IS_DEMO_INSTANCE =
+  import.meta.env?.VITE_PUBLIC_IS_DEMO_INSTANCE ??
+  process.env.VITE_PUBLIC_IS_DEMO_INSTANCE;
+
+function scheduleTask(task: object, condition: boolean) {
+  if (condition) {
+    return task;
+  }
+  return {};
+}
 
 const plugins = [
   contentCollections(),
@@ -22,7 +34,16 @@ const plugins = [
     preset: "node",
     serverDir: "server",
     experimental: { vite: {}, tasks: true } as any,
-    scheduledTasks: { "* * * * *": ["feeds:background-refresh"] },
+    scheduledTasks: {
+      ...scheduleTask(
+        { "* * * * *": ["feeds:background-refresh"] },
+        BACKGROUND_REFRESH_ENABLED === "true",
+      ),
+      ...scheduleTask(
+        { "0 0 * * *": ["demo:midnight-wipe"] },
+        VITE_PUBLIC_IS_DEMO_INSTANCE === "true",
+      ),
+    },
   } as any),
   viteReact(),
 ];

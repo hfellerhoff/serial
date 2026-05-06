@@ -2,7 +2,7 @@
 
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, DownloadIcon, Trash2Icon } from "lucide-react";
-import { useEffect, useState } from "react";
+
 import { toast } from "sonner";
 import { useDialogStore } from "../dialogStore";
 import { DeleteAccountSection } from "./DeleteAccountSection";
@@ -15,30 +15,24 @@ import { authClient } from "~/lib/auth-client";
 import { useUpdateNameMutation } from "~/lib/data/user/useUpdateNameMutation";
 import { userEmailSchema, userNameSchema } from "~/server/api/schemas";
 import { AUTH_RESET_PASSWORD_URL } from "~/server/auth/constants";
-
-type SettingsPane = "main" | "export" | "delete";
+import { env } from "~/env";
 
 export function UserProfileEditDialog() {
   const { data, refetch: refetchUser } = authClient.useSession();
 
-  const { dialog, onOpenChange } = useDialogStore();
+  const { dialog, onOpenChange, settingsPane, launchDialog } = useDialogStore();
 
   const { mutateAsync: updateName } = useUpdateNameMutation();
 
-  const [pane, setPane] = useState<SettingsPane>("main");
-
   const isOpen = dialog === "edit-user-profile";
 
-  // Reset to main pane whenever the dialog closes
-  useEffect(() => {
-    if (!isOpen) {
-      setPane("main");
-    }
-  }, [isOpen]);
+  const setPane = (pane: "main" | "export" | "delete") => {
+    launchDialog("edit-user-profile", { settingsPane: pane });
+  };
 
   const userEmail = data?.user.email ?? "";
 
-  if (pane === "export") {
+  if (settingsPane === "export") {
     return (
       <ControlledResponsiveDialog
         open={isOpen}
@@ -52,7 +46,7 @@ export function UserProfileEditDialog() {
     );
   }
 
-  if (pane === "delete") {
+  if (settingsPane === "delete") {
     return (
       <ControlledResponsiveDialog
         open={isOpen}
@@ -74,50 +68,54 @@ export function UserProfileEditDialog() {
       description="Manage your account and your data"
     >
       <div className="grid gap-6">
-        <EditableSavableTextField
-          label="Name"
-          placeholder="Serial User"
-          initialValue={data?.user.name ?? ""}
-          onSave={async (updatedName) => {
-            await updateName({ name: updatedName });
-            void refetchUser();
-          }}
-          schema={userNameSchema}
-        />
-        <EditableSavableTextField
-          label="Email"
-          helperText="A verification email will be sent to confirm the change."
-          showHelperTextOnlyWhenEditing
-          placeholder="user@example.com"
-          initialValue={userEmail}
-          onSave={async (updatedEmail) => {
-            const { error } = await authClient.changeEmail({
-              newEmail: updatedEmail,
-              callbackURL: "/",
-            });
-            if (error) {
-              toast.error(error.message ?? "Failed to change email");
-              return;
-            }
-            toast.success(
-              "Verification email sent! Check your new inbox to confirm.",
-            );
-          }}
-          schema={userEmailSchema}
-        />
-        <div className="grid gap-2">
-          <Label>Password</Label>
-          <Button variant="outline" asChild>
-            <Link
-              to={AUTH_RESET_PASSWORD_URL}
-              search={{
-                email: userEmail,
+        {env.VITE_PUBLIC_IS_DEMO_INSTANCE !== "true" && (
+          <>
+            <EditableSavableTextField
+              label="Name"
+              placeholder="Serial User"
+              initialValue={data?.user.name ?? ""}
+              onSave={async (updatedName) => {
+                await updateName({ name: updatedName });
+                void refetchUser();
               }}
-            >
-              Update password
-            </Link>
-          </Button>
-        </div>
+              schema={userNameSchema}
+            />
+            <EditableSavableTextField
+              label="Email"
+              helperText="A verification email will be sent to confirm the change."
+              showHelperTextOnlyWhenEditing
+              placeholder="user@example.com"
+              initialValue={userEmail}
+              onSave={async (updatedEmail) => {
+                const { error } = await authClient.changeEmail({
+                  newEmail: updatedEmail,
+                  callbackURL: "/",
+                });
+                if (error) {
+                  toast.error(error.message ?? "Failed to change email");
+                  return;
+                }
+                toast.success(
+                  "Verification email sent! Check your new inbox to confirm.",
+                );
+              }}
+              schema={userEmailSchema}
+            />
+            <div className="grid gap-2">
+              <Label>Password</Label>
+              <Button variant="outline" asChild>
+                <Link
+                  to={AUTH_RESET_PASSWORD_URL}
+                  search={{
+                    email: userEmail,
+                  }}
+                >
+                  Update password
+                </Link>
+              </Button>
+            </div>
+          </>
+        )}
         <div className="grid gap-2">
           <Label>Data</Label>
           <Button
