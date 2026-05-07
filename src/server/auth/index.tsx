@@ -417,7 +417,7 @@ export const auth = betterAuth({
         .limit(1)
         .get();
 
-      if (firstUser?.id === userId) {
+      if (firstUser?.id === userId && !IS_DEMO_INSTANCE) {
         await db.update(user).set({ role: "admin" }).where(eq(user.id, userId));
 
         // Set sign-in and sign-up methods to match how the first user signed up
