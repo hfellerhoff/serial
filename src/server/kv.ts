@@ -5,9 +5,10 @@ import { env } from "~/env";
  * For "none" (no Redis), falls back to an in-memory Map with TTL.
  */
 
-interface KVStore {
+export interface KVStore {
   get: (key: string) => Promise<string | null>;
-  set: (key: string, value: string, ttlSeconds: number) => Promise<void>;
+  set: (key: string, value: string, ttlSeconds?: number) => Promise<void>;
+  setNX: (key: string, value: string, ttlSeconds?: number) => Promise<boolean>;
 }
 
 // ── In-memory fallback ──────────────────────────────────────────────────────
@@ -34,14 +35,27 @@ class MemoryKV implements KVStore {
     return entry.value;
   }
 
-  async set(key: string, value: string, ttlSeconds: number) {
-    const expiresAt = Date.now() + ttlSeconds * 1000;
+  async set(key: string, value: string, ttlSeconds?: number) {
+    const expiresAt = ttlSeconds ? Date.now() + ttlSeconds * 1000 : Infinity;
     this.store.set(key, { value, expiresAt });
 
     // Track the soonest expiry so we only run cleanup when needed
     if (expiresAt < this.nextExpiry) {
       this.nextExpiry = expiresAt;
     }
+  }
+
+  async setNX(
+    key: string,
+    value: string,
+    ttlSeconds?: number,
+  ): Promise<boolean> {
+    const entry = this.store.get(key);
+    if (entry && Date.now() <= entry.expiresAt) {
+      return false;
+    }
+    await this.set(key, value, ttlSeconds);
+    return true;
   }
 
   /** Periodically sweep expired entries so they don't accumulate. */
@@ -83,7 +97,18 @@ async function createKVStore(): Promise<KVStore> {
         return (await redis.get<string>(key)) ?? null;
       },
       async set(key, value, ttlSeconds) {
-        await redis.set(key, value, { ex: ttlSeconds });
+        if (ttlSeconds && ttlSeconds > 0) {
+          await redis.set(key, value, { ex: ttlSeconds });
+        } else {
+          await redis.set(key, value);
+        }
+      },
+      async setNX(key, value, ttlSeconds) {
+        const result =
+          ttlSeconds && ttlSeconds > 0
+            ? await redis.set(key, value, { nx: true, ex: ttlSeconds })
+            : await redis.set(key, value, { nx: true });
+        return result !== null;
       },
     };
   }
@@ -93,13 +118,28 @@ async function createKVStore(): Promise<KVStore> {
     const client = new Redis(env.REDIS_URL!, {
       maxRetriesPerRequest: 3,
     });
+    client.on("error", (err) => {
+      console.error("[kv] Redis error:", err.message);
+    });
 
     return {
       async get(key) {
         return await client.get(key);
       },
       async set(key, value, ttlSeconds) {
-        await client.set(key, value, "EX", ttlSeconds);
+        if (ttlSeconds && ttlSeconds > 0) {
+          await client.set(key, value, "EX", ttlSeconds);
+        } else {
+          await client.set(key, value);
+        }
+      },
+      async setNX(key, value, ttlSeconds) {
+        if (ttlSeconds && ttlSeconds > 0) {
+          const result = await client.set(key, value, "EX", ttlSeconds, "NX");
+          return result === "OK";
+        }
+        const result = await client.set(key, value, "NX");
+        return result === "OK";
       },
     };
   }

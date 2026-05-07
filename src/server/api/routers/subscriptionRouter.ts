@@ -323,10 +323,7 @@ export const syncAfterCheckout = protectedProcedure.handler(
     // Per-user rate limit: one sync per SYNC_COOLDOWN_SECONDS
     const lockKey = `sync-checkout-lock:${context.user.id}`;
     if (redis) {
-      const acquired = await redis.set(lockKey, "1", {
-        nx: true,
-        ex: SYNC_COOLDOWN_SECONDS,
-      });
+      const acquired = await redis.setNX(lockKey, "1", SYNC_COOLDOWN_SECONDS);
       if (!acquired) {
         // Cooldown active — return current state without re-syncing
         return getUserPlanLimits(context.db, context.user.id);
