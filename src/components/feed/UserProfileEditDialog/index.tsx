@@ -11,11 +11,11 @@ import { EditableSavableTextField } from "~/components/form/EditableSavableTextF
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
+import { env } from "~/env";
 import { authClient } from "~/lib/auth-client";
+import { AUTH_RESET_PASSWORD_URL } from "~/lib/auth/constants";
 import { useUpdateNameMutation } from "~/lib/data/user/useUpdateNameMutation";
 import { userEmailSchema, userNameSchema } from "~/server/api/schemas";
-import { AUTH_RESET_PASSWORD_URL } from "~/server/auth/constants";
-import { env } from "~/env";
 
 export function UserProfileEditDialog() {
   const { data, refetch: refetchUser } = authClient.useSession();

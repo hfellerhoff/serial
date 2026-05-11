@@ -1,9 +1,30 @@
 import { env } from "~/env";
 
-export const AUTH_SIGNED_IN_URL = "/";
-export const AUTH_SIGNED_OUT_URL = "/auth/sign-in";
-export const AUTH_PAGE_URL = "/auth/sign-in";
-export const AUTH_RESET_PASSWORD_URL = "/auth/reset";
+const BASE_ORIGIN = new URL(env.VITE_PUBLIC_BASE_URL).origin;
+export const TRUSTED_ORIGINS_SET = new Set([
+  BASE_ORIGIN,
+  ...env.TRUSTED_ORIGINS.map((o) => new URL(o).origin),
+]);
+
+/**
+ * Validate an incoming origin/referer against the trusted origins list.
+ * Returns the matched origin, or falls back to VITE_PUBLIC_BASE_URL.
+ */
+export function getValidatedOrigin(headers: Headers): string {
+  const origin = headers.get("origin") ?? headers.get("referer");
+
+  if (origin) {
+    try {
+      const parsed = new URL(origin);
+      if (TRUSTED_ORIGINS_SET.has(parsed.origin)) {
+        return parsed.origin;
+      }
+    } catch {
+      // invalid URL, fall through
+    }
+  }
+  return BASE_ORIGIN;
+}
 
 /**
  * Whether OAuth env vars are fully configured.

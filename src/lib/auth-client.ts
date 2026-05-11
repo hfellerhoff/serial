@@ -16,7 +16,10 @@ const plugins = [
 
 export const authClient = createAuthClient({
   plugins,
-  baseURL: env.VITE_PUBLIC_BASE_URL,
+  baseURL:
+    typeof window !== "undefined"
+      ? window.location.origin
+      : env.VITE_PUBLIC_BASE_URL,
 });
 
 export const { signIn, signOut, signUp, useSession, resetPassword } =

@@ -8,13 +8,15 @@ import { z } from "zod";
 import { adminProcedure } from "./base";
 import InviteUserEmail from "~/emails/invite-user";
 import { validateInvitationToken } from "~/server/invitations";
+import { getValidatedOrigin } from "~/server/auth/constants";
 import { env } from "~/env";
 import { invitation, invitationRedemption, user } from "~/server/db/schema";
 import { db } from "~/server/db";
 import { IS_EMAIL_ENABLED, sendEmail } from "~/server/email";
 
-function getInviteUrl(token: string) {
-  return `${env.VITE_PUBLIC_BASE_URL}/auth/sign-up?token=${token}`;
+function getInviteUrl(token: string, origin?: string) {
+  const base = origin ?? env.VITE_PUBLIC_BASE_URL;
+  return `${base}/auth/sign-up?token=${token}`;
 }
 
 // Create an invitation link
@@ -47,13 +49,16 @@ export const createInvitation = adminProcedure
       });
     }
 
-    const inviteUrl = getInviteUrl(created.token);
+    const inviteUrl = getInviteUrl(
+      created.token,
+      getValidatedOrigin(context.headers),
+    );
 
     return { id: created.id, inviteUrl };
   });
 
 // List all invitations
-export const listInvitations = adminProcedure.handler(async () => {
+export const listInvitations = adminProcedure.handler(async ({ context }) => {
   const rows = await db
     .select({
       id: invitation.id,
@@ -76,9 +81,10 @@ export const listInvitations = adminProcedure.handler(async () => {
     .orderBy(desc(invitation.createdAt))
     .all();
 
+  const origin = getValidatedOrigin(context.headers);
   const invitations = rows.map(({ token, ...rest }) => ({
     ...rest,
-    inviteUrl: getInviteUrl(token),
+    inviteUrl: getInviteUrl(token, origin),
   }));
 
   return { invitations };
@@ -126,7 +132,10 @@ export const sendInvitationEmail = adminProcedure
       });
     }
 
-    const inviteUrl = getInviteUrl(inv.token);
+    const inviteUrl = getInviteUrl(
+      inv.token,
+      getValidatedOrigin(context.headers),
+    );
 
     const html = await render(
       createElement(InviteUserEmail, {

@@ -5,10 +5,10 @@ import { Button } from "~/components/ui/button";
 import { RecentReleaseBanner } from "~/components/welcome/RecentReleaseBanner";
 import { WebFooterCTA } from "~/components/welcome/WebFooterCTA";
 import { WebsiteNavigation } from "~/components/welcome/WebsiteNavigation";
+import { AUTH_PAGE_URL } from "~/lib/auth/constants";
 import { BASE_SIGNED_OUT_URL, IS_MAIN_INSTANCE } from "~/lib/constants";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
 import { getMostRecentRelease } from "~/lib/markdown/loaders";
-import { AUTH_PAGE_URL } from "~/server/auth/constants";
 import { fetchIsAuthed } from "~/server/auth/endpoints";
 
 export const Route = createFileRoute("/welcome")({

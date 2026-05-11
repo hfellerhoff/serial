@@ -1,18 +1,18 @@
 "use client";
 
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { zodValidator } from "@tanstack/zod-adapter";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { AUTH_SIGNED_IN_URL } from "../server/auth/constants";
+import { AuthHeader } from "~/components/auth/AuthHeader";
 import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { authClient, signUp } from "~/lib/auth-client";
-import { AuthHeader } from "~/components/auth/AuthHeader";
+import { AUTH_SIGNED_IN_URL } from "~/lib/auth/constants";
 import { orpcRouterClient } from "~/lib/orpc";
 
 const signUpSearchSchema = z.object({

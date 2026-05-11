@@ -32,7 +32,10 @@ import {
   getEnabledAuthProviders,
   isPublicSignupEnabled,
 } from "~/lib/constants";
-import { isOAuthConfigured } from "~/server/auth/constants";
+import {
+  isOAuthConfigured,
+  TRUSTED_ORIGINS_SET,
+} from "~/server/auth/constants";
 import { IS_EMAIL_ENABLED, sendEmail } from "~/server/email";
 import {
   redeemInvitationToken,
@@ -188,6 +191,7 @@ function buildGenericOAuthPlugin() {
           userInfoUrl: env.OAUTH_USER_INFO_URL,
           scopes: env.OAUTH_SCOPES?.split(" ") ?? undefined,
           pkce: env.OAUTH_PKCE === "true",
+          redirectURI: env.OAUTH_REDIRECT_URI,
         },
       ],
     }),
@@ -198,6 +202,7 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "sqlite",
   }),
+  trustedOrigins: Array.from(TRUSTED_ORIGINS_SET),
   emailAndPassword: {
     enabled: true,
     maxPasswordLength: 64,

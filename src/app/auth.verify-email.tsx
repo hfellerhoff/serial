@@ -4,12 +4,12 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { AUTH_SIGNED_IN_URL } from "~/server/auth/constants";
 import { AuthHeader } from "~/components/auth/AuthHeader";
 import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { authClient, useSession } from "~/lib/auth-client";
+import { AUTH_SIGNED_IN_URL } from "~/lib/auth/constants";
 import { orpc } from "~/lib/orpc";
 
 export const Route = createFileRoute("/auth/verify-email")({

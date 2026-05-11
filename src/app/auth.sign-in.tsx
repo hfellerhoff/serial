@@ -8,18 +8,18 @@ import {
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import {
-  AUTH_RESET_PASSWORD_URL,
-  AUTH_SIGNED_IN_URL,
-} from "../server/auth/constants";
-import { fetchIsForgotPasswordEnabled } from "~/server/auth/endpoints";
 import { AuthHeader } from "~/components/auth/AuthHeader";
 import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { authClient, signIn } from "~/lib/auth-client";
+import {
+  AUTH_RESET_PASSWORD_URL,
+  AUTH_SIGNED_IN_URL,
+} from "~/lib/auth/constants";
 import { orpc, orpcRouterClient } from "~/lib/orpc";
+import { fetchIsForgotPasswordEnabled } from "~/server/auth/endpoints";
 
 const ERROR_MESSAGES = {
   INVALID_LOGIN: "Invalid email or password",

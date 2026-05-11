@@ -11,10 +11,7 @@ import { CardContent, CardFooter } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { authClient } from "~/lib/auth-client";
-import {
-  AUTH_PAGE_URL,
-  AUTH_RESET_PASSWORD_URL,
-} from "~/server/auth/constants";
+import { AUTH_PAGE_URL, AUTH_RESET_PASSWORD_URL } from "~/lib/auth/constants";
 
 function AlertPane({
   title,

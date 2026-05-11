@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "~/components/ui/button";
-import { AUTH_PAGE_URL } from "~/server/auth/constants";
+import { AUTH_PAGE_URL } from "~/lib/auth/constants";
 
 export function GetStartedButton() {
   return (

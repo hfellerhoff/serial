@@ -3,10 +3,6 @@ import { z } from "zod";
 
 export const env = createEnv({
   clientPrefix: "VITE_PUBLIC_",
-  /**
-   * Specify your client-side environment variables schema here.
-   * These are exposed to the browser via Vite's VITE_PUBLIC_ prefix.
-   */
   client: {
     VITE_PUBLIC_BASE_URL: z.url(),
     VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS: z.string().email().optional(),
@@ -15,10 +11,6 @@ export const env = createEnv({
     VITE_PUBLIC_IS_MAIN_INSTANCE: z.string().optional().default("false"),
     VITE_PUBLIC_IS_DEMO_INSTANCE: z.string().optional().default("false"),
   },
-  /**
-   * Specify your server-side environment variables schema here. This way you can ensure the app
-   * isn't built with invalid env vars.
-   */
   server: {
     DATABASE_URL: z.url().optional().default("http://127.0.0.1:8080"),
     DATABASE_AUTH_TOKEN: z
@@ -78,6 +70,27 @@ export const env = createEnv({
     OAUTH_USER_INFO_URL: z.string().optional(),
     OAUTH_SCOPES: z.string().optional(),
     OAUTH_PKCE: z.string().optional(),
+    OAUTH_REDIRECT_URI: z.string().optional(),
+    TRUSTED_ORIGINS: z
+      .string()
+      .optional()
+      .transform((val) => {
+        const origins = val
+          ? val
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
+
+        for (const origin of origins) {
+          try {
+            new URL(origin);
+          } catch {
+            throw new Error(`Invalid trusted origin URL: ${origin}`);
+          }
+        }
+        return origins;
+      }),
     SENTRY_DSN_BACKEND: z.string().url().optional(),
     SENTRY_AUTH_TOKEN: z.string().optional(),
     NODE_ENV: z
@@ -85,11 +98,6 @@ export const env = createEnv({
       .default("development"),
     IS_DEMO_INSTANCE: z.string().optional().default("false"),
   },
-
-  /**
-   * You can't destruct `process.env` as a regular object in the Next.js edge runtimes (e.g.
-   * middlewares) or client-side so we need to destruct manually.
-   */
   runtimeEnv: {
     VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS:
       import.meta.env?.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS ??
@@ -149,6 +157,8 @@ export const env = createEnv({
     OAUTH_USER_INFO_URL: process.env.OAUTH_USER_INFO_URL,
     OAUTH_SCOPES: process.env.OAUTH_SCOPES,
     OAUTH_PKCE: process.env.OAUTH_PKCE,
+    OAUTH_REDIRECT_URI: process.env.OAUTH_REDIRECT_URI,
+    TRUSTED_ORIGINS: process.env.TRUSTED_ORIGINS,
     SENTRY_DSN_BACKEND: process.env.SENTRY_DSN_BACKEND,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
     IS_DEMO_INSTANCE: process.env.IS_DEMO_INSTANCE,

@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { StarIcon } from "lucide-react";
 import { Button } from "../ui/button";
-import { AUTH_PAGE_URL } from "~/server/auth/constants";
+import { AUTH_PAGE_URL } from "~/lib/auth/constants";
 
 export function WebsiteNavigation(props: { isAuthed: boolean }) {
   return (

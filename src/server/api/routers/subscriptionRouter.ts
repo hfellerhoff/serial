@@ -24,23 +24,7 @@ import { fetchProducts } from "~/server/subscriptions/products";
 import { user } from "~/server/db/schema";
 import { IS_EMAIL_ENABLED } from "~/server/email";
 import { captureException } from "~/server/logger";
-import { env } from "~/env";
-
-function getValidatedOrigin(headers: Headers): string {
-  const origin = headers.get("origin") ?? headers.get("referer");
-  if (origin) {
-    try {
-      const parsed = new URL(origin);
-      const base = new URL(env.VITE_PUBLIC_BASE_URL);
-      if (parsed.origin === base.origin) {
-        return base.origin;
-      }
-    } catch {
-      // invalid URL, fall through
-    }
-  }
-  return env.VITE_PUBLIC_BASE_URL;
-}
+import { getValidatedOrigin } from "~/server/auth/constants";
 
 /** Cooldown window for syncAfterCheckout per user (seconds). */
 const SYNC_COOLDOWN_SECONDS = 30;

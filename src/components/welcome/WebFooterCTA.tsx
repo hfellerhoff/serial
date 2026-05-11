@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRightIcon, ExternalLinkIcon } from "lucide-react";
 import { Button } from "../ui/button";
-import { AUTH_PAGE_URL } from "~/server/auth/constants";
+import { AUTH_PAGE_URL } from "~/lib/auth/constants";
 
 export function WebFooterCTA() {
   const supportEmail = import.meta.env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS;
