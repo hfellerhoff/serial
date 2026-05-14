@@ -29,6 +29,7 @@ import {
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
+import { showUndoToast } from "~/lib/undo";
 
 export function MarkVisibleAsReadButton() {
   const [isLoading, setIsLoading] = useState(false);
@@ -77,6 +78,13 @@ export function MarkVisibleAsReadButton() {
         .filter((item) => item.feedId > 0);
 
       await bulkMutation.mutateAsync({ items, isWatched: true });
+
+      showUndoToast({
+        message: `Marked ${items.length} item${items.length === 1 ? "" : "s"} as read`,
+        onUndo: async () => {
+          await bulkMutation.mutateAsync({ items, isWatched: false });
+        },
+      });
 
       // Scroll to top
       getScrollContainer().scrollTo({ top: 0, behavior: "instant" });

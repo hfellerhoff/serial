@@ -147,6 +147,122 @@ export async function seedArticleData(
 }
 
 /**
+ * Creates a user via the Better Auth sign-up API, then seeds a website feed
+ * and multiple articles with HTML content directly in the DB.
+ *
+ * Returns the feed item IDs and credentials so the test can log in via the UI.
+ */
+export async function seedMultipleArticleData(
+  tursoPort: number,
+  appPort: number,
+  count: number = 3,
+  rssPort: number = SELF_HOSTED_RSS_SERVER_PORT,
+): Promise<{
+  feedItemIds: string[];
+  email: string;
+  password: string;
+}> {
+  const testId = uniqueId();
+  const email = `test-${testId}@example.com`;
+  const password = "testpassword123";
+
+  // Create user via API
+  const res = await fetch(
+    `http://localhost:${appPort}/api/auth/sign-up/email`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: `http://localhost:${appPort}`,
+      },
+      body: JSON.stringify({ name: "Test User", email, password }),
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(`Sign-up failed: ${res.status} ${await res.text()}`);
+  }
+
+  const { db, client } = getDb(tursoPort);
+
+  // Find the user by email
+  const testUser = await db
+    .select()
+    .from(schema.user)
+    .where(eq(schema.user.email, email))
+    .get();
+  if (!testUser) throw new Error("No user found after sign-up");
+
+  const now = new Date();
+  const farFuture = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365);
+
+  // Create a default "All" view so items appear on the home page
+  await db.insert(schema.views).values({
+    userId: testUser.id,
+    name: "All",
+    daysWindow: 0,
+    readStatus: 0,
+    orientation: "horizontal",
+    contentType: "all",
+    layout: "list",
+    placement: 0,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  // Create a website feed (skip re-fetch by setting nextFetchAt far in future)
+  const feedUrl = `http://127.0.0.1:${rssPort}/feed/test-blog?t=${testId}`;
+  const [testFeed] = await db
+    .insert(schema.feeds)
+    .values({
+      userId: testUser.id,
+      name: "Test Blog",
+      url: feedUrl,
+      imageUrl: "",
+      platform: "website",
+      openLocation: "serial",
+      createdAt: now,
+      updatedAt: now,
+      lastFetchedAt: now,
+      nextFetchAt: farFuture,
+    })
+    .returning();
+  if (!testFeed) throw new Error("Feed insert returned no rows");
+
+  // Create multiple article feed items with HTML content
+  // Stagger postedAt so they have a deterministic order (newest first)
+  const feedItemIds: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const feedItemId = `article-${testId}-${i}`;
+    const postedAt = new Date(now.getTime() + (count - i) * 1000);
+    await db.insert(schema.feedItems).values({
+      id: feedItemId,
+      feedId: testFeed.id,
+      contentId: feedItemId,
+      title: `Test Article ${i + 1}`,
+      author: "Test Author",
+      url: `http://127.0.0.1:${rssPort}/test-blog/${testId}-${i}`,
+      thumbnail: "",
+      content: ARTICLE_HTML,
+      contentSnippet: "Test article content",
+      isWatched: false,
+      isWatchLater: false,
+      progress: 0,
+      duration: 0,
+      orientation: "horizontal",
+      postedAt,
+      createdAt: now,
+      updatedAt: now,
+    });
+    feedItemIds.push(feedItemId);
+  }
+
+  client.close();
+
+  return { feedItemIds, email, password };
+}
+
+/**
  * Verifies that all user-related data has been cleaned up from the database.
  * Queries every table that references a user (directly or transitively) and
  * asserts zero orphaned rows remain.

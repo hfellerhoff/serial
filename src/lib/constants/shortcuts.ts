@@ -18,6 +18,7 @@ export const SHORTCUT_KEYS = {
   MARK_VISIBLE_READ: "f",
   OPEN_ORIGINAL: "o",
   SEND_TO_INSTAPAPER: "s",
+  UNDO: "z",
   ARROW_UP: { key: "ArrowUp", allowRepeat: true },
   ARROW_DOWN: { key: "ArrowDown", allowRepeat: true },
   ARROW_LEFT: { key: "ArrowLeft", allowRepeat: true },

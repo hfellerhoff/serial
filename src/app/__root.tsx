@@ -10,6 +10,7 @@ import { ThemeProvider } from "~/components/ThemeProvider";
 import { Toaster } from "~/components/ui/sonner";
 import { QueryProvider } from "~/lib/query-provider";
 import { ReloadPrompt } from "~/components/pwa/ReloadPrompt";
+import { UndoShortcutListener } from "~/lib/undo";
 import { Button } from "~/components/ui/button";
 import { BASE_SIGNED_OUT_URL } from "~/lib/constants";
 import { fetchConfigCss } from "~/server/auth/endpoints";
@@ -154,6 +155,7 @@ export function RootLayout() {
             {/* TODO: what is happening here */}
             <Scripts />
             <Toaster />
+            <UndoShortcutListener />
             <ReloadPrompt />
           </ThemeProvider>
         </QueryProvider>
