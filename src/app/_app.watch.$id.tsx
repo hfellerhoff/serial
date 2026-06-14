@@ -9,6 +9,7 @@ import { VideoDisplay } from "~/components/feed/watch/[id]/VideoDisplay";
 import useIsInactive from "~/lib/hooks/useIsInactive";
 import { useFeedItemValue } from "~/lib/data/store";
 import { useOpenOriginalShortcut } from "~/lib/hooks/useOpenOriginalShortcut";
+import { useRefreshFeedItem } from "~/lib/hooks/useRefreshFeedItem";
 
 export const Route = createFileRoute("/_app/watch/$id")({
   component: WatchVideoPage,
@@ -22,6 +23,7 @@ function WatchVideoPage() {
 
   const isInactive = useIsInactive();
   const feedItem = useFeedItemValue(params.id);
+  useRefreshFeedItem(params.id);
 
   useEffect(() => {
     if (isInactive) {

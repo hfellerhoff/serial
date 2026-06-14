@@ -18,7 +18,7 @@ test.describe("undo mark visible as read", () => {
   });
 
   test("clicking undo button restores unread items", async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(30000);
 
     const { email, password } = await seedMultipleArticleData(
       SELF_HOSTED_TURSO_PORT,
@@ -41,9 +41,9 @@ test.describe("undo mark visible as read", () => {
       .first();
     await expect(firstArticle).toBeVisible();
 
-    // Click "Mark visible as read" button
+    // Click "Mark all as read" button
     const markReadButton = page.getByRole("button", {
-      name: /mark visible as read/i,
+      name: /mark all as read/i,
     });
     await expect(markReadButton).toBeVisible();
     await markReadButton.click();
@@ -60,7 +60,7 @@ test.describe("undo mark visible as read", () => {
   });
 
   test("pressing z restores unread items", async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(30000);
 
     const { email, password } = await seedMultipleArticleData(
       SELF_HOSTED_TURSO_PORT,
@@ -83,8 +83,8 @@ test.describe("undo mark visible as read", () => {
       .first();
     await expect(firstArticle).toBeVisible();
 
-    // Use the "f" keyboard shortcut to mark visible as read
-    await page.keyboard.press("f");
+    // Use the "Shift+F" keyboard shortcut to mark visible as read
+    await page.keyboard.press("Shift+F");
 
     // Wait for undo toast to appear
     const undoToast = page.locator("text=/Marked.*item.*as read/i").first();

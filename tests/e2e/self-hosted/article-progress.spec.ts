@@ -4,7 +4,11 @@ import {
   SELF_HOSTED_APP_PORT,
   SELF_HOSTED_TURSO_PORT,
 } from "../fixtures/ports";
-import { cleanupUser, seedArticleData } from "../fixtures/seed-db";
+import {
+  cleanupUser,
+  getFeedItemProgress,
+  seedArticleData,
+} from "../fixtures/seed-db";
 
 test.describe("article progress tracking", () => {
   let testEmail: string;
@@ -45,9 +49,6 @@ test.describe("article progress tracking", () => {
     expect(initialScrollTop).toBe(0);
 
     // Scroll down using mouse wheel events to trigger progress tracking.
-    // The wheel handler in useArticleNavigation listens on window, so
-    // page.mouse.wheel dispatches the right events — it now works because
-    // the scroll container is the SidebarInset element, not the window.
     // We hover over the scroll container first so the wheel events land on it.
     const box = await scrollContainer.boundingBox();
     if (box) {
@@ -57,22 +58,25 @@ test.describe("article progress tracking", () => {
       await page.mouse.wheel(0, 300);
       await page.waitForTimeout(50);
     }
-    // Allow scroll event handlers and debounce (500ms) + buffer
-    await page.waitForTimeout(1000);
-
     // Verify we scrolled
     const scrolledTop = await scrollContainer.evaluate((el) => el.scrollTop);
     expect(scrolledTop).toBeGreaterThan(0);
 
-    // Capture the selected element's text so we can verify the *same*
-    // element is reselected after restore (not just any element).
+    // Mouse scrolling tracks progress without activating keyboard selection.
+    await page.waitForTimeout(250);
     const selectedElements = page.locator("[data-article-selected]");
-    const selectionCount = await selectedElements.count();
-    expect(selectionCount).toBeGreaterThan(0);
-    const savedSelectionText = (
-      await selectedElements.first().textContent()
-    )?.trim();
-    expect(savedSelectionText).toBeTruthy();
+    await expect(selectedElements).toHaveCount(0);
+
+    // Wait for the debounced mutation to reach the server before reloading.
+    await expect
+      .poll(() => getFeedItemProgress(SELF_HOSTED_TURSO_PORT, feedItemId))
+      .toBeGreaterThan(0);
+
+    // Saving progress updates feedItem, but must not trigger entry restoration
+    // and reposition a user who has already interacted with the article.
+    await expect
+      .poll(() => scrollContainer.evaluate((el) => el.scrollTop))
+      .toBe(scrolledTop);
 
     // Reload the page to test that progress persists across page loads.
     await page.reload({ waitUntil: "load" });
@@ -86,11 +90,6 @@ test.describe("article progress tracking", () => {
       page.locator('[data-slot="sidebar-inset"] p').first(),
     ).toBeVisible({ timeout: 15000 });
 
-    // Wait for progress restoration — the element with data-article-selected
-    // appears once the restoration effect fires and selects the saved element.
-    const restoredSelected = page.locator("[data-article-selected]");
-    await expect(restoredSelected.first()).toBeVisible({ timeout: 10000 });
-
     // Wait for SSE processing to settle so the scroll position is stable.
     await page.waitForTimeout(2000);
 
@@ -100,11 +99,10 @@ test.describe("article progress tracking", () => {
     );
     expect(restoredScrollTop).toBeGreaterThan(0);
 
-    // Verify the *same* element is selected after restore
-    expect(await restoredSelected.count()).toBeGreaterThan(0);
-    const restoredSelectionText = (
-      await restoredSelected.first().textContent()
-    )?.trim();
-    expect(restoredSelectionText).toBe(savedSelectionText);
+    // Restoration also leaves keyboard selection inactive.
+    await expect(selectedElements).toHaveCount(0);
+
+    await page.keyboard.press("ArrowDown");
+    await expect(selectedElements).toHaveCount(1);
   });
 });

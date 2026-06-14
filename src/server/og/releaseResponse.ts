@@ -1,4 +1,5 @@
 import { renderReleaseOgImage } from "./release";
+import { getOgScreenshotDataUrl } from "./screenshotDataUrls";
 import { findReleaseWithSlug } from "~/lib/markdown/loaders";
 
 export const RELEASE_OG_CACHE_CONTROL =
@@ -10,7 +11,8 @@ export async function getReleaseOgResponse(slug: string) {
     return new Response("Not Found", { status: 404 });
   }
 
-  const image = await renderReleaseOgImage(release);
+  const screenshotDataUrl = getOgScreenshotDataUrl("releases", release.slug);
+  const image = await renderReleaseOgImage(release, screenshotDataUrl);
   return new Response(new Uint8Array(image), {
     status: 200,
     headers: {

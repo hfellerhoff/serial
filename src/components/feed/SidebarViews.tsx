@@ -32,7 +32,7 @@ import type { Dispatch, SetStateAction } from "react";
 import type { DragEndEvent } from "@dnd-kit/core";
 
 import type { ApplicationView } from "~/server/db/schema";
-import { EditViewDialog } from "~/components/AddViewDialog";
+import { EditViewDialog } from "~/components/view-dialog";
 import {
   SidebarGroup,
   SidebarGroupLabel,

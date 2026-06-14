@@ -4,7 +4,7 @@
 
 export function ListItemSkeleton() {
   return (
-    <div className="flex w-full items-center gap-2 pt-4 pr-4 pb-4 pl-6 md:h-20 md:py-4">
+    <div className="flex w-full items-center gap-2 px-6 pt-4 pb-4 md:mx-4 md:h-20 md:px-2 md:py-0">
       <div className="grid w-16 place-items-center">
         <div className="bg-muted h-9 w-16 animate-pulse rounded" />
       </div>
@@ -18,7 +18,7 @@ export function ListItemSkeleton() {
 
 export function LargeListItemSkeleton() {
   return (
-    <div className="flex w-full flex-col gap-4 pt-4 pr-4 pb-1 pl-6 md:flex-row md:items-center md:pb-4">
+    <div className="flex w-full flex-col gap-4 px-6 pt-4 pb-1 md:mx-4 md:flex-row md:items-center md:px-2 md:py-2 md:pb-2">
       <div className="grid w-44 place-items-center">
         <div className="bg-muted aspect-video w-44 animate-pulse rounded" />
       </div>
@@ -60,7 +60,7 @@ export function LargeGridItemSkeleton() {
 
 export function StandardListSkeleton() {
   return (
-    <div className="w-full transition-all md:pt-4 md:pr-6 md:pl-4">
+    <div className="mx-auto w-full max-w-3xl transition-all md:pt-2">
       {Array.from({ length: 8 }).map((_, i) => (
         <ListItemSkeleton key={i} />
       ))}
@@ -70,7 +70,7 @@ export function StandardListSkeleton() {
 
 export function LargeListSkeleton() {
   return (
-    <div className="w-full transition-all md:pt-4 md:pr-6 md:pl-4">
+    <div className="mx-auto w-full max-w-3xl transition-all md:pt-2">
       {Array.from({ length: 6 }).map((_, i) => (
         <LargeListItemSkeleton key={i} />
       ))}
@@ -80,8 +80,8 @@ export function LargeListSkeleton() {
 
 export function GridSkeleton() {
   return (
-    <div className="w-full">
-      <div className="grid w-full grid-cols-2 gap-y-4 px-4 pt-4 md:grid-cols-[repeat(auto-fill,_minmax(180px,_1fr))] md:gap-2">
+    <div className="mx-auto w-full max-w-3xl px-4">
+      <div className="grid w-full grid-cols-2 gap-y-4 pt-4 md:grid-cols-[repeat(auto-fill,_minmax(180px,_1fr))] md:gap-2">
         {Array.from({ length: 12 }).map((_, i) => (
           <GridItemSkeleton key={i} />
         ))}
@@ -92,8 +92,8 @@ export function GridSkeleton() {
 
 export function LargeGridSkeleton() {
   return (
-    <div className="w-full">
-      <div className="grid w-full gap-4 px-4 pt-4 md:grid-cols-[repeat(auto-fill,_minmax(250px,_1fr))]">
+    <div className="mx-auto w-full max-w-3xl px-4">
+      <div className="grid w-full gap-4 pt-4 md:grid-cols-[repeat(auto-fill,_minmax(250px,_1fr))]">
         {Array.from({ length: 8 }).map((_, i) => (
           <LargeGridItemSkeleton key={i} />
         ))}

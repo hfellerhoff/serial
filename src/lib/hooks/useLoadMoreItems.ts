@@ -35,6 +35,17 @@ export function useLoadMoreItems() {
     feedFilter >= 0 ? "feed" : categoryFilter >= 0 ? "category" : "view";
 
   const viewId = currentView?.id;
+  let paginationKey: string;
+  switch (activeFilterType) {
+    case "feed":
+      paginationKey = `feed:${feedFilter}:${visibilityFilter}`;
+      break;
+    case "category":
+      paginationKey = `category:${categoryFilter}:${visibilityFilter}`;
+      break;
+    default:
+      paginationKey = `view:${viewId ?? "none"}:${visibilityFilter}`;
+  }
 
   const paginationState = useMemo(() => {
     switch (activeFilterType) {
@@ -61,15 +72,14 @@ export function useLoadMoreItems() {
   const handleLoadMore = useCallback(() => {
     switch (activeFilterType) {
       case "feed":
-        fetchMoreItemsForFeed(feedFilter, visibilityFilter);
-        break;
+        return fetchMoreItemsForFeed(feedFilter, visibilityFilter);
       case "category":
-        fetchMoreItemsForCategory(categoryFilter, visibilityFilter);
-        break;
+        return fetchMoreItemsForCategory(categoryFilter, visibilityFilter);
       default:
         if (viewId) {
-          fetchMoreItems(viewId, visibilityFilter);
+          return fetchMoreItems(viewId, visibilityFilter);
         }
+        return Promise.resolve();
     }
   }, [
     activeFilterType,
@@ -82,5 +92,5 @@ export function useLoadMoreItems() {
     fetchMoreItems,
   ]);
 
-  return { handleLoadMore, paginationState };
+  return { handleLoadMore, paginationKey, paginationState };
 }

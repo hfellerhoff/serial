@@ -1,4 +1,15 @@
-import { and, asc, desc, eq, inArray, lt, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  getTableColumns,
+  gt,
+  inArray,
+  lt,
+  or,
+  sql,
+} from "drizzle-orm";
 import { z } from "zod";
 import {
   GET_BY_VIEW_CHUNK_SIZE,
@@ -9,6 +20,7 @@ import {
 } from "../constants";
 import { publisher, trackChannelConnection } from "../publisher";
 import { insertFeedWithCategories } from "./feed-router/utils";
+import type { SQL } from "drizzle-orm";
 import type { VisibilityFilter } from "~/lib/data/atoms";
 import type {
   ApplicationFeed,
@@ -20,10 +32,11 @@ import type {
   DatabaseView,
   DatabaseViewCategory,
   DatabaseViewFeed,
+  DatabaseViewSection,
 } from "~/server/db/schema";
 import type { ORPCContext } from "~/server/orpc/base";
 import type { FetchFeedsStatus } from "~/server/rss/fetchFeeds";
-import { captureException } from "~/server/logger";
+import { captureException, logDebug, logError } from "~/server/logger";
 import {
   checkUserRefreshEligibility,
   getFeedsActivationBudget,
@@ -40,6 +53,7 @@ import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
 import { sortViewsByPlacement } from "~/lib/data/views/utils";
 import { prepareArrayChunks } from "~/lib/iterators";
 import { buildUncategorizedView } from "~/server/api/utils/buildUncategorizedView";
+import { VIEW_LAYOUT_ITEM_TYPE } from "~/server/db/constants";
 
 import { parseArrayOfSchema } from "~/lib/schemas/utils";
 import { dbSemaphore } from "~/lib/semaphore";
@@ -53,16 +67,24 @@ import {
   viewCategories,
   viewFeeds,
   views,
+  viewSections,
 } from "~/server/db/schema";
 import { protectedProcedure } from "~/server/orpc/base";
 import { fetchAndInsertFeedData } from "~/server/rss/fetchFeeds";
 import { refreshUserFeeds } from "~/server/rss/refreshUserFeeds";
 
-export type PaginationCursor = { postedAt: Date; id: string } | null;
+export type PaginationCursor = {
+  placement?: number;
+  postedAt: Date;
+  id: string;
+  isWatchedUpdatedAt?: Date | null;
+} | null;
 
 export type ClientManifestEntry = {
   id: string;
   contentHash: string | null;
+  progress?: number | null;
+  duration?: number | null;
 };
 
 export type DiffEntry =
@@ -70,6 +92,18 @@ export type DiffEntry =
   | { status: "updated"; item: ApplicationFeedItem }
   | { status: "new"; item: ApplicationFeedItem }
   | { status: "deleted"; id: string };
+
+/** Feed item without the heavy `content` field, used for the initial lightweight fetch.
+ *  `contentSnippet` is kept because large-list / large-grid layouts use it for the
+ *  description line and we want that visible immediately. */
+export type LightweightFeedItem = Omit<ApplicationFeedItem, "content">;
+
+/** Fulltext content patch for items that need it after the lightweight fetch. */
+export type FeedItemFulltext = {
+  id: string;
+  content: string;
+  contentSnippet: string;
+};
 
 type ViewBoundary = {
   oldestPostedAt: Date | null;
@@ -124,6 +158,19 @@ export type GetByViewChunk =
       diff: DiffEntry[];
       cursor: PaginationCursor;
       hasMore: boolean;
+      replacesScope?: boolean;
+    }
+  | {
+      type: "view-lightweight-items";
+      viewId: number;
+      visibilityFilter: string;
+      items: LightweightFeedItem[];
+      cursor: PaginationCursor;
+      hasMore: boolean;
+    }
+  | {
+      type: "fulltext-items";
+      items: FeedItemFulltext[];
     }
   | ViewDataChunk;
 
@@ -139,6 +186,18 @@ export type RevalidateViewChunk =
     }
   | { type: "view-feeds"; viewId: number; feedIds: number[] }
   | { type: "error"; message: string; phase: string };
+
+type RouterPublishedChunk =
+  | { source: "initial"; chunk: GetByViewChunk }
+  | { source: "revalidate"; chunk: RevalidateViewChunk }
+  | { source: "visibility"; chunk: GetItemsByVisibilityChunk }
+  | { source: "feed"; chunk: GetItemsByFeedChunk }
+  | { source: "category"; chunk: GetItemsByCategoryIdChunk };
+
+type ChannelSubscription = {
+  channel: string;
+  lastEventId?: string;
+};
 
 function buildFeedCategoriesMap(
   allFeedCategories: DatabaseFeedCategory[],
@@ -275,63 +334,31 @@ async function fetchContentForView(
 ): Promise<FetchContentForViewResult> {
   visibilityFilter ??= "unread";
 
-  // Default empty boundary
-  const emptyBoundary: ViewBoundary = {
-    oldestPostedAt: null,
-    sentItemIds: new Set(),
-  };
-
   try {
-    const filterConditions = [
-      inArray(feedItems.feedId, feedIds),
-      buildVisibilityFilter(visibilityFilter),
-      buildViewCategoryFilter(
-        view,
-        feedCategoriesList,
-        feedIds,
-        customViewCategoryIds,
-        customViews,
-        applicationFeeds,
-      ),
-      buildContentTypeFilter(view.contentType, applicationFeeds),
-      buildTimeWindowFilter(view.daysWindow),
-    ].filter(Boolean);
-
-    const filter =
-      filterConditions.length > 0 ? and(...filterConditions) : undefined;
-
-    const initialItems = await context.db.query.feedItems.findMany({
-      where: filter,
-      orderBy: desc(feedItems.postedAt),
+    const { items } = await queryFeedItemsForView(context, view, {
+      visibilityFilter,
+      feedIds,
+      cursor: null,
       limit: INITIAL_ITEMS_PER_VIEW,
+      feedsById,
+      feedCategoriesList,
+      customViewCategoryIds,
+      customViews,
+      applicationFeeds,
     });
 
-    if (initialItems.length > 0) {
-      const applicationItems = initialItems.map((item) => {
-        const itemFeed = feedsById.get(item.feedId);
-        return {
-          ...item,
-          platform: itemFeed?.platform ?? "youtube",
-        } as ApplicationFeedItem;
-      });
-
-      // Compute boundary: track sent item IDs and oldest postedAt
-      const sentItemIds = new Set(initialItems.map((item) => item.id));
-      const oldestPostedAt = initialItems[initialItems.length - 1]!.postedAt;
-
-      return {
-        chunk: {
-          type: "feed-items",
-          viewId: view.id,
-          feedItems: applicationItems,
-          visibilityFilter: visibilityFilter,
-        },
-        boundary: {
-          oldestPostedAt,
-          sentItemIds,
-        },
-      };
-    }
+    return {
+      chunk: {
+        type: "feed-items",
+        viewId: view.id,
+        feedItems: items,
+        visibilityFilter: visibilityFilter,
+      },
+      boundary: {
+        oldestPostedAt: null,
+        sentItemIds: new Set(),
+      },
+    };
   } catch (error) {
     captureException(error);
     return {
@@ -344,20 +371,12 @@ async function fetchContentForView(
         phase: "initial-items",
         viewId: view.id,
       },
-      boundary: emptyBoundary,
+      boundary: {
+        oldestPostedAt: null,
+        sentItemIds: new Set(),
+      },
     };
-    // Continue to next view instead of stopping
   }
-
-  return {
-    chunk: {
-      type: "feed-items",
-      viewId: view.id,
-      feedItems: [],
-      visibilityFilter: visibilityFilter,
-    },
-    boundary: emptyBoundary,
-  };
 }
 
 async function* fetchContentForViews(
@@ -406,9 +425,9 @@ function computeViewDiff(
   serverItems: ApplicationFeedItem[],
   clientManifest: ClientManifestEntry[],
 ): DiffEntry[] {
-  const clientMap = new Map<string, string | null>();
+  const clientMap = new Map<string, ClientManifestEntry>();
   for (const entry of clientManifest) {
-    clientMap.set(entry.id, entry.contentHash);
+    clientMap.set(entry.id, entry);
   }
 
   const serverIds = new Set<string>();
@@ -420,14 +439,21 @@ function computeViewDiff(
     if (!clientMap.has(item.id)) {
       diff.push({ status: "new", item });
     } else {
-      const clientHash = clientMap.get(item.id);
+      const clientEntry = clientMap.get(item.id);
+      const clientHash = clientEntry?.contentHash;
       // null hash on either side means we can't confirm match — treat as updated
       const hashesMatch =
         clientHash !== null &&
         item.contentHash !== null &&
         clientHash === item.contentHash;
+      const progressMatches =
+        clientEntry?.progress === undefined ||
+        clientEntry.progress === item.progress;
+      const durationMatches =
+        clientEntry?.duration === undefined ||
+        clientEntry.duration === item.duration;
 
-      if (hashesMatch) {
+      if (hashesMatch && progressMatches && durationMatches) {
         diff.push({ status: "unchanged", id: item.id });
       } else {
         diff.push({ status: "updated", item });
@@ -449,6 +475,69 @@ function getUserChannel(userId: string): string {
   return `user:${userId}`;
 }
 
+function getClientChannel(userId: string, clientId: string): string {
+  return `${getUserChannel(userId)}:client:${clientId}`;
+}
+
+const clientScopedInputSchema = z.object({
+  clientId: z
+    .string()
+    .min(1)
+    .max(128)
+    .regex(/^[A-Za-z0-9_-]+$/),
+});
+
+async function* subscribeToChannels(
+  subscriptions: ChannelSubscription[],
+  signal: AbortSignal | undefined,
+): AsyncGenerator<RouterPublishedChunk> {
+  const iterators = subscriptions.map((subscription) => {
+    const channelSubscription = publisher.subscribe(subscription.channel, {
+      signal,
+      lastEventId: subscription.lastEventId,
+    });
+
+    return channelSubscription[Symbol.asyncIterator]();
+  });
+
+  type NextResult = {
+    index: number;
+    result: IteratorResult<RouterPublishedChunk>;
+  };
+
+  const pending = new Map<number, Promise<NextResult>>();
+  const queueNext = (index: number) => {
+    const iterator = iterators[index];
+    if (!iterator) return;
+
+    pending.set(
+      index,
+      iterator.next().then((result) => ({
+        index,
+        result,
+      })),
+    );
+  };
+
+  iterators.forEach((_, index) => queueNext(index));
+
+  try {
+    while (pending.size > 0) {
+      const { index, result } = await Promise.race(pending.values());
+      pending.delete(index);
+
+      if (result.done) {
+        continue;
+      }
+
+      queueNext(index);
+      yield result.value;
+    }
+  } finally {
+    await Promise.allSettled(iterators.map((iterator) => iterator.return?.()));
+  }
+}
+
 // ============================================================================
 // PREREQUISITE DATA HELPERS
 // ============================================================================
@@ -460,6 +549,7 @@ type PrerequisiteData = {
   feedCategoriesList: DatabaseFeedCategory[];
   viewCategoriesList: DatabaseViewCategory[];
   viewFeedsList: DatabaseViewFeed[];
+  viewSectionsList: DatabaseViewSection[];
 };
 
 /**
@@ -495,27 +585,38 @@ async function fetchUserPrerequisiteData(
   const userContentCategoryIds = contentCategoriesList.map((cc) => cc.id);
   const userViewIds = viewsList.map((v) => v.id);
 
-  const [feedCategoriesList, viewCategoriesList, viewFeedsList] =
-    await Promise.all([
-      userContentCategoryIds.length > 0
-        ? context.db
-            .select()
-            .from(feedCategories)
-            .where(inArray(feedCategories.categoryId, userContentCategoryIds))
-        : Promise.resolve([]),
-      userViewIds.length > 0
-        ? context.db
-            .select()
-            .from(viewCategories)
-            .where(inArray(viewCategories.viewId, userViewIds))
-        : Promise.resolve([]),
-      userViewIds.length > 0
-        ? context.db
-            .select()
-            .from(viewFeeds)
-            .where(inArray(viewFeeds.viewId, userViewIds))
-        : Promise.resolve([]),
-    ]);
+  const [
+    feedCategoriesList,
+    viewCategoriesList,
+    viewFeedsList,
+    viewSectionsList,
+  ] = await Promise.all([
+    userContentCategoryIds.length > 0
+      ? context.db
+          .select()
+          .from(feedCategories)
+          .where(inArray(feedCategories.categoryId, userContentCategoryIds))
+      : Promise.resolve([]),
+    userViewIds.length > 0
+      ? context.db
+          .select()
+          .from(viewCategories)
+          .where(inArray(viewCategories.viewId, userViewIds))
+      : Promise.resolve([]),
+    userViewIds.length > 0
+      ? context.db
+          .select()
+          .from(viewFeeds)
+          .where(inArray(viewFeeds.viewId, userViewIds))
+      : Promise.resolve([]),
+    userViewIds.length > 0
+      ? context.db
+          .select()
+          .from(viewSections)
+          .where(inArray(viewSections.viewId, userViewIds))
+          .orderBy(asc(viewSections.placement))
+      : Promise.resolve([]),
+  ]);
 
   return {
     viewsList,
@@ -524,6 +625,7 @@ async function fetchUserPrerequisiteData(
     feedCategoriesList,
     viewCategoriesList,
     viewFeedsList,
+    viewSectionsList,
   };
 }
 
@@ -544,8 +646,9 @@ function buildApplicationViews(
   contentCategoriesList: PrerequisiteData["contentCategoriesList"],
   viewCategoriesList: PrerequisiteData["viewCategoriesList"],
   viewFeedsList: PrerequisiteData["viewFeedsList"],
+  viewSectionsList: PrerequisiteData["viewSectionsList"],
 ): ApplicationViewsData {
-  // Transform database views to ApplicationView with categoryIds and feedIds
+  // Transform database views to ApplicationView with categoryIds, feedIds, and viewSections
   const customViews: ApplicationView[] = viewsList.map((view) => ({
     ...view,
     isDefault: false,
@@ -556,6 +659,12 @@ function buildApplicationViews(
     feedIds: viewFeedsList
       .filter((vf) => vf.viewId === view.id)
       .map((vf) => vf.feedId),
+    viewSections: viewSectionsList
+      .filter((sv) => sv.viewId === view.id)
+      .map((sv) => ({
+        ...sv,
+        itemType: sv.itemType as "tag" | "feed",
+      })),
   }));
 
   // Build the Uncategorized view
@@ -593,17 +702,26 @@ type PaginationResult<T> = {
  * Process pagination results: determine hasMore, slice items, create nextCursor.
  * Pass itemsData from a query that fetched limit + 1 items.
  */
-function processPaginationResults<T extends { postedAt: Date; id: string }>(
-  itemsData: T[],
-  limit: number,
-): PaginationResult<T> {
+function processPaginationResults<
+  T extends {
+    postedAt: Date;
+    id: string;
+    placement?: number;
+    isWatchedUpdatedAt?: Date | null;
+  },
+>(itemsData: T[], limit: number): PaginationResult<T> {
   const hasMore = itemsData.length > limit;
   const itemsToReturn = hasMore ? itemsData.slice(0, limit) : itemsData;
 
   const lastItem = itemsToReturn[itemsToReturn.length - 1];
   const nextCursor: PaginationCursor =
     hasMore && lastItem
-      ? { postedAt: lastItem.postedAt, id: lastItem.id }
+      ? {
+          placement: lastItem.placement,
+          postedAt: lastItem.postedAt,
+          id: lastItem.id,
+          isWatchedUpdatedAt: lastItem.isWatchedUpdatedAt ?? undefined,
+        }
       : null;
 
   return { itemsToReturn, hasMore, nextCursor };
@@ -623,6 +741,379 @@ function mapToApplicationFeedItems(
       platform: itemFeed?.platform ?? "youtube",
     } as ApplicationFeedItem;
   });
+}
+
+const lightweightFeedItemColumns = {
+  id: feedItems.id,
+  feedId: feedItems.feedId,
+  contentId: feedItems.contentId,
+  title: feedItems.title,
+  author: feedItems.author,
+  url: feedItems.url,
+  thumbnail: feedItems.thumbnail,
+  isWatched: feedItems.isWatched,
+  isWatchLater: feedItems.isWatchLater,
+  progress: feedItems.progress,
+  duration: feedItems.duration,
+  orientation: feedItems.orientation,
+  postedAt: feedItems.postedAt,
+  createdAt: feedItems.createdAt,
+  updatedAt: feedItems.updatedAt,
+  isWatchedUpdatedAt: feedItems.isWatchedUpdatedAt,
+  isWatchLaterUpdatedAt: feedItems.isWatchLaterUpdatedAt,
+  contentHash: feedItems.contentHash,
+  contentSnippet: feedItems.contentSnippet,
+};
+
+type ViewPaginatedFeedItemScope = {
+  type: "view";
+  view: ApplicationView;
+  feedIds: number[];
+  feedCategoriesList: DatabaseFeedCategory[];
+  customViewCategoryIds: Set<number>;
+  customViews: ApplicationView[];
+  applicationFeeds: ApplicationFeed[];
+  customViewFeedIds?: Set<number>;
+};
+
+type PaginatedFeedItemScope =
+  | ViewPaginatedFeedItemScope
+  | { type: "feed"; feedId: number }
+  | { type: "category"; feedIds: number[] };
+
+function buildPaginatedFeedItemQuery({
+  scope,
+  visibilityFilter,
+  cursor,
+}: {
+  scope: PaginatedFeedItemScope;
+  visibilityFilter: VisibilityFilter;
+  cursor: PaginationCursor | null;
+}) {
+  const isReadVisibility = visibilityFilter === "read";
+  const hasSections =
+    scope.type === "view" &&
+    !isReadVisibility &&
+    scope.view.viewSections &&
+    scope.view.viewSections.length > 0;
+  const placementExpr =
+    hasSections && scope.type === "view"
+      ? buildSectionPlacementExpression(scope.view.id)
+      : undefined;
+
+  const scopeFilterConditions =
+    scope.type === "view"
+      ? [
+          inArray(feedItems.feedId, scope.feedIds),
+          buildViewCategoryFilter(
+            scope.view,
+            scope.feedCategoriesList,
+            scope.feedIds,
+            scope.customViewCategoryIds,
+            scope.customViews,
+            scope.applicationFeeds,
+            scope.customViewFeedIds,
+          ),
+          buildContentTypeFilter(
+            scope.view.contentType,
+            scope.applicationFeeds,
+          ),
+          buildTimeWindowFilter(scope.view.daysWindow),
+        ]
+      : scope.type === "feed"
+        ? [eq(feedItems.feedId, scope.feedId)]
+        : [inArray(feedItems.feedId, scope.feedIds)];
+
+  const filterConditions = [
+    ...scopeFilterConditions,
+    buildVisibilityFilter(visibilityFilter),
+    buildCursorCondition(cursor, placementExpr),
+  ].filter((f): f is NonNullable<typeof f> => f !== undefined);
+
+  return {
+    filter: filterConditions.length > 0 ? and(...filterConditions) : undefined,
+    orderBy: placementExpr
+      ? [asc(placementExpr), desc(feedItems.postedAt), desc(feedItems.id)]
+      : buildFlatItemsOrderBy(visibilityFilter),
+    placementExpr,
+  };
+}
+
+function mapToLightweightFeedItems(
+  items: Array<
+    { feedId: number; postedAt: Date; id: string } & Record<string, unknown>
+  >,
+  feedsById: Map<number, DatabaseFeed>,
+): LightweightFeedItem[] {
+  return items.map((item) => {
+    const itemFeed = feedsById.get(item.feedId);
+    return {
+      ...item,
+      platform: itemFeed?.platform ?? "youtube",
+    } as unknown as LightweightFeedItem;
+  });
+}
+
+/**
+ * Same as queryFeedItemsForView but returns lightweight items (no content).
+ * contentSnippet is included because large-list / large-grid layouts use it
+ * for the description line and we want that visible immediately.
+ */
+async function queryLightweightItemsForView(
+  context: ORPCContext,
+  view: ApplicationView,
+  params: {
+    visibilityFilter: VisibilityFilter;
+    feedIds: number[];
+    cursor: PaginationCursor | null;
+    limit: number;
+    feedsById: Map<number, DatabaseFeed>;
+    feedCategoriesList: DatabaseFeedCategory[];
+    customViewCategoryIds: Set<number>;
+    customViews: ApplicationView[];
+    applicationFeeds: ApplicationFeed[];
+    customViewFeedIds?: Set<number>;
+  },
+): Promise<{
+  items: LightweightFeedItem[];
+  hasMore: boolean;
+  nextCursor: PaginationCursor;
+}> {
+  const {
+    visibilityFilter,
+    feedIds,
+    cursor,
+    limit,
+    feedsById,
+    feedCategoriesList,
+    customViewCategoryIds,
+    customViews,
+    applicationFeeds,
+    customViewFeedIds,
+  } = params;
+
+  let itemsData: Array<
+    Omit<typeof feedItems.$inferSelect, "content" | "contentSnippet"> & {
+      placement?: number;
+    }
+  >;
+  const queryParts = buildPaginatedFeedItemQuery({
+    scope: {
+      type: "view",
+      view,
+      feedIds,
+      feedCategoriesList,
+      customViewCategoryIds,
+      customViews,
+      applicationFeeds,
+      customViewFeedIds,
+    },
+    visibilityFilter,
+    cursor,
+  });
+
+  if (!queryParts.placementExpr) {
+    itemsData = await context.db
+      .select(lightweightFeedItemColumns)
+      .from(feedItems)
+      .where(queryParts.filter)
+      .orderBy(...queryParts.orderBy)
+      .limit(limit + 1);
+  } else {
+    itemsData = await context.db
+      .select({
+        ...lightweightFeedItemColumns,
+        placement: queryParts.placementExpr,
+      })
+      .from(feedItems)
+      .where(queryParts.filter)
+      .orderBy(...queryParts.orderBy)
+      .limit(limit + 1);
+  }
+
+  const { itemsToReturn, hasMore, nextCursor } = processPaginationResults(
+    itemsData,
+    limit,
+  );
+
+  const lightweightItems = mapToLightweightFeedItems(itemsToReturn, feedsById);
+
+  return {
+    items: lightweightItems,
+    hasMore,
+    nextCursor,
+  };
+}
+
+async function queryAndPublishLightweightItemsForViews(
+  channel: string,
+  context: ORPCContext,
+  viewList: ApplicationView[],
+  visibilityFilter: VisibilityFilter,
+  params: {
+    feedIds: number[];
+    feedsById: Map<number, DatabaseFeed>;
+    feedCategoriesList: DatabaseFeedCategory[];
+    customViewCategoryIds: Set<number>;
+    customViews: ApplicationView[];
+    applicationFeeds: ApplicationFeed[];
+    customViewFeedIds: Set<number>;
+  },
+) {
+  const pendingPromises = new Map<
+    number,
+    Promise<{ viewId: number; chunk: GetByViewChunk }>
+  >();
+
+  for (const view of viewList) {
+    const requestViewItems = async (): Promise<{
+      viewId: number;
+      chunk: GetByViewChunk;
+    }> => {
+      try {
+        const { items, hasMore, nextCursor } =
+          await queryLightweightItemsForView(context, view, {
+            ...params,
+            visibilityFilter,
+            cursor: null,
+            limit: INITIAL_ITEMS_PER_VIEW,
+          });
+
+        return {
+          viewId: view.id,
+          chunk: {
+            type: "view-lightweight-items",
+            viewId: view.id,
+            visibilityFilter,
+            items,
+            cursor: nextCursor,
+            hasMore,
+          },
+        };
+      } catch (error) {
+        captureException(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        logError(
+          `[view-lightweight-items] view=${view.id} visibility=${visibilityFilter} error:`,
+          errorMessage,
+          error,
+        );
+
+        return {
+          viewId: view.id,
+          chunk: {
+            type: "error",
+            message: errorMessage,
+            phase: "view-lightweight-items",
+            viewId: view.id,
+          },
+        };
+      }
+    };
+
+    pendingPromises.set(view.id, requestViewItems());
+  }
+
+  while (pendingPromises.size > 0) {
+    const { viewId, chunk } = await Promise.race(pendingPromises.values());
+    pendingPromises.delete(viewId);
+    await publisher.publish(channel, { source: "initial", chunk });
+  }
+}
+
+/**
+ * Shared helper to query feed items for a view with correct ordering based on
+ * visibility filter and section configuration.
+ *
+ * - "read" visibility: orders by isWatchedUpdatedAt (ignores sections)
+ * - Non-sectioned views: orders by postedAt
+ * - Sectioned views: orders by section placement, then postedAt
+ *
+ * Queries limit + 1 to determine hasMore, then slices.
+ */
+async function queryFeedItemsForView(
+  context: ORPCContext,
+  view: ApplicationView,
+  params: {
+    visibilityFilter: VisibilityFilter;
+    feedIds: number[];
+    cursor: PaginationCursor | null;
+    limit: number;
+    feedsById: Map<number, DatabaseFeed>;
+    feedCategoriesList: DatabaseFeedCategory[];
+    customViewCategoryIds: Set<number>;
+    customViews: ApplicationView[];
+    applicationFeeds: ApplicationFeed[];
+    customViewFeedIds?: Set<number>;
+  },
+): Promise<{
+  items: ApplicationFeedItem[];
+  hasMore: boolean;
+  nextCursor: PaginationCursor;
+}> {
+  const {
+    visibilityFilter,
+    feedIds,
+    cursor,
+    limit,
+    feedsById,
+    feedCategoriesList,
+    customViewCategoryIds,
+    customViews,
+    applicationFeeds,
+    customViewFeedIds,
+  } = params;
+
+  let itemsData: Array<typeof feedItems.$inferSelect & { placement?: number }>;
+  const queryParts = buildPaginatedFeedItemQuery({
+    scope: {
+      type: "view",
+      view,
+      feedIds,
+      feedCategoriesList,
+      customViewCategoryIds,
+      customViews,
+      applicationFeeds,
+      customViewFeedIds,
+    },
+    visibilityFilter,
+    cursor,
+  });
+
+  if (!queryParts.placementExpr) {
+    itemsData = await context.db.query.feedItems.findMany({
+      where: queryParts.filter,
+      orderBy: queryParts.orderBy,
+      limit: limit + 1,
+    });
+  } else {
+    itemsData = await context.db
+      .select({
+        ...getTableColumns(feedItems),
+        placement: queryParts.placementExpr,
+      })
+      .from(feedItems)
+      .where(queryParts.filter)
+      .orderBy(...queryParts.orderBy)
+      .limit(limit + 1);
+  }
+
+  const { itemsToReturn, hasMore, nextCursor } = processPaginationResults(
+    itemsData,
+    limit,
+  );
+
+  const applicationFeedItems = mapToApplicationFeedItems(
+    itemsToReturn,
+    feedsById,
+  );
+
+  return {
+    items: applicationFeedItems,
+    hasMore,
+    nextCursor,
+  };
 }
 
 type PreparedApplicationData = {
@@ -649,6 +1140,7 @@ function prepareApplicationData(
     contentCategoriesList,
     viewCategoriesList,
     viewFeedsList,
+    viewSectionsList,
   } = prerequisiteData;
 
   const { customViews, allViews, customViewCategoryIds, customViewFeedIds } =
@@ -658,6 +1150,7 @@ function prepareApplicationData(
       contentCategoriesList,
       viewCategoriesList,
       viewFeedsList,
+      viewSectionsList,
     );
 
   const applicationFeeds = parseArrayOfSchema(feedsList, feedsSchema);
@@ -789,34 +1282,36 @@ async function publishViewFeedsChunks(
 // ============================================================================
 
 /**
- * Subscribe to the user's channel to receive real-time data chunks.
+ * Subscribe to the user's broadcast channel and this client's reply channel.
  * This creates a long-lived SSE connection.
  */
-export const subscribe = protectedProcedure.handler(async function* ({
-  context,
-  signal,
-  lastEventId,
-}) {
-  const channel = getUserChannel(context.user.id);
-  const untrack = trackChannelConnection(channel);
+export const subscribe = protectedProcedure
+  .input(clientScopedInputSchema)
+  .handler(async function* ({ context, input, signal, lastEventId }) {
+    const userChannel = getUserChannel(context.user.id);
+    const clientChannel = getClientChannel(context.user.id, input.clientId);
+    const untrack = trackChannelConnection(userChannel);
 
-  try {
-    const iterator = publisher.subscribe(channel, { signal, lastEventId });
-
-    for await (const payload of iterator) {
-      yield payload;
+    try {
+      for await (const payload of subscribeToChannels(
+        [{ channel: userChannel, lastEventId }, { channel: clientChannel }],
+        signal,
+      )) {
+        yield payload;
+      }
+    } finally {
+      untrack();
     }
-  } finally {
-    untrack();
-  }
-});
+  });
 
 // ============================================================================
 // REQUEST PROCEDURES (publish instead of yield)
 // ============================================================================
 
 /**
- * Request initial data load. Data is published to the user's channel.
+ * Request initial data load. Database-backed response chunks are published
+ * only to the requesting client's reply channel; newly fetched RSS data is
+ * broadcast to the user's channel.
  *
  * The client sends a `viewManifests` map of its cached items per view so the
  * server can compute a diff and stream only what changed. If no manifests are
@@ -832,28 +1327,10 @@ export const subscribe = protectedProcedure.handler(async function* ({
  *   5. If feeds are due for refresh, call refreshUserFeeds
  */
 export const requestInitialData = protectedProcedure
-  .input(
-    z
-      .object({
-        viewManifests: z.record(
-          z.coerce.number(),
-          z.record(
-            z.string(), // visibility filter key ("unread", "read", "later")
-            z.array(
-              z.object({
-                id: z.string(),
-                contentHash: z.string().nullable(),
-              }),
-            ),
-          ),
-        ),
-      })
-      .partial()
-      .optional(),
-  )
+  .input(clientScopedInputSchema)
   .handler(async ({ context, input }) => {
-    const channel = getUserChannel(context.user.id);
-    const viewManifests = input?.viewManifests ?? {};
+    const userChannel = getUserChannel(context.user.id);
+    const clientChannel = getClientChannel(context.user.id, input.clientId);
 
     // Step 1: Fetch all prerequisite data using helper
     let prerequisiteData: PrerequisiteData;
@@ -861,7 +1338,7 @@ export const requestInitialData = protectedProcedure
       prerequisiteData = await fetchUserPrerequisiteData(context);
     } catch (error) {
       captureException(error);
-      await publisher.publish(channel, {
+      await publisher.publish(clientChannel, {
         source: "initial",
         chunk: {
           type: "error",
@@ -875,6 +1352,10 @@ export const requestInitialData = protectedProcedure
       });
       return { status: "error" };
     }
+
+    logDebug(
+      `[requestInitialData] user=${context.user.id} phase=prerequisites-fetched`,
+    );
 
     const { feedsList, contentCategoriesList, feedCategoriesList } =
       prerequisiteData;
@@ -890,16 +1371,24 @@ export const requestInitialData = protectedProcedure
       feedIds,
     } = prepareApplicationData(context.user.id, prerequisiteData);
 
+    logDebug(
+      `[requestInitialData] user=${context.user.id} phase=application-data-prepared`,
+    );
+
     // Step 2: Publish prerequisite data chunks
-    await publishPrerequisiteDataChunks(channel, "initial", {
+    await publishPrerequisiteDataChunks(clientChannel, "initial", {
       allViews,
       applicationFeeds,
       contentCategoriesList,
       feedCategoriesList,
     });
 
+    logDebug(
+      `[requestInitialData] user=${context.user.id} phase=prerequisites-published`,
+    );
+
     // Step 3: Publish view-feeds chunks for each view
-    await publishViewFeedsChunks(channel, "initial", {
+    await publishViewFeedsChunks(clientChannel, "initial", {
       allViews,
       applicationFeeds,
       feedCategoriesList,
@@ -908,120 +1397,77 @@ export const requestInitialData = protectedProcedure
       customViewFeedIds,
     });
 
+    logDebug(
+      `[requestInitialData] user=${context.user.id} phase=view-feeds-published`,
+    );
+
     const firstView = allViews[0];
 
     if (feedIds.length === 0 || !firstView) {
-      await publisher.publish(channel, {
+      await publisher.publish(clientChannel, {
         source: "initial",
         chunk: { type: "initial-data-complete" },
       });
+      logDebug(
+        `[requestInitialData] user=${context.user.id} phase=early-complete-no-feeds`,
+      );
       return { status: "completed" };
     }
 
-    // Helper: query initial items for a view + visibility, diff against
-    // client manifest, and publish a view-diff chunk.
-    async function queryAndPublishViewDiff(
-      view: ApplicationView,
-      visibilityFilter: VisibilityFilter,
-    ) {
-      try {
-        const filterConditions = [
-          inArray(feedItems.feedId, feedIds),
-          buildVisibilityFilter(visibilityFilter),
-          buildViewCategoryFilter(
-            view,
-            feedCategoriesList,
-            feedIds,
-            customViewCategoryIds,
-            customViews,
-            applicationFeeds,
-          ),
-          buildContentTypeFilter(view.contentType, applicationFeeds),
-          buildTimeWindowFilter(view.daysWindow),
-        ].filter(Boolean);
+    const lightweightQueryParams = {
+      feedIds,
+      feedsById,
+      feedCategoriesList,
+      customViewCategoryIds,
+      customViews,
+      applicationFeeds,
+      customViewFeedIds,
+    };
 
-        const filter =
-          filterConditions.length > 0 ? and(...filterConditions) : undefined;
+    // Step 4: Publish unread lightweight items for all views (highest priority)
+    await queryAndPublishLightweightItemsForViews(
+      clientChannel,
+      context,
+      allViews,
+      "unread",
+      lightweightQueryParams,
+    );
 
-        // Query limit + 1 to determine hasMore
-        const itemsData = await context.db.query.feedItems.findMany({
-          where: filter,
-          orderBy: desc(feedItems.postedAt),
-          limit: INITIAL_ITEMS_PER_VIEW + 1,
-        });
-
-        const hasMore = itemsData.length > INITIAL_ITEMS_PER_VIEW;
-        const serverItems = hasMore
-          ? itemsData.slice(0, INITIAL_ITEMS_PER_VIEW)
-          : itemsData;
-
-        const lastItem = serverItems[serverItems.length - 1];
-        const cursor: PaginationCursor = lastItem
-          ? { postedAt: lastItem.postedAt, id: lastItem.id }
-          : null;
-
-        // Map to ApplicationFeedItem with platform
-        const applicationItems = serverItems.map((item) => {
-          const itemFeed = feedsById.get(item.feedId);
-          return {
-            ...item,
-            platform: itemFeed?.platform ?? "youtube",
-          } as ApplicationFeedItem;
-        });
-
-        // Get the client manifest for this specific view + visibility filter.
-        // Each visibility filter is diffed independently, so we must only
-        // compare against items the client has for that same filter.
-        // Using the full manifest would cause read/later items to appear
-        // as "deleted" during the unread diff (and vice versa).
-        const clientManifest = viewManifests[view.id]?.[visibilityFilter] ?? [];
-
-        const diff = computeViewDiff(applicationItems, clientManifest);
-
-        await publisher.publish(channel, {
-          source: "initial",
-          chunk: {
-            type: "view-diff",
-            viewId: view.id,
-            visibilityFilter,
-            diff,
-            cursor,
-            hasMore,
-          },
-        });
-      } catch (error) {
-        captureException(error);
-        await publisher.publish(channel, {
-          source: "initial",
-          chunk: {
-            type: "error",
-            message:
-              error instanceof Error
-                ? error.message
-                : `Failed to diff items for view ${view.id}`,
-            phase: "view-diff",
-            viewId: view.id,
-          },
-        });
-      }
-    }
-
-    // Step 4: Publish unread diffs for all views (highest priority)
-    for (const view of allViews) {
-      await queryAndPublishViewDiff(view, "unread");
-    }
+    logDebug(
+      `[requestInitialData] user=${context.user.id} phase=unread-items-published`,
+    );
 
     // Signal that initial (unread) data is complete — client can show UI
-    await publisher.publish(channel, {
+    await publisher.publish(clientChannel, {
       source: "initial",
       chunk: { type: "initial-data-complete" },
     });
 
-    // Step 5: Publish read and later diffs for all views
-    for (const view of allViews) {
-      await queryAndPublishViewDiff(view, "read");
-      await queryAndPublishViewDiff(view, "later");
-    }
+    logDebug(
+      `[requestInitialData] user=${context.user.id} phase=initial-data-complete-signaled`,
+    );
+
+    // Step 5: Publish read and later lightweight items for all views
+    await Promise.all([
+      queryAndPublishLightweightItemsForViews(
+        clientChannel,
+        context,
+        allViews,
+        "read",
+        lightweightQueryParams,
+      ),
+      queryAndPublishLightweightItemsForViews(
+        clientChannel,
+        context,
+        allViews,
+        "later",
+        lightweightQueryParams,
+      ),
+    ]);
+
+    logDebug(
+      `[requestInitialData] user=${context.user.id} phase=read-later-items-published`,
+    );
 
     // Step 6: Check refresh rate limit and publish refresh-start. The
     // cooldown + total feeds are streamed before the slow RSS fetch so the
@@ -1037,7 +1483,7 @@ export const requestInitialData = protectedProcedure
         )
       : [];
 
-    await publisher.publish(channel, {
+    await publisher.publish(userChannel, {
       source: "initial",
       chunk: {
         type: "refresh-start",
@@ -1046,20 +1492,31 @@ export const requestInitialData = protectedProcedure
       },
     });
 
+    logDebug(
+      `[requestInitialData] user=${context.user.id} phase=refresh-start-published feedsDue=${feedsDue.length}`,
+    );
+
     // Step 7: Run RSS fetch if eligible.
     if (eligibility.eligible) {
       await refreshUserFeeds({
         db: context.db,
         feedsList,
-        channel,
+        channel: userChannel,
       });
+      logDebug(
+        `[requestInitialData] user=${context.user.id} phase=refresh-completed`,
+      );
     }
 
     // Step 8: Always signal completion so the client exits loading state.
-    await publisher.publish(channel, {
+    await publisher.publish(userChannel, {
       source: "initial",
       chunk: { type: "refresh-complete" },
     });
+
+    logDebug(
+      `[requestInitialData] user=${context.user.id} phase=refresh-complete-published`,
+    );
 
     return { status: "completed" };
   });
@@ -1201,6 +1658,94 @@ export const requestImportedData = protectedProcedure
     return { status: "completed" };
   });
 
+type ImportCategoryPathInput =
+  | string
+  | {
+      name: string;
+      type?: "view" | "tag" | "feed";
+      feedUrl?: string;
+    };
+
+type NormalizedImportCategoryPathItem = {
+  name: string;
+  type?: "view" | "tag" | "feed";
+  feedUrl?: string;
+};
+
+type NormalizedImportSubsectionItem = NormalizedImportCategoryPathItem & {
+  type: "tag" | "feed";
+};
+
+function isNormalizedImportCategoryPathItem(
+  item: NormalizedImportCategoryPathItem | null,
+): item is NormalizedImportCategoryPathItem {
+  return item !== null;
+}
+
+function normalizeImportCategoryPathItem(
+  item: ImportCategoryPathInput,
+): NormalizedImportCategoryPathItem | null {
+  if (typeof item === "string") {
+    const name = item.trim();
+    return name ? { name } : null;
+  }
+
+  const name = item.name.trim();
+  if (!name) return null;
+
+  return {
+    name,
+    type: item.type,
+    feedUrl: item.feedUrl,
+  };
+}
+
+function normalizeImportCategoryPaths(feed: {
+  categories: string[];
+  categoryPaths?: ImportCategoryPathInput[][];
+}) {
+  const rawCategoryPaths =
+    feed.categoryPaths && feed.categoryPaths.length > 0
+      ? feed.categoryPaths
+      : feed.categories.map((category) => [category]);
+
+  return rawCategoryPaths
+    .map((path) =>
+      path
+        .map(normalizeImportCategoryPathItem)
+        .filter(isNormalizedImportCategoryPathItem),
+    )
+    .filter((path) => path.length > 0);
+}
+
+function getImportedSubsectionName(
+  categoryPath: NormalizedImportCategoryPathItem[],
+) {
+  return categoryPath
+    .slice(1)
+    .map((category) => category.name)
+    .join(" / ");
+}
+
+function getImportedSubsectionItem(
+  categoryPath: NormalizedImportCategoryPathItem[],
+): NormalizedImportSubsectionItem | null {
+  const lastItem = categoryPath[categoryPath.length - 1];
+  if (!lastItem) return null;
+  const type: NormalizedImportSubsectionItem["type"] =
+    lastItem.type === VIEW_LAYOUT_ITEM_TYPE.FEED ? "feed" : "tag";
+
+  return {
+    ...lastItem,
+    name: getImportedSubsectionName(categoryPath),
+    type,
+  };
+}
+
+function getUniqueNames(names: string[]) {
+  return [...new Set(names.filter((name) => !!name))];
+}
+
 /**
  * Combined streaming import endpoint that inserts feeds and fetches RSS content
  * in a single operation using a worker pool for maximum parallelism.
@@ -1213,6 +1758,21 @@ export const streamingImport = protectedProcedure
         .object({
           feedUrl: z.string(),
           categories: z.string().array(),
+          categoryPaths: z
+            .array(
+              z.array(
+                z.union([
+                  z.string(),
+                  z.object({
+                    name: z.string(),
+                    type: z.enum(["view", "tag", "feed"]).optional(),
+                    feedUrl: z.string().optional(),
+                  }),
+                ]),
+              ),
+            )
+            .optional(),
+          tagNames: z.string().array().optional(),
         })
         .array(),
       importMode: z.enum(["tags", "views", "ignore"]).optional(),
@@ -1239,14 +1799,17 @@ export const streamingImport = protectedProcedure
     const deactivatedCount = Math.max(0, input.feeds.length - remainingSlots);
 
     // Pre-calculate which feeds should be active. Strip categories for any
-    // mode other than "tags" — we only want to create category links when
-    // the user explicitly chose to import sections as tags. The original
-    // categories list is preserved on the side for "views" mode below.
+    // mode other than "tags", but keep explicit Serial tag metadata in every
+    // mode because those are feed tags rather than OPML section folders.
     const feedsWithActivation = input.feeds.map((feed, index) => ({
       feedUrl: feed.feedUrl,
-      categories: importMode === "tags" ? feed.categories : [],
-      originalCategories: feed.categories,
+      categories: getUniqueNames([
+        ...(importMode === "tags" ? feed.categories : []),
+        ...(feed.tagNames ?? []),
+      ]),
+      categoryPaths: normalizeImportCategoryPaths(feed),
       shouldBeActive: index < remainingSlots,
+      tagNames: feed.tagNames ?? [],
     }));
 
     // Publish import start with total feeds count (must come before
@@ -1270,9 +1833,11 @@ export const streamingImport = protectedProcedure
 
     // Track successful feed IDs for building view mappings later
     const successfulFeeds: Array<{
+      inputFeedUrl: string;
       feedId: number;
       feed: typeof feeds.$inferSelect;
-      sectionNames: string[];
+      categoryPaths: NormalizedImportCategoryPathItem[][];
+      tagNames: string[];
     }> = [];
 
     // Worker function: insert feed + fetch RSS content
@@ -1324,9 +1889,11 @@ export const streamingImport = protectedProcedure
 
         // Track successful feed for later
         successfulFeeds.push({
+          inputFeedUrl: feedInput.feedUrl,
           feedId: insertResult.feedId,
           feed: insertResult.feed as typeof feeds.$inferSelect,
-          sectionNames: feedInput.originalCategories,
+          categoryPaths: feedInput.categoryPaths,
+          tagNames: feedInput.tagNames,
         });
 
         // 3. Immediately fetch RSS content for this feed
@@ -1377,17 +1944,54 @@ export const streamingImport = protectedProcedure
       // Results stream as each feed completes
     }
 
-    // For "views" mode: create (or reuse) a view per unique section name and
-    // link successfully-imported feeds to those views via the viewFeeds table.
+    // For "views" mode: create (or reuse) views from the top-level OPML
+    // folders, then preserve nested folders as ordered view sections.
     if (importMode === "views" && successfulFeeds.length > 0) {
-      const sectionNames = new Set<string>();
-      for (const sf of successfulFeeds) {
-        for (const name of sf.sectionNames) {
-          if (name) sectionNames.add(name);
+      const successfulFeedsByInputUrl = new Map(
+        successfulFeeds.map((feed) => [feed.inputFeedUrl, feed]),
+      );
+      const orderedSuccessfulFeeds = input.feeds
+        .map((feed) => successfulFeedsByInputUrl.get(feed.feedUrl))
+        .filter((feed): feed is (typeof successfulFeeds)[number] => !!feed);
+
+      const viewOrder: string[] = [];
+      const sectionOrderByViewName = new Map<
+        string,
+        NormalizedImportCategoryPathItem[]
+      >();
+
+      for (const successfulFeed of orderedSuccessfulFeeds) {
+        for (const categoryPath of successfulFeed.categoryPaths) {
+          const viewName = categoryPath[0]?.name;
+          if (!viewName) continue;
+
+          if (!viewOrder.includes(viewName)) {
+            viewOrder.push(viewName);
+          }
+
+          if (categoryPath.length <= 1) continue;
+
+          const subsectionItem = getImportedSubsectionItem(categoryPath);
+          if (!subsectionItem) continue;
+
+          const sectionOrder = sectionOrderByViewName.get(viewName);
+          if (sectionOrder) {
+            const hasSection = sectionOrder.some(
+              (item) =>
+                item.name === subsectionItem.name &&
+                item.type === subsectionItem.type &&
+                item.feedUrl === subsectionItem.feedUrl,
+            );
+            if (!hasSection) {
+              sectionOrder.push(subsectionItem);
+            }
+          } else {
+            sectionOrderByViewName.set(viewName, [subsectionItem]);
+          }
         }
       }
 
-      if (sectionNames.size > 0) {
+      if (viewOrder.length > 0) {
         await context.db.transaction(async (tx) => {
           // Look up existing views by name for this user
           const existingViews = await tx
@@ -1397,7 +2001,7 @@ export const streamingImport = protectedProcedure
           const existingByName = new Map(existingViews.map((v) => [v.name, v]));
 
           // Insert any missing views with default settings
-          const namesToCreate = [...sectionNames].filter(
+          const namesToCreate = viewOrder.filter(
             (name) => !existingByName.has(name),
           );
           if (namesToCreate.length > 0) {
@@ -1407,6 +2011,7 @@ export const streamingImport = protectedProcedure
                 namesToCreate.map((name) => ({
                   userId: context.user.id,
                   name,
+                  placement: viewOrder.length - 1 - viewOrder.indexOf(name),
                 })),
               )
               .returning();
@@ -1415,13 +2020,156 @@ export const streamingImport = protectedProcedure
             }
           }
 
-          // Build viewFeeds rows
+          const nestedTagSectionNames = getUniqueNames(
+            [...sectionOrderByViewName.values()]
+              .flat()
+              .filter((section) => section.type !== VIEW_LAYOUT_ITEM_TYPE.FEED)
+              .map((section) => section.name),
+          );
+          const existingCategories =
+            nestedTagSectionNames.length > 0
+              ? await tx
+                  .select()
+                  .from(contentCategories)
+                  .where(
+                    and(
+                      eq(contentCategories.userId, context.user.id),
+                      inArray(contentCategories.name, nestedTagSectionNames),
+                    ),
+                  )
+              : [];
+          const existingCategoryByName = new Map(
+            existingCategories.map((category) => [category.name, category]),
+          );
+          const categoryNamesToCreate = nestedTagSectionNames.filter(
+            (name) => !existingCategoryByName.has(name),
+          );
+
+          if (categoryNamesToCreate.length > 0) {
+            const insertedCategories = await tx
+              .insert(contentCategories)
+              .values(
+                categoryNamesToCreate.map((name) => ({
+                  userId: context.user.id,
+                  name,
+                })),
+              )
+              .returning();
+
+            for (const category of insertedCategories) {
+              existingCategoryByName.set(category.name, category);
+            }
+          }
+
+          const viewIds = [...existingByName.values()].map((view) => view.id);
+          const existingViewSections =
+            viewIds.length > 0
+              ? await tx
+                  .select()
+                  .from(viewSections)
+                  .where(inArray(viewSections.viewId, viewIds))
+                  .orderBy(asc(viewSections.placement))
+              : [];
+          const existingSectionKeys = new Set(
+            existingViewSections.map(
+              (section) =>
+                `${section.viewId}:${section.itemType}:${section.itemId}`,
+            ),
+          );
+          const nextPlacementByViewId = new Map<number, number>();
+
+          for (const section of existingViewSections) {
+            const nextPlacement = Math.max(
+              nextPlacementByViewId.get(section.viewId) ?? 0,
+              section.placement + 1,
+            );
+            nextPlacementByViewId.set(section.viewId, nextPlacement);
+          }
+
           const viewFeedRows: Array<{ viewId: number; feedId: number }> = [];
-          for (const sf of successfulFeeds) {
-            for (const name of sf.sectionNames) {
-              const view = existingByName.get(name);
+          const feedCategoryRows: Array<{
+            feedId: number;
+            categoryId: number;
+          }> = [];
+          const viewSectionRows: Array<{
+            viewId: number;
+            placement: number;
+            itemType:
+              | typeof VIEW_LAYOUT_ITEM_TYPE.TAG
+              | typeof VIEW_LAYOUT_ITEM_TYPE.FEED;
+            itemId: number;
+          }> = [];
+          const successfulFeedsByCanonicalUrl = new Map(
+            orderedSuccessfulFeeds.map((feed) => [feed.feed.url, feed]),
+          );
+
+          function findImportedFeedSectionItem(
+            section: NormalizedImportCategoryPathItem,
+          ) {
+            if (section.feedUrl) {
+              return (
+                successfulFeedsByInputUrl.get(section.feedUrl) ??
+                successfulFeedsByCanonicalUrl.get(section.feedUrl) ??
+                null
+              );
+            }
+
+            return (
+              orderedSuccessfulFeeds.find(
+                (feed) => (feed.feed.name || feed.feed.url) === section.name,
+              ) ?? null
+            );
+          }
+
+          for (const sf of orderedSuccessfulFeeds) {
+            for (const categoryPath of sf.categoryPaths) {
+              const viewName = categoryPath[0]?.name;
+              if (!viewName) continue;
+
+              const view = existingByName.get(viewName);
               if (!view) continue;
               viewFeedRows.push({ viewId: view.id, feedId: sf.feedId });
+
+              if (categoryPath.length <= 1) continue;
+
+              const subsectionItem = getImportedSubsectionItem(categoryPath);
+              if (!subsectionItem) continue;
+
+              const viewSectionItem =
+                subsectionItem.type === VIEW_LAYOUT_ITEM_TYPE.FEED
+                  ? {
+                      itemType: VIEW_LAYOUT_ITEM_TYPE.FEED,
+                      itemId:
+                        findImportedFeedSectionItem(subsectionItem)?.feedId ??
+                        null,
+                    }
+                  : {
+                      itemType: VIEW_LAYOUT_ITEM_TYPE.TAG,
+                      itemId:
+                        existingCategoryByName.get(subsectionItem.name)?.id ??
+                        null,
+                    };
+              if (!viewSectionItem.itemId) continue;
+
+              if (viewSectionItem.itemType === VIEW_LAYOUT_ITEM_TYPE.TAG) {
+                feedCategoryRows.push({
+                  feedId: sf.feedId,
+                  categoryId: viewSectionItem.itemId,
+                });
+              }
+
+              const sectionKey = `${view.id}:${viewSectionItem.itemType}:${viewSectionItem.itemId}`;
+              if (!existingSectionKeys.has(sectionKey)) {
+                const nextPlacement = nextPlacementByViewId.get(view.id) ?? 0;
+                viewSectionRows.push({
+                  viewId: view.id,
+                  placement: nextPlacement,
+                  itemType: viewSectionItem.itemType,
+                  itemId: viewSectionItem.itemId,
+                });
+                nextPlacementByViewId.set(view.id, nextPlacement + 1);
+                existingSectionKeys.add(sectionKey);
+              }
             }
           }
 
@@ -1430,6 +2178,17 @@ export const streamingImport = protectedProcedure
               .insert(viewFeeds)
               .values(viewFeedRows)
               .onConflictDoNothing();
+          }
+
+          if (feedCategoryRows.length > 0) {
+            await tx
+              .insert(feedCategories)
+              .values(feedCategoryRows)
+              .onConflictDoNothing();
+          }
+
+          if (viewSectionRows.length > 0) {
+            await tx.insert(viewSections).values(viewSectionRows);
           }
         });
       }
@@ -1497,27 +2256,124 @@ export const streamingImport = protectedProcedure
   });
 
 /**
- * Cursor schema for pagination
+ * Cursor schema for pagination.
+ * For sectioned views, placement is included to support ordering by section then date.
  */
 const cursorSchema = z
   .object({
+    placement: z.number().optional(),
     postedAt: z.coerce.date(),
     id: z.string(),
+    isWatchedUpdatedAt: z.coerce.date().nullable().optional(),
   })
   .nullable();
 
 /**
- * Build cursor condition for pagination
- * Uses composite cursor {postedAt, id} for stable pagination
+ * Build cursor condition for pagination.
+ * Uses composite cursor {postedAt, id} for date-ordered views,
+ * and {placement, postedAt, id} for section-ordered views.
  */
-function buildCursorCondition(cursor: { postedAt: Date; id: string } | null) {
+function buildCursorCondition(
+  cursor: {
+    placement?: number;
+    postedAt: Date;
+    id: string;
+    isWatchedUpdatedAt?: Date | null;
+  } | null,
+  placementColumn?: SQL<number>,
+) {
   if (!cursor) return undefined;
 
-  // WHERE (postedAt < cursor.postedAt) OR (postedAt = cursor.postedAt AND id < cursor.id)
+  // isWatchedUpdatedAt-based cursor for read visibility filter
+  if (cursor.isWatchedUpdatedAt) {
+    return or(
+      lt(feedItems.isWatchedUpdatedAt, cursor.isWatchedUpdatedAt),
+      and(
+        eq(feedItems.isWatchedUpdatedAt, cursor.isWatchedUpdatedAt),
+        lt(feedItems.postedAt, cursor.postedAt),
+      ),
+      and(
+        eq(feedItems.isWatchedUpdatedAt, cursor.isWatchedUpdatedAt),
+        eq(feedItems.postedAt, cursor.postedAt),
+        lt(feedItems.id, cursor.id),
+      ),
+    );
+  }
+
+  // Date-only cursor (legacy or non-sectioned views)
+  if (!placementColumn || cursor.placement === undefined) {
+    return or(
+      lt(feedItems.postedAt, cursor.postedAt),
+      and(eq(feedItems.postedAt, cursor.postedAt), lt(feedItems.id, cursor.id)),
+    );
+  }
+
+  // Section-aware cursor: (placement > cursor.placement)
+  //   OR (placement = cursor.placement AND postedAt < cursor.postedAt)
+  //   OR (placement = cursor.placement AND postedAt = cursor.postedAt AND id < cursor.id)
   return or(
-    lt(feedItems.postedAt, cursor.postedAt),
-    and(eq(feedItems.postedAt, cursor.postedAt), lt(feedItems.id, cursor.id)),
+    gt(placementColumn, cursor.placement),
+    and(
+      eq(placementColumn, cursor.placement),
+      lt(feedItems.postedAt, cursor.postedAt),
+    ),
+    and(
+      eq(placementColumn, cursor.placement),
+      eq(feedItems.postedAt, cursor.postedAt),
+      lt(feedItems.id, cursor.id),
+    ),
   );
+}
+
+function buildFlatItemsOrderBy(visibilityFilter: VisibilityFilter) {
+  if (visibilityFilter === "read") {
+    return [
+      desc(feedItems.isWatchedUpdatedAt),
+      desc(feedItems.postedAt),
+      desc(feedItems.id),
+    ];
+  }
+
+  return [desc(feedItems.postedAt), desc(feedItems.id)];
+}
+
+/**
+ * Build a SQL expression that returns the minimum section placement for a feed item.
+ * Uncategorized items (not in any section) get placement 999999.
+ */
+function buildSectionPlacementExpression(viewId: number): SQL<number> {
+  // Drizzle serializes ${feedItems.feedId} as unqualified "feed_id" inside
+  // sql template subqueries, which resolves to the innermost table
+  // (feed_categories.feed_id) instead of the outer feed_item.feed_id.
+  // Build a raw qualified reference so both SELECT and ORDER BY contexts
+  // consistently reference serial_feed_item.feed_id.
+  const tableName = (feedItems as unknown as Record<symbol, string>)[
+    Symbol.for("drizzle:Name")
+  ];
+  const colName = (feedItems.feedId as unknown as { name: string }).name;
+  const feedIdRef = sql.raw(`"${tableName}"."${colName}"`);
+
+  return sql<number>`COALESCE(
+    (
+      SELECT MIN(placement)
+      FROM serial_view_sections
+      WHERE view_id = ${viewId}
+        AND item_type = 'feed'
+        AND item_id = ${feedIdRef}
+    ),
+    (
+      SELECT MIN(placement)
+      FROM serial_view_sections AS view_section
+      WHERE view_id = ${viewId}
+        AND item_type = 'tag'
+        AND EXISTS (
+          SELECT 1 FROM serial_feed_categories
+          WHERE feed_id = ${feedIdRef}
+            AND category_id = view_section.item_id
+        )
+    ),
+    999999
+  )`;
 }
 
 /**
@@ -1527,7 +2383,7 @@ function buildCursorCondition(cursor: { postedAt: Date; id: string } | null) {
  */
 export const requestItemsByVisibility = protectedProcedure
   .input(
-    z.object({
+    clientScopedInputSchema.extend({
       viewId: z.number(),
       visibilityFilter: visibilityFilterSchema,
       cursor: cursorSchema.optional(),
@@ -1537,13 +2393,15 @@ export const requestItemsByVisibility = protectedProcedure
           z.object({
             id: z.string(),
             contentHash: z.string().nullable(),
+            progress: z.number().nullable().optional(),
+            duration: z.number().nullable().optional(),
           }),
         )
         .optional(),
     }),
   )
   .handler(async ({ context, input }) => {
-    const channel = getUserChannel(context.user.id);
+    const channel = getClientChannel(context.user.id, input.clientId);
     const limit = input.limit ?? ITEMS_PER_PAGE;
     const clientItems = input.clientItems;
 
@@ -1611,48 +2469,25 @@ export const requestItemsByVisibility = protectedProcedure
     }
 
     try {
-      // Build filter conditions
-      const filterConditions = [
-        inArray(feedItems.feedId, feedIds),
-        buildVisibilityFilter(input.visibilityFilter),
-        buildViewCategoryFilter(
-          targetView,
-          feedCategoriesList,
+      const { items, hasMore, nextCursor } = await queryFeedItemsForView(
+        context,
+        targetView,
+        {
+          visibilityFilter: input.visibilityFilter,
           feedIds,
+          cursor: input.cursor ?? null,
+          limit,
+          feedsById,
+          feedCategoriesList,
           customViewCategoryIds,
           customViews,
           applicationFeeds,
           customViewFeedIds,
-        ),
-        buildContentTypeFilter(targetView.contentType, applicationFeeds),
-        buildTimeWindowFilter(targetView.daysWindow),
-        buildCursorCondition(input.cursor ?? null),
-      ].filter((f): f is NonNullable<typeof f> => f !== undefined);
-
-      const filter =
-        filterConditions.length > 0 ? and(...filterConditions) : undefined;
-
-      // Query limit + 1 to determine if there are more items
-      const itemsData = await context.db.query.feedItems.findMany({
-        where: filter,
-        orderBy: desc(feedItems.postedAt),
-        limit: limit + 1,
-      });
-
-      // Process pagination results using helper
-      const { itemsToReturn, hasMore, nextCursor } = processPaginationResults(
-        itemsData,
-        limit,
-      );
-
-      // Map to application feed items using helper
-      const applicationFeedItems = mapToApplicationFeedItems(
-        itemsToReturn,
-        feedsById,
+        },
       );
 
       // Always use diff-based response
-      const diff = computeViewDiff(applicationFeedItems, clientItems ?? []);
+      const diff = computeViewDiff(items, clientItems ?? []);
 
       await publisher.publish(channel, {
         source: "visibility",
@@ -1663,6 +2498,7 @@ export const requestItemsByVisibility = protectedProcedure
           diff,
           cursor: nextCursor,
           hasMore,
+          replacesScope: clientItems !== undefined,
         },
       });
     } catch (error) {
@@ -1690,7 +2526,7 @@ export const requestItemsByVisibility = protectedProcedure
  */
 export const requestItemsByFeed = protectedProcedure
   .input(
-    z.object({
+    clientScopedInputSchema.extend({
       feedId: z.number(),
       visibilityFilter: visibilityFilterSchema,
       cursor: cursorSchema.optional(),
@@ -1698,7 +2534,7 @@ export const requestItemsByFeed = protectedProcedure
     }),
   )
   .handler(async ({ context, input }) => {
-    const channel = getUserChannel(context.user.id);
+    const channel = getClientChannel(context.user.id, input.clientId);
     const limit = input.limit ?? ITEMS_PER_PAGE;
 
     // Verify feed belongs to user
@@ -1719,20 +2555,16 @@ export const requestItemsByFeed = protectedProcedure
     }
 
     try {
-      // Build filter conditions
-      const filterConditions = [
-        eq(feedItems.feedId, input.feedId),
-        buildVisibilityFilter(input.visibilityFilter),
-        buildCursorCondition(input.cursor ?? null),
-      ].filter((f): f is NonNullable<typeof f> => f !== undefined);
-
-      const filter =
-        filterConditions.length > 0 ? and(...filterConditions) : undefined;
+      const queryParts = buildPaginatedFeedItemQuery({
+        scope: { type: "feed", feedId: input.feedId },
+        visibilityFilter: input.visibilityFilter,
+        cursor: input.cursor ?? null,
+      });
 
       // Query limit + 1 to determine if there are more items
       const itemsData = await context.db.query.feedItems.findMany({
-        where: filter,
-        orderBy: desc(feedItems.postedAt),
+        where: queryParts.filter,
+        orderBy: queryParts.orderBy,
         limit: limit + 1,
       });
 
@@ -1749,10 +2581,11 @@ export const requestItemsByFeed = protectedProcedure
       })) as ApplicationFeedItem[];
 
       // Publish items in chunks for large result sets
-      for (const chunk of prepareArrayChunks(
+      const chunks = prepareArrayChunks(
         applicationFeedItems,
         GET_BY_VIEW_CHUNK_SIZE,
-      )) {
+      );
+      for (const [chunkIndex, chunk] of chunks.entries()) {
         await publisher.publish(channel, {
           source: "feed",
           chunk: {
@@ -1762,6 +2595,7 @@ export const requestItemsByFeed = protectedProcedure
             visibilityFilter: input.visibilityFilter,
             hasMore,
             nextCursor,
+            replacesScope: input.cursor == null && chunkIndex === 0,
           },
         });
       }
@@ -1777,6 +2611,7 @@ export const requestItemsByFeed = protectedProcedure
             visibilityFilter: input.visibilityFilter,
             hasMore: false,
             nextCursor: null,
+            replacesScope: input.cursor == null,
           },
         });
       }
@@ -1805,7 +2640,7 @@ export const requestItemsByFeed = protectedProcedure
  */
 export const requestItemsByCategoryId = protectedProcedure
   .input(
-    z.object({
+    clientScopedInputSchema.extend({
       categoryId: z.number(),
       visibilityFilter: visibilityFilterSchema,
       cursor: cursorSchema.optional(),
@@ -1813,7 +2648,7 @@ export const requestItemsByCategoryId = protectedProcedure
     }),
   )
   .handler(async ({ context, input }) => {
-    const channel = getUserChannel(context.user.id);
+    const channel = getClientChannel(context.user.id, input.clientId);
     const limit = input.limit ?? ITEMS_PER_PAGE;
 
     // Verify category belongs to user
@@ -1854,6 +2689,7 @@ export const requestItemsByCategoryId = protectedProcedure
           visibilityFilter: input.visibilityFilter,
           hasMore: false,
           nextCursor: null,
+          replacesScope: input.cursor == null,
         },
       });
       return { status: "completed" };
@@ -1870,20 +2706,16 @@ export const requestItemsByCategoryId = protectedProcedure
     const feedsById = new Map(feedsList.map((f) => [f.id, f]));
 
     try {
-      // Build filter conditions
-      const filterConditions = [
-        inArray(feedItems.feedId, feedIdsInCategory),
-        buildVisibilityFilter(input.visibilityFilter),
-        buildCursorCondition(input.cursor ?? null),
-      ].filter((f): f is NonNullable<typeof f> => f !== undefined);
-
-      const filter =
-        filterConditions.length > 0 ? and(...filterConditions) : undefined;
+      const queryParts = buildPaginatedFeedItemQuery({
+        scope: { type: "category", feedIds: feedIdsInCategory },
+        visibilityFilter: input.visibilityFilter,
+        cursor: input.cursor ?? null,
+      });
 
       // Query limit + 1 to determine if there are more items
       const itemsData = await context.db.query.feedItems.findMany({
-        where: filter,
-        orderBy: desc(feedItems.postedAt),
+        where: queryParts.filter,
+        orderBy: queryParts.orderBy,
         limit: limit + 1,
       });
 
@@ -1900,10 +2732,11 @@ export const requestItemsByCategoryId = protectedProcedure
       );
 
       // Publish items in chunks for large result sets
-      for (const chunk of prepareArrayChunks(
+      const chunks = prepareArrayChunks(
         applicationFeedItems,
         GET_BY_VIEW_CHUNK_SIZE,
-      )) {
+      );
+      for (const [chunkIndex, chunk] of chunks.entries()) {
         await publisher.publish(channel, {
           source: "category",
           chunk: {
@@ -1913,6 +2746,7 @@ export const requestItemsByCategoryId = protectedProcedure
             visibilityFilter: input.visibilityFilter,
             hasMore,
             nextCursor,
+            replacesScope: input.cursor == null && chunkIndex === 0,
           },
         });
       }
@@ -1928,6 +2762,7 @@ export const requestItemsByCategoryId = protectedProcedure
             visibilityFilter: input.visibilityFilter,
             hasMore: false,
             nextCursor: null,
+            replacesScope: input.cursor == null,
           },
         });
       }
@@ -2168,41 +3003,22 @@ export const revalidateView = protectedProcedure
       view: ApplicationView,
     ): AsyncGenerator<RevalidateViewChunk> {
       try {
-        const filterConditions = [
-          inArray(feedItems.feedId, feedIds),
-          buildVisibilityFilter("unread"),
-          buildViewCategoryFilter(
-            view,
-            feedCategoriesList,
-            feedIds,
-            customViewCategoryIds,
-            customViews,
-            applicationFeeds,
-          ),
-          buildContentTypeFilter(view.contentType, applicationFeeds),
-          buildTimeWindowFilter(view.daysWindow),
-        ].filter((f): f is NonNullable<typeof f> => f !== undefined);
-
-        const filter =
-          filterConditions.length > 0 ? and(...filterConditions) : undefined;
-
-        // Only fetch initial batch - pagination handles the rest
-        const itemsData = await context.db.query.feedItems.findMany({
-          where: filter,
-          orderBy: desc(feedItems.postedAt),
+        const { items } = await queryFeedItemsForView(context, view, {
+          visibilityFilter: "unread",
+          feedIds,
+          cursor: null,
           limit: REVALIDATE_VIEW_CHUNK_SIZE,
-        });
-
-        // Map to application feed items using helper
-        const applicationFeedItems = mapToApplicationFeedItems(
-          itemsData,
           feedsById,
-        );
+          feedCategoriesList,
+          customViewCategoryIds,
+          customViews,
+          applicationFeeds,
+        });
 
         yield {
           type: "feed-items",
           viewId: view.id,
-          feedItems: applicationFeedItems,
+          feedItems: items,
         } as RevalidateViewChunk;
       } catch (error) {
         captureException(error);
@@ -2236,6 +3052,7 @@ export type GetItemsByVisibilityChunk =
       visibilityFilter: string;
       hasMore: boolean;
       nextCursor: PaginationCursor;
+      replacesScope?: boolean;
     }
   | {
       type: "view-diff";
@@ -2244,6 +3061,7 @@ export type GetItemsByVisibilityChunk =
       diff: DiffEntry[];
       cursor: PaginationCursor;
       hasMore: boolean;
+      replacesScope?: boolean;
     }
   | { type: "error"; message: string; phase: string };
 
@@ -2255,6 +3073,7 @@ export type GetItemsByFeedChunk =
       visibilityFilter: string;
       hasMore: boolean;
       nextCursor: PaginationCursor;
+      replacesScope?: boolean;
     }
   | { type: "error"; message: string; phase: string };
 
@@ -2266,6 +3085,7 @@ export type GetItemsByCategoryIdChunk =
       visibilityFilter: string;
       hasMore: boolean;
       nextCursor: PaginationCursor;
+      replacesScope?: boolean;
     }
   | { type: "error"; message: string; phase: string };
 
@@ -2324,6 +3144,7 @@ export const getItemsByVisibility = protectedProcedure
         visibilityFilter: input.visibilityFilter,
         hasMore: false,
         nextCursor: null,
+        replacesScope: input.cursor == null,
       } as GetItemsByVisibilityChunk;
       return;
     }
@@ -2341,33 +3162,41 @@ export const getItemsByVisibility = protectedProcedure
     }
 
     try {
-      // Build filter conditions
-      const filterConditions = [
-        inArray(feedItems.feedId, feedIds),
-        buildVisibilityFilter(input.visibilityFilter),
-        buildViewCategoryFilter(
-          targetView,
-          feedCategoriesList,
+      let itemsData: Array<
+        typeof feedItems.$inferSelect & { placement?: number }
+      >;
+      const queryParts = buildPaginatedFeedItemQuery({
+        scope: {
+          type: "view",
+          view: targetView,
           feedIds,
+          feedCategoriesList,
           customViewCategoryIds,
           customViews,
           applicationFeeds,
           customViewFeedIds,
-        ),
-        buildContentTypeFilter(targetView.contentType, applicationFeeds),
-        buildTimeWindowFilter(targetView.daysWindow),
-        buildCursorCondition(input.cursor ?? null),
-      ].filter((f): f is NonNullable<typeof f> => f !== undefined);
-
-      const filter =
-        filterConditions.length > 0 ? and(...filterConditions) : undefined;
-
-      // Query limit + 1 to determine if there are more items
-      const itemsData = await context.db.query.feedItems.findMany({
-        where: filter,
-        orderBy: desc(feedItems.postedAt),
-        limit: limit + 1,
+        },
+        visibilityFilter: input.visibilityFilter,
+        cursor: input.cursor ?? null,
       });
+
+      if (!queryParts.placementExpr) {
+        itemsData = await context.db.query.feedItems.findMany({
+          where: queryParts.filter,
+          orderBy: queryParts.orderBy,
+          limit: limit + 1,
+        });
+      } else {
+        itemsData = await context.db
+          .select({
+            ...getTableColumns(feedItems),
+            placement: queryParts.placementExpr,
+          })
+          .from(feedItems)
+          .where(queryParts.filter)
+          .orderBy(...queryParts.orderBy)
+          .limit(limit + 1);
+      }
 
       // Process pagination results using helper
       const { itemsToReturn, hasMore, nextCursor } = processPaginationResults(
@@ -2381,11 +3210,11 @@ export const getItemsByVisibility = protectedProcedure
         feedsById,
       );
 
-      // Yield items in chunks for large result sets
-      for (const chunk of prepareArrayChunks(
+      const chunks = prepareArrayChunks(
         applicationFeedItems,
         ITEMS_BY_VISIBILITY_CHUNK_SIZE,
-      )) {
+      );
+      for (const [chunkIndex, chunk] of chunks.entries()) {
         yield {
           type: "feed-items",
           viewId: input.viewId,
@@ -2393,10 +3222,10 @@ export const getItemsByVisibility = protectedProcedure
           visibilityFilter: input.visibilityFilter,
           hasMore,
           nextCursor,
+          replacesScope: input.cursor == null && chunkIndex === 0,
         } as GetItemsByVisibilityChunk;
       }
 
-      // If no items, still yield an empty response
       if (applicationFeedItems.length === 0) {
         yield {
           type: "feed-items",
@@ -2405,6 +3234,7 @@ export const getItemsByVisibility = protectedProcedure
           visibilityFilter: input.visibilityFilter,
           hasMore: false,
           nextCursor: null,
+          replacesScope: input.cursor == null,
         } as GetItemsByVisibilityChunk;
       }
     } catch (error) {
@@ -2417,5 +3247,62 @@ export const getItemsByVisibility = protectedProcedure
             : `Failed to fetch items for view ${input.viewId}`,
         phase: "feed-items",
       } as GetItemsByVisibilityChunk;
+    }
+  });
+
+/**
+ * Fetch fulltext content for a list of items.
+ * Used by the client after receiving lightweight items to fill in missing content.
+ * Publishes chunks to the user's SSE channel so the client receives them via
+ * the existing subscription.
+ */
+export const requestFullTextForItems = protectedProcedure
+  .input(
+    clientScopedInputSchema.extend({
+      itemIds: z.array(z.string()).max(500),
+    }),
+  )
+  .handler(async ({ context, input }) => {
+    const channel = getClientChannel(context.user.id, input.clientId);
+
+    try {
+      const items = await context.db
+        .select({
+          id: feedItems.id,
+          content: feedItems.content,
+          contentSnippet: feedItems.contentSnippet,
+        })
+        .from(feedItems)
+        .innerJoin(feeds, eq(feedItems.feedId, feeds.id))
+        .where(
+          and(
+            inArray(feedItems.id, input.itemIds),
+            eq(feeds.userId, context.user.id),
+          ),
+        );
+
+      await publisher.publish(channel, {
+        source: "initial",
+        chunk: {
+          type: "fulltext-items",
+          items,
+        } as GetByViewChunk,
+      });
+
+      return { status: "completed" };
+    } catch (error) {
+      captureException(error);
+      await publisher.publish(channel, {
+        source: "initial",
+        chunk: {
+          type: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to fetch fulltext items",
+          phase: "fulltext",
+        } as GetByViewChunk,
+      });
+      return { status: "error" };
     }
   });

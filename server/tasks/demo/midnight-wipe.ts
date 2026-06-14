@@ -3,6 +3,7 @@ import { db } from "../../../src/server/db";
 import { user, verification } from "../../../src/server/db/schema";
 import { env } from "../../../src/env";
 import { IS_BILLING_ENABLED } from "~/server/subscriptions/polar";
+import { logMessage } from "~/server/logger";
 
 export default defineTask({
   meta: {
@@ -19,7 +20,7 @@ export default defineTask({
       return { result: "skipped-not-demo" };
     }
 
-    console.log("[demo:midnight-wipe] Starting data wipe...");
+    logMessage("[demo:midnight-wipe] Starting data wipe...");
 
     // Delete all verification rows (no user cascade)
     await db.delete(verification);
@@ -34,10 +35,10 @@ export default defineTask({
       const redis = new Redis(env.REDIS_URL);
       await redis.flushdb();
       await redis.quit();
-      console.log("[demo:midnight-wipe] Redis flushed");
+      logMessage("[demo:midnight-wipe] Redis flushed");
     }
 
-    console.log("[demo:midnight-wipe] Data wipe complete");
+    logMessage("[demo:midnight-wipe] Data wipe complete");
     return { result: "wiped" };
   },
 });

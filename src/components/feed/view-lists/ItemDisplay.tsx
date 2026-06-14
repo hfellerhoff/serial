@@ -2,9 +2,18 @@
 
 import { Link } from "@tanstack/react-router";
 import clsx from "clsx";
-import { CheckIcon, ClockIcon, EyeIcon, SendIcon } from "lucide-react";
+import { useAtomValue } from "jotai";
+import {
+  ArchiveIcon,
+  BookmarkCheckIcon,
+  BookmarkIcon,
+  SendIcon,
+} from "lucide-react";
+import { VIEW_CONTENT_TYPE } from "~/server/db/constants";
 import { KeyboardShortcutDisplay } from "~/components/ButtonWithShortcut";
 import { Button } from "~/components/ui/button";
+import { visibilityFilterAtom } from "~/lib/data/atoms";
+import { getContentTypeFromItem } from "~/lib/data/feed-items";
 import { useFeedItemsSetWatchLaterValueMutation } from "~/lib/data/feed-items/mutations";
 import { useFeeds as useFeedsArray } from "~/lib/data/feeds/store";
 import {
@@ -16,8 +25,10 @@ import { timeAgo } from "~/lib/utils";
 import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { useFeedItemActions } from "~/lib/hooks/useFeedItemActions";
 import { useShowShortcuts } from "~/lib/hooks/useShowShortcuts";
+import { saveHomeScrollPosition } from "~/lib/scroll";
 
 export type ItemSize = "standard" | "large";
+type WatchedDatePrefix = "read" | "watched";
 
 // Typography components for consistent styling across layouts
 
@@ -57,18 +68,56 @@ interface ItemMetaProps {
   author: string | undefined;
   feedName: string | undefined;
   postedAt: Date;
+  watchedAt?: Date | null;
+  showWatchedDate?: boolean;
+  watchedDatePrefix?: WatchedDatePrefix;
   className?: string;
 }
 
-function ItemMeta({ author, feedName, postedAt, className }: ItemMetaProps) {
+function ItemMeta({
+  author,
+  feedName,
+  postedAt,
+  watchedAt,
+  showWatchedDate = false,
+  watchedDatePrefix = "watched",
+  className,
+}: ItemMetaProps) {
+  const shouldUseWatchedDate = showWatchedDate && !!watchedAt;
+  const primaryDate = shouldUseWatchedDate ? watchedAt : postedAt;
+  const watchedDateLabel = watchedDatePrefix === "read" ? "Read" : "Watched";
+  const primaryDateText = shouldUseWatchedDate
+    ? `${watchedDateLabel} ${timeAgo(primaryDate)}`
+    : timeAgo(primaryDate);
+  const postedDateText = shouldUseWatchedDate
+    ? `Posted ${timeAgo(postedAt)}`
+    : undefined;
+  const metadataParts = [
+    author || feedName,
+    primaryDateText,
+    postedDateText,
+  ].filter(Boolean);
+
   return (
-    <p className={clsx("w-full text-xs opacity-80 md:text-sm", className)}>
-      {author || feedName} • {timeAgo(postedAt)}
+    <p
+      className={clsx(
+        "line-clamp-1 w-full text-xs opacity-80 md:text-sm",
+        className,
+      )}
+    >
+      {metadataParts.join(" • ")}
     </p>
   );
 }
 
 // Thumbnail components for consistent styling across layouts
+
+function getWatchedDatePrefix(
+  item: Parameters<typeof getContentTypeFromItem>[0],
+): WatchedDatePrefix {
+  const contentType = getContentTypeFromItem(item);
+  return contentType === VIEW_CONTENT_TYPE.LONGFORM ? "read" : "watched";
+}
 
 type ThumbnailType =
   | "horizontal-video"
@@ -85,16 +134,21 @@ function getThumbnailType(
   },
   feed?: { imageUrl?: string },
   layout?: ThumbnailLayout,
+  hideFeedIcon?: boolean,
 ): ThumbnailType {
   if (item.thumbnail) {
     // Standard list uses icon style for non-video content
     if (item.platform === "website") {
-      return layout === "list" ? (feed?.imageUrl ? "icon" : "none") : "article";
+      return layout === "list"
+        ? feed?.imageUrl && !hideFeedIcon
+          ? "icon"
+          : "none"
+        : "article";
     }
     if (item.orientation === "vertical") return "vertical-video";
     return "horizontal-video";
   }
-  if (feed?.imageUrl) return "icon";
+  if (feed?.imageUrl && !hideFeedIcon) return "icon";
   return "none";
 }
 
@@ -193,6 +247,7 @@ interface ArticleThumbnailProps {
   title: string;
   feedImageUrl?: string;
   feedName?: string;
+  hideFeedIcon?: boolean;
 }
 
 function ArticleThumbnail({
@@ -200,6 +255,7 @@ function ArticleThumbnail({
   title,
   feedImageUrl,
   feedName,
+  hideFeedIcon,
 }: ArticleThumbnailProps) {
   return (
     <>
@@ -209,7 +265,7 @@ function ArticleThumbnail({
         className="absolute inset-0 h-full w-full object-cover"
       />
       <div className="bg-foreground/30 dark:bg-background/30 absolute inset-0" />
-      {feedImageUrl && (
+      {feedImageUrl && !hideFeedIcon && (
         <img
           src={feedImageUrl}
           alt={feedName}
@@ -302,11 +358,11 @@ function ItemActions({
         "md:bg-background/90 flex flex-row items-center md:absolute md:right-2 md:bottom-2 md:rounded-lg md:shadow-sm",
         {
           "md:hidden md:group-hover:flex": !(showShortcuts && isSelected),
-          "-ml-2 justify-start pb-2 pl-6 md:right-4 md:bottom-5 md:ml-0 md:pb-0 md:pl-0":
+          "-ml-2 justify-start px-6 pb-2 md:right-2 md:bottom-5 md:ml-0 md:px-0 md:pb-0":
             isStandardList,
           "-ml-2 justify-start gap-1 px-2 pb-2 md:ml-0 md:px-0 md:pb-0": isGrid,
-          "-ml-2 justify-start pb-2 pl-6 md:ml-0 md:pb-0 md:pl-0":
-            isStandardList || isLargeList,
+          "-ml-2 justify-start px-6 pb-2 md:right-2 md:bottom-2 md:ml-0 md:px-0 md:pb-0":
+            isLargeList,
         },
       )}
     >
@@ -335,11 +391,11 @@ function ItemActions({
         })}
       >
         {item.isWatchLater ? (
-          <CheckIcon size={isGrid ? 14 : 16} />
+          <BookmarkCheckIcon size={isGrid ? 14 : 16} />
         ) : (
-          <ClockIcon size={isGrid ? 14 : 16} />
+          <BookmarkIcon size={isGrid ? 14 : 16} />
         )}
-        <KeyboardShortcutDisplay shortcut={SHORTCUT_KEYS.TOGGLE_LATER} />
+        <KeyboardShortcutDisplay shortcut={SHORTCUT_KEYS.TOGGLE_SAVED} />
       </Button>
       <Button
         size="icon"
@@ -349,7 +405,7 @@ function ItemActions({
           "h-8 w-8 p-0": isGrid,
         })}
       >
-        <EyeIcon size={isGrid ? 14 : 16} />
+        <ArchiveIcon size={isGrid ? 14 : 16} />
         <KeyboardShortcutDisplay shortcut={SHORTCUT_KEYS.TOGGLE_READ} />
       </Button>
     </div>
@@ -370,10 +426,16 @@ interface ItemThumbnailProps {
     imageUrl?: string;
     name?: string;
   };
+  hideFeedIcon?: boolean;
 }
 
-function ItemThumbnail({ layout, item, feed }: ItemThumbnailProps) {
-  const thumbnailType = getThumbnailType(item, feed, layout);
+function ItemThumbnail({
+  layout,
+  item,
+  feed,
+  hideFeedIcon,
+}: ItemThumbnailProps) {
+  const thumbnailType = getThumbnailType(item, feed, layout, hideFeedIcon);
 
   return (
     <ThumbnailContainer
@@ -394,6 +456,7 @@ function ItemThumbnail({ layout, item, feed }: ItemThumbnailProps) {
           title={item.title}
           feedImageUrl={feed?.imageUrl}
           feedName={feed?.name}
+          hideFeedIcon={hideFeedIcon}
         />
       )}
       {thumbnailType === "icon" && feed?.imageUrl && (
@@ -409,6 +472,7 @@ interface ItemDisplayProps {
   size?: ItemSize;
   isSelected?: boolean;
   onSelect?: () => void;
+  sectionItemType?: "feed" | "tag";
 }
 
 export function ItemDisplay({
@@ -416,8 +480,10 @@ export function ItemDisplay({
   size = "standard",
   isSelected,
   onSelect,
+  sectionItemType,
 }: ItemDisplayProps) {
   const feeds = useFeedsArray();
+  const visibilityFilter = useAtomValue(visibilityFilterAtom);
   const item = useFeedItemValue(contentId);
 
   if (!item) return null;
@@ -435,19 +501,19 @@ export function ItemDisplay({
   const rel = shouldOpenInSerial ? undefined : "noopener noreferrer";
 
   const isLarge = size === "large";
+  const shouldDimReadSavedItem = visibilityFilter === "later" && item.isWatched;
+  const shouldShowWatchedDate = visibilityFilter === "read";
+  const watchedDatePrefix = getWatchedDatePrefix(item);
 
   return (
     <article
       data-item-id={contentId}
       onMouseEnter={onSelect}
       className={clsx(
-        "group relative flex w-full flex-1 justify-stretch gap-2",
+        "group relative flex flex-1 justify-stretch gap-2 md:mx-4 md:my-2",
         isLarge
           ? "flex-col md:flex-row md:items-center"
           : "items-center md:h-20",
-        {
-          "opacity-50": item.isWatched,
-        },
       )}
     >
       <Link
@@ -455,16 +521,23 @@ export function ItemDisplay({
         target={target}
         rel={rel}
         preload={shouldOpenInSerial ? "intent" : undefined}
+        onClick={shouldOpenInSerial ? saveHomeScrollPosition : undefined}
         className={clsx(
-          "flex w-full flex-1 flex-col gap-4 pt-4 pr-4 pl-6 text-left md:flex-row md:items-center md:rounded md:py-4 md:pr-0",
-          isLarge ? "pb-1 md:pb-4" : "pb-4 md:h-20 md:py-0",
+          "flex w-full flex-1 flex-col gap-4 px-6 pt-4 text-left md:flex-row md:items-center md:rounded md:px-2 md:py-2",
+          isLarge ? "pb-1 md:pb-2" : "pb-4 md:h-20 md:py-0",
+          shouldDimReadSavedItem && "opacity-50",
           isSelected && "md:bg-muted",
         )}
       >
         {isLarge ? (
           <>
             <div className="grid w-44 place-items-center">
-              <ItemThumbnail layout="large-list" item={item} feed={feed} />
+              <ItemThumbnail
+                layout="large-list"
+                item={item}
+                feed={feed}
+                hideFeedIcon={sectionItemType === "feed"}
+              />
             </div>
             <div className="flex h-full flex-1 flex-col justify-center pr-2">
               <ItemTitle title={item.title} lineClamp={2} />
@@ -473,21 +546,29 @@ export function ItemDisplay({
                 author={item.author}
                 feedName={feed?.name}
                 postedAt={item.postedAt}
+                watchedAt={item.isWatchedUpdatedAt}
+                showWatchedDate={shouldShowWatchedDate}
+                watchedDatePrefix={watchedDatePrefix}
                 className="pt-1"
               />
             </div>
           </>
         ) : (
           <>
-            <div className="grid w-16 place-items-center">
-              <ItemThumbnail layout="list" item={item} feed={feed} />
-            </div>
+            {sectionItemType !== "feed" && (
+              <div className="grid w-16 place-items-center">
+                <ItemThumbnail layout="list" item={item} feed={feed} />
+              </div>
+            )}
             <div className="flex h-full flex-1 flex-col justify-center">
-              <ItemTitle title={item.title} lineClamp={1} />
+              <ItemTitle title={item.title} lineClamp={2} />
               <ItemMeta
                 author={item.author}
                 feedName={feed?.name}
                 postedAt={item.postedAt}
+                watchedAt={item.isWatchedUpdatedAt}
+                showWatchedDate={shouldShowWatchedDate}
+                watchedDatePrefix={watchedDatePrefix}
               />
             </div>
           </>
@@ -508,6 +589,7 @@ interface GridItemDisplayProps {
   size?: ItemSize;
   isSelected?: boolean;
   onSelect?: () => void;
+  sectionItemType?: "feed" | "tag";
 }
 
 export function GridItemDisplay({
@@ -515,8 +597,10 @@ export function GridItemDisplay({
   size = "standard",
   isSelected,
   onSelect,
+  sectionItemType,
 }: GridItemDisplayProps) {
   const feeds = useFeedsArray();
+  const visibilityFilter = useAtomValue(visibilityFilterAtom);
   const item = useFeedItemValue(contentId);
 
   if (!item) return null;
@@ -534,22 +618,25 @@ export function GridItemDisplay({
   const rel = shouldOpenInSerial ? undefined : "noopener noreferrer";
 
   const isLarge = size === "large";
+  const shouldDimReadSavedItem = visibilityFilter === "later" && item.isWatched;
+  const shouldShowWatchedDate = visibilityFilter === "read";
+  const watchedDatePrefix = getWatchedDatePrefix(item);
 
   return (
     <article
       data-item-id={contentId}
       onMouseEnter={onSelect}
-      className={clsx("group relative flex h-full w-full flex-col", {
-        "opacity-50": item.isWatched,
-      })}
+      className="group relative flex h-full w-full flex-col"
     >
       <Link
         to={href}
         target={target}
         rel={rel}
         preload={shouldOpenInSerial ? "intent" : undefined}
+        onClick={shouldOpenInSerial ? saveHomeScrollPosition : undefined}
         className={clsx(
           "flex h-full flex-1 flex-col rounded p-2 text-left",
+          shouldDimReadSavedItem && "opacity-50",
           isSelected && "md:bg-muted",
         )}
       >
@@ -557,6 +644,7 @@ export function GridItemDisplay({
           layout={isLarge ? "large-grid" : "grid"}
           item={item}
           feed={feed}
+          hideFeedIcon={sectionItemType === "feed"}
         />
         <div className="flex flex-1 flex-col justify-center pt-2">
           <ItemTitle title={item.title} lineClamp={isLarge ? 1 : 2} />
@@ -565,6 +653,9 @@ export function GridItemDisplay({
             author={item.author}
             feedName={feed?.name}
             postedAt={item.postedAt}
+            watchedAt={item.isWatchedUpdatedAt}
+            showWatchedDate={shouldShowWatchedDate}
+            watchedDatePrefix={watchedDatePrefix}
             className="pt-0.5"
           />
         </div>

@@ -1,38 +1,40 @@
 "use client";
 
-import { useAtomValue } from "jotai";
-import { useState } from "react";
+import { useAtomValue, useSetAtom } from "jotai";
+import { useCallback, useState } from "react";
 import { FlameIcon } from "lucide-react";
 import { PaginationLoader } from "./view-lists/PaginationLoader";
-import { getScrollContainer } from "~/lib/scroll";
 import {
   categoryFilterAtom,
   feedFilterAtom,
+  selectedItemIdAtom,
   viewFilterAtom,
   visibilityFilterAtom,
 } from "~/lib/data/atoms";
 import { useFilteredFeedItemsOrder } from "~/lib/data/feed-items";
-import { useBulkSetWatchedValueMutation } from "~/lib/data/feed-items/mutations";
+import {
+  setBulkWatchedValue,
+  useBulkSetWatchedValueMutation,
+} from "~/lib/data/feed-items/mutations";
 import {
   feedItemsStore,
-  useCategoryPaginationState,
-  useFeedPaginationState,
   useFetchMoreItems,
   useFetchMoreItemsForCategory,
   useFetchMoreItemsForFeed,
-  useViewPaginationState,
 } from "~/lib/data/store";
-import {
-  useLastFullyVisibleIndex,
-  useResetVisibleItems,
-} from "~/lib/data/visible-items-store";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { showUndoToast } from "~/lib/undo";
+import {
+  getFirstRenderedFeedItemId,
+  useScrollToFeedItem,
+} from "~/lib/hooks/useScrollToFeedItem";
 
 export function MarkVisibleAsReadButton() {
   const [isLoading, setIsLoading] = useState(false);
+  const setSelectedItemId = useSetAtom(selectedItemIdAtom);
+  const scrollToItem = useScrollToFeedItem();
 
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
   const viewFilter = useAtomValue(viewFilterAtom);
@@ -41,12 +43,6 @@ export function MarkVisibleAsReadButton() {
 
   const filteredItemIds = useFilteredFeedItemsOrder();
   const feedItemsDict = feedItemsStore.useFeedItemsDict();
-  const lastFullyVisibleIndex = useLastFullyVisibleIndex();
-  const resetVisibleItems = useResetVisibleItems();
-
-  const viewPaginationState = useViewPaginationState();
-  const feedPaginationState = useFeedPaginationState();
-  const categoryPaginationState = useCategoryPaginationState();
 
   const fetchMoreItems = useFetchMoreItems();
   const fetchMoreItemsForFeed = useFetchMoreItemsForFeed();
@@ -54,74 +50,68 @@ export function MarkVisibleAsReadButton() {
 
   const bulkMutation = useBulkSetWatchedValueMutation();
 
+  const selectFirstRenderedItem = useCallback(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const nextItemId = getFirstRenderedFeedItemId();
+        setSelectedItemId(nextItemId);
+        scrollToItem(nextItemId);
+      });
+    });
+  }, [scrollToItem, setSelectedItemId]);
+
   const handleMarkAsRead = async () => {
-    // Only handle for unread filter with visible items
     if (visibilityFilter !== "unread" || filteredItemIds.length === 0) return;
-    // Don't proceed if no items are fully visible yet
-    if (lastFullyVisibleIndex < 0) return;
 
     setIsLoading(true);
     try {
-      // Slice from index 0 to lastFullyVisibleIndex (inclusive)
-      // This includes items that are above the viewport (scrolled past) and fully visible items
-      const visibleItemIds = filteredItemIds.slice(
-        0,
-        lastFullyVisibleIndex + 1,
-      );
-
-      // Prepare items payload
-      const items = visibleItemIds
+      const items = filteredItemIds
         .map((id) => ({
           id,
           feedId: feedItemsDict[id]?.feedId ?? 0,
         }))
         .filter((item) => item.feedId > 0);
 
+      if (items.length === 0) return;
+
       await bulkMutation.mutateAsync({ items, isWatched: true });
 
       showUndoToast({
         message: `Marked ${items.length} item${items.length === 1 ? "" : "s"} as read`,
         onUndo: async () => {
-          await bulkMutation.mutateAsync({ items, isWatched: false });
+          await setBulkWatchedValue({ items, isWatched: false });
         },
       });
-
-      // Scroll to top
-      getScrollContainer().scrollTo({ top: 0, behavior: "instant" });
-
-      // Reset visible items tracking so it starts fresh for new items
-      resetVisibleItems();
 
       // Determine active filter type (priority: feed > category > view)
       const activeFilterType =
         feedFilter >= 0 ? "feed" : categoryFilter >= 0 ? "category" : "view";
 
-      // Check hasMore and fetch more content
+      // Force one refill request after the mutation. Marking items as read can
+      // make a previously exhausted page eligible for fresh unread content.
       switch (activeFilterType) {
         case "feed": {
-          const hasMore =
-            feedPaginationState[feedFilter]?.[visibilityFilter]?.hasMore ??
-            false;
-          if (hasMore) fetchMoreItemsForFeed(feedFilter, visibilityFilter);
+          await fetchMoreItemsForFeed(feedFilter, visibilityFilter, {
+            force: true,
+          });
           break;
         }
         case "category": {
-          const hasMore =
-            categoryPaginationState[categoryFilter]?.[visibilityFilter]
-              ?.hasMore ?? false;
-          if (hasMore)
-            fetchMoreItemsForCategory(categoryFilter, visibilityFilter);
+          await fetchMoreItemsForCategory(categoryFilter, visibilityFilter, {
+            force: true,
+          });
           break;
         }
         default: {
           if (viewFilter?.id) {
-            const hasMore =
-              viewPaginationState[viewFilter.id]?.[visibilityFilter]?.hasMore ??
-              false;
-            if (hasMore) fetchMoreItems(viewFilter.id, visibilityFilter);
+            await fetchMoreItems(viewFilter.id, visibilityFilter, {
+              force: true,
+            });
           }
         }
       }
+
+      selectFirstRenderedItem();
     } finally {
       setIsLoading(false);
     }
@@ -150,7 +140,7 @@ export function MarkVisibleAsReadButton() {
         shortcut={SHORTCUT_KEYS.MARK_VISIBLE_READ}
       >
         <FlameIcon size={16} />
-        <span className="pl-1.5">Mark visible as read</span>
+        <span className="pl-1.5">Mark all as read</span>
       </ButtonWithShortcut>
     </div>
   );

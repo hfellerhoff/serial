@@ -1,4 +1,5 @@
 import { env } from "~/env";
+import { logError } from "~/server/logger";
 
 /**
  * Minimal get/set/del KV interface that works with all three KV_STORE backends.
@@ -119,7 +120,7 @@ async function createKVStore(): Promise<KVStore> {
       maxRetriesPerRequest: 3,
     });
     client.on("error", (err) => {
-      console.error("[kv] Redis error:", err.message);
+      logError("[kv] Redis error:", err.message);
     });
 
     return {

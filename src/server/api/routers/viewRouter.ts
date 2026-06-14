@@ -17,6 +17,7 @@ import {
   viewCategories,
   viewFeeds,
   views,
+  viewSections,
 } from "~/server/db/schema";
 
 export const create = protectedProcedure
@@ -79,6 +80,18 @@ export const create = protectedProcedure
           input.feedIds.map((feedId) => ({
             viewId: view.id,
             feedId,
+          })),
+        );
+      }
+
+      if (input.viewSections && input.viewSections.length > 0) {
+        await tx.insert(viewSections).values(
+          input.viewSections.map((item, index) => ({
+            viewId: view.id,
+            placement: index,
+            itemType: item.itemType,
+            itemId: item.itemId,
+            layout: item.layout ?? null,
           })),
         );
       }
@@ -182,6 +195,23 @@ export const update = protectedProcedure
           )
           .onConflictDoNothing();
       }
+
+      // Sync view sections
+      if (input.viewSections) {
+        await tx.delete(viewSections).where(eq(viewSections.viewId, view.id));
+
+        if (input.viewSections.length > 0) {
+          await tx.insert(viewSections).values(
+            input.viewSections.map((item, index) => ({
+              viewId: view.id,
+              placement: index,
+              itemType: item.itemType,
+              itemId: item.itemId,
+              layout: item.layout ?? null,
+            })),
+          );
+        }
+      }
     });
   });
 
@@ -234,9 +264,9 @@ export const getAll = protectedProcedure.handler(async ({ context }) => {
       .where(eq(contentCategories.userId, context.user.id)),
   ]);
 
-  // Fetch view categories and view feeds filtered by user's views
+  // Fetch view categories, view feeds, and view sections filtered by user's views
   const userViewIds = viewsList.map((v) => v.id);
-  const [viewCategoriesList, viewFeedsList] =
+  const [viewCategoriesList, viewFeedsList, viewSectionsList] =
     userViewIds.length > 0
       ? await Promise.all([
           context.db
@@ -247,8 +277,13 @@ export const getAll = protectedProcedure.handler(async ({ context }) => {
             .select()
             .from(viewFeeds)
             .where(inArray(viewFeeds.viewId, userViewIds)),
+          context.db
+            .select()
+            .from(viewSections)
+            .where(inArray(viewSections.viewId, userViewIds))
+            .orderBy(asc(viewSections.placement)),
         ])
-      : [[], []];
+      : [[], [], []];
 
   const customViews: ApplicationView[] = viewsList.map((view) => ({
     ...view,
@@ -260,6 +295,12 @@ export const getAll = protectedProcedure.handler(async ({ context }) => {
     feedIds: viewFeedsList
       .filter((vf) => vf.viewId === view.id)
       .map((vf) => vf.feedId),
+    viewSections: viewSectionsList
+      .filter((sv) => sv.viewId === view.id)
+      .map((sv) => ({
+        ...sv,
+        itemType: sv.itemType as "tag" | "feed",
+      })),
   }));
 
   const inboxView = buildUncategorizedView(

@@ -7,6 +7,7 @@ import {
   setDemoProvisionRateLimit,
 } from "~/server/demo";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
+import { logError } from "~/server/logger";
 
 export const Route = createFileRoute("/api/demo/provision")({
   server: {
@@ -85,7 +86,7 @@ export const Route = createFileRoute("/api/demo/provision")({
             headers: request.headers,
           });
         } catch (error) {
-          console.error("[demo] Failed to provision user:", error);
+          logError("[demo] Failed to provision user:", error);
           return new Response("Failed to create demo account", {
             status: 500,
           });

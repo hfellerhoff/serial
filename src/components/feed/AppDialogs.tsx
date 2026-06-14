@@ -3,7 +3,7 @@ import { SubscriptionDialog } from "./subscription-dialog";
 import { UserProfileEditDialog } from "./UserProfileEditDialog";
 import { AddContentCategoryDialog } from "~/components/AddContentCategoryDialog";
 import { AddFeedDialog } from "~/components/AddFeedDialog";
-import { AddViewDialog } from "~/components/AddViewDialog";
+import { AddViewDialog } from "~/components/view-dialog";
 import { ConnectionsDialog } from "~/components/ConnectionsDialog";
 import { CustomVideoDialog } from "~/components/CustomVideoDialog";
 

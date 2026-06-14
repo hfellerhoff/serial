@@ -25,7 +25,7 @@ export function timeAgo(date: string | Date) {
   const diffMs = now.diff(then);
 
   if (diffMs < ONE_MINUTE_MS) {
-    return "Just now";
+    return "just now";
   }
 
   if (diffMs < ONE_HOUR_MS) {

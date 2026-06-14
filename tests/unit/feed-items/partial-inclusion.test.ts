@@ -144,7 +144,6 @@ function passes(
     viewFilter,
     customViewCategoryIds,
     customViews,
-    softReadItemIds: undefined,
     customViewFeedIds,
   });
 }

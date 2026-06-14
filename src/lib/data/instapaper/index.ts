@@ -1,6 +1,10 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useFeedItemValue, useSetFeedItemValue } from "../store";
+import {
+  feedItemsStore,
+  useFeedItemValue,
+  useSetFeedItemValue,
+} from "../store";
 import { feedsStore } from "../feeds/store";
 import { orpc } from "~/lib/orpc";
 
@@ -25,14 +29,19 @@ export function useShowInstapaperAction(itemId: string) {
 }
 
 export function useSaveToInstapaperMutation(contentId: string) {
-  const feedItem = useFeedItemValue(contentId);
   const setFeedItem = useSetFeedItemValue(contentId);
 
   return useMutation(
     orpc.instapaper.saveBookmark.mutationOptions({
       onSuccess: () => {
-        if (feedItem) {
-          setFeedItem({ ...feedItem, isWatched: true });
+        const currentFeedItem =
+          feedItemsStore.getState().feedItemsDict[contentId];
+        if (currentFeedItem) {
+          setFeedItem({
+            ...currentFeedItem,
+            isWatched: true,
+            isWatchedUpdatedAt: new Date(),
+          });
         }
         toast.success("Saved to Instapaper");
       },

@@ -41,16 +41,31 @@ export async function getInitialFeedDataFromFileInputElement(
 
   const errors: string[] = [];
   const allFeeds: ImportFeedDataItem[] = [];
-  const seenUrls = new Set<string>();
+  const feedsByUrl = new Map<string, ImportFeedDataItem>();
 
   for (const result of results) {
     if (!result.success) {
       errors.push(result.error);
     } else {
       for (const feed of result.data) {
-        if (!seenUrls.has(feed.feedUrl)) {
-          seenUrls.add(feed.feedUrl);
+        const existingFeed = feedsByUrl.get(feed.feedUrl);
+        if (!existingFeed) {
+          feedsByUrl.set(feed.feedUrl, feed);
           allFeeds.push(feed);
+        } else {
+          existingFeed.categories = [
+            ...new Set([...existingFeed.categories, ...feed.categories]),
+          ];
+          existingFeed.categoryPaths = [
+            ...(existingFeed.categoryPaths ?? []),
+            ...(feed.categoryPaths ?? []),
+          ];
+          existingFeed.tagNames = [
+            ...new Set([
+              ...(existingFeed.tagNames ?? []),
+              ...(feed.tagNames ?? []),
+            ]),
+          ];
         }
       }
     }

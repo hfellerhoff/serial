@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ClockIcon, DownloadIcon } from "lucide-react";
+import { BookmarkIcon, DownloadIcon } from "lucide-react";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
 import { useDialogStore } from "~/components/feed/dialogStore";
 import { Button } from "~/components/ui/button";
@@ -49,7 +49,7 @@ export function DemoBanner() {
       <div className="mx-auto flex w-full max-w-full flex-col items-center gap-2 px-2 py-4 @xl:flex-row @xl:py-2">
         <div className="hidden flex-1 @xl:flex" />
         <div className="flex flex-none items-center gap-2 text-xs font-medium @lg:text-sm">
-          <ClockIcon size={16} />
+          <BookmarkIcon size={16} />
           <span>
             This is a demo instance. All data will be deleted in{" "}
             <strong className="font-mono">{countdown}</strong>.

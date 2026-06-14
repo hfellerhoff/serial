@@ -21,7 +21,7 @@ test.describe("view-feed direct assignment CRUD", () => {
   test("create view with direct feed, verify badge on feeds page, edit and remove", async ({
     page,
   }) => {
-    test.setTimeout(120000);
+    test.setTimeout(30000);
 
     // ── 1. Seed a user with a feed and article ──────────────────────
     const { email, password } = await seedArticleData(

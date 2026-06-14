@@ -17,7 +17,7 @@ import type {
   NewFeedDetails,
   RSSContent,
 } from "../types";
-import { captureException } from "~/server/logger";
+import { captureException, logError } from "~/server/logger";
 
 function getLongestString(...strings: Array<string | undefined>) {
   return strings.reduce((acc: string, cur) => {
@@ -175,7 +175,7 @@ export async function getWebsiteFeedIfMatches(
       imageUrl: websiteData.image?.url,
     };
   } else {
-    console.error(error);
+    logError(error);
   }
 
   return null;
@@ -249,8 +249,8 @@ export async function fetchWebsiteFeedData(
       feedId: feed.id,
       url: feed.url,
     });
-    console.error("Error fetching website feed data for URL =", feed.url);
-    console.error(e);
+    logError("Error fetching website feed data for URL =", feed.url);
+    logError(e);
     return null;
   }
 }

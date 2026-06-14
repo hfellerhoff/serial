@@ -144,7 +144,10 @@ export function ControlledResponsiveDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           hideClose
-          className={cn("flex max-h-[calc(100vh-6rem)] flex-col", className)}
+          className={cn(
+            "flex max-h-[calc(100vh-6rem)] flex-col overflow-hidden",
+            className,
+          )}
           onOpenAutoFocus={onOpenAutoFocus}
         >
           <DialogHeader className={cn("shrink-0", headerClassName)}>

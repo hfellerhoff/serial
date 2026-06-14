@@ -9,7 +9,11 @@ import {
   getUserPlanId,
 } from "../../../src/server/subscriptions/helpers";
 import { IS_BILLING_ENABLED } from "../../../src/server/subscriptions/polar";
-import { captureException } from "../../../src/server/logger";
+import {
+  captureException,
+  logError,
+  logMessage,
+} from "../../../src/server/logger";
 import { env } from "../../../src/env";
 
 export default defineTask({
@@ -21,7 +25,7 @@ export default defineTask({
     const backgroundRefreshEnabled = env.BACKGROUND_REFRESH_ENABLED !== "false";
 
     if (!backgroundRefreshEnabled) {
-      console.log(
+      logMessage(
         "[background-refresh] Disabled via BACKGROUND_REFRESH_ENABLED",
       );
       return { result: "disabled" };
@@ -29,7 +33,7 @@ export default defineTask({
 
     const now = new Date();
 
-    console.log("[background-refresh] Running at ", now.toLocaleString());
+    logMessage("[background-refresh] Running at ", now.toLocaleString());
 
     // Determine eligible users first (cheap query on user table), then only
     // fetch feeds for those users. This avoids loading thousands of feeds
@@ -61,7 +65,7 @@ export default defineTask({
 
     // Early exit if user filtering yielded no eligible users.
     if (eligibleUserIds !== null && eligibleUserIds.length === 0) {
-      console.log("[background-refresh] No eligible users to refresh");
+      logMessage("[background-refresh] No eligible users to refresh");
       return { result: "no-eligible-users" };
     }
 
@@ -102,7 +106,7 @@ export default defineTask({
       eligibleUserIds !== null ? eligibleUserIds : [...feedsByUser.keys()];
 
     if (userIdsToProcess.length === 0) {
-      console.log("[background-refresh] No users to process");
+      logMessage("[background-refresh] No users to process");
       return { result: "no-users" };
     }
 
@@ -127,7 +131,7 @@ export default defineTask({
         // Set the user's next refresh cooldown and publish refresh-start
         // immediately so the client enters loading state.
         const eligibility = await checkUserRefreshEligibility(db, userId);
-        console.log(
+        logMessage(
           `[background-refresh] refresh-start for user ${userId} on "${channel}" — feeds: ${userFeeds?.length ?? 0}, nextRefreshAt: ${eligibility.nextRefreshAt.toISOString()}`,
         );
 
@@ -169,14 +173,14 @@ export default defineTask({
               ),
           { userId },
         );
-        console.error(
+        logError(
           `[background-refresh] Failed to refresh feeds for user ${userId}:`,
           e,
         );
       }
     }
 
-    console.log(
+    logMessage(
       `[background-refresh] Finished at ${new Date().toLocaleString()} — refreshed ${refreshedCount}, skipped ${skippedCount} (304/cached), empty ${emptyCount}, errors ${errorCount}, wrote ${totalRowsWritten} rows total`,
     );
 

@@ -150,10 +150,6 @@
   transition: opacity 0.2s ease;
 }
 
-.article :global([data-article-selected="true"][data-selection-faded])::before {
-  opacity: 0;
-}
-
 .article * {
   --non-edge: calc(var(--article-max-width));
   --edge: calc(100vw - var(--spacing) * 16);

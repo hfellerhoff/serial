@@ -17,7 +17,7 @@ import type {
   NewFeedDetails,
   RSSContent,
 } from "../types";
-import { captureException } from "~/server/logger";
+import { captureException, logError } from "~/server/logger";
 
 const parser = new Parser({
   customFields: {
@@ -89,7 +89,7 @@ export async function fetchNebulaFeedDetails(
     }
   } catch (e) {
     captureException(e, { context: "nebula-feed-details", url });
-    console.error("Error fetching Nebula feed details:", e);
+    logError("Error fetching Nebula feed details:", e);
   }
 
   return null;
@@ -117,7 +117,7 @@ export async function getNebulaFeedIfMatches(
     }
   } catch (e) {
     captureException(e, { context: "nebula-feed-parse", url });
-    console.error("Error parsing Nebula feed:", e);
+    logError("Error parsing Nebula feed:", e);
   }
 
   return null;
@@ -179,8 +179,8 @@ export async function fetchNebulaFeedData(
       feedId: feed.id,
       url: feed.url,
     });
-    console.error("Error fetching Nebula feed data for URL =", feed.url);
-    console.error(e);
+    logError("Error fetching Nebula feed data for URL =", feed.url);
+    logError(e);
     return null;
   }
 }

@@ -100,6 +100,10 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
+    LOG_LEVEL: z
+      .enum(["error", "warning", "info", "debug"])
+      .optional()
+      .default("info"),
     IS_DEMO_INSTANCE: z.string().optional().default("false"),
   },
   runtimeEnv: {
@@ -124,6 +128,7 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     DATABASE_AUTH_TOKEN: process.env.DATABASE_AUTH_TOKEN,
     NODE_ENV: process.env.NODE_ENV,
+    LOG_LEVEL: process.env.LOG_LEVEL,
     VITE_PUBLIC_BASE_URL:
       import.meta.env?.VITE_PUBLIC_BASE_URL ?? process.env.VITE_PUBLIC_BASE_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,

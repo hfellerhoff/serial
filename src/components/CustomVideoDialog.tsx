@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { useDialogStore } from "~/components/feed/dialogStore";
+import { saveHomeScrollPosition } from "~/lib/scroll";
 
 function getYouTubeVideoIdFromUrl(url: string) {
   const match = new RegExp(
@@ -22,6 +23,7 @@ function getYouTubeVideoIdFromUrl(url: string) {
 
 export function CustomVideoDialog() {
   const [videoUrl, setVideoUrl] = useState("");
+  const { pathname } = useLocation();
 
   const dialog = useDialogStore((store) => store.dialog);
   const onOpenChange = useDialogStore((store) => store.onOpenChange);
@@ -54,6 +56,9 @@ export function CustomVideoDialog() {
             <Button
               className="w-full"
               onClick={() => {
+                if (pathname === "/") {
+                  saveHomeScrollPosition();
+                }
                 setVideoUrl("");
                 onOpenChange(false);
               }}

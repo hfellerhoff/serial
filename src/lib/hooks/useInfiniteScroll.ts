@@ -98,7 +98,7 @@ export function useInfiniteScroll({
         observerRef.current.disconnect();
       }
     };
-  }, [sentinelElement, threshold, rootMargin]);
+  }, [sentinelElement, threshold, rootMargin, hasMore]);
 
   return { sentinelRef };
 }

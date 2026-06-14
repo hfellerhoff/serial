@@ -1,18 +1,16 @@
 "use client";
 
 import { useCallback } from "react";
-import { useSetAtom } from "jotai";
 import { useRouter } from "@tanstack/react-router";
-import { softReadItemIdsAtom } from "../data/atoms";
 import { orpcRouterClient } from "../orpc";
 import { feedItemsStore, useFeedItemValue } from "../data/store";
 import { useFeeds as useFeedsArray } from "../data/feeds/store";
+import { saveHomeScrollPosition } from "~/lib/scroll";
 
 export function useFeedItemActions(itemId: string) {
   const router = useRouter();
   const feeds = useFeedsArray();
   const item = useFeedItemValue(itemId);
-  const setSoftReadItemIds = useSetAtom(softReadItemIdsAtom);
 
   const markAsRead = useCallback(() => {
     if (!item) return;
@@ -26,9 +24,9 @@ export function useFeedItemActions(itemId: string) {
     feedItemsStore.getState().setFeedItem(itemId, {
       ...item,
       isWatched: true,
+      isWatchedUpdatedAt: new Date(),
     });
-    setSoftReadItemIds((prev) => new Set([...prev, itemId]));
-  }, [item, itemId, setSoftReadItemIds]);
+  }, [item, itemId]);
 
   const toggleRead = useCallback(() => {
     if (!item) return false;
@@ -42,14 +40,11 @@ export function useFeedItemActions(itemId: string) {
     feedItemsStore.getState().setFeedItem(itemId, {
       ...item,
       isWatched: newIsWatched,
+      isWatchedUpdatedAt: newIsWatched ? new Date() : null,
     });
 
-    if (newIsWatched) {
-      setSoftReadItemIds((prev) => new Set([...prev, itemId]));
-    }
-
-    return newIsWatched;
-  }, [item, itemId, setSoftReadItemIds]);
+    return true;
+  }, [item, itemId]);
 
   const toggleWatchLater = useCallback(() => {
     if (!item) return;
@@ -62,6 +57,7 @@ export function useFeedItemActions(itemId: string) {
     feedItemsStore.getState().setFeedItem(itemId, {
       ...item,
       isWatchLater: !item.isWatchLater,
+      isWatchLaterUpdatedAt: new Date(),
     });
   }, [item, itemId]);
 
@@ -74,11 +70,12 @@ export function useFeedItemActions(itemId: string) {
       feed?.openLocation === "serial" || !feed?.openLocation;
 
     if (shouldOpenInSerial) {
+      saveHomeScrollPosition();
       router.navigate({ to: `/${itemDestination}/${item.id}` });
     } else {
       window.open(item.url, "_blank", "noopener noreferrer");
     }
-  }, [item, feeds, router, markAsRead]);
+  }, [item, feeds, router]);
 
   const openOriginal = useCallback(() => {
     if (!item?.url) return;

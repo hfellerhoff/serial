@@ -9,10 +9,9 @@ import {
   viewFilterIdAtom,
   viewsAtom,
 } from "./atoms";
-import { buildViewManifests } from "./buildViewManifests";
+
 import { useStoresHydrated } from "./hydration";
 import { loadingActor } from "./loading-machine";
-import { feedItemsStore } from "./store";
 import { useDataSubscription } from "./useDataSubscription";
 import { useUpdateViewFilter } from "./views";
 import { useViewsFetchStatus, useViews as useViewsStore } from "./views/store";
@@ -47,15 +46,7 @@ export function InitialClientQueries({ children }: PropsWithChildren) {
       // the first SSE chunk arrives (avoids a brief idle flash).
       loadingActor.send({ type: "INITIAL_LOAD_START" });
 
-      const state = feedItemsStore.getState();
-      const hasCachedData = Object.keys(state.feedItemsDict).length > 0;
-
-      if (hasCachedData) {
-        const viewManifests = buildViewManifests(state);
-        void requestInitialData({ viewManifests });
-      } else {
-        void requestInitialData();
-      }
+      void requestInitialData();
     }
   }, [requestInitialData, hydrated]);
 

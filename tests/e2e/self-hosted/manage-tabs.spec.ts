@@ -90,7 +90,7 @@ test.describe("manage feeds/views/tags tabs", () => {
   test("tabs navigate between /feeds, /views, /tags via click and 1/2/3 keys", async ({
     page,
   }) => {
-    test.setTimeout(120000);
+    test.setTimeout(30000);
 
     const { email, password } = await seedArticleData(
       SELF_HOSTED_TURSO_PORT,
@@ -133,7 +133,7 @@ test.describe("manage feeds/views/tags tabs", () => {
   });
 
   test("create, edit, and bulk delete views via /views", async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(30000);
 
     const { email, password } = await seedArticleData(
       SELF_HOSTED_TURSO_PORT,
@@ -233,7 +233,7 @@ test.describe("manage feeds/views/tags tabs", () => {
   test("create tag with feed assignment via dialog and verify on /feeds", async ({
     page,
   }) => {
-    test.setTimeout(120000);
+    test.setTimeout(30000);
 
     const { email, password } = await seedArticleData(
       SELF_HOSTED_TURSO_PORT,
@@ -301,7 +301,7 @@ test.describe("manage feeds/views/tags tabs", () => {
   test("search on /feeds, /views, /tags matches attached entities", async ({
     page,
   }) => {
-    test.setTimeout(120000);
+    test.setTimeout(30000);
 
     const { email, password } = await seedArticleData(
       SELF_HOSTED_TURSO_PORT,
@@ -401,7 +401,7 @@ test.describe("manage feeds/views/tags tabs", () => {
   });
 
   test("bulk assign feeds to multiple tags from /tags", async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(30000);
 
     const { email, password } = await seedArticleData(
       SELF_HOSTED_TURSO_PORT,

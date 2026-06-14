@@ -19,7 +19,7 @@ test.describe("add feed manually", () => {
   });
 
   test("add a single feed by URL and verify it appears", async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(30000);
 
     const { email, password } = await seedArticleData(
       SELF_HOSTED_TURSO_PORT,

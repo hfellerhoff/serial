@@ -5,7 +5,7 @@ import { GlobeIcon, PlayCircleIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { FeedPlatform } from "~/server/db/schema";
-import { ViewCategoriesInput } from "~/components/AddViewDialog";
+import { ViewCategoriesInput } from "~/components/view-dialog";
 import { YoutubeIcon } from "~/components/brand-icons";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { useDialogStore } from "~/components/feed/dialogStore";

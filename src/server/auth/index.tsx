@@ -42,7 +42,7 @@ import {
   validateInvitationToken,
 } from "~/server/invitations";
 import { setOtpCooldown } from "~/server/otp";
-import { captureException } from "~/server/logger";
+import { captureException, logError, logMessage } from "~/server/logger";
 import { env } from "~/env";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
 
@@ -106,7 +106,7 @@ async function syncAndApply(userId: string) {
     await applySubscriptionSideEffects(db, userId, data);
   } catch (e) {
     captureException(e);
-    console.error(
+    logError(
       `[polar webhook] Failed to sync subscription for user ${userId}:`,
       e,
     );
@@ -220,9 +220,9 @@ export const auth = betterAuth({
           subject: "Reset your password for Serial",
           html,
         });
-        console.log(`[auth] Reset password email sent to ${data.user.email}`);
+        logMessage(`[auth] Reset password email sent to ${data.user.email}`);
       } catch (error) {
-        console.error(
+        logError(
           `[auth] Failed to send reset password email to ${data.user.email}:`,
           error,
         );
@@ -253,9 +253,9 @@ export const auth = betterAuth({
           subject: "Verify your new email for Serial",
           html,
         });
-        console.log(`[auth] Email change verification sent to ${user.email}`);
+        logMessage(`[auth] Email change verification sent to ${user.email}`);
       } catch (error) {
-        console.error(
+        logError(
           `[auth] Failed to send email change verification to ${user.email}:`,
           error,
         );
@@ -287,9 +287,9 @@ export const auth = betterAuth({
                     subject: "Verify your email for Serial",
                     html,
                   });
-                  console.log(`[auth] Verification email sent to ${email}`);
+                  logMessage(`[auth] Verification email sent to ${email}`);
                 } catch (error) {
-                  console.error(
+                  logError(
                     `[auth] Failed to send verification email to ${email}:`,
                     error,
                   );

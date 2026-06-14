@@ -1,10 +1,18 @@
 import type { FeedPlatform } from "~/server/db/schema";
 
+export type ImportCategoryPathItem = {
+  name: string;
+  type?: "view" | "tag" | "feed";
+  feedUrl?: string;
+};
+
 export type ImportFeedDataItem = {
   feedUrl: string;
   websiteUrl?: string;
   title?: string;
   categories: string[];
+  categoryPaths?: ImportCategoryPathItem[][];
+  tagNames?: string[];
   platform: FeedPlatform;
   shouldImport: boolean;
 };

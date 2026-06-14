@@ -1,6 +1,42 @@
 import { useMutation } from "@tanstack/react-query";
 import { feedItemsStore, useFeedItemState } from "../store";
-import { orpc } from "~/lib/orpc";
+import { orpc, orpcRouterClient } from "~/lib/orpc";
+
+type BulkWatchedItem = {
+  id: string;
+  feedId: number;
+};
+
+function applyBulkWatchedValue({
+  items,
+  isWatched,
+}: {
+  items: BulkWatchedItem[];
+  isWatched: boolean;
+}) {
+  const store = feedItemsStore.getState();
+  items.forEach(({ id }) => {
+    const feedItem = store.feedItemsDict[id];
+    if (feedItem) {
+      store.setFeedItem(id, {
+        ...feedItem,
+        isWatched,
+        isWatchedUpdatedAt: isWatched ? new Date() : null,
+      });
+    }
+  });
+}
+
+export async function setBulkWatchedValue({
+  items,
+  isWatched,
+}: {
+  items: BulkWatchedItem[];
+  isWatched: boolean;
+}) {
+  await orpcRouterClient.feedItem.setBulkWatchedValue({ items, isWatched });
+  applyBulkWatchedValue({ items, isWatched });
+}
 
 export function useFeedItemsSetWatchedValueMutation(contentId: string) {
   const [feedItem, setFeedItem] = useFeedItemState(contentId);
@@ -14,6 +50,7 @@ export function useFeedItemsSetWatchedValueMutation(contentId: string) {
         setFeedItem({
           ...feedItem,
           isWatched,
+          isWatchedUpdatedAt: isWatched ? new Date() : null,
         });
       },
     }),
@@ -32,6 +69,7 @@ export function useFeedItemsSetWatchLaterValueMutation(contentId: string) {
         setFeedItem({
           ...feedItem,
           isWatchLater,
+          isWatchLaterUpdatedAt: new Date(),
         });
       },
     }),
@@ -55,14 +93,7 @@ export function useBulkSetWatchedValueMutation() {
   return useMutation(
     orpc.feedItem.setBulkWatchedValue.mutationOptions({
       onSuccess: (_data, { items, isWatched }) => {
-        const store = feedItemsStore.getState();
-        const newDict = { ...store.feedItemsDict };
-        items.forEach(({ id }) => {
-          if (newDict[id]) {
-            newDict[id] = { ...newDict[id], isWatched };
-          }
-        });
-        store.setFeedItemsDict(newDict);
+        applyBulkWatchedValue({ items, isWatched });
       },
     }),
   );

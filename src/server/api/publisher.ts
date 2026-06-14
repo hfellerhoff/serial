@@ -7,6 +7,7 @@ import type {
   RevalidateViewChunk,
 } from "./routers/initialRouter";
 import { env } from "~/env";
+import { logError, logMessage } from "~/server/logger";
 
 export type PublishedChunk =
   | { source: "initial"; chunk: GetByViewChunk }
@@ -34,7 +35,7 @@ async function createPublisher() {
       token: env.UPSTASH_REDIS_REST_TOKEN!,
     });
 
-    console.log("[publisher] Using UpstashRedisPublisher");
+    logMessage("[publisher] Using UpstashRedisPublisher");
     return new UpstashRedisPublisher<PublisherChannelMap>(redis, {
       resumeRetentionSeconds: RESUME_RETENTION_SECONDS,
       prefix: REDIS_KEY_PREFIX,
@@ -57,13 +58,13 @@ async function createPublisher() {
     });
 
     commander.on("error", (err) => {
-      console.error("[publisher] Redis commander error:", err.message);
+      logError("[publisher] Redis commander error:", err.message);
     });
     listener.on("error", (err) => {
-      console.error("[publisher] Redis listener error:", err.message);
+      logError("[publisher] Redis listener error:", err.message);
     });
 
-    console.log("[publisher] Using IORedisPublisher");
+    logMessage("[publisher] Using IORedisPublisher");
     return new IORedisPublisher<PublisherChannelMap>({
       commander,
       listener,
@@ -72,7 +73,7 @@ async function createPublisher() {
     });
   }
 
-  console.log("[publisher] Using MemoryPublisher (KV_STORE is 'none')");
+  logMessage("[publisher] Using MemoryPublisher (KV_STORE is 'none')");
   return new MemoryPublisher<PublisherChannelMap>({
     resumeRetentionSeconds: RESUME_RETENTION_SECONDS,
   });

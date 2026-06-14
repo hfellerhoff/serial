@@ -217,7 +217,9 @@ function EditFeedsPage() {
       .filter((channel) => channel.shouldImport)
       .map((feed) => ({
         categories: feed.categories,
+        categoryPaths: feed.categoryPaths,
         feedUrl: feed.feedUrl,
+        tagNames: feed.tagNames,
       }));
 
     // Capture the current timestamp so we can detect when the subscription
@@ -384,7 +386,7 @@ function EditFeedsPage() {
               </div>
             )}
             <div className="mt-4">
-              {feedsFoundFromFile
+              {[...feedsFoundFromFile]
                 .sort((a, b) => {
                   if (!a.title && !b.title) return 0;
                   if (!a.title) return -1;

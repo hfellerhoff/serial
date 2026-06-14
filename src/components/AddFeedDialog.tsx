@@ -8,7 +8,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Link, useLocation } from "@tanstack/react-router";
-import { ViewCategoriesInput } from "./AddViewDialog";
+import { ViewCategoriesInput } from "./view-dialog";
 import {
   FeedDiscoveryInput,
   FeedDiscoveryResults,
@@ -383,6 +383,7 @@ export function EditFeedDialog({
                   categoryIds: selectedCategories,
                   viewIds: selectedViewIds,
                   openLocation: selectedOpenLocation,
+                  name,
                 });
                 toast.success("Feed updated!");
                 onClose();
@@ -408,7 +409,7 @@ export function EditFeedDialog({
               type="text"
               value={name}
               placeholder="My Feed"
-              disabled
+              onChange={(e) => setName(e.target.value)}
               className="flex-1"
             />
             <Tooltip>

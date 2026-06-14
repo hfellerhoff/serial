@@ -22,8 +22,10 @@ import {
   feedItemOrientationSchema,
   VIEW_CONTENT_TYPE,
   VIEW_LAYOUT,
+  VIEW_LAYOUT_ITEM_TYPE,
   VIEW_READ_STATUS,
   viewContentTypeSchema,
+  viewLayoutItemTypeSchema,
   viewLayoutSchema,
   viewReadStatusSchema,
 } from "./constants";
@@ -276,6 +278,10 @@ export const feedItems = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .$default(() => new Date())
       .notNull(),
+    isWatchedUpdatedAt: integer("is_watched_updated_at", { mode: "timestamp" }),
+    isWatchLaterUpdatedAt: integer("is_watch_later_updated_at", {
+      mode: "timestamp",
+    }),
     contentHash: text("content_hash"),
   },
   (example) => [
@@ -301,6 +307,12 @@ export const feedItems = sqliteTable(
       example.feedId,
       example.isWatchLater,
       example.postedAt,
+    ),
+    // Covers the "read" visibility filter ordered by isWatchedUpdatedAt.
+    index("feed_item_feed_id_is_watched_updated_at_idx").on(
+      example.feedId,
+      example.isWatched,
+      example.isWatchedUpdatedAt,
     ),
   ],
 );
@@ -417,12 +429,50 @@ export const views = sqliteTable(
 export const viewSchema = createSelectSchema(views);
 export type DatabaseView = typeof views.$inferSelect;
 
+export const viewSections = sqliteTable(
+  "view_sections",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    viewId: integer("view_id")
+      .notNull()
+      .references(() => views.id, { onDelete: "cascade" }),
+    placement: integer("placement", { mode: "number" }).notNull(),
+    itemType: text("item_type", { length: 16 })
+      .notNull()
+      .default(VIEW_LAYOUT_ITEM_TYPE.FEED),
+    itemId: integer("item_id", { mode: "number" }).notNull(),
+    layout: text("layout", { length: 32 }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .$default(() => new Date())
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .$default(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("view_sections_view_id_idx").on(table.viewId),
+    index("view_sections_view_id_placement_idx").on(
+      table.viewId,
+      table.placement,
+    ),
+  ],
+);
+export type DatabaseViewSection = typeof viewSections.$inferSelect;
+
+export const viewSectionSchema = createSelectSchema(viewSections).merge(
+  z.object({
+    itemType: viewLayoutItemTypeSchema,
+  }),
+);
+export type ApplicationViewSection = z.infer<typeof viewSectionSchema>;
+
 export const applicationViewSchema = createInsertSchema(views)
   .merge(
     z.object({
       categoryIds: z.array(z.number()),
       feedIds: z.array(z.number()),
       isDefault: z.boolean(),
+      viewSections: z.array(viewSectionSchema),
     }),
   )
   .required();
@@ -464,6 +514,13 @@ export const viewFeeds = sqliteTable(
 );
 export type DatabaseViewFeed = typeof viewFeeds.$inferSelect;
 
+export const viewSectionInputSchema = z.object({
+  placement: z.number(),
+  itemType: viewLayoutItemTypeSchema,
+  itemId: z.number(),
+  layout: viewLayoutSchema.optional().nullable(),
+});
+
 export const createViewSchema = createInsertSchema(views)
   .omit({ userId: true })
   .merge(
@@ -476,6 +533,7 @@ export const createViewSchema = createInsertSchema(views)
       placement: z.number().gte(-1).optional(),
       categoryIds: z.array(z.number()).optional(),
       feedIds: z.array(z.number()).optional(),
+      viewSections: z.array(viewSectionInputSchema).optional(),
     }),
   );
 
@@ -486,6 +544,7 @@ export const updateViewSchema = createUpdateSchema(views).merge(
     feedIds: z.array(z.number()),
     contentType: viewContentTypeSchema.optional(),
     layout: viewLayoutSchema.optional(),
+    viewSections: z.array(viewSectionInputSchema).optional(),
   }),
 );
 

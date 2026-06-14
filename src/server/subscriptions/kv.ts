@@ -6,6 +6,7 @@ import type { PlanId } from "./plans";
 import type { db as Database } from "~/server/db";
 import { feeds, user } from "~/server/db/schema";
 import { getKV } from "~/server/kv";
+import { logError, logWarning } from "~/server/logger";
 
 type DB = typeof Database;
 
@@ -99,7 +100,7 @@ export async function syncPolarDataToKV(
       try {
         await redis.set(kvKey(userId), JSON.stringify(data));
       } catch (e) {
-        console.warn(
+        logWarning(
           `[kv] Failed to write subscription cache for user ${userId}:`,
           e,
         );
@@ -113,7 +114,7 @@ export async function syncPolarDataToKV(
       try {
         const cached = await getSubscriptionFromKV(userId);
         if (cached) {
-          console.warn(
+          logWarning(
             `[kv] Polar API failed for user ${userId}, using cached data:`,
             e,
           );
@@ -124,7 +125,7 @@ export async function syncPolarDataToKV(
       }
     }
 
-    console.error(
+    logError(
       `[kv] syncPolarDataToKV failed for user ${userId} (no cached fallback):`,
       e,
     );
@@ -148,10 +149,7 @@ export async function getSubscriptionFromKV(
 
     return JSON.parse(raw) as PolarSubscriptionCache;
   } catch (e) {
-    console.warn(
-      `[kv] Failed to read subscription cache for user ${userId}:`,
-      e,
-    );
+    logWarning(`[kv] Failed to read subscription cache for user ${userId}:`, e);
     return null;
   }
 }

@@ -17,7 +17,7 @@ import type {
   NewFeedDetails,
   RSSContent,
 } from "../types";
-import { captureException } from "~/server/logger";
+import { captureException, logError } from "~/server/logger";
 
 const parser = new Parser({
   customFields: {
@@ -78,7 +78,7 @@ export async function getPeerTubeFeedIfMatches(
       platform: "peertube",
     };
   } else {
-    console.error(error);
+    logError(error);
   }
 
   return null;
@@ -142,8 +142,8 @@ export async function fetchPeerTubeFeedData(
       feedId: feed.id,
       url: feed.url,
     });
-    console.error("Error fetching PeerTube feed data for URL =", feed.url);
-    console.error(e);
+    logError("Error fetching PeerTube feed data for URL =", feed.url);
+    logError(e);
     return null;
   }
 }

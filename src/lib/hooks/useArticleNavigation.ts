@@ -73,18 +73,13 @@ export function useArticleNavigation(
   const setArticleSelectedElement = useSetAtom(articleSelectedElementAtom);
 
   const applySelection = useCallback(
-    (
-      elements: HTMLElement[],
-      index: number,
-      { faded = false }: { faded?: boolean } = {},
-    ) => {
+    (elements: HTMLElement[], index: number) => {
       // Remove all previous selections and blur any focused element
       if (containerRef.current) {
         containerRef.current
           .querySelectorAll("[data-article-selected]")
           .forEach((el) => {
             el.removeAttribute("data-article-selected");
-            el.removeAttribute("data-selection-faded");
             el.removeAttribute("tabindex");
           });
       }
@@ -95,9 +90,6 @@ export function useArticleNavigation(
       if (index >= 0 && index < elements.length) {
         const el = elements[index]!;
         el.setAttribute("data-article-selected", "true");
-        if (faded) {
-          el.setAttribute("data-selection-faded", "");
-        }
 
         // Calculate offset for nested elements (li) so the selection bar
         // stays aligned with root-level content
@@ -263,43 +255,6 @@ export function useArticleNavigation(
     [containerRef, selectedIndex],
   );
 
-  // Track closest element on mouse/trackpad scroll — fade bar immediately, update position debounced
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    let faded = false;
-
-    const handleWheel = () => {
-      // Fade the bar immediately on first wheel event
-      if (!faded) {
-        faded = true;
-        const selected = containerRef.current?.querySelector(
-          "[data-article-selected]",
-        );
-        if (selected) {
-          selected.setAttribute("data-selection-faded", "");
-        }
-      }
-
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        faded = false;
-        const elements = getElements(containerRef.current);
-        if (elements.length === 0) return;
-        const closest = getClosestVisibleElement(elements);
-        if (closest >= 0 && closest !== selectedIndex) {
-          setSelectedIndex(closest);
-          applySelection(elements, closest, { faded: true });
-        }
-      }, 50);
-    };
-
-    window.addEventListener("wheel", handleWheel);
-    return () => {
-      if (timer) clearTimeout(timer);
-      window.removeEventListener("wheel", handleWheel);
-    };
-  }, [containerRef, selectedIndex, applySelection]);
-
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -354,5 +309,5 @@ export function useArticleNavigation(
 
   useShortcut(" ", handleSpace);
 
-  return { selectedIndex, selectElement };
+  return { scrollToElement };
 }

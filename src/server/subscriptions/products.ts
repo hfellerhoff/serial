@@ -1,7 +1,7 @@
 import { getPolarProductIds, IS_BILLING_ENABLED, polarClient } from "./polar";
 import { PAID_PLAN_IDS, PLANS } from "./plans";
 import type { PaidPlanId } from "./plans";
-import { captureException } from "~/server/logger";
+import { captureException, logError } from "~/server/logger";
 
 export type PlanProduct = {
   planId: PaidPlanId;
@@ -77,7 +77,7 @@ export async function fetchProducts(): Promise<PlanProduct[]> {
           }
         } catch (e) {
           captureException(e);
-          console.error(
+          logError(
             `[subscription] Failed to fetch annual product for ${planId}:\n`,
             e,
           );
@@ -102,7 +102,7 @@ export async function fetchProducts(): Promise<PlanProduct[]> {
     return results;
   } catch (e) {
     captureException(e);
-    console.error("[subscription] Failed to fetch products:", e);
+    logError("[subscription] Failed to fetch products:", e);
     return [];
   }
 }

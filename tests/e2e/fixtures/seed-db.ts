@@ -33,6 +33,18 @@ export async function cleanupUser(tursoPort: number, email: string) {
   client.close();
 }
 
+export async function getFeedItemProgress(tursoPort: number, id: string) {
+  const { db, client } = getDb(tursoPort);
+  const feedItem = await db
+    .select({ progress: schema.feedItems.progress })
+    .from(schema.feedItems)
+    .where(eq(schema.feedItems.id, id))
+    .get();
+  client.close();
+
+  return feedItem?.progress ?? null;
+}
+
 function uniqueId() {
   return randomBytes(8).toString("hex");
 }
@@ -260,6 +272,152 @@ export async function seedMultipleArticleData(
   client.close();
 
   return { feedItemIds, email, password };
+}
+
+/**
+ * Creates a user via the Better Auth sign-up API, then seeds 3 feeds, 2 tags,
+ * feed-tag associations, and multiple articles per feed directly in the DB.
+ *
+ * Returns feed IDs, tag IDs, feed item IDs and credentials so the test can
+ * log in via the UI and configure view layouts.
+ */
+export async function seedViewLayoutData(
+  tursoPort: number,
+  appPort: number,
+  rssPort: number = SELF_HOSTED_RSS_SERVER_PORT,
+): Promise<{
+  feedIds: number[];
+  tagIds: number[];
+  feedItemIds: string[];
+  email: string;
+  password: string;
+}> {
+  const testId = uniqueId();
+  const email = `test-${testId}@example.com`;
+  const password = "testpassword123";
+
+  // Create user via API
+  const res = await fetch(
+    `http://localhost:${appPort}/api/auth/sign-up/email`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: `http://localhost:${appPort}`,
+      },
+      body: JSON.stringify({ name: "Test User", email, password }),
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(`Sign-up failed: ${res.status} ${await res.text()}`);
+  }
+
+  const { db, client } = getDb(tursoPort);
+
+  // Find the user by email
+  const testUser = await db
+    .select()
+    .from(schema.user)
+    .where(eq(schema.user.email, email))
+    .get();
+  if (!testUser) throw new Error("No user found after sign-up");
+
+  const now = new Date();
+  const farFuture = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365);
+
+  // Create 2 content categories (tags)
+  const tags = await db
+    .insert(schema.contentCategories)
+    .values([
+      { userId: testUser.id, name: "Tech", createdAt: now, updatedAt: now },
+      {
+        userId: testUser.id,
+        name: "News",
+        createdAt: now,
+        updatedAt: now,
+      },
+    ])
+    .returning();
+  const tagIds = tags.map((t) => t.id);
+
+  // Create 3 feeds
+  const feedNames = ["Tech Feed", "News Feed", "Mixed Feed"];
+  const feedIds: number[] = [];
+  for (let f = 0; f < 3; f++) {
+    const feedUrl = `http://127.0.0.1:${rssPort}/feed/feed-${f}?t=${testId}`;
+    const [feed] = await db
+      .insert(schema.feeds)
+      .values({
+        userId: testUser.id,
+        name: feedNames[f],
+        url: feedUrl,
+        imageUrl: "",
+        platform: "website",
+        openLocation: "serial",
+        createdAt: now,
+        updatedAt: now,
+        lastFetchedAt: now,
+        nextFetchAt: farFuture,
+      })
+      .returning();
+    if (!feed) throw new Error(`Feed ${f} insert returned no rows`);
+    feedIds.push(feed.id);
+  }
+
+  // Associate feeds with tags
+  // Feed 0 -> Tech, Feed 1 -> News, Feed 2 -> Tech + News
+  const feed0Id = feedIds[0]!;
+  const feed1Id = feedIds[1]!;
+  const feed2Id = feedIds[2]!;
+  const techTagId = tagIds[0]!;
+  const newsTagId = tagIds[1]!;
+  await db.insert(schema.feedCategories).values([
+    { feedId: feed0Id, categoryId: techTagId },
+    { feedId: feed1Id, categoryId: newsTagId },
+    { feedId: feed2Id, categoryId: techTagId },
+    { feedId: feed2Id, categoryId: newsTagId },
+  ]);
+
+  // Create 15 articles per feed so sections have enough items to trigger
+  // pagination (initial load is 30 items per view)
+  const feedItemIds: string[] = [];
+  for (let f = 0; f < 3; f++) {
+    const feedId = feedIds[f]!;
+    for (let i = 0; i < 15; i++) {
+      const feedItemId = `article-${testId}-f${f}-i${i}`;
+      // Spread dates across a range so earlier sections have items both
+      // newer and older than later sections' items, exercising the cursor
+      // filter correctly for sectioned views.
+      const postedAt = new Date(
+        now.getTime() + (45 - (f * 15 + i)) * 86400000 + (2 - f) * 43200000,
+      );
+      await db.insert(schema.feedItems).values({
+        id: feedItemId,
+        feedId,
+        contentId: feedItemId,
+        title: `${feedNames[f]} Article ${i + 1}`,
+        author: "Test Author",
+        url: `http://127.0.0.1:${rssPort}/feed-${f}/${testId}-${i}`,
+        thumbnail: "",
+        content: ARTICLE_HTML,
+        contentSnippet: "Test article content",
+        isWatched: false,
+        isWatchLater: false,
+        progress: 0,
+        duration: 0,
+        orientation: "horizontal",
+        postedAt,
+        createdAt: now,
+        updatedAt: now,
+      });
+      feedItemIds.push(feedItemId);
+    }
+  }
+
+  client.close();
+
+  return { feedIds, tagIds, feedItemIds, email, password };
 }
 
 /**

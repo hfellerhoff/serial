@@ -3,8 +3,7 @@
 import { useEffect } from "react";
 import { useAtomValue } from "jotai";
 import { feedFilterAtom, visibilityFilterAtom } from "~/lib/data/atoms";
-import { feedItemsStore } from "~/lib/data/store";
-import { dataSubscriptionActions } from "~/lib/data/useDataSubscription";
+import { useFetchMoreItemsForFeed } from "~/lib/data/store";
 
 /**
  * Hook that triggers lazy loading of items when a feed is selected.
@@ -15,22 +14,16 @@ import { dataSubscriptionActions } from "~/lib/data/useDataSubscription";
 export function useLazyFeedFilter() {
   const feedFilter = useAtomValue(feedFilterAtom);
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
+  const fetchMoreItemsForFeed = useFetchMoreItemsForFeed();
 
   useEffect(() => {
     // feedFilter < 0 means no feed is selected
     if (feedFilter < 0) return;
 
-    // Check if already fetched for this feed/filter
-    const fetchedFilters =
-      feedItemsStore.getState().fetchedFeedFilters[feedFilter];
-    if (fetchedFilters?.has(visibilityFilter)) {
-      return;
-    }
-
-    // Request items via the publisher pattern
-    void dataSubscriptionActions.requestItemsByFeed(
-      feedFilter,
-      visibilityFilter,
-    );
-  }, [feedFilter, visibilityFilter]);
+    // Request items on mount/selection so another device's updates are merged.
+    void fetchMoreItemsForFeed(feedFilter, visibilityFilter, {
+      force: true,
+      resetCursor: true,
+    });
+  }, [feedFilter, fetchMoreItemsForFeed, visibilityFilter]);
 }

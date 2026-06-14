@@ -18,12 +18,15 @@ import { useFeeds } from "~/lib/data/feeds";
 import { useHasInitialData } from "~/lib/data/store";
 import FeedLoading from "~/components/loading";
 import { FeedEmptyState } from "~/components/feed/view-lists/EmptyStates";
+import { useHomeScrollRestoration } from "~/lib/scroll";
 
 export const Route = createFileRoute("/_app/")({
   component: Home,
 });
 
 function Home() {
+  useHomeScrollRestoration();
+
   const views = useAtomValue(viewsAtom);
   const viewFilterId = useAtomValue(viewFilterIdAtom);
   const updateViewFilter = useUpdateViewFilter();
@@ -76,7 +79,7 @@ function Home() {
   useShortcut(SHORTCUT_KEYS.READ, () =>
     setVisibilityFilter("read" as VisibilityFilter),
   );
-  useShortcut(SHORTCUT_KEYS.LATER, () =>
+  useShortcut(SHORTCUT_KEYS.SAVED, () =>
     setVisibilityFilter("later" as VisibilityFilter),
   );
 

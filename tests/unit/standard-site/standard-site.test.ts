@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { BlobRef } from "@atproto/api";
 import type { BlogPost, Release } from "content-collections";
 import {
   buildDocumentLink,
@@ -22,6 +23,12 @@ import {
 
 const PUBLICATION_URI =
   "at://did:plc:serialtest/site.standard.publication/3mnvfqfsk22zc";
+const PUBLICATION_ICON = {
+  $type: "blob",
+  ref: { $link: "bafkreiserialtesticon" },
+  mimeType: "image/png",
+  size: 5_196,
+} as unknown as BlobRef;
 
 function makeRelease(overrides: Partial<Release> = {}): Release {
   return {
@@ -68,9 +75,10 @@ function makeGuide(overrides: Partial<BlogPost> = {}): BlogPost {
 
 describe("Standard.Site record builders", () => {
   it("builds the Serial publication", () => {
-    expect(buildPublicationRecord()).toEqual({
+    expect(buildPublicationRecord(PUBLICATION_ICON)).toEqual({
       $type: "site.standard.publication",
       url: "https://serial.tube",
+      icon: PUBLICATION_ICON,
       name: "Serial",
       description: STANDARD_SITE.publicationDescription,
       preferences: { showInDiscover: true },
@@ -208,6 +216,7 @@ describe("Standard.Site reconciliation", () => {
     const plan = planStandardSiteSync({
       documents: [releaseDocument, guideDocument],
       publicationUri: PUBLICATION_URI,
+      publicationIcon: PUBLICATION_ICON,
       existingPublications: [],
       existingDocuments: [],
     });
@@ -222,7 +231,7 @@ describe("Standard.Site reconciliation", () => {
         $type: "com.atproto.repo.applyWrites#create",
         collection: STANDARD_SITE.publicationCollection,
         rkey: "3mnvfqfsk22zc",
-        value: buildPublicationRecord(),
+        value: buildPublicationRecord(PUBLICATION_ICON),
       },
       {
         $type: "com.atproto.repo.applyWrites#create",
@@ -255,10 +264,11 @@ describe("Standard.Site reconciliation", () => {
     const plan = planStandardSiteSync({
       documents: [unchangedDocument, changedDocument],
       publicationUri: PUBLICATION_URI,
+      publicationIcon: PUBLICATION_ICON,
       existingPublications: [
         {
           uri: PUBLICATION_URI,
-          value: buildPublicationRecord(),
+          value: buildPublicationRecord(PUBLICATION_ICON),
         },
       ],
       existingDocuments: [
@@ -303,14 +313,48 @@ describe("Standard.Site reconciliation", () => {
     ]);
   });
 
+  it("updates an existing publication that is missing the icon", () => {
+    const publicationWithoutIcon = buildPublicationRecord(PUBLICATION_ICON);
+    delete (publicationWithoutIcon as Partial<typeof publicationWithoutIcon>)
+      .icon;
+
+    const plan = planStandardSiteSync({
+      documents: [],
+      publicationUri: PUBLICATION_URI,
+      publicationIcon: PUBLICATION_ICON,
+      existingPublications: [
+        {
+          uri: PUBLICATION_URI,
+          value: publicationWithoutIcon,
+        },
+      ],
+      existingDocuments: [],
+    });
+
+    expect(plan).toMatchObject({
+      creates: 0,
+      updates: 1,
+      deletes: 0,
+    });
+    expect(plan.writes).toEqual([
+      {
+        $type: "com.atproto.repo.applyWrites#update",
+        collection: STANDARD_SITE.publicationCollection,
+        rkey: "3mnvfqfsk22zc",
+        value: buildPublicationRecord(PUBLICATION_ICON),
+      },
+    ]);
+  });
+
   it("coexists with other publications and their documents", () => {
     const plan = planStandardSiteSync({
       documents: [],
       publicationUri: PUBLICATION_URI,
+      publicationIcon: PUBLICATION_ICON,
       existingPublications: [
         {
           uri: "at://did:plc:serialtest/site.standard.publication/3aaaaaaaaaaaa",
-          value: buildPublicationRecord(),
+          value: buildPublicationRecord(PUBLICATION_ICON),
         },
       ],
       existingDocuments: [
@@ -333,7 +377,7 @@ describe("Standard.Site reconciliation", () => {
         $type: "com.atproto.repo.applyWrites#create",
         collection: STANDARD_SITE.publicationCollection,
         rkey: "3mnvfqfsk22zc",
-        value: buildPublicationRecord(),
+        value: buildPublicationRecord(PUBLICATION_ICON),
       },
     ]);
   });
@@ -346,6 +390,7 @@ describe("Standard.Site reconciliation", () => {
       planStandardSiteSync({
         documents: [document],
         publicationUri: PUBLICATION_URI,
+        publicationIcon: PUBLICATION_ICON,
         existingPublications: [],
         existingDocuments: [
           {
@@ -366,6 +411,7 @@ describe("Standard.Site reconciliation", () => {
       planStandardSiteSync({
         documents: [document, document],
         publicationUri: PUBLICATION_URI,
+        publicationIcon: PUBLICATION_ICON,
         existingPublications: [],
         existingDocuments: [],
       }),

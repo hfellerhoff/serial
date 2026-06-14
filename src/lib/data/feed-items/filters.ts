@@ -7,13 +7,34 @@ import type {
   ApplicationView,
   DatabaseFeed,
   DatabaseFeedCategory,
+  FeedPlatform,
 } from "~/server/db/schema";
+import type { ViewContentType } from "~/server/db/constants";
+import {
+  FEED_ITEM_ORIENTATION,
+  VIEW_CONTENT_TYPE,
+} from "~/server/db/constants";
 import { feedItems } from "~/server/db/schema";
 
 /** Video platforms that support orientation filtering */
 export const VIDEO_PLATFORMS = ["youtube", "peertube", "nebula"] as const;
 
 export type VideoPlatform = (typeof VIDEO_PLATFORMS)[number];
+
+export function getContentTypeFromItem(item: {
+  platform: FeedPlatform;
+  orientation?: string | null;
+}): ViewContentType {
+  if (!VIDEO_PLATFORMS.includes(item.platform as VideoPlatform)) {
+    return VIEW_CONTENT_TYPE.LONGFORM;
+  }
+
+  if (item.orientation === FEED_ITEM_ORIENTATION.VERTICAL) {
+    return VIEW_CONTENT_TYPE.VERTICAL_VIDEO;
+  }
+
+  return VIEW_CONTENT_TYPE.HORIZONTAL_VIDEO;
+}
 
 /**
  * Check if a feed's platform is compatible with a view's content type.

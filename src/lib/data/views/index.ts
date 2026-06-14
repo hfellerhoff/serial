@@ -11,7 +11,12 @@ import {
 } from "../atoms";
 import { useFeedCategories } from "../feed-categories";
 import { doesFeedItemPassFilters } from "../feed-items";
-import { useFeedItemsDict, useFeedItemsOrder } from "../store";
+import {
+  getFeedItemScopeKey,
+  useFeedItemsDict,
+  useFeedItemsOrder,
+  useScopeFeedItemIds,
+} from "../store";
 import { useViewsFetchStatus } from "./store";
 import { INBOX_VIEW_ID, INBOX_VIEW_PLACEMENT } from "./constants";
 import type { ApplicationView } from "~/server/db/schema";
@@ -54,6 +59,7 @@ export function useUpdateViewFilter() {
 export function useCheckFilteredFeedItemsForView() {
   const feedItemsOrder = useFeedItemsOrder();
   const feedItemsDict = useFeedItemsDict();
+  const scopeFeedItemIds = useScopeFeedItemIds();
   const { feedCategories } = useFeedCategories();
   const { views } = useViews();
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
@@ -62,8 +68,11 @@ export function useCheckFilteredFeedItemsForView() {
   return useCallback(
     (viewId: number) => {
       const viewFilter = views.find((view) => view.id === viewId) || null;
+      const scopeKey = getFeedItemScopeKey("view", viewId, visibilityFilter);
+      const scopedFeedItemsOrder = scopeFeedItemIds[scopeKey];
+      const baseFeedItemsOrder = scopedFeedItemsOrder ?? feedItemsOrder;
 
-      return feedItemsOrder.filter(
+      return baseFeedItemsOrder.filter(
         (item) =>
           feedItemsDict[item] &&
           doesFeedItemPassFilters({
@@ -75,13 +84,13 @@ export function useCheckFilteredFeedItemsForView() {
             viewFilter,
             customViewCategoryIds,
             customViews: undefined,
-            softReadItemIds: undefined,
             customViewFeedIds,
           }),
       );
     },
     [
       feedItemsOrder,
+      scopeFeedItemIds,
       feedItemsDict,
       feedCategories,
       views,

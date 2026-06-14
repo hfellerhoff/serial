@@ -3,7 +3,7 @@
 import clsx from "clsx";
 
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
 import rehypeParse from "rehype-parse";
 import rehypeSanitize from "rehype-sanitize";
@@ -19,11 +19,25 @@ import { useFeedItemValue } from "~/lib/data/store";
 import { ArticleContent } from "~/components/feed/read/ArticleContent";
 import { useOpenOriginalShortcut } from "~/lib/hooks/useOpenOriginalShortcut";
 import {
+  getClosestVisibleElement,
   getElements,
+  isElementInViewport,
   useArticleNavigation,
 } from "~/lib/hooks/useArticleNavigation";
+import { getScrollContainer } from "~/lib/scroll";
 import { useDebouncedSaveProgress } from "~/lib/hooks/useDebouncedSaveProgress";
+import { useRefreshFeedItem } from "~/lib/hooks/useRefreshFeedItem";
 import { useScrollDirection } from "~/lib/hooks/useScrollDirection";
+import { detectTruncatedContent } from "~/lib/utils/detectTruncatedContent";
+import {
+  hasRespondedToTruncationAlert,
+  setTruncationAlertResponded,
+} from "~/lib/utils/truncationAlert";
+import { useEditFeedMutation } from "~/lib/data/feeds/mutations";
+import { useFeedCategories } from "~/lib/data/feed-categories/store";
+import { useViewFeeds } from "~/lib/data/view-feeds/store";
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { Button } from "~/components/ui/button";
 
 const parser = unified()
   .use(rehypeParse, { fragment: true })
@@ -50,7 +64,11 @@ function ReadPage() {
   const [articleStyle] = useFlagState("ARTICLE_STYLE");
 
   const feedItem = useFeedItemValue(params.id);
+  useRefreshFeedItem(params.id);
+
   const { feeds } = useFeeds();
+  const feedCategories = useFeedCategories();
+  const viewFeeds = useViewFeeds();
 
   const feed = feeds.find((f) => f.id === feedItem?.feedId);
 
@@ -86,42 +104,138 @@ function ReadPage() {
   useOpenOriginalShortcut(feedItem?.url);
 
   // Arrow key navigation between paragraphs/headings
-  const { selectedIndex, selectElement } = useArticleNavigation(articleRef);
+  const { scrollToElement } = useArticleNavigation(articleRef);
 
   // Save progress 500ms after last scroll event
   useDebouncedSaveProgress({
     contentId: params.id,
     getProgress: () => {
       const elements = getElements(articleRef.current);
+      const closestVisibleIndex = getClosestVisibleElement(elements);
       return {
-        progress: Math.max(selectedIndex, 0),
+        progress: Math.max(closestVisibleIndex, 0),
         duration: elements.length,
       };
     },
   });
 
-  // Restore progress on open — wait a frame so layout is complete
-  const hasRestoredRef = useRef(false);
+  // Restore progress on open — wait a frame so layout is complete. Track the
+  // restored value so a later server refresh can replace stale hydrated data.
+  const restoredProgressRef = useRef<number | null>(null);
+  const restoredElementRef = useRef<HTMLElement | null>(null);
+  const isEntryRestorationCancelledRef = useRef(false);
+
   useEffect(() => {
-    if (hasRestoredRef.current) return;
+    restoredProgressRef.current = null;
+    restoredElementRef.current = null;
+    isEntryRestorationCancelledRef.current = false;
+  }, [params.id]);
+
+  useEffect(() => {
+    const cancelEntryRestoration = () => {
+      isEntryRestorationCancelledRef.current = true;
+    };
+
+    window.addEventListener("wheel", cancelEntryRestoration, { passive: true });
+    window.addEventListener("touchstart", cancelEntryRestoration, {
+      passive: true,
+    });
+    window.addEventListener("pointerdown", cancelEntryRestoration, {
+      passive: true,
+    });
+    window.addEventListener("keydown", cancelEntryRestoration);
+
+    return () => {
+      window.removeEventListener("wheel", cancelEntryRestoration);
+      window.removeEventListener("touchstart", cancelEntryRestoration);
+      window.removeEventListener("pointerdown", cancelEntryRestoration);
+      window.removeEventListener("keydown", cancelEntryRestoration);
+    };
+  }, [params.id]);
+
+  useEffect(() => {
     if (feedItem == null) return;
+    if (isEntryRestorationCancelledRef.current) return;
 
     const progress = feedItem.progress ?? 0;
+    const hasVisibleRestoredElement =
+      restoredProgressRef.current === progress &&
+      restoredElementRef.current != null &&
+      isElementInViewport(restoredElementRef.current);
+
+    if (hasVisibleRestoredElement) return;
 
     if (progress <= 0) {
-      hasRestoredRef.current = true;
+      if (restoredProgressRef.current !== null) return;
+
+      restoredProgressRef.current = progress;
+      getScrollContainer().scrollTo({ top: 0, behavior: "instant" });
       return;
     }
 
-    const elements = getElements(articleRef.current);
-    if (elements.length === 0) return;
+    const restoreAnimationFrame = requestAnimationFrame(() => {
+      if (isEntryRestorationCancelledRef.current) return;
 
-    const targetIndex = Math.min(progress, elements.length - 1);
-    hasRestoredRef.current = true;
-    requestAnimationFrame(() => {
-      selectElement(elements, targetIndex, true);
+      const elements = getElements(articleRef.current);
+      if (elements.length === 0) return;
+
+      const targetIndex = Math.min(progress, elements.length - 1);
+      const targetElement = elements[targetIndex]!;
+      restoredProgressRef.current = progress;
+      restoredElementRef.current = targetElement;
+      scrollToElement(targetElement, true);
     });
-  }, [feedItem?.progress, feedItem?.content, selectElement]);
+
+    return () => cancelAnimationFrame(restoreAnimationFrame);
+  }, [params.id, feedItem, scrollToElement]);
+
+  // Truncation alert
+  const { mutate: editFeed } = useEditFeedMutation();
+
+  const [alertDismissed, setAlertDismissed] = useState(false);
+
+  const feedId = feed?.id;
+  const platform = feed?.platform;
+  const hasTruncationAlertResponse = feedId
+    ? hasRespondedToTruncationAlert(feedId)
+    : false;
+
+  const shouldCheckTruncatedContent =
+    !alertDismissed &&
+    platform === "website" &&
+    !!feedId &&
+    !hasTruncationAlertResponse &&
+    !!feedItem;
+  const shouldShowTruncationAlert =
+    shouldCheckTruncatedContent &&
+    feedItem !== undefined &&
+    detectTruncatedContent(feedItem.content, feedItem.contentSnippet);
+
+  const handleAlertResponse = (openLocation: "serial" | "origin") => {
+    if (!feedId) return;
+
+    const categoryIds = feedCategories
+      .filter((fc) => fc.feedId === feedId)
+      .map((fc) => fc.categoryId);
+    const viewIds = viewFeeds
+      .filter((vf) => vf.feedId === feedId)
+      .map((vf) => vf.viewId);
+
+    editFeed({
+      feedId,
+      categoryIds,
+      viewIds,
+      openLocation,
+      name: feed?.name ?? "",
+    });
+
+    setTruncationAlertResponded(feedId);
+    setAlertDismissed(true);
+
+    if (openLocation === "origin" && feedItem?.url) {
+      window.open(feedItem.url, "_blank", "noopener,noreferrer");
+    }
+  };
 
   return (
     <div
@@ -167,6 +281,29 @@ function ReadPage() {
           <ArticleContent content={content} />
         )}
       </div>
+      {shouldShowTruncationAlert && (
+        <div className="w-full px-6">
+          <Alert>
+            <AlertTitle>Possible partial content detected</AlertTitle>
+            <AlertDescription className="mt-2 text-base">
+              It looks like this feed might not be providing all of its content
+              in its feed. Would you like to open future items in the original
+              website?
+            </AlertDescription>
+            <div className="mt-4 flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => handleAlertResponse("serial")}
+              >
+                No, view in reader
+              </Button>
+              <Button onClick={() => handleAlertResponse("origin")}>
+                Yes, open in website
+              </Button>
+            </div>
+          </Alert>
+        </div>
+      )}
       <div
         className={clsx(
           "sticky inset-x-0 bottom-0 left-0 grid place-items-center transition-transform duration-300",

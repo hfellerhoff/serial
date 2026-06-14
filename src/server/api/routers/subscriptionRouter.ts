@@ -23,7 +23,7 @@ import {
 import { fetchProducts } from "~/server/subscriptions/products";
 import { user } from "~/server/db/schema";
 import { IS_EMAIL_ENABLED } from "~/server/email";
-import { captureException } from "~/server/logger";
+import { captureException, logMessage, logWarning } from "~/server/logger";
 import { getValidatedOrigin } from "~/server/auth/constants";
 
 /** Cooldown window for syncAfterCheckout per user (seconds). */
@@ -40,7 +40,7 @@ export const refreshStatus = protectedProcedure.handler(async ({ context }) => {
       await syncPolarDataToKV(context.user.id);
     } catch (e) {
       captureException(e);
-      console.warn(
+      logWarning(
         `[subscription] refreshStatus sync failed for user ${context.user.id}:`,
         e,
       );
@@ -275,7 +275,7 @@ export const switchPlan = protectedProcedure
       },
     });
 
-    console.log(
+    logMessage(
       `[polar] Plan switched for user=${context.user.id} subscription=${input.subscriptionId} newProduct=${input.newProductId}`,
     );
 
@@ -284,7 +284,7 @@ export const switchPlan = protectedProcedure
       await syncPolarDataToKV(context.user.id);
     } catch (e) {
       captureException(e);
-      console.warn(
+      logWarning(
         `[polar] Post-switch sync failed for user=${context.user.id}:`,
         e,
       );
@@ -319,7 +319,7 @@ export const syncAfterCheckout = protectedProcedure.handler(
       await applySubscriptionSideEffects(context.db, context.user.id, data);
     } catch (e) {
       captureException(e);
-      console.warn(
+      logWarning(
         `[subscription] syncAfterCheckout failed for user ${context.user.id}:`,
         e,
       );
@@ -408,7 +408,7 @@ export const revertPendingChange = protectedProcedure.handler(
       return { success: false as const, error: "no-pending-change" as const };
     }
 
-    console.log(
+    logMessage(
       `[polar] Pending change reverted for user=${context.user.id} subscription=${sub.id}`,
     );
 
@@ -416,7 +416,7 @@ export const revertPendingChange = protectedProcedure.handler(
       await syncPolarDataToKV(context.user.id);
     } catch (e) {
       captureException(e);
-      console.warn(
+      logWarning(
         `[polar] Post-revert sync failed for user=${context.user.id}:`,
         e,
       );
@@ -473,7 +473,7 @@ export const cancelSubscription = protectedProcedure.handler(
       },
     });
 
-    console.log(
+    logMessage(
       `[polar] Subscription cancelled at period end for user=${context.user.id} subscription=${sub.id}`,
     );
 
@@ -481,7 +481,7 @@ export const cancelSubscription = protectedProcedure.handler(
       await syncPolarDataToKV(context.user.id);
     } catch (e) {
       captureException(e);
-      console.warn(
+      logWarning(
         `[polar] Post-cancel sync failed for user=${context.user.id}:`,
         e,
       );

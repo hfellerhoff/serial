@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { getDocumentRkey, parsePublicationUri, STANDARD_SITE } from ".";
-import type { ComAtprotoRepoApplyWrites } from "@atproto/api";
+import type { BlobRef, ComAtprotoRepoApplyWrites } from "@atproto/api";
 import type { StandardSiteDocumentSource } from ".";
 
 export type StandardSiteDocumentRecord = {
@@ -43,10 +43,11 @@ type MarkdownNode = {
   value?: string;
 };
 
-export function buildPublicationRecord() {
+export function buildPublicationRecord(icon: BlobRef) {
   return {
     $type: STANDARD_SITE.publicationCollection,
     url: STANDARD_SITE.publicationUrl,
+    icon,
     name: STANDARD_SITE.publicationName,
     description: STANDARD_SITE.publicationDescription,
     preferences: {
@@ -116,6 +117,7 @@ function getRecordRkey(record: StandardSiteRecord) {
 export function planStandardSiteSync(options: {
   documents: StandardSiteDocumentSource[];
   publicationUri: string;
+  publicationIcon: BlobRef;
   existingPublications: StandardSiteRecord[];
   existingDocuments: StandardSiteRecord[];
 }): StandardSiteSyncPlan {
@@ -188,7 +190,7 @@ export function planStandardSiteSync(options: {
   planUpsert(
     STANDARD_SITE.publicationCollection,
     publicationRkey,
-    buildPublicationRecord(),
+    buildPublicationRecord(options.publicationIcon),
     existingPublication,
   );
 

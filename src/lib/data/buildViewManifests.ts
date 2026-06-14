@@ -1,6 +1,11 @@
 import type { ApplicationFeedItem } from "~/server/db/schema";
 
-type ClientManifestEntry = { id: string; contentHash: string | null };
+type ClientManifestEntry = {
+  id: string;
+  contentHash: string | null;
+  progress: number;
+  duration: number;
+};
 
 type BucketedEntries = {
   unread: ClientManifestEntry[];
@@ -39,6 +44,8 @@ export function buildViewManifests(state: {
     const entry: ClientManifestEntry = {
       id,
       contentHash: item.contentHash ?? null,
+      progress: item.progress,
+      duration: item.duration,
     };
 
     if (item.isWatchLater) {

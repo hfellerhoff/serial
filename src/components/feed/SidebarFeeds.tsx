@@ -73,7 +73,6 @@ function useCheckFilteredFeedItemsForFeed() {
             viewFilter,
             customViewCategoryIds,
             customViews,
-            softReadItemIds: undefined,
             customViewFeedIds,
           }),
       );

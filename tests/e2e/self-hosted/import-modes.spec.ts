@@ -83,7 +83,7 @@ test.describe("import categorization modes", () => {
   test('"views" mode: sections become views, feeds linked, same-name section ignored', async ({
     page,
   }) => {
-    test.setTimeout(120000);
+    test.setTimeout(30000);
     testEmail = generateTestEmail();
 
     await signUp({
@@ -153,7 +153,7 @@ test.describe("import categorization modes", () => {
   test('"tags" mode: sections become tags, feeds tagged, same-name section ignored', async ({
     page,
   }) => {
-    test.setTimeout(120000);
+    test.setTimeout(30000);
     testEmail = generateTestEmail();
 
     await signUp({
@@ -218,7 +218,7 @@ test.describe("import categorization modes", () => {
   test('"ignore" mode: no views or tags created, just feeds', async ({
     page,
   }) => {
-    test.setTimeout(120000);
+    test.setTimeout(30000);
     testEmail = generateTestEmail();
 
     await signUp({

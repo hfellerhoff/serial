@@ -14,7 +14,7 @@ import {
 
 export function EmptyState() {
   return (
-    <div className="w-full px-6 md:py-6">
+    <div className="mx-auto w-full max-w-3xl px-6 md:py-6">
       <div className="bg-muted flex w-full flex-col items-center justify-center rounded p-12">
         <SproutIcon size={40} />
         <h2 className="pt-2 text-lg font-semibold">
@@ -34,7 +34,7 @@ export function FeedEmptyState() {
 
   return (
     <>
-      <div className="w-full px-6 pt-6 pb-4 md:pt-16 md:text-center">
+      <div className="mx-auto w-full max-w-3xl px-6 pt-6 pb-4 md:pt-16 md:text-center">
         <h2 className="font-sans text-xl font-bold">Welcome to Serial!</h2>
         <p className="">There are a couple ways to get started:</p>
       </div>

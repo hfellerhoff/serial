@@ -4,10 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-  BulkEditViewsDialog,
-  EditViewDialog,
-} from "~/components/AddViewDialog";
+import { BulkEditViewsDialog, EditViewDialog } from "~/components/view-dialog";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { useDialogStore } from "~/components/feed/dialogStore";
 import { FeedManagementTabs } from "~/components/feed/FeedManagementTabs";

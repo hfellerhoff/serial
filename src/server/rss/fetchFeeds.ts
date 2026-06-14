@@ -164,14 +164,8 @@ async function insertFeedItems(
     },
   );
 
-  // Compute content hash for each incoming item
-  const feedItemListWithHash = feedItemList.map((item) => ({
-    ...item,
-    contentHash: computeItemHash(item),
-  }));
-
   // Diff against existing hashes to avoid unnecessary writes.
-  const incomingUrls = feedItemListWithHash.map((item) => item.url);
+  const incomingUrls = feedItemList.map((item) => item.url);
   const existingItems = await dbSemaphore.run(() =>
     context.db
       .select({
@@ -186,6 +180,11 @@ async function insertFeedItems(
   );
 
   const existingByUrl = new Map(existingItems.map((item) => [item.url, item]));
+
+  const feedItemListWithHash = feedItemList.map((item) => ({
+    ...item,
+    contentHash: computeItemHash(item),
+  }));
 
   const changedItems = feedItemListWithHash.filter((incoming) => {
     const existing = existingByUrl.get(incoming.url);

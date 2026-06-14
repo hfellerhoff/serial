@@ -3,6 +3,7 @@ import { ORPCError, os } from "@orpc/server";
 import { getRequest } from "@tanstack/react-start/server";
 import { db } from "~/server/db";
 import { auth } from "~/server/auth";
+import { logMessage } from "~/server/logger";
 
 export async function createRPCContext(opts: { headers: Headers }) {
   const { headers } = getRequest();
@@ -29,8 +30,8 @@ const timingMiddleware = o.middleware(async ({ next, path }) => {
   try {
     return await next();
   } finally {
-    console.log(
-      `[oRPC] ${String(path)} took ${Date.now() - start}ms to execute`,
+    logMessage(
+      `[oRPC]  ${String(path)} took ${Date.now() - start}ms to execute`,
     );
   }
 });

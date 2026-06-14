@@ -1,48 +1,51 @@
 "use client";
 
 import { useAtomValue } from "jotai";
+import { Fragment } from "react";
 import { ItemDisplay } from "./ItemDisplay";
-import { PaginationEnd } from "./PaginationEnd";
-import { PaginationLoader } from "./PaginationLoader";
-import { VisibleItemTracker } from "./VisibleItemTracker";
-import { useViewListScroll } from "./useViewListScroll";
+import { ViewListContainer } from "./ViewListContainer";
 import { selectedItemIdAtom } from "~/lib/data/atoms";
 import { useDeferredAutoAnimate } from "~/lib/hooks/useDeferredAutoAnimate";
 
 interface ViewItemStandardListProps {
   items: string[];
   handleMouseSelect?: (itemId: string) => void;
+  sectionItemType?: "feed" | "tag";
+  disableAutoAnimate?: boolean;
 }
 
 export function ViewItemStandardList({
   items,
   handleMouseSelect,
+  sectionItemType,
+  disableAutoAnimate,
 }: ViewItemStandardListProps) {
-  const [parent] = useDeferredAutoAnimate();
   const selectedItemId = useAtomValue(selectedItemIdAtom);
-
-  const { sentinelRef, sentinelIndex, paginationState } =
-    useViewListScroll(items);
+  const [parent] = useDeferredAutoAnimate<HTMLDivElement>({
+    disabled: disableAutoAnimate,
+  });
 
   return (
-    <div className="w-full transition-all md:pt-4 md:pr-6 md:pl-4" ref={parent}>
-      {items.map((contentId, index) => (
-        <VisibleItemTracker key={contentId} index={index}>
-          <ItemDisplay
-            contentId={contentId}
-            size="standard"
-            isSelected={contentId === selectedItemId}
-            onSelect={
-              handleMouseSelect ? () => handleMouseSelect(contentId) : undefined
-            }
-          />
-          {index === sentinelIndex && (
-            <div ref={sentinelRef} key={sentinelIndex} />
-          )}
-        </VisibleItemTracker>
-      ))}
-      {paginationState?.isFetching && <PaginationLoader />}
-      {!paginationState?.hasMore && <PaginationEnd />}
-    </div>
+    <ViewListContainer>
+      <div ref={parent} className="transition-all md:pt-2">
+        {items.map((contentId) => {
+          return (
+            <Fragment key={contentId}>
+              <ItemDisplay
+                contentId={contentId}
+                size="standard"
+                isSelected={contentId === selectedItemId}
+                onSelect={
+                  handleMouseSelect
+                    ? () => handleMouseSelect(contentId)
+                    : undefined
+                }
+                sectionItemType={sectionItemType}
+              />
+            </Fragment>
+          );
+        })}
+      </div>
+    </ViewListContainer>
   );
 }

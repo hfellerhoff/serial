@@ -43,3 +43,13 @@ export const viewLayoutSchema = z.enum([
   VIEW_LAYOUT.LARGE_GRID,
 ]);
 export type ViewLayout = z.infer<typeof viewLayoutSchema>;
+
+export const VIEW_LAYOUT_ITEM_TYPE = {
+  TAG: "tag",
+  FEED: "feed",
+} as const;
+export const viewLayoutItemTypeSchema = z.enum([
+  VIEW_LAYOUT_ITEM_TYPE.TAG,
+  VIEW_LAYOUT_ITEM_TYPE.FEED,
+]);
+export type ViewLayoutItemType = z.infer<typeof viewLayoutItemTypeSchema>;

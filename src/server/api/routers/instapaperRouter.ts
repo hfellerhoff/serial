@@ -117,7 +117,7 @@ export const saveBookmark = protectedProcedure
 
     await context.db
       .update(feedItems)
-      .set({ isWatched: true })
+      .set({ isWatched: true, isWatchedUpdatedAt: new Date() })
       .where(eq(feedItems.id, input.feedItemId));
 
     return { success: true };

@@ -2,15 +2,22 @@ import { createStore, useStore } from "zustand";
 import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/react/shallow";
 import { orpcRouterClient } from "../orpc";
-import { sortFeedItemsOrderByDate } from "../sortFeedItems";
-import { applyDiffEntries } from "./applyDiffEntries";
-import { buildViewManifests } from "./buildViewManifests";
+import { getDataSubscriptionClientId } from "./clientChannel";
 import { contentCategoriesStore } from "./content-categories/store";
 import { createSelectorHooks } from "./createSelectorHooks";
 import { feedCategoriesStore } from "./feed-categories/store";
+import { mergeFeedItem } from "./feed-items/mergeFeedItem";
 import { feedsStore } from "./feeds/store";
 import { createIDBStorage } from "./idb-storage";
 import { loadingActor } from "./loading-machine";
+import {
+  applyScopeMembershipUpdate,
+  getChangedItemsFromDiff,
+  getFeedItemScopeKey,
+  getServerItemIdsFromDiff,
+  reconcileScopeMembershipsForItem,
+  reconcileScopeMembershipsForItems,
+} from "./scopeMembership";
 import { viewFeedsStore } from "./view-feeds/store";
 import { viewsStore } from "./views/store";
 import type { VisibilityFilter } from "./atoms";
@@ -22,8 +29,15 @@ import type {
   PaginationCursor,
 } from "~/server/api/routers/initialRouter";
 import type { PublishedChunk } from "~/server/api/publisher";
+import type { IncomingFeedItem } from "./feed-items/mergeFeedItem";
 import { getQueryClient } from "~/lib/query-provider";
 import { orpc } from "~/lib/orpc";
+
+export { getFeedItemScopeKey } from "./scopeMembership";
+export type { FeedItemScopeType } from "./scopeMembership";
+
+// Module-level debounce timer for fulltext fetches
+let fulltextTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export type PaginationState = {
   cursor: PaginationCursor;
@@ -31,11 +45,46 @@ export type PaginationState = {
   isFetching: boolean;
 };
 
+function mergeFeedItemIntoOrder(
+  feedItemsDict: Record<string, ApplicationFeedItem>,
+  feedItemsOrder: string[],
+  existingIds: Set<string>,
+  incomingItem: IncomingFeedItem,
+) {
+  feedItemsDict[incomingItem.id] = mergeFeedItem(
+    feedItemsDict[incomingItem.id],
+    incomingItem,
+  );
+
+  if (!existingIds.has(incomingItem.id)) {
+    feedItemsOrder.push(incomingItem.id);
+    existingIds.add(incomingItem.id);
+  }
+}
+
+function applyDiffEntityUpdates(
+  feedItemsDict: Record<string, ApplicationFeedItem>,
+  feedItemsOrder: string[],
+  existingIds: Set<string>,
+  diff: DiffEntry[],
+) {
+  for (const entry of diff) {
+    if (entry.status !== "new" && entry.status !== "updated") continue;
+    mergeFeedItemIntoOrder(
+      feedItemsDict,
+      feedItemsOrder,
+      existingIds,
+      entry.item,
+    );
+  }
+}
+
 export type ApplicationStore = {
   reset: () => void;
   feedItemsOrder: string[];
   setFeedItemsOrder: (itemsOrder: string[]) => void;
   feedItemsDict: Record<string, ApplicationFeedItem>;
+  scopeFeedItemIds: Record<string, string[]>;
   feedStatusDict: Record<number, FetchFeedsStatus>;
   setFeedItemsDict: (itemsDict: Record<string, ApplicationFeedItem>) => void;
   setFeedItem: (id: string, item: ApplicationFeedItem) => void;
@@ -64,6 +113,7 @@ export type ApplicationStore = {
   fetchMoreItems: (
     viewId: number,
     visibilityFilter: VisibilityFilter,
+    options?: { force?: boolean },
   ) => Promise<void>;
   // Get pagination state for a view and visibility filter
   getPaginationState: (
@@ -88,11 +138,13 @@ export type ApplicationStore = {
   fetchMoreItemsForFeed: (
     feedId: number,
     visibilityFilter: VisibilityFilter,
+    options?: { force?: boolean; resetCursor?: boolean },
   ) => Promise<void>;
   // Fetch more items for a category (pagination)
   fetchMoreItemsForCategory: (
     categoryId: number,
     visibilityFilter: VisibilityFilter,
+    options?: { force?: boolean; resetCursor?: boolean },
   ) => Promise<void>;
   // Process chunks received from the publisher subscription
   processChunk: (payload: PublishedChunk) => void;
@@ -105,6 +157,12 @@ export type ApplicationStore = {
     number,
     Partial<Record<VisibilityFilter, PaginationCursor>>
   >;
+  // Item IDs that need fulltext content fetched after receiving lightweight items
+  pendingFulltextItems: string[];
+  // Whether a fulltext request is currently in flight
+  isFetchingFulltext: boolean;
+  // Schedule a debounced fulltext fetch for pending items
+  scheduleFulltextFetch: () => void;
 };
 
 const vanillaApplicationStore = createStore<ApplicationStore>()(
@@ -114,6 +172,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
         set({
           feedItemsOrder: [],
           feedItemsDict: {},
+          scopeFeedItemIds: {},
           feedStatusDict: {},
           fetchFeedItemsLastFetchedAt: null,
           hasInitialData: false,
@@ -127,12 +186,15 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           fetchedCategoryFilters: {},
           _lastItemByView: {},
           _pendingViewCursors: {},
+          pendingFulltextItems: [],
+          isFetchingFulltext: false,
         });
         loadingActor.send({ type: "RESET" });
       },
       feedItemsOrder: [],
       setFeedItemsOrder: (itemsOrder) => set({ feedItemsOrder: itemsOrder }),
       feedItemsDict: {},
+      scopeFeedItemIds: {},
       feedStatusDict: {},
       setFeedItemsDict: (itemsDict) => set({ feedItemsDict: itemsDict }),
       setFeedItem: (id, item) =>
@@ -141,6 +203,10 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             ...get().feedItemsDict,
             [id]: item,
           },
+          scopeFeedItemIds: reconcileScopeMembershipsForItem(
+            get().scopeFeedItemIds,
+            item,
+          ),
         }),
       fetchFeedItemsLastFetchedAt: null,
       hasInitialData: false,
@@ -161,6 +227,60 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
       fetchedCategoryFilters: {},
       _lastItemByView: {},
       _pendingViewCursors: {},
+      pendingFulltextItems: [],
+      isFetchingFulltext: false,
+
+      scheduleFulltextFetch: () => {
+        // Debounce fulltext requests so multiple lightweight chunks
+        // arriving in quick succession are batched into one request.
+        const DEBOUNCE_MS = 300;
+        if (fulltextTimeout) {
+          clearTimeout(fulltextTimeout);
+        }
+
+        fulltextTimeout = setTimeout(() => {
+          fulltextTimeout = null;
+          const state = get();
+          if (
+            state.isFetchingFulltext ||
+            state.pendingFulltextItems.length === 0
+          ) {
+            return;
+          }
+
+          set({ isFetchingFulltext: true });
+
+          const FULLTEXT_BATCH_SIZE = 500;
+          const itemIds = state.pendingFulltextItems.slice(
+            0,
+            FULLTEXT_BATCH_SIZE,
+          );
+          const remaining =
+            state.pendingFulltextItems.slice(FULLTEXT_BATCH_SIZE);
+          set({ pendingFulltextItems: remaining });
+
+          void orpcRouterClient.initial
+            .requestFullTextForItems({
+              itemIds,
+              clientId: getDataSubscriptionClientId(),
+            })
+            .then(() => {
+              // Fulltext chunks will arrive via the SSE subscription and be
+              // processed by processChunk. Nothing to do here.
+            })
+            .catch((error) => {
+              console.error("Error fetching fulltext:", error);
+            })
+            .finally(() => {
+              set({ isFetchingFulltext: false });
+              // If new pending items accumulated while this request was in flight,
+              // schedule another fetch.
+              if (get().pendingFulltextItems.length > 0) {
+                get().scheduleFulltextFetch();
+              }
+            });
+        }, DEBOUNCE_MS);
+      },
 
       getPaginationState: (viewId, visibilityFilter) => {
         return get().viewPaginationState[viewId]?.[visibilityFilter];
@@ -216,18 +336,23 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             const existingIds = new Set(feedItemsOrder);
 
             chunk.feedItems.forEach((item) => {
-              feedItemsDict[item.id] = item;
-              if (!existingIds.has(item.id)) {
-                feedItemsOrder.push(item.id);
-                existingIds.add(item.id);
-              }
+              mergeFeedItemIntoOrder(
+                feedItemsDict,
+                feedItemsOrder,
+                existingIds,
+                item,
+              );
             });
 
             set({
               feedItemsDict,
-              feedItemsOrder: feedItemsOrder.sort(
-                sortFeedItemsOrderByDate(get().feedItemsDict),
-              ),
+              feedItemsOrder,
+              scopeFeedItemIds: applyScopeMembershipUpdate({
+                scopeFeedItemIds: get().scopeFeedItemIds,
+                scopeKey: getFeedItemScopeKey("view", viewId, visibilityFilter),
+                itemIds: chunk.feedItems.map((item) => item.id),
+                replace: chunk.replacesScope === true,
+              }),
               viewPaginationState: {
                 ...get().viewPaginationState,
                 [viewId]: {
@@ -268,16 +393,42 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               },
             },
           });
+        } finally {
+          const finalState =
+            get().viewPaginationState[viewId]?.[visibilityFilter];
+          if (finalState?.isFetching) {
+            set({
+              viewPaginationState: {
+                ...get().viewPaginationState,
+                [viewId]: {
+                  ...get().viewPaginationState[viewId],
+                  [visibilityFilter]: {
+                    ...finalState,
+                    isFetching: false,
+                  },
+                },
+              },
+            });
+          }
         }
       },
 
-      fetchMoreItems: async (viewId, visibilityFilter) => {
+      fetchMoreItems: async (viewId, visibilityFilter, options) => {
         const state = get();
-        const paginationState =
-          state.viewPaginationState[viewId]?.[visibilityFilter];
+        const paginationState = state.viewPaginationState[viewId]?.[
+          visibilityFilter
+        ] ?? {
+          cursor: null,
+          hasMore: true,
+          isFetching: false,
+        };
+        const shouldForceFetch = options?.force ?? false;
 
         // Don't fetch if no more items or already fetching
-        if (!paginationState?.hasMore || paginationState.isFetching) {
+        if (
+          (!shouldForceFetch && !paginationState.hasMore) ||
+          paginationState.isFetching
+        ) {
           return;
         }
 
@@ -315,18 +466,23 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             const existingIds = new Set(feedItemsOrder);
 
             chunk.feedItems.forEach((item) => {
-              feedItemsDict[item.id] = item;
-              if (!existingIds.has(item.id)) {
-                feedItemsOrder.push(item.id);
-                existingIds.add(item.id);
-              }
+              mergeFeedItemIntoOrder(
+                feedItemsDict,
+                feedItemsOrder,
+                existingIds,
+                item,
+              );
             });
 
             set({
               feedItemsDict,
-              feedItemsOrder: feedItemsOrder.sort(
-                sortFeedItemsOrderByDate(get().feedItemsDict),
-              ),
+              feedItemsOrder,
+              scopeFeedItemIds: applyScopeMembershipUpdate({
+                scopeFeedItemIds: get().scopeFeedItemIds,
+                scopeKey: getFeedItemScopeKey("view", viewId, visibilityFilter),
+                itemIds: chunk.feedItems.map((item) => item.id),
+                replace: false,
+              }),
               viewPaginationState: {
                 ...get().viewPaginationState,
                 [viewId]: {
@@ -355,16 +511,45 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               },
             },
           });
+        } finally {
+          // Defensive: ensure isFetching is reset even if stream ends with only error chunks
+          const finalState =
+            get().viewPaginationState[viewId]?.[visibilityFilter];
+          if (finalState?.isFetching) {
+            set({
+              viewPaginationState: {
+                ...get().viewPaginationState,
+                [viewId]: {
+                  ...get().viewPaginationState[viewId],
+                  [visibilityFilter]: {
+                    ...finalState,
+                    isFetching: false,
+                  },
+                },
+              },
+            });
+          }
         }
       },
 
-      fetchMoreItemsForFeed: async (feedId, visibilityFilter) => {
+      fetchMoreItemsForFeed: async (feedId, visibilityFilter, options) => {
         const state = get();
-        const paginationState =
-          state.feedPaginationState[feedId]?.[visibilityFilter];
+        const paginationState = state.feedPaginationState[feedId]?.[
+          visibilityFilter
+        ] ?? {
+          cursor: null,
+          hasMore: true,
+          isFetching: false,
+        };
+        const shouldForceFetch = options?.force ?? false;
+        const shouldResetCursor = options?.resetCursor ?? false;
+        const requestCursor = shouldResetCursor ? null : paginationState.cursor;
 
         // Don't fetch if no more items or already fetching
-        if (!paginationState?.hasMore || paginationState.isFetching) {
+        if (
+          (!shouldForceFetch && !paginationState.hasMore) ||
+          paginationState.isFetching
+        ) {
           return;
         }
 
@@ -376,6 +561,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               ...state.feedPaginationState[feedId],
               [visibilityFilter]: {
                 ...paginationState,
+                cursor: requestCursor,
+                hasMore: shouldResetCursor ? true : paginationState.hasMore,
                 isFetching: true,
               },
             },
@@ -387,7 +574,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           await orpcRouterClient.initial.requestItemsByFeed({
             feedId,
             visibilityFilter,
-            cursor: paginationState.cursor,
+            cursor: requestCursor,
+            clientId: getDataSubscriptionClientId(),
           });
         } catch (error) {
           console.error("Error requesting more items for feed:", error);
@@ -406,13 +594,28 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
         }
       },
 
-      fetchMoreItemsForCategory: async (categoryId, visibilityFilter) => {
+      fetchMoreItemsForCategory: async (
+        categoryId,
+        visibilityFilter,
+        options,
+      ) => {
         const state = get();
-        const paginationState =
-          state.categoryPaginationState[categoryId]?.[visibilityFilter];
+        const paginationState = state.categoryPaginationState[categoryId]?.[
+          visibilityFilter
+        ] ?? {
+          cursor: null,
+          hasMore: true,
+          isFetching: false,
+        };
+        const shouldForceFetch = options?.force ?? false;
+        const shouldResetCursor = options?.resetCursor ?? false;
+        const requestCursor = shouldResetCursor ? null : paginationState.cursor;
 
         // Don't fetch if no more items or already fetching
-        if (!paginationState?.hasMore || paginationState.isFetching) {
+        if (
+          (!shouldForceFetch && !paginationState.hasMore) ||
+          paginationState.isFetching
+        ) {
           return;
         }
 
@@ -424,6 +627,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               ...state.categoryPaginationState[categoryId],
               [visibilityFilter]: {
                 ...paginationState,
+                cursor: requestCursor,
+                hasMore: shouldResetCursor ? true : paginationState.hasMore,
                 isFetching: true,
               },
             },
@@ -435,7 +640,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           await orpcRouterClient.initial.requestItemsByCategoryId({
             categoryId,
             visibilityFilter,
-            cursor: paginationState.cursor,
+            cursor: requestCursor,
+            clientId: getDataSubscriptionClientId(),
           });
         } catch (error) {
           console.error("Error requesting more items for category:", error);
@@ -488,29 +694,35 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           const feedItemsOrder = shouldWaitToRender
             ? get().feedItemsOrder
             : [...get().feedItemsOrder];
+          let incomingFeedItems: ApplicationFeedItem[] = [];
 
           if (incomingChunk.type === "feed-status") {
             feedStatusDict[incomingChunk.feedId] = incomingChunk.status;
           } else {
-            const incomingFeedItems = incomingChunk.feedItems;
+            incomingFeedItems = incomingChunk.feedItems;
             const existingIds = new Set(feedItemsOrder);
 
             incomingFeedItems.forEach((item) => {
-              feedItemsDict[item.id] = item;
-
-              if (!existingIds.has(item.id)) {
-                feedItemsOrder.push(item.id);
-                existingIds.add(item.id);
-              }
+              mergeFeedItemIntoOrder(
+                feedItemsDict,
+                feedItemsOrder,
+                existingIds,
+                item,
+              );
             });
           }
 
           set({
             feedItemsDict: feedItemsDict,
-            feedItemsOrder: feedItemsOrder.sort(
-              sortFeedItemsOrderByDate(get().feedItemsDict),
-            ),
+            feedItemsOrder,
             feedStatusDict: feedStatusDict,
+            scopeFeedItemIds:
+              incomingFeedItems.length > 0
+                ? reconcileScopeMembershipsForItems(
+                    get().scopeFeedItemIds,
+                    incomingFeedItems,
+                  )
+                : get().scopeFeedItemIds,
           });
 
           if (!shouldWaitToRender) {
@@ -518,12 +730,11 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           }
         }
 
+        const finalFeedItemsDict = get().feedItemsDict;
         set({
           fetchFeedItemsLastFetchedAt: Date.now(),
-          feedItemsDict: { ...get().feedItemsDict },
-          feedItemsOrder: [...get().feedItemsOrder].sort(
-            sortFeedItemsOrderByDate(get().feedItemsDict),
-          ),
+          feedItemsDict: { ...finalFeedItemsDict },
+          feedItemsOrder: [...get().feedItemsOrder],
           feedStatusDict: { ...get().feedStatusDict },
         });
       },
@@ -535,36 +746,40 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           const feedStatusDict = { ...get().feedStatusDict };
           const feedItemsDict = { ...get().feedItemsDict };
           const feedItemsOrder = [...get().feedItemsOrder];
+          let incomingFeedItems: ApplicationFeedItem[] = [];
 
           if (incomingChunk.type === "feed-status") {
             feedStatusDict[incomingChunk.feedId] = incomingChunk.status;
           } else {
-            const incomingFeedItems = incomingChunk.feedItems;
+            incomingFeedItems = incomingChunk.feedItems;
             const existingIds = new Set(feedItemsOrder);
 
             incomingFeedItems.forEach((item) => {
-              feedItemsDict[item.id] = item;
-
-              if (!existingIds.has(item.id)) {
-                feedItemsOrder.push(item.id);
-                existingIds.add(item.id);
-              }
+              mergeFeedItemIntoOrder(
+                feedItemsDict,
+                feedItemsOrder,
+                existingIds,
+                item,
+              );
             });
           }
 
           set({
             feedItemsDict: feedItemsDict,
-            feedItemsOrder: feedItemsOrder.sort(
-              sortFeedItemsOrderByDate(get().feedItemsDict),
-            ),
+            feedItemsOrder,
             feedStatusDict: feedStatusDict,
+            scopeFeedItemIds:
+              incomingFeedItems.length > 0
+                ? reconcileScopeMembershipsForItems(
+                    get().scopeFeedItemIds,
+                    incomingFeedItems,
+                  )
+                : get().scopeFeedItemIds,
           });
         }
 
         set({
-          feedItemsOrder: [...get().feedItemsOrder].sort(
-            sortFeedItemsOrderByDate(get().feedItemsDict),
-          ),
+          feedItemsOrder: [...get().feedItemsOrder],
         });
       },
 
@@ -577,8 +792,9 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           // Re-run the same flow as initial mount: metadata, diffs, RSS refresh.
           // Rate limiting is handled server-side via checkUserRefreshEligibility —
           // if the user is in cooldown, metadata+diffs still run but RSS is skipped.
-          const viewManifests = buildViewManifests(get());
-          await orpcRouterClient.initial.requestInitialData({ viewManifests });
+          await orpcRouterClient.initial.requestInitialData({
+            clientId: getDataSubscriptionClientId(),
+          });
         } catch (e) {
           // Exit loading state so the button re-enables on error
           loadingActor.send({ type: "RESET" });
@@ -612,19 +828,17 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               const existingIds = new Set(feedItemsOrder);
 
               incomingFeedItems.forEach((item) => {
-                feedItemsDict[item.id] = item;
-
-                if (!existingIds.has(item.id)) {
-                  feedItemsOrder.push(item.id);
-                  existingIds.add(item.id);
-                }
+                mergeFeedItemIntoOrder(
+                  feedItemsDict,
+                  feedItemsOrder,
+                  existingIds,
+                  item,
+                );
               });
 
               set({
                 feedItemsDict,
-                feedItemsOrder: feedItemsOrder.sort(
-                  sortFeedItemsOrderByDate(get().feedItemsDict),
-                ),
+                feedItemsOrder,
               });
               break;
             }
@@ -642,17 +856,20 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           const existingIds = new Set(feedItemsOrder);
 
           items.forEach((item) => {
-            feedItemsDict[item.id] = item;
-            if (!existingIds.has(item.id)) {
-              feedItemsOrder.push(item.id);
-              existingIds.add(item.id);
-            }
+            mergeFeedItemIntoOrder(
+              feedItemsDict,
+              feedItemsOrder,
+              existingIds,
+              item,
+            );
           });
 
           set({
             feedItemsDict,
-            feedItemsOrder: feedItemsOrder.sort(
-              sortFeedItemsOrderByDate(feedItemsDict),
+            feedItemsOrder,
+            scopeFeedItemIds: reconcileScopeMembershipsForItems(
+              get().scopeFeedItemIds,
+              items,
             ),
           });
         };
@@ -850,26 +1067,46 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                   updates.currentViewId = viewId;
                 }
 
-                // Merge feed items inline (single copy + sort)
+                // Merge feed items inline (single copy)
                 const feedItemsDict = { ...get().feedItemsDict };
                 const feedItemsOrder = [...get().feedItemsOrder];
                 const existingIds = new Set(feedItemsOrder);
+                let scopeFeedItemIds = reconcileScopeMembershipsForItems(
+                  get().scopeFeedItemIds,
+                  initialChunk.feedItems,
+                );
 
                 for (const item of initialChunk.feedItems) {
-                  feedItemsDict[item.id] = item;
-                  if (!existingIds.has(item.id)) {
-                    feedItemsOrder.push(item.id);
-                    existingIds.add(item.id);
-                  }
+                  mergeFeedItemIntoOrder(
+                    feedItemsDict,
+                    feedItemsOrder,
+                    existingIds,
+                    item,
+                  );
                 }
 
                 updates.feedItemsDict = feedItemsDict;
-                updates.feedItemsOrder = feedItemsOrder.sort(
-                  sortFeedItemsOrderByDate(feedItemsDict),
-                );
+                updates.feedItemsOrder = feedItemsOrder;
+                updates.scopeFeedItemIds = scopeFeedItemIds;
 
                 // Only track view-specific data if viewId is present
                 if (viewId !== undefined) {
+                  if (initialChunk.visibilityFilter) {
+                    const visibilityFilter =
+                      initialChunk.visibilityFilter as VisibilityFilter;
+                    scopeFeedItemIds = applyScopeMembershipUpdate({
+                      scopeFeedItemIds,
+                      scopeKey: getFeedItemScopeKey(
+                        "view",
+                        viewId,
+                        visibilityFilter,
+                      ),
+                      itemIds: initialChunk.feedItems.map((item) => item.id),
+                      replace: true,
+                    });
+                  }
+                  updates.scopeFeedItemIds = scopeFeedItemIds;
+
                   // Track oldest item per view for cursor computation
                   const lastItemByView = { ...get()._lastItemByView };
                   for (const item of initialChunk.feedItems) {
@@ -920,30 +1157,49 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 const feedItemsDict = { ...get().feedItemsDict };
                 const feedItemsOrder = [...get().feedItemsOrder];
                 const existingIds = new Set(feedItemsOrder);
-                applyDiffEntries(
+                applyDiffEntityUpdates(
                   feedItemsDict,
                   feedItemsOrder,
                   existingIds,
                   initialChunk.diff,
                 );
 
+                const viewId = initialChunk.viewId;
+                const vf = initialChunk.visibilityFilter as VisibilityFilter;
+
                 const updates: Partial<ApplicationStore> = {
                   feedItemsDict,
-                  feedItemsOrder: feedItemsOrder.sort(
-                    sortFeedItemsOrderByDate(feedItemsDict),
-                  ),
+                  feedItemsOrder,
                 };
 
                 // Track cursor from this diff chunk
-                const viewId = initialChunk.viewId;
                 if (viewId !== undefined) {
-                  const vf = initialChunk.visibilityFilter as VisibilityFilter;
                   const pendingCursors = { ...get()._pendingViewCursors };
                   pendingCursors[viewId] = {
                     ...pendingCursors[viewId],
                     [vf]: initialChunk.cursor,
                   };
                   updates._pendingViewCursors = pendingCursors;
+                  updates.scopeFeedItemIds = applyScopeMembershipUpdate({
+                    scopeFeedItemIds: reconcileScopeMembershipsForItems(
+                      get().scopeFeedItemIds,
+                      getChangedItemsFromDiff(initialChunk.diff),
+                    ),
+                    scopeKey: getFeedItemScopeKey("view", viewId, vf),
+                    itemIds: getServerItemIdsFromDiff(initialChunk.diff),
+                    replace: true,
+                  });
+                  updates.viewPaginationState = {
+                    ...get().viewPaginationState,
+                    [viewId]: {
+                      ...get().viewPaginationState[viewId],
+                      [vf]: {
+                        cursor: initialChunk.cursor,
+                        hasMore: initialChunk.hasMore,
+                        isFetching: false,
+                      },
+                    },
+                  };
 
                   // Track fetched visibility filter
                   if (vf) {
@@ -964,6 +1220,126 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 }
 
                 set(updates);
+                break;
+              }
+
+              case "view-lightweight-items": {
+                const feedItemsDict = { ...get().feedItemsDict };
+                const feedItemsOrder = [...get().feedItemsOrder];
+                const existingIds = new Set(feedItemsOrder);
+                const pendingFulltext = new Set(get().pendingFulltextItems);
+                let hasNewPending = false;
+
+                for (const item of initialChunk.items) {
+                  const existing = feedItemsDict[item.id];
+                  const hasMatchingContentHash =
+                    existing?.contentHash === item.contentHash;
+                  const hasMatchingFulltext =
+                    !!existing && hasMatchingContentHash && !!existing.content;
+
+                  mergeFeedItemIntoOrder(
+                    feedItemsDict,
+                    feedItemsOrder,
+                    existingIds,
+                    item,
+                  );
+
+                  // Only add to pending if we don't already have matching fulltext
+                  if (!hasMatchingFulltext) {
+                    pendingFulltext.add(item.id);
+                    hasNewPending = true;
+                  }
+                }
+
+                const viewId = initialChunk.viewId;
+                const vf = initialChunk.visibilityFilter as VisibilityFilter;
+
+                const updates: Partial<ApplicationStore> = {
+                  feedItemsDict,
+                  feedItemsOrder,
+                  scopeFeedItemIds: applyScopeMembershipUpdate({
+                    scopeFeedItemIds: get().scopeFeedItemIds,
+                    scopeKey: getFeedItemScopeKey("view", viewId, vf),
+                    itemIds: initialChunk.items.map((item) => item.id),
+                    replace: true,
+                  }),
+                };
+
+                if (hasNewPending) {
+                  updates.pendingFulltextItems = Array.from(pendingFulltext);
+                }
+
+                // Track cursor for pagination
+                if (viewId !== undefined) {
+                  const pendingCursors = { ...get()._pendingViewCursors };
+                  pendingCursors[viewId] = {
+                    ...pendingCursors[viewId],
+                    [vf]: initialChunk.cursor,
+                  };
+                  updates._pendingViewCursors = pendingCursors;
+                  updates.viewPaginationState = {
+                    ...get().viewPaginationState,
+                    [viewId]: {
+                      ...get().viewPaginationState[viewId],
+                      [vf]: {
+                        cursor: initialChunk.cursor,
+                        hasMore: initialChunk.hasMore,
+                        isFetching: false,
+                      },
+                    },
+                  };
+
+                  // Track fetched visibility filter
+                  if (vf) {
+                    updates.fetchedVisibilityFilters = {
+                      ...get().fetchedVisibilityFilters,
+                      [viewId]: new Set([
+                        ...(get().fetchedVisibilityFilters[viewId] ?? []),
+                        vf,
+                      ]),
+                    };
+                  }
+
+                  // Set current view from first lightweight chunk
+                  const firstView = viewsStore.getState().views[0];
+                  if (
+                    get().currentViewId === null &&
+                    viewId === firstView?.id
+                  ) {
+                    updates.currentViewId = viewId;
+                  }
+                }
+
+                set(updates);
+
+                // Schedule a debounced fulltext fetch
+                if (hasNewPending) {
+                  get().scheduleFulltextFetch();
+                }
+
+                break;
+              }
+
+              case "fulltext-items": {
+                const feedItemsDict = { ...get().feedItemsDict };
+                const pendingFulltext = new Set(get().pendingFulltextItems);
+
+                for (const item of initialChunk.items) {
+                  const existing = feedItemsDict[item.id];
+                  if (existing) {
+                    feedItemsDict[item.id] = {
+                      ...existing,
+                      content: item.content,
+                      contentSnippet: item.contentSnippet,
+                    };
+                  }
+                  pendingFulltext.delete(item.id);
+                }
+
+                set({
+                  feedItemsDict,
+                  pendingFulltextItems: Array.from(pendingFulltext),
+                });
                 break;
               }
 
@@ -1038,31 +1414,44 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             }
 
             if (chunk.type === "view-diff") {
+              // Background validation diff — item entities stay canonical.
+              // Membership updates below decide whether an id remains visible
+              // in this view/filter without falsifying read/save state.
               const feedItemsDict = { ...get().feedItemsDict };
               const feedItemsOrder = [...get().feedItemsOrder];
               const existingIds = new Set(feedItemsOrder);
-              applyDiffEntries(
+              const vf = chunk.visibilityFilter as VisibilityFilter;
+              applyDiffEntityUpdates(
                 feedItemsDict,
                 feedItemsOrder,
                 existingIds,
                 chunk.diff,
               );
 
-              const vf = chunk.visibilityFilter as VisibilityFilter;
+              const paginationState = {
+                cursor: chunk.cursor,
+                hasMore: chunk.hasMore,
+                isFetching: false,
+              };
+              const scopeKey = getFeedItemScopeKey("view", chunk.viewId, vf);
+
               set({
                 feedItemsDict,
-                feedItemsOrder: feedItemsOrder.sort(
-                  sortFeedItemsOrderByDate(feedItemsDict),
-                ),
+                feedItemsOrder,
+                scopeFeedItemIds: applyScopeMembershipUpdate({
+                  scopeFeedItemIds: reconcileScopeMembershipsForItems(
+                    get().scopeFeedItemIds,
+                    getChangedItemsFromDiff(chunk.diff),
+                  ),
+                  scopeKey,
+                  itemIds: getServerItemIdsFromDiff(chunk.diff),
+                  replace: chunk.replacesScope === true,
+                }),
                 viewPaginationState: {
                   ...get().viewPaginationState,
                   [chunk.viewId]: {
                     ...get().viewPaginationState[chunk.viewId],
-                    [vf]: {
-                      cursor: chunk.cursor,
-                      hasMore: chunk.hasMore,
-                      isFetching: false,
-                    },
+                    [vf]: paginationState,
                   },
                 },
                 fetchedVisibilityFilters: {
@@ -1083,6 +1472,16 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               const visibilityFilter =
                 chunk.visibilityFilter as VisibilityFilter;
               set({
+                scopeFeedItemIds: applyScopeMembershipUpdate({
+                  scopeFeedItemIds: get().scopeFeedItemIds,
+                  scopeKey: getFeedItemScopeKey(
+                    "view",
+                    chunk.viewId,
+                    visibilityFilter,
+                  ),
+                  itemIds: chunk.feedItems.map((item) => item.id),
+                  replace: chunk.replacesScope === true,
+                }),
                 viewPaginationState: {
                   ...get().viewPaginationState,
                   [chunk.viewId]: {
@@ -1118,6 +1517,16 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             // Update pagination state for this feed/visibility filter
             const visibilityFilter = chunk.visibilityFilter as VisibilityFilter;
             set({
+              scopeFeedItemIds: applyScopeMembershipUpdate({
+                scopeFeedItemIds: get().scopeFeedItemIds,
+                scopeKey: getFeedItemScopeKey(
+                  "feed",
+                  chunk.feedId,
+                  visibilityFilter,
+                ),
+                itemIds: chunk.feedItems.map((item) => item.id),
+                replace: chunk.replacesScope === true,
+              }),
               feedPaginationState: {
                 ...get().feedPaginationState,
                 [chunk.feedId]: {
@@ -1152,6 +1561,16 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             // Update pagination state for this category/visibility filter
             const visibilityFilter = chunk.visibilityFilter as VisibilityFilter;
             set({
+              scopeFeedItemIds: applyScopeMembershipUpdate({
+                scopeFeedItemIds: get().scopeFeedItemIds,
+                scopeKey: getFeedItemScopeKey(
+                  "category",
+                  chunk.categoryId,
+                  visibilityFilter,
+                ),
+                itemIds: chunk.feedItems.map((item) => item.id),
+                replace: chunk.replacesScope === true,
+              }),
               categoryPaginationState: {
                 ...get().categoryPaginationState,
                 [chunk.categoryId]: {
@@ -1242,7 +1661,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             for (const payload of pendingInitialViewDiffs) {
               const chunk = payload.chunk;
 
-              applyDiffEntries(
+              applyDiffEntityUpdates(
                 feedItemsDict,
                 feedItemsOrder,
                 existingIds,
@@ -1255,6 +1674,15 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 ...pendingCursors[chunk.viewId],
                 [vf]: chunk.cursor,
               };
+              updates.scopeFeedItemIds = applyScopeMembershipUpdate({
+                scopeFeedItemIds: reconcileScopeMembershipsForItems(
+                  updates.scopeFeedItemIds ?? get().scopeFeedItemIds,
+                  getChangedItemsFromDiff(chunk.diff),
+                ),
+                scopeKey: getFeedItemScopeKey("view", chunk.viewId, vf),
+                itemIds: getServerItemIdsFromDiff(chunk.diff),
+                replace: true,
+              });
 
               // Track fetched filters
               if (vf) {
@@ -1279,9 +1707,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             }
 
             updates.feedItemsDict = feedItemsDict;
-            updates.feedItemsOrder = feedItemsOrder.sort(
-              sortFeedItemsOrderByDate(feedItemsDict),
-            );
+            updates.feedItemsOrder = feedItemsOrder;
             updates._pendingViewCursors = pendingCursors;
             if (filtersChanged) {
               updates.fetchedVisibilityFilters = fetchedVisibilityFilters;
@@ -1300,6 +1726,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             const existingIds = new Set(feedItemsOrder);
 
             const lastItemByView = { ...get()._lastItemByView };
+            let scopeFeedItemIds = get().scopeFeedItemIds;
+            let scopeItemsChanged = false;
             let fetchedVisibilityFilters = get().fetchedVisibilityFilters;
             let filtersChanged = false;
 
@@ -1315,12 +1743,18 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               };
 
               for (const item of chunk.feedItems) {
-                feedItemsDict[item.id] = item;
-                if (!existingIds.has(item.id)) {
-                  feedItemsOrder.push(item.id);
-                  existingIds.add(item.id);
-                }
+                mergeFeedItemIntoOrder(
+                  feedItemsDict,
+                  feedItemsOrder,
+                  existingIds,
+                  item,
+                );
               }
+              scopeFeedItemIds = reconcileScopeMembershipsForItems(
+                scopeFeedItemIds,
+                chunk.feedItems,
+              );
+              scopeItemsChanged = true;
 
               const viewId = chunk.viewId;
               if (
@@ -1332,6 +1766,20 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               }
 
               if (viewId !== undefined) {
+                if (chunk.visibilityFilter) {
+                  scopeFeedItemIds = applyScopeMembershipUpdate({
+                    scopeFeedItemIds,
+                    scopeKey: getFeedItemScopeKey(
+                      "view",
+                      viewId,
+                      chunk.visibilityFilter as VisibilityFilter,
+                    ),
+                    itemIds: chunk.feedItems.map((item) => item.id),
+                    replace: true,
+                  });
+                  scopeItemsChanged = true;
+                }
+
                 for (const item of chunk.feedItems) {
                   const currentOldest = lastItemByView[viewId];
                   const itemTime =
@@ -1367,10 +1815,11 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             }
 
             updates.feedItemsDict = feedItemsDict;
-            updates.feedItemsOrder = feedItemsOrder.sort(
-              sortFeedItemsOrderByDate(feedItemsDict),
-            );
+            updates.feedItemsOrder = feedItemsOrder;
             updates._lastItemByView = lastItemByView;
+            if (scopeItemsChanged) {
+              updates.scopeFeedItemIds = scopeFeedItemIds;
+            }
             if (filtersChanged) {
               updates.fetchedVisibilityFilters = fetchedVisibilityFilters;
             }
@@ -1489,6 +1938,7 @@ export const feedItemsStore = createSelectorHooks(vanillaApplicationStore);
 export const {
   useFeedItemsDict,
   useFeedItemsOrder,
+  useScopeFeedItemIds,
   useFeedStatusDict,
   useFetchFeedItemsLastFetchedAt,
   useHasInitialData,

@@ -6,6 +6,7 @@ import type { PlanId } from "./plans";
 import type { db as Database } from "~/server/db";
 import { feeds, user } from "~/server/db/schema";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
+import { logError } from "~/server/logger";
 
 type DB = typeof Database;
 
@@ -37,7 +38,7 @@ export async function getUserPlanId(userId: string): Promise<PlanId> {
     const data = await syncPolarDataToKV(userId);
     return data.planId;
   } catch (e) {
-    console.error(
+    logError(
       `[subscription] Failed to fetch plan for user ${userId}, defaulting to free:`,
       e,
     );

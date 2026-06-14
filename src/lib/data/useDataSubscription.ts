@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { getDefaultStore } from "jotai";
 import { orpcRouterClient } from "../orpc";
-import { buildViewManifests } from "./buildViewManifests";
+import { getDataSubscriptionClientId } from "./clientChannel";
 import { loadingActor } from "./loading-machine";
 import { feedItemsStore } from "./store";
 import { shouldAlwaysKeepSSEConnectionAlive } from "./atoms";
@@ -24,6 +24,7 @@ const BACKOFF_MULTIPLIER = 2;
  * Handles connection lifecycle, auto-reconnection, and exposes request methods.
  */
 export function useDataSubscription() {
+  const clientIdRef = useRef(getDataSubscriptionClientId());
   const abortControllerRef = useRef<AbortController | null>(null);
   const retryDelayRef = useRef(INITIAL_RETRY_DELAY);
   const isConnectedRef = useRef(false);
@@ -83,24 +84,19 @@ export function useDataSubscription() {
           isConnectedRef.current = true;
           retryDelayRef.current = INITIAL_RETRY_DELAY;
 
-          const iterator = await orpcRouterClient.initial.subscribe(undefined, {
-            signal: conn.signal,
-          });
+          const iterator = await orpcRouterClient.initial.subscribe(
+            { clientId: clientIdRef.current },
+            { signal: conn.signal },
+          );
 
           // After reconnecting due to page refocus, re-request data so
           // the server sends fresh metadata, diffs, and triggers a
           // refresh if the cooldown elapsed while the tab was hidden.
           if (visibilityReconnect) {
             visibilityReconnect = false;
-            const state = feedItemsStore.getState();
-            const hasCachedData = Object.keys(state.feedItemsDict).length > 0;
-            if (hasCachedData) {
-              void orpcRouterClient.initial.requestInitialData({
-                viewManifests: buildViewManifests(state),
-              });
-            } else {
-              void orpcRouterClient.initial.requestInitialData();
-            }
+            void orpcRouterClient.initial.requestInitialData({
+              clientId: clientIdRef.current,
+            });
           }
 
           for await (const payload of iterator as AsyncIterable<PublishedChunk>) {
@@ -206,14 +202,18 @@ export function useDataSubscription() {
   }, [flushBuffer]);
 
   // Request methods that trigger data fetching via the publisher
-  const requestInitialData = useCallback(
-    (options?: {
-      viewManifests?: Record<number, Record<string, ClientManifestEntry[]>>;
-    }) => {
-      return orpcRouterClient.initial.requestInitialData(options ?? undefined);
-    },
-    [],
-  );
+  const requestInitialData = useCallback(() => {
+    return orpcRouterClient.initial.requestInitialData({
+      clientId: clientIdRef.current,
+    });
+  }, []);
+
+  const requestFullTextForItems = useCallback((itemIds: string[]) => {
+    return orpcRouterClient.initial.requestFullTextForItems({
+      itemIds,
+      clientId: clientIdRef.current,
+    });
+  }, []);
 
   const requestItemsByVisibility = useCallback(
     (
@@ -229,6 +229,7 @@ export function useDataSubscription() {
         cursor,
         limit,
         clientItems,
+        clientId: clientIdRef.current,
       });
     },
     [],
@@ -246,6 +247,7 @@ export function useDataSubscription() {
         visibilityFilter,
         cursor,
         limit,
+        clientId: clientIdRef.current,
       });
     },
     [],
@@ -263,6 +265,7 @@ export function useDataSubscription() {
         visibilityFilter,
         cursor,
         limit,
+        clientId: clientIdRef.current,
       });
     },
     [],
@@ -270,6 +273,7 @@ export function useDataSubscription() {
 
   return {
     requestInitialData,
+    requestFullTextForItems,
     requestItemsByVisibility,
     requestItemsByFeed,
     requestItemsByCategoryId,
@@ -282,13 +286,30 @@ export function useDataSubscription() {
  * This allows accessing request methods from anywhere in the app.
  */
 export const dataSubscriptionActions = {
-  requestInitialData: (options?: {
-    viewManifests?: Record<number, Record<string, ClientManifestEntry[]>>;
-  }) => {
-    return orpcRouterClient.initial.requestInitialData(options ?? undefined);
+  requestInitialData: () => {
+    return orpcRouterClient.initial.requestInitialData({
+      clientId: getDataSubscriptionClientId(),
+    });
+  },
+  requestFullTextForItems: (itemIds: string[]) => {
+    return orpcRouterClient.initial.requestFullTextForItems({
+      itemIds,
+      clientId: getDataSubscriptionClientId(),
+    });
   },
   streamingImport: (
-    feeds: Array<{ feedUrl: string; categories: string[] }>,
+    feeds: Array<{
+      feedUrl: string;
+      categories: string[];
+      categoryPaths?: Array<
+        Array<{
+          name: string;
+          type?: "view" | "tag" | "feed";
+          feedUrl?: string;
+        }>
+      >;
+      tagNames?: string[];
+    }>,
     importMode?: "tags" | "views" | "ignore",
   ) => orpcRouterClient.initial.streamingImport({ feeds, importMode }),
   requestItemsByVisibility: (
@@ -304,6 +325,7 @@ export const dataSubscriptionActions = {
       cursor,
       limit,
       clientItems,
+      clientId: getDataSubscriptionClientId(),
     }),
   requestItemsByFeed: (
     feedId: number,
@@ -316,6 +338,7 @@ export const dataSubscriptionActions = {
       visibilityFilter,
       cursor,
       limit,
+      clientId: getDataSubscriptionClientId(),
     }),
   requestItemsByCategoryId: (
     categoryId: number,
@@ -328,5 +351,6 @@ export const dataSubscriptionActions = {
       visibilityFilter,
       cursor,
       limit,
+      clientId: getDataSubscriptionClientId(),
     }),
 };

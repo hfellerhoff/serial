@@ -362,6 +362,7 @@ export const update = protectedProcedure
       categoryIds: z.number().array(),
       viewIds: z.number().array().optional(),
       openLocation: openLocationSchema,
+      name: z.string().min(1).max(256),
     }),
   )
   .handler(async ({ context, input }) => {
@@ -394,6 +395,7 @@ export const update = protectedProcedure
         .update(feeds)
         .set({
           openLocation: input.openLocation,
+          name: input.name,
         })
         .where(
           and(eq(feeds.userId, context.user.id), eq(feeds.id, input.feedId)),

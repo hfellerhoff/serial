@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { AtpAgent } from "@atproto/api";
 import { createBuilder } from "@content-collections/core";
@@ -36,6 +37,10 @@ const isDryRun = process.argv.includes("--dry-run");
 const allowLargeDelete = process.argv.includes("--allow-large-delete");
 const publicationUri = syncEnv.VITE_PUBLIC_STANDARD_SITE_PUBLICATION_URI;
 const publication = parsePublicationUri(publicationUri);
+const publicationIcon = {
+  mimeType: "image/png",
+  url: new URL("../public/icon-256.png", import.meta.url),
+} as const;
 
 async function loadDocuments() {
   const contentCollectionsConfigPath = fileURLToPath(
@@ -90,6 +95,10 @@ async function syncStandardSite() {
     );
   }
 
+  const publicationIconBytes = await readFile(publicationIcon.url);
+  const publicationIconResponse = await agent.uploadBlob(publicationIconBytes, {
+    encoding: publicationIcon.mimeType,
+  });
   const [existingPublications, existingDocuments] = await Promise.all([
     listRecords(agent, publication.did, STANDARD_SITE.publicationCollection),
     listRecords(agent, publication.did, STANDARD_SITE.documentCollection),
@@ -97,6 +106,7 @@ async function syncStandardSite() {
   const plan = planStandardSiteSync({
     documents,
     publicationUri,
+    publicationIcon: publicationIconResponse.data.blob,
     existingPublications,
     existingDocuments,
   });

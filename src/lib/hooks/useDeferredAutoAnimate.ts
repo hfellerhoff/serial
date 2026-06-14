@@ -5,6 +5,10 @@ import { useSelector } from "@xstate/react";
 import { useEffect } from "react";
 import { loadingActor } from "~/lib/data/loading-machine";
 
+interface UseDeferredAutoAnimateOptions {
+  disabled?: boolean;
+}
+
 /**
  * Wraps useAutoAnimate but keeps animations disabled while the loading
  * machine is in the `initialLoad` state. This prevents cached items
@@ -15,14 +19,17 @@ import { loadingActor } from "~/lib/data/loading-machine";
  * first. All subsequent states (backgroundRefresh, manualRefresh, etc.)
  * are animated normally.
  */
-export function useDeferredAutoAnimate<T extends HTMLElement>() {
+export function useDeferredAutoAnimate<T extends HTMLElement>({
+  disabled = false,
+}: UseDeferredAutoAnimateOptions = {}) {
   const [parent, enable] = useAutoAnimate<T>();
   const isInitialLoad = useSelector(loadingActor, (s) =>
     s.matches("initialLoad"),
   );
+  const shouldDisableAutoAnimate = isInitialLoad || disabled;
 
   useEffect(() => {
-    if (isInitialLoad) {
+    if (shouldDisableAutoAnimate) {
       enable(false);
       return;
     }
@@ -33,7 +40,7 @@ export function useDeferredAutoAnimate<T extends HTMLElement>() {
       enable(true);
     });
     return () => cancelAnimationFrame(id);
-  }, [isInitialLoad, enable]);
+  }, [shouldDisableAutoAnimate, enable]);
 
   return [parent] as const;
 }
