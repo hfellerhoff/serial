@@ -28,6 +28,7 @@ import { Route as AppTagsRouteImport } from './app/_app.tags'
 import { Route as AppImportRouteImport } from './app/_app.import'
 import { Route as AppFeedsRouteImport } from './app/_app.feeds'
 import { Route as AppDebugRouteImport } from './app/_app.debug'
+import { Route as DotwellKnownSiteDotstandardDotpublicationRouteImport } from './app/[.]well-known.site[.]standard[.]publication'
 import { Route as WebReleasesIndexRouteImport } from './app/_web.releases.index'
 import { Route as WebGuidesIndexRouteImport } from './app/_web.guides.index'
 import { Route as AppAdminIndexRouteImport } from './app/_app.admin.index'
@@ -43,6 +44,8 @@ import { Route as AppAdminStatsRouteImport } from './app/_app.admin.stats'
 import { Route as AppAdminSettingsRouteImport } from './app/_app.admin.settings'
 import { Route as AppAdminInvitesRouteImport } from './app/_app.admin.invites'
 import { Route as AppAdminInfoRouteImport } from './app/_app.admin.info'
+import { Route as ApiOgReleasesSlugRouteImport } from './app/api/og/releases.$slug'
+import { Route as ApiOgGuidesSlugRouteImport } from './app/api/og/guides.$slug'
 import { Route as AppAdminUserIdRouteImport } from './app/_app.admin.user.$id'
 
 const WelcomeRoute = WelcomeRouteImport.update({
@@ -138,6 +141,12 @@ const AppDebugRoute = AppDebugRouteImport.update({
   path: '/debug',
   getParentRoute: () => AppRoute,
 } as any)
+const DotwellKnownSiteDotstandardDotpublicationRoute =
+  DotwellKnownSiteDotstandardDotpublicationRouteImport.update({
+    id: '/.well-known/site.standard.publication',
+    path: '/.well-known/site.standard.publication',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const WebReleasesIndexRoute = WebReleasesIndexRouteImport.update({
   id: '/releases/',
   path: '/releases/',
@@ -213,6 +222,16 @@ const AppAdminInfoRoute = AppAdminInfoRouteImport.update({
   path: '/admin/info',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiOgReleasesSlugRoute = ApiOgReleasesSlugRouteImport.update({
+  id: '/api/og/releases/$slug',
+  path: '/api/og/releases/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOgGuidesSlugRoute = ApiOgGuidesSlugRouteImport.update({
+  id: '/api/og/guides/$slug',
+  path: '/api/og/guides/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppAdminUserIdRoute = AppAdminUserIdRouteImport.update({
   id: '/admin/user/$id',
   path: '/admin/user/$id',
@@ -226,6 +245,7 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/sitemap': typeof SitemapRoute
   '/welcome': typeof WelcomeRoute
+  '/.well-known/site.standard.publication': typeof DotwellKnownSiteDotstandardDotpublicationRoute
   '/debug': typeof AppDebugRoute
   '/feeds': typeof AppFeedsRoute
   '/import': typeof AppImportRoute
@@ -253,6 +273,8 @@ export interface FileRoutesByFullPath {
   '/guides/': typeof WebGuidesIndexRoute
   '/releases/': typeof WebReleasesIndexRoute
   '/admin/user/$id': typeof AppAdminUserIdRoute
+  '/api/og/guides/$slug': typeof ApiOgGuidesSlugRoute
+  '/api/og/releases/$slug': typeof ApiOgReleasesSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
@@ -261,6 +283,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/sitemap': typeof SitemapRoute
   '/welcome': typeof WelcomeRoute
+  '/.well-known/site.standard.publication': typeof DotwellKnownSiteDotstandardDotpublicationRoute
   '/debug': typeof AppDebugRoute
   '/feeds': typeof AppFeedsRoute
   '/import': typeof AppImportRoute
@@ -287,6 +310,8 @@ export interface FileRoutesByTo {
   '/guides': typeof WebGuidesIndexRoute
   '/releases': typeof WebReleasesIndexRoute
   '/admin/user/$id': typeof AppAdminUserIdRoute
+  '/api/og/guides/$slug': typeof ApiOgGuidesSlugRoute
+  '/api/og/releases/$slug': typeof ApiOgReleasesSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -297,6 +322,7 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/sitemap': typeof SitemapRoute
   '/welcome': typeof WelcomeRoute
+  '/.well-known/site.standard.publication': typeof DotwellKnownSiteDotstandardDotpublicationRoute
   '/_app/debug': typeof AppDebugRoute
   '/_app/feeds': typeof AppFeedsRoute
   '/_app/import': typeof AppImportRoute
@@ -325,6 +351,8 @@ export interface FileRoutesById {
   '/_web/guides/': typeof WebGuidesIndexRoute
   '/_web/releases/': typeof WebReleasesIndexRoute
   '/_app/admin/user/$id': typeof AppAdminUserIdRoute
+  '/api/og/guides/$slug': typeof ApiOgGuidesSlugRoute
+  '/api/og/releases/$slug': typeof ApiOgReleasesSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -335,6 +363,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/sitemap'
     | '/welcome'
+    | '/.well-known/site.standard.publication'
     | '/debug'
     | '/feeds'
     | '/import'
@@ -362,6 +391,8 @@ export interface FileRouteTypes {
     | '/guides/'
     | '/releases/'
     | '/admin/user/$id'
+    | '/api/og/guides/$slug'
+    | '/api/og/releases/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -370,6 +401,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/sitemap'
     | '/welcome'
+    | '/.well-known/site.standard.publication'
     | '/debug'
     | '/feeds'
     | '/import'
@@ -396,6 +428,8 @@ export interface FileRouteTypes {
     | '/guides'
     | '/releases'
     | '/admin/user/$id'
+    | '/api/og/guides/$slug'
+    | '/api/og/releases/$slug'
   id:
     | '__root__'
     | '/_app'
@@ -405,6 +439,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/sitemap'
     | '/welcome'
+    | '/.well-known/site.standard.publication'
     | '/_app/debug'
     | '/_app/feeds'
     | '/_app/import'
@@ -433,6 +468,8 @@ export interface FileRouteTypes {
     | '/_web/guides/'
     | '/_web/releases/'
     | '/_app/admin/user/$id'
+    | '/api/og/guides/$slug'
+    | '/api/og/releases/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -443,10 +480,13 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   SitemapRoute: typeof SitemapRoute
   WelcomeRoute: typeof WelcomeRoute
+  DotwellKnownSiteDotstandardDotpublicationRoute: typeof DotwellKnownSiteDotstandardDotpublicationRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiDemoProvisionRoute: typeof ApiDemoProvisionRoute
   ApiRpcSplatRoute: typeof ApiRpcSplatRoute
+  ApiOgGuidesSlugRoute: typeof ApiOgGuidesSlugRoute
+  ApiOgReleasesSlugRoute: typeof ApiOgReleasesSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -584,6 +624,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDebugRouteImport
       parentRoute: typeof AppRoute
     }
+    '/.well-known/site.standard.publication': {
+      id: '/.well-known/site.standard.publication'
+      path: '/.well-known/site.standard.publication'
+      fullPath: '/.well-known/site.standard.publication'
+      preLoaderRoute: typeof DotwellKnownSiteDotstandardDotpublicationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_web/releases/': {
       id: '/_web/releases/'
       path: '/releases'
@@ -689,6 +736,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminInfoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/og/releases/$slug': {
+      id: '/api/og/releases/$slug'
+      path: '/api/og/releases/$slug'
+      fullPath: '/api/og/releases/$slug'
+      preLoaderRoute: typeof ApiOgReleasesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/og/guides/$slug': {
+      id: '/api/og/guides/$slug'
+      path: '/api/og/guides/$slug'
+      fullPath: '/api/og/guides/$slug'
+      preLoaderRoute: typeof ApiOgGuidesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/admin/user/$id': {
       id: '/_app/admin/user/$id'
       path: '/admin/user/$id'
@@ -789,10 +850,14 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   SitemapRoute: SitemapRoute,
   WelcomeRoute: WelcomeRoute,
+  DotwellKnownSiteDotstandardDotpublicationRoute:
+    DotwellKnownSiteDotstandardDotpublicationRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiDemoProvisionRoute: ApiDemoProvisionRoute,
   ApiRpcSplatRoute: ApiRpcSplatRoute,
+  ApiOgGuidesSlugRoute: ApiOgGuidesSlugRoute,
+  ApiOgReleasesSlugRoute: ApiOgReleasesSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

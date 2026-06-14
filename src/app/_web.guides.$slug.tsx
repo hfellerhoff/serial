@@ -5,16 +5,43 @@ import type { LucideIcon } from "lucide-react";
 import { YoutubeIcon } from "~/components/brand-icons";
 import { Markdown } from "~/components/Markdown";
 import { WebFooterCTA } from "~/components/welcome/WebFooterCTA";
+import { env } from "~/env";
+import { IS_MAIN_INSTANCE } from "~/lib/constants";
 import { getGuidePostWithSlug } from "~/lib/markdown/loaders";
+import { buildGuideMetadata } from "~/lib/og/guideMetadata";
+import {
+  buildDocumentLink,
+  buildGuideDocumentSource,
+} from "~/lib/standard-site";
 import { fetchIsAuthed } from "~/server/auth/endpoints";
 
 export const Route = createFileRoute("/_web/guides/$slug")({
-  component: RouteComponent,
   loader: async ({ params }) => {
     const isAuthed = await fetchIsAuthed();
     const post = getGuidePostWithSlug(params.slug);
     return { post, isAuthed };
   },
+  head: ({ loaderData }) => {
+    if (!loaderData) return {};
+
+    const metadata = buildGuideMetadata(
+      loaderData.post,
+      env.VITE_PUBLIC_BASE_URL,
+    );
+    const documentLink = buildDocumentLink(
+      buildGuideDocumentSource(loaderData.post),
+      {
+        isMainInstance: IS_MAIN_INSTANCE,
+        publicationUri: env.VITE_PUBLIC_STANDARD_SITE_PUBLICATION_URI,
+      },
+    );
+
+    return {
+      ...metadata,
+      links: documentLink ? [documentLink] : [],
+    };
+  },
+  component: RouteComponent,
 });
 
 const GUIDE_ICONS: Record<string, LucideIcon | typeof YoutubeIcon> = {

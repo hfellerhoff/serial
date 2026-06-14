@@ -7,6 +7,10 @@ export const env = createEnv({
     VITE_PUBLIC_BASE_URL: z.url(),
     VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS: z.string().email().optional(),
     VITE_PUBLIC_SENTRY_DSN_WEB: z.string().url().optional(),
+    VITE_PUBLIC_STANDARD_SITE_PUBLICATION_URI: z
+      .string()
+      .startsWith("at://")
+      .optional(),
     VITE_PUBLIC_IS_MAINTENANCE_MODE: z.string().optional().default("false"),
     VITE_PUBLIC_IS_MAIN_INSTANCE: z.string().optional().default("false"),
     VITE_PUBLIC_IS_DEMO_INSTANCE: z.string().optional().default("false"),
@@ -105,6 +109,9 @@ export const env = createEnv({
     VITE_PUBLIC_SENTRY_DSN_WEB:
       import.meta.env?.VITE_PUBLIC_SENTRY_DSN_WEB ??
       process.env.VITE_PUBLIC_SENTRY_DSN_WEB,
+    VITE_PUBLIC_STANDARD_SITE_PUBLICATION_URI:
+      import.meta.env?.VITE_PUBLIC_STANDARD_SITE_PUBLICATION_URI ??
+      process.env.VITE_PUBLIC_STANDARD_SITE_PUBLICATION_URI,
     VITE_PUBLIC_IS_MAINTENANCE_MODE:
       import.meta.env?.VITE_PUBLIC_IS_MAINTENANCE_MODE ??
       process.env.VITE_PUBLIC_IS_MAINTENANCE_MODE,

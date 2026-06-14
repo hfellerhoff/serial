@@ -12,8 +12,10 @@ import { QueryProvider } from "~/lib/query-provider";
 import { ReloadPrompt } from "~/components/pwa/ReloadPrompt";
 import { UndoShortcutListener } from "~/lib/undo";
 import { Button } from "~/components/ui/button";
-import { BASE_SIGNED_OUT_URL } from "~/lib/constants";
+import { env } from "~/env";
+import { BASE_SIGNED_OUT_URL, IS_MAIN_INSTANCE } from "~/lib/constants";
 import { fetchConfigCss } from "~/server/auth/endpoints";
+import { buildPublicationLink } from "~/lib/standard-site";
 
 import appCss from "~/styles/globals.css?url";
 
@@ -29,77 +31,85 @@ export const Route = createRootRoute({
     const configCss = await fetchConfigCss();
     return { configCss };
   },
-  head: ({ loaderData }) => ({
-    meta: [
-      { charSet: "utf-8" },
-      {
-        name: "viewport",
-        content: "width=device-width, initial-scale=1",
-      },
-      { title: title },
-      { name: "description", content: description },
-      { name: "application-name", content: title },
-      { name: "mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-title", content: title },
-      { name: "format-detection", content: "telephone=no" },
-      {
-        name: "keywords",
-        content: "video, rss, newsletter, content, youtube, podcast",
-      },
-      { name: "author", content: "Henry Fellerhoff" },
-      { name: "theme-color", content: "hsl(20 14.3% 4.1%)" },
-      // Open Graph
-      { property: "og:title", content: title },
-      { property: "og:description", content: description },
-      { property: "og:type", content: "website" },
-      { property: "og:image", content: "/og-image.png" },
-      { property: "og:image:alt", content: title },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "icon", href: "/favicon.ico" },
-      {
-        rel: "icon",
-        type: "image/png",
-        sizes: "16x16",
-        href: "/favicon-16x16.png",
-      },
-      {
-        rel: "icon",
-        type: "image/png",
-        sizes: "32x32",
-        href: "/favicon-32x32.png",
-      },
-      {
-        rel: "apple-touch-icon",
-        sizes: "180x180",
-        href: "/apple-touch-icon.png",
-      },
-      {
-        rel: "icon",
-        type: "image/png",
-        sizes: "512x512",
-        href: "/android-chrome-512x512.png",
-      },
-      // YouTube preconnect hints for faster video loading
-      { rel: "preconnect", href: "https://www.youtube-nocookie.com" },
-      { rel: "preconnect", href: "https://i.ytimg.com" },
-      { rel: "preconnect", href: "https://img.youtube.com" },
-      { rel: "dns-prefetch", href: "https://www.youtube-nocookie.com" },
-      // Preload YouTube IFrame API
-      // {
-      //   rel: "preload",
-      //   href: "https://www.youtube.com/iframe_api",
-      //   as: "script",
-      // },
-    ],
-    styles: loaderData?.configCss ? [{ children: loaderData.configCss }] : [],
-  }),
+  head: ({ loaderData }) => {
+    const publicationLink = buildPublicationLink({
+      isMainInstance: IS_MAIN_INSTANCE,
+      publicationUri: env.VITE_PUBLIC_STANDARD_SITE_PUBLICATION_URI,
+    });
+
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        {
+          name: "viewport",
+          content: "width=device-width, initial-scale=1",
+        },
+        { title: title },
+        { name: "description", content: description },
+        { name: "application-name", content: title },
+        { name: "mobile-web-app-capable", content: "yes" },
+        { name: "apple-mobile-web-app-capable", content: "yes" },
+        { name: "apple-mobile-web-app-title", content: title },
+        { name: "format-detection", content: "telephone=no" },
+        {
+          name: "keywords",
+          content: "video, rss, newsletter, content, youtube, podcast",
+        },
+        { name: "author", content: "Henry Fellerhoff" },
+        { name: "theme-color", content: "hsl(20 14.3% 4.1%)" },
+        // Open Graph
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { property: "og:image", content: "/og-image.png" },
+        { property: "og:image:alt", content: title },
+      ],
+      links: [
+        {
+          rel: "stylesheet",
+          href: appCss,
+        },
+        { rel: "manifest", href: "/manifest.webmanifest" },
+        { rel: "icon", href: "/favicon.ico" },
+        {
+          rel: "icon",
+          type: "image/png",
+          sizes: "16x16",
+          href: "/favicon-16x16.png",
+        },
+        {
+          rel: "icon",
+          type: "image/png",
+          sizes: "32x32",
+          href: "/favicon-32x32.png",
+        },
+        {
+          rel: "apple-touch-icon",
+          sizes: "180x180",
+          href: "/apple-touch-icon.png",
+        },
+        {
+          rel: "icon",
+          type: "image/png",
+          sizes: "512x512",
+          href: "/android-chrome-512x512.png",
+        },
+        // YouTube preconnect hints for faster video loading
+        { rel: "preconnect", href: "https://www.youtube-nocookie.com" },
+        { rel: "preconnect", href: "https://i.ytimg.com" },
+        { rel: "preconnect", href: "https://img.youtube.com" },
+        { rel: "dns-prefetch", href: "https://www.youtube-nocookie.com" },
+        ...(publicationLink ? [publicationLink] : []),
+        // Preload YouTube IFrame API
+        // {
+        //   rel: "preload",
+        //   href: "https://www.youtube.com/iframe_api",
+        //   as: "script",
+        // },
+      ],
+      styles: loaderData?.configCss ? [{ children: loaderData.configCss }] : [],
+    };
+  },
   component: RootLayout,
   notFoundComponent: () => (
     <div className="flex h-screen w-screen flex-col items-center justify-center gap-4 text-center">

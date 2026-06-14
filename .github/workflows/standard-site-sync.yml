@@ -1,0 +1,78 @@
+name: Standard.Site Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "content-collections.ts"
+      - "src/content/blog/**"
+      - "src/content/releases/**"
+      - "src/lib/standard-site/**"
+      - "scripts/sync-standard-site.ts"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Only print the planned changes
+        required: false
+        default: false
+        type: boolean
+      allow_large_delete:
+        description: Allow deleting more than five publication documents
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: standard-site-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Standard.Site configuration
+        id: configuration
+        env:
+          STANDARD_SITE_PDS_URL: ${{ vars.STANDARD_SITE_PDS_URL }}
+          STANDARD_SITE_IDENTIFIER: ${{ vars.STANDARD_SITE_IDENTIFIER }}
+          STANDARD_SITE_APP_PASSWORD: ${{ secrets.STANDARD_SITE_APP_PASSWORD }}
+          VITE_PUBLIC_STANDARD_SITE_PUBLICATION_URI: ${{ vars.VITE_PUBLIC_STANDARD_SITE_PUBLICATION_URI }}
+        run: |
+          if [[ -n "$STANDARD_SITE_PDS_URL" && -n "$STANDARD_SITE_IDENTIFIER" && -n "$STANDARD_SITE_APP_PASSWORD" && -n "$VITE_PUBLIC_STANDARD_SITE_PUBLICATION_URI" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Standard.Site credentials are not configured; skipping sync."
+          fi
+
+      - name: Checkout
+        if: steps.configuration.outputs.enabled == 'true'
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        if: steps.configuration.outputs.enabled == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.0
+          run_install: false
+
+      - name: Install Node.js
+        if: steps.configuration.outputs.enabled == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install dependencies
+        if: steps.configuration.outputs.enabled == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync Standard.Site records
+        if: steps.configuration.outputs.enabled == 'true'
+        run: pnpm standard-site:sync ${{ inputs.dry_run && '--dry-run' || '' }} ${{ inputs.allow_large_delete && '--allow-large-delete' || '' }}
+        env:
+          STANDARD_SITE_PDS_URL: ${{ vars.STANDARD_SITE_PDS_URL }}
+          STANDARD_SITE_IDENTIFIER: ${{ vars.STANDARD_SITE_IDENTIFIER }}
+          STANDARD_SITE_APP_PASSWORD: ${{ secrets.STANDARD_SITE_APP_PASSWORD }}
+          VITE_PUBLIC_STANDARD_SITE_PUBLICATION_URI: ${{ vars.VITE_PUBLIC_STANDARD_SITE_PUBLICATION_URI }}
