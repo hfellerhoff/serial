@@ -31,12 +31,12 @@ export const linkAccount = protectedProcedure
     }),
   )
   .handler(async ({ context, input }) => {
-    const tokens = await getAccessToken(input.username, input.password);
-
-    const existingConnection =
-      await context.db.query.instapaperConnections.findFirst({
+    const [tokens, existingConnection] = await Promise.all([
+      getAccessToken(input.username, input.password),
+      context.db.query.instapaperConnections.findFirst({
         where: eq(instapaperConnections.userId, context.user.id),
-      });
+      }),
+    ]);
 
     if (existingConnection) {
       await context.db

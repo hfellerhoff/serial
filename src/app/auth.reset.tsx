@@ -12,12 +12,12 @@ const authSearchSchema = z.object({
 
 export const Route = createFileRoute("/auth/reset")({
   component: AuthResetPage,
+  validateSearch: zodValidator(authSearchSchema),
   loader: async () => {
     const isForgotPasswordEnabled = await fetchIsForgotPasswordEnabled();
 
     return { isForgotPasswordEnabled };
   },
-  validateSearch: zodValidator(authSearchSchema),
 });
 
 function AuthResetPage() {

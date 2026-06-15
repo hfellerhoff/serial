@@ -176,36 +176,36 @@ export const getRetentionStats = adminProcedure.handler(async () => {
     CAST(strftime('%Y', datetime(${user.createdAt}, 'unixepoch')) AS INTEGER) * 12
     + CAST(strftime('%m', datetime(${user.createdAt}, 'unixepoch')) AS INTEGER)`;
 
-  // Count distinct active users per (month offset, signup month), excluding impersonation
-  // Only include users who signed up on or after 2025-04
-  const activeResults = await db
-    .select({
-      month: monthOffsetExpr,
-      signupMonth: signupAbsMonthExpr,
-      activeUsers: sql<number>`COUNT(DISTINCT ${session.userId})`,
-    })
-    .from(session)
-    .innerJoin(user, eq(session.userId, user.id))
-    .where(
-      and(
-        isNull(session.impersonatedBy),
-        gte(user.createdAt, minSignupDate),
-        sql`${monthOffsetExpr} >= 0`,
-        sql`${monthOffsetExpr} <= 12`,
-      ),
-    )
-    .groupBy(monthOffsetExpr, signupAbsMonthExpr)
-    .orderBy(monthOffsetExpr)
-    .all();
-
-  // Get signup absolute month for each user (only those who signed up on or after 2025-04)
-  const signupMonths = await db
-    .select({
-      absMonth: sql<number>`CAST(strftime('%Y', datetime(${user.createdAt}, 'unixepoch')) AS INTEGER) * 12 + CAST(strftime('%m', datetime(${user.createdAt}, 'unixepoch')) AS INTEGER)`,
-    })
-    .from(user)
-    .where(gte(user.createdAt, minSignupDate))
-    .all();
+  const [activeResults, signupMonths] = await Promise.all([
+    // Count distinct active users per (month offset, signup month), excluding impersonation
+    db
+      .select({
+        month: monthOffsetExpr,
+        signupMonth: signupAbsMonthExpr,
+        activeUsers: sql<number>`COUNT(DISTINCT ${session.userId})`,
+      })
+      .from(session)
+      .innerJoin(user, eq(session.userId, user.id))
+      .where(
+        and(
+          isNull(session.impersonatedBy),
+          gte(user.createdAt, minSignupDate),
+          sql`${monthOffsetExpr} >= 0`,
+          sql`${monthOffsetExpr} <= 12`,
+        ),
+      )
+      .groupBy(monthOffsetExpr, signupAbsMonthExpr)
+      .orderBy(monthOffsetExpr)
+      .all(),
+    // Get signup absolute month for each recently signed-up user
+    db
+      .select({
+        absMonth: sql<number>`CAST(strftime('%Y', datetime(${user.createdAt}, 'unixepoch')) AS INTEGER) * 12 + CAST(strftime('%m', datetime(${user.createdAt}, 'unixepoch')) AS INTEGER)`,
+      })
+      .from(user)
+      .where(gte(user.createdAt, minSignupDate))
+      .all(),
+  ]);
 
   if (signupMonths.length === 0) {
     return { stats: [] };

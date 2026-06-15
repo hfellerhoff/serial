@@ -43,37 +43,44 @@ export interface ButtonProps
   asChild?: boolean;
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
+const Button = ({
+  className,
+  variant,
+  size,
+  asChild = false,
+  ref,
+  ...props
+}: ButtonProps & React.RefAttributes<HTMLButtonElement>) => {
+  const Comp = asChild ? Slot : "button";
 
-    return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      />
-    );
-  },
-);
+  return (
+    <Comp
+      className={cn(buttonVariants({ variant, size, className }))}
+      ref={ref}
+      {...props}
+    />
+  );
+};
 Button.displayName = "Button";
 
-const ResponsiveButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ size, children, ...props }, ref) => {
-    const childrenCount =
-      React.Children.toArray(children).filter(Boolean).length;
+const ResponsiveButton = ({
+  size,
+  children,
+  ref,
+  ...props
+}: ButtonProps & React.RefAttributes<HTMLButtonElement>) => {
+  const childrenCount = React.Children.toArray(children).filter(Boolean).length;
 
-    if (size === "icon" && childrenCount > 1) {
-      size = "icon md:default";
-    }
+  if (size === "icon" && childrenCount > 1) {
+    size = "icon md:default";
+  }
 
-    return (
-      <Button ref={ref} size={size} {...props}>
-        {children}
-      </Button>
-    );
-  },
-);
+  return (
+    <Button ref={ref} size={size} {...props}>
+      {children}
+    </Button>
+  );
+};
 ResponsiveButton.displayName = "ResponsiveButton";
 
 export { Button, ResponsiveButton, buttonVariants };

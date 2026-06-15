@@ -10,9 +10,7 @@ import type { ViewSection } from "./ViewSectionList";
 import { Button } from "~/components/ui/button";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { useContentCategories } from "~/lib/data/content-categories";
 import { useFeedCategories } from "~/lib/data/feed-categories";
-import { useFeeds } from "~/lib/data/feeds";
 import {
   useDeleteViewMutation,
   useEditViewMutation,
@@ -29,9 +27,6 @@ import {
 function useBuildViewSectionsFromView(
   view: ApplicationView | undefined,
 ): ViewSection[] {
-  const { feeds } = useFeeds();
-  const { contentCategories } = useContentCategories();
-
   return useMemo(() => {
     if (!view) return [];
     return view.viewSections.map((sv) => ({
@@ -40,7 +35,7 @@ function useBuildViewSectionsFromView(
       itemId: sv.itemId,
       layout: sv.layout as ViewLayout | null,
     }));
-  }, [view, feeds, contentCategories]);
+  }, [view]);
 }
 
 export function EditViewDialog({

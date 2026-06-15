@@ -49,10 +49,22 @@ function useDebouncedCssValue(options: {
   const [local, setLocal] = useState<number | null>(null);
   const flushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    const flushTimeout = flushTimeoutRef;
+
+    return () => {
+      if (flushTimeout.current !== null) {
+        clearTimeout(flushTimeout.current);
+      }
+    };
+  }, []);
+
   const onChange = (value: number) => {
     const clamped = options.clamp(value);
     setLocal(clamped);
-    if (flushTimeoutRef.current) clearTimeout(flushTimeoutRef.current);
+    if (flushTimeoutRef.current !== null) {
+      clearTimeout(flushTimeoutRef.current);
+    }
     flushTimeoutRef.current = setTimeout(() => {
       document.documentElement.style.setProperty(
         options.cssVariable,
@@ -62,7 +74,9 @@ function useDebouncedCssValue(options: {
   };
 
   const commit = (value: number) => {
-    if (flushTimeoutRef.current) clearTimeout(flushTimeoutRef.current);
+    if (flushTimeoutRef.current !== null) {
+      clearTimeout(flushTimeoutRef.current);
+    }
     const clamped = options.clamp(value);
     setCommitted(clamped);
     setLocal(null);
@@ -130,11 +144,13 @@ export function EditColorsForm() {
   });
 
   useEffect(() => {
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       hue.setCommitted(getCssVariable(`--${resolvedTheme}-hue`));
       saturation.setCommitted(getCssVariable(`--${resolvedTheme}-sat`));
       lightness.setCommitted(getCssVariable(`--${resolvedTheme}-lgt`));
     }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, [hue, lightness, resolvedTheme, saturation]);
 
   return (

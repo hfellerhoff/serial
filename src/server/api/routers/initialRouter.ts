@@ -1181,28 +1181,30 @@ async function publishPrerequisiteDataChunks(
     feedCategoriesList: DatabaseFeedCategory[];
   },
 ): Promise<void> {
-  await publisher.publish(channel, {
-    source,
-    chunk: { type: "views", views: data.allViews },
-  });
-
-  await publisher.publish(channel, {
-    source,
-    chunk: { type: "feeds", feeds: data.applicationFeeds },
-  });
-
-  await publisher.publish(channel, {
-    source,
-    chunk: {
-      type: "content-categories",
-      contentCategories: data.contentCategoriesList,
-    },
-  });
-
-  await publisher.publish(channel, {
-    source,
-    chunk: { type: "feed-categories", feedCategories: data.feedCategoriesList },
-  });
+  await Promise.all([
+    publisher.publish(channel, {
+      source,
+      chunk: { type: "views", views: data.allViews },
+    }),
+    publisher.publish(channel, {
+      source,
+      chunk: { type: "feeds", feeds: data.applicationFeeds },
+    }),
+    publisher.publish(channel, {
+      source,
+      chunk: {
+        type: "content-categories",
+        contentCategories: data.contentCategoriesList,
+      },
+    }),
+    publisher.publish(channel, {
+      source,
+      chunk: {
+        type: "feed-categories",
+        feedCategories: data.feedCategoriesList,
+      },
+    }),
+  ]);
 }
 
 type PublishViewFeedsResult = {

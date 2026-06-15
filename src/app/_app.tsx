@@ -185,7 +185,7 @@ function usePortalReturn() {
     window.history.replaceState({}, "", newUrl);
 
     launchDialog("subscription");
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [launchDialog]);
 }
 
 function CheckoutSuccessDialog({

@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext, use } from "react";
 import type { BillingInterval } from "./constants";
 import type { PaidPlanId } from "~/server/subscriptions/plans";
 
@@ -38,7 +38,7 @@ export const SubscriptionDialogContext =
   createContext<SubscriptionDialogContextValue | null>(null);
 
 export function useSubscriptionDialogContext() {
-  const ctx = useContext(SubscriptionDialogContext);
+  const ctx = use(SubscriptionDialogContext);
   if (!ctx) {
     throw new Error(
       "useSubscriptionDialogContext must be used within SubscriptionDialogProvider",

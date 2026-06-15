@@ -43,6 +43,7 @@ export function Combobox<T extends string>({
   const [open, setOpen] = useState(false);
   const [localValue, setLocalValue] = useState("");
   const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const popoverContentId = React.useId();
 
   const computedWidth =
     // eslint-disable-next-line react-hooks/refs
@@ -56,6 +57,8 @@ export function Combobox<T extends string>({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-controls={popoverContentId}
+          aria-haspopup="dialog"
           className="w-[200px] justify-between"
           style={{
             width: width === "full" ? "100%" : width,
@@ -68,6 +71,7 @@ export function Combobox<T extends string>({
         </Button>
       </PopoverTrigger>
       <PopoverContent
+        id={popoverContentId}
         className="p-0"
         style={{
           width: computedWidth,

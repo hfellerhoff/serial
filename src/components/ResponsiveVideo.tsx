@@ -28,6 +28,7 @@ function YouTubeEmbed(props: IEmbedProps) {
       title="YouTube video player"
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       allowFullScreen
+      sandbox="allow-scripts allow-popups allow-presentation"
       className="border-none"
       onMouseMove={() => {
         props.containerRef.current?.focus();
@@ -53,7 +54,7 @@ function PeerTubeEmbed(props: IEmbedProps) {
         onMouseMove={() => {
           props.containerRef.current?.focus();
         }}
-        sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+        sandbox="allow-scripts allow-popups allow-forms"
       />
     </>
   );

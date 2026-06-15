@@ -41,6 +41,8 @@ export function ReloadPrompt() {
       return;
     }
 
+    const abortController = new AbortController();
+
     const registerServiceWorker = async () => {
       try {
         // Track whether a SW was already controlling this page. On a fresh
@@ -54,24 +56,34 @@ export function ReloadPrompt() {
           scope: "/",
         });
 
-        // Check for updates
-        reg.addEventListener("updatefound", () => {
-          const newWorker = reg.installing;
-          if (!newWorker) return;
+        if (abortController.signal.aborted) return;
 
-          newWorker.addEventListener("statechange", () => {
-            if (
-              newWorker.state === "installed" &&
-              navigator.serviceWorker.controller
-            ) {
-              // New content is available, show update prompt
-              if (!hasPromptedRef.current) {
-                hasPromptedRef.current = true;
-                showUpdatePrompt(reg);
-              }
-            }
-          });
-        });
+        // Check for updates
+        reg.addEventListener(
+          "updatefound",
+          () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+
+            newWorker.addEventListener(
+              "statechange",
+              () => {
+                if (
+                  newWorker.state === "installed" &&
+                  navigator.serviceWorker.controller
+                ) {
+                  // New content is available, show update prompt
+                  if (!hasPromptedRef.current) {
+                    hasPromptedRef.current = true;
+                    showUpdatePrompt(reg);
+                  }
+                }
+              },
+              { signal: abortController.signal },
+            );
+          },
+          { signal: abortController.signal },
+        );
 
         // Handle controller change (after skipWaiting on update).
         // On first install, clients.claim() fires controllerchange (null →
@@ -79,12 +91,16 @@ export function ReloadPrompt() {
         // jarring double page-load — the activate handler already warms the
         // navigation cache for offline support.
         let refreshing = false;
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-          if (!refreshing && hadController) {
-            refreshing = true;
-            window.location.reload();
-          }
-        });
+        navigator.serviceWorker.addEventListener(
+          "controllerchange",
+          () => {
+            if (!refreshing && hadController) {
+              refreshing = true;
+              window.location.reload();
+            }
+          },
+          { signal: abortController.signal },
+        );
 
         // iOS Safari: force an update check. Safari caches the SW script
         // itself more aggressively than Chrome, so an explicit update()
@@ -105,6 +121,8 @@ export function ReloadPrompt() {
     };
 
     void registerServiceWorker();
+
+    return () => abortController.abort();
   }, []);
 
   return null;

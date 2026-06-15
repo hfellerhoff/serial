@@ -31,7 +31,7 @@ type CarouselContextProps = {
 const CarouselContext = React.createContext<CarouselContextProps | null>(null);
 
 function useCarousel() {
-  const context = React.useContext(CarouselContext);
+  const context = React.use(CarouselContext);
 
   if (!context) {
     throw new Error("useCarousel must be used within a <Carousel />");
@@ -102,19 +102,31 @@ function Carousel({
     };
   }, [api, onSelect]);
 
+  const carouselContextValue = React.useMemo<CarouselContextProps>(
+    () => ({
+      carouselRef,
+      api,
+      opts,
+      orientation,
+      scrollPrev,
+      scrollNext,
+      canScrollPrev,
+      canScrollNext,
+    }),
+    [
+      carouselRef,
+      api,
+      opts,
+      orientation,
+      scrollPrev,
+      scrollNext,
+      canScrollPrev,
+      canScrollNext,
+    ],
+  );
+
   return (
-    <CarouselContext.Provider
-      value={{
-        carouselRef,
-        api: api,
-        opts,
-        orientation,
-        scrollPrev,
-        scrollNext,
-        canScrollPrev,
-        canScrollNext,
-      }}
-    >
+    <CarouselContext.Provider value={carouselContextValue}>
       <div
         onKeyDownCapture={handleKeyDown}
         className={cn("relative", className)}

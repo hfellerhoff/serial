@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { CheckIcon } from "lucide-react";
 import { INTERVAL_LABELS, PLAN_ICONS } from "./constants";
 import { formatDate, formatPrice, getPlanFeatures } from "./utils";
@@ -23,15 +22,13 @@ export function PlanSwitchConfirmationContent({
   annualPrice: number | null;
   currentBillingInterval: BillingInterval | null;
 }) {
-  const [selectedInterval, setSelectedInterval] = useState<BillingInterval>(
-    preview.billingInterval,
-  );
-
   const newPlan = PLANS[preview.newPlanId as keyof typeof PLANS];
   const features = getPlanFeatures(newPlan);
   const Icon = PLAN_ICONS[preview.newPlanId as keyof typeof PLAN_ICONS];
   const isFreePlan = preview.newPlanId === "free";
-  const intervalLabel = isFreePlan ? null : INTERVAL_LABELS[selectedInterval];
+  const intervalLabel = isFreePlan
+    ? null
+    : INTERVAL_LABELS[preview.billingInterval];
 
   const isSamePlanSwitch = preview.currentPlanId === preview.newPlanId;
   const hasBothIntervals =
@@ -54,11 +51,6 @@ export function PlanSwitchConfirmationContent({
     });
   }
 
-  function handleIntervalChange(interval: BillingInterval) {
-    setSelectedInterval(interval);
-    onIntervalChange(interval);
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 rounded-lg border p-4">
@@ -74,8 +66,8 @@ export function PlanSwitchConfirmationContent({
       </div>
       {hasBothIntervals && (
         <CardRadioGroup
-          value={selectedInterval}
-          onValueChange={handleIntervalChange}
+          value={preview.billingInterval}
+          onValueChange={onIntervalChange}
           options={intervalOptions}
           orientation="vertical"
         />

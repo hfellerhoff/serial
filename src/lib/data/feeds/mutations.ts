@@ -32,12 +32,12 @@ export function useCreateFeedMutation() {
     orpc.feed.create.mutationOptions({
       onSuccess: async (result) => {
         result.feeds.forEach((feed) => addFeed(feed));
-        await Promise.all(
-          result.feeds.map((feed) => fetchFeedItemsForFeed(feed.id)),
-        );
-        await fetchFeedCategories();
-        await fetchViewFeeds();
-        await fetchViews();
+        await Promise.all([
+          ...result.feeds.map((feed) => fetchFeedItemsForFeed(feed.id)),
+          fetchFeedCategories(),
+          fetchViewFeeds(),
+          fetchViews(),
+        ]);
 
         if (result.deactivatedCount > 0) {
           toast.warning(

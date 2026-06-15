@@ -93,6 +93,7 @@ export function ArticleContent({ content }: { content: string }) {
             title="YouTube video player"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
+            sandbox="allow-scripts allow-popups allow-presentation"
             className="h-full w-full border-none"
           />
         </div>

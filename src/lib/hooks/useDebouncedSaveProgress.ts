@@ -59,7 +59,7 @@ export function useDebouncedSaveProgress({
       if (NAV_KEYS.has(e.key)) resetTimer();
     };
 
-    window.addEventListener("wheel", resetTimer);
+    window.addEventListener("wheel", resetTimer, { passive: true });
     window.addEventListener("keydown", handleKeydown);
 
     return () => {

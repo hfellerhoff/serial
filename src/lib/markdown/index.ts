@@ -33,8 +33,10 @@ export async function renderMarkdown(content: string): Promise<MarkdownResult> {
     })
     .use(() => async (tree) => {
       // Extract headings for table of contents
-      const { visit } = await import("unist-util-visit");
-      const { toString } = await import("hast-util-to-string");
+      const [{ visit }, { toString }] = await Promise.all([
+        import("unist-util-visit"),
+        import("hast-util-to-string"),
+      ]);
       type ElementNode = {
         type: string;
         tagName: string;

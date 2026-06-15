@@ -35,7 +35,12 @@ function VerifyEmail() {
     return () => clearTimeout(timer);
   }, [cooldownRemaining]);
 
-  const sendMutation = useMutation(
+  const {
+    mutate: sendVerificationCode,
+    isSuccess: verificationCodeSent,
+    isError: verificationCodeFailed,
+    isPending: isSendingVerificationCode,
+  } = useMutation(
     orpc.user.requestVerificationCode.mutationOptions({
       onSuccess: (result) => {
         setCooldownRemaining(result.retryAfter);
@@ -53,8 +58,8 @@ function VerifyEmail() {
   useEffect(() => {
     if (hasSentRef.current) return;
     hasSentRef.current = true;
-    sendMutation.mutate(undefined);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    sendVerificationCode(undefined);
+  }, [sendVerificationCode]);
 
   async function handleVerify() {
     if (!email || !otp) return;
@@ -78,7 +83,7 @@ function VerifyEmail() {
     node?.focus();
   }, []);
 
-  const codeSent = sendMutation.isSuccess || sendMutation.isError;
+  const codeSent = verificationCodeSent || verificationCodeFailed;
 
   return (
     <>
@@ -117,8 +122,8 @@ function VerifyEmail() {
               <Button
                 variant="ghost"
                 className="text-muted-foreground text-sm"
-                disabled={sendMutation.isPending || isCooldownActive}
-                onClick={() => sendMutation.mutate(undefined)}
+                disabled={isSendingVerificationCode || isCooldownActive}
+                onClick={() => sendVerificationCode(undefined)}
               >
                 {isCooldownActive
                   ? `Resend code (${cooldownRemaining}s)`
