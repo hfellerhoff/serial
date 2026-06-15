@@ -7,6 +7,7 @@ import { contentCategoriesStore } from "./content-categories/store";
 import { createSelectorHooks } from "./createSelectorHooks";
 import { feedCategoriesStore } from "./feed-categories/store";
 import { mergeFeedItem } from "./feed-items/mergeFeedItem";
+import { clearPendingFeedItemOverrides } from "./feed-items/pendingMutations";
 import { feedsStore } from "./feeds/store";
 import { createIDBStorage } from "./idb-storage";
 import { loadingActor } from "./loading-machine";
@@ -60,6 +61,42 @@ function mergeFeedItemIntoOrder(
     feedItemsOrder.push(incomingItem.id);
     existingIds.add(incomingItem.id);
   }
+}
+
+function getMergedFeedItems(
+  feedItemsDict: Record<string, ApplicationFeedItem>,
+  incomingItems: ReadonlyArray<Pick<ApplicationFeedItem, "id">>,
+) {
+  return incomingItems.flatMap((item) => {
+    const mergedItem = feedItemsDict[item.id];
+    return mergedItem ? [mergedItem] : [];
+  });
+}
+
+function applyMergedScopeMembershipUpdate({
+  scopeFeedItemIds,
+  scopeKey,
+  itemIds,
+  replace,
+  feedItemsDict,
+  incomingItems,
+}: {
+  scopeFeedItemIds: Record<string, string[]>;
+  scopeKey: string;
+  itemIds: string[];
+  replace: boolean;
+  feedItemsDict: Record<string, ApplicationFeedItem>;
+  incomingItems: ReadonlyArray<Pick<ApplicationFeedItem, "id">>;
+}) {
+  return reconcileScopeMembershipsForItems(
+    applyScopeMembershipUpdate({
+      scopeFeedItemIds,
+      scopeKey,
+      itemIds,
+      replace,
+    }),
+    getMergedFeedItems(feedItemsDict, incomingItems),
+  );
 }
 
 function applyDiffEntityUpdates(
@@ -169,6 +206,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
   persist(
     (set, get) => ({
       reset: () => {
+        clearPendingFeedItemOverrides();
         set({
           feedItemsOrder: [],
           feedItemsDict: {},
@@ -347,11 +385,13 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             set({
               feedItemsDict,
               feedItemsOrder,
-              scopeFeedItemIds: applyScopeMembershipUpdate({
+              scopeFeedItemIds: applyMergedScopeMembershipUpdate({
                 scopeFeedItemIds: get().scopeFeedItemIds,
                 scopeKey: getFeedItemScopeKey("view", viewId, visibilityFilter),
                 itemIds: chunk.feedItems.map((item) => item.id),
                 replace: chunk.replacesScope === true,
+                feedItemsDict,
+                incomingItems: chunk.feedItems,
               }),
               viewPaginationState: {
                 ...get().viewPaginationState,
@@ -477,11 +517,13 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             set({
               feedItemsDict,
               feedItemsOrder,
-              scopeFeedItemIds: applyScopeMembershipUpdate({
+              scopeFeedItemIds: applyMergedScopeMembershipUpdate({
                 scopeFeedItemIds: get().scopeFeedItemIds,
                 scopeKey: getFeedItemScopeKey("view", viewId, visibilityFilter),
                 itemIds: chunk.feedItems.map((item) => item.id),
                 replace: false,
+                feedItemsDict,
+                incomingItems: chunk.feedItems,
               }),
               viewPaginationState: {
                 ...get().viewPaginationState,
@@ -720,7 +762,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               incomingFeedItems.length > 0
                 ? reconcileScopeMembershipsForItems(
                     get().scopeFeedItemIds,
-                    incomingFeedItems,
+                    getMergedFeedItems(feedItemsDict, incomingFeedItems),
                   )
                 : get().scopeFeedItemIds,
           });
@@ -772,7 +814,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               incomingFeedItems.length > 0
                 ? reconcileScopeMembershipsForItems(
                     get().scopeFeedItemIds,
-                    incomingFeedItems,
+                    getMergedFeedItems(feedItemsDict, incomingFeedItems),
                   )
                 : get().scopeFeedItemIds,
           });
@@ -869,7 +911,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             feedItemsOrder,
             scopeFeedItemIds: reconcileScopeMembershipsForItems(
               get().scopeFeedItemIds,
-              items,
+              getMergedFeedItems(feedItemsDict, items),
             ),
           });
         };
@@ -1071,10 +1113,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 const feedItemsDict = { ...get().feedItemsDict };
                 const feedItemsOrder = [...get().feedItemsOrder];
                 const existingIds = new Set(feedItemsOrder);
-                let scopeFeedItemIds = reconcileScopeMembershipsForItems(
-                  get().scopeFeedItemIds,
-                  initialChunk.feedItems,
-                );
+                let scopeFeedItemIds = get().scopeFeedItemIds;
 
                 for (const item of initialChunk.feedItems) {
                   mergeFeedItemIntoOrder(
@@ -1084,6 +1123,10 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                     item,
                   );
                 }
+                scopeFeedItemIds = reconcileScopeMembershipsForItems(
+                  scopeFeedItemIds,
+                  getMergedFeedItems(feedItemsDict, initialChunk.feedItems),
+                );
 
                 updates.feedItemsDict = feedItemsDict;
                 updates.feedItemsOrder = feedItemsOrder;
@@ -1094,7 +1137,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                   if (initialChunk.visibilityFilter) {
                     const visibilityFilter =
                       initialChunk.visibilityFilter as VisibilityFilter;
-                    scopeFeedItemIds = applyScopeMembershipUpdate({
+                    scopeFeedItemIds = applyMergedScopeMembershipUpdate({
                       scopeFeedItemIds,
                       scopeKey: getFeedItemScopeKey(
                         "view",
@@ -1103,6 +1146,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                       ),
                       itemIds: initialChunk.feedItems.map((item) => item.id),
                       replace: true,
+                      feedItemsDict,
+                      incomingItems: initialChunk.feedItems,
                     });
                   }
                   updates.scopeFeedItemIds = scopeFeedItemIds;
@@ -1180,14 +1225,13 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                     [vf]: initialChunk.cursor,
                   };
                   updates._pendingViewCursors = pendingCursors;
-                  updates.scopeFeedItemIds = applyScopeMembershipUpdate({
-                    scopeFeedItemIds: reconcileScopeMembershipsForItems(
-                      get().scopeFeedItemIds,
-                      getChangedItemsFromDiff(initialChunk.diff),
-                    ),
+                  updates.scopeFeedItemIds = applyMergedScopeMembershipUpdate({
+                    scopeFeedItemIds: get().scopeFeedItemIds,
                     scopeKey: getFeedItemScopeKey("view", viewId, vf),
                     itemIds: getServerItemIdsFromDiff(initialChunk.diff),
                     replace: true,
+                    feedItemsDict,
+                    incomingItems: getChangedItemsFromDiff(initialChunk.diff),
                   });
                   updates.viewPaginationState = {
                     ...get().viewPaginationState,
@@ -1257,11 +1301,13 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 const updates: Partial<ApplicationStore> = {
                   feedItemsDict,
                   feedItemsOrder,
-                  scopeFeedItemIds: applyScopeMembershipUpdate({
+                  scopeFeedItemIds: applyMergedScopeMembershipUpdate({
                     scopeFeedItemIds: get().scopeFeedItemIds,
                     scopeKey: getFeedItemScopeKey("view", viewId, vf),
                     itemIds: initialChunk.items.map((item) => item.id),
                     replace: true,
+                    feedItemsDict,
+                    incomingItems: initialChunk.items,
                   }),
                 };
 
@@ -1438,14 +1484,13 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               set({
                 feedItemsDict,
                 feedItemsOrder,
-                scopeFeedItemIds: applyScopeMembershipUpdate({
-                  scopeFeedItemIds: reconcileScopeMembershipsForItems(
-                    get().scopeFeedItemIds,
-                    getChangedItemsFromDiff(chunk.diff),
-                  ),
+                scopeFeedItemIds: applyMergedScopeMembershipUpdate({
+                  scopeFeedItemIds: get().scopeFeedItemIds,
                   scopeKey,
                   itemIds: getServerItemIdsFromDiff(chunk.diff),
                   replace: chunk.replacesScope === true,
+                  feedItemsDict,
+                  incomingItems: getChangedItemsFromDiff(chunk.diff),
                 }),
                 viewPaginationState: {
                   ...get().viewPaginationState,
@@ -1472,7 +1517,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               const visibilityFilter =
                 chunk.visibilityFilter as VisibilityFilter;
               set({
-                scopeFeedItemIds: applyScopeMembershipUpdate({
+                scopeFeedItemIds: applyMergedScopeMembershipUpdate({
                   scopeFeedItemIds: get().scopeFeedItemIds,
                   scopeKey: getFeedItemScopeKey(
                     "view",
@@ -1481,6 +1526,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                   ),
                   itemIds: chunk.feedItems.map((item) => item.id),
                   replace: chunk.replacesScope === true,
+                  feedItemsDict: get().feedItemsDict,
+                  incomingItems: chunk.feedItems,
                 }),
                 viewPaginationState: {
                   ...get().viewPaginationState,
@@ -1517,7 +1564,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             // Update pagination state for this feed/visibility filter
             const visibilityFilter = chunk.visibilityFilter as VisibilityFilter;
             set({
-              scopeFeedItemIds: applyScopeMembershipUpdate({
+              scopeFeedItemIds: applyMergedScopeMembershipUpdate({
                 scopeFeedItemIds: get().scopeFeedItemIds,
                 scopeKey: getFeedItemScopeKey(
                   "feed",
@@ -1526,6 +1573,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 ),
                 itemIds: chunk.feedItems.map((item) => item.id),
                 replace: chunk.replacesScope === true,
+                feedItemsDict: get().feedItemsDict,
+                incomingItems: chunk.feedItems,
               }),
               feedPaginationState: {
                 ...get().feedPaginationState,
@@ -1561,7 +1610,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             // Update pagination state for this category/visibility filter
             const visibilityFilter = chunk.visibilityFilter as VisibilityFilter;
             set({
-              scopeFeedItemIds: applyScopeMembershipUpdate({
+              scopeFeedItemIds: applyMergedScopeMembershipUpdate({
                 scopeFeedItemIds: get().scopeFeedItemIds,
                 scopeKey: getFeedItemScopeKey(
                   "category",
@@ -1570,6 +1619,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 ),
                 itemIds: chunk.feedItems.map((item) => item.id),
                 replace: chunk.replacesScope === true,
+                feedItemsDict: get().feedItemsDict,
+                incomingItems: chunk.feedItems,
               }),
               categoryPaginationState: {
                 ...get().categoryPaginationState,
@@ -1674,14 +1725,14 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 ...pendingCursors[chunk.viewId],
                 [vf]: chunk.cursor,
               };
-              updates.scopeFeedItemIds = applyScopeMembershipUpdate({
-                scopeFeedItemIds: reconcileScopeMembershipsForItems(
+              updates.scopeFeedItemIds = applyMergedScopeMembershipUpdate({
+                scopeFeedItemIds:
                   updates.scopeFeedItemIds ?? get().scopeFeedItemIds,
-                  getChangedItemsFromDiff(chunk.diff),
-                ),
                 scopeKey: getFeedItemScopeKey("view", chunk.viewId, vf),
                 itemIds: getServerItemIdsFromDiff(chunk.diff),
                 replace: true,
+                feedItemsDict,
+                incomingItems: getChangedItemsFromDiff(chunk.diff),
               });
 
               // Track fetched filters
@@ -1752,7 +1803,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               }
               scopeFeedItemIds = reconcileScopeMembershipsForItems(
                 scopeFeedItemIds,
-                chunk.feedItems,
+                getMergedFeedItems(feedItemsDict, chunk.feedItems),
               );
               scopeItemsChanged = true;
 
@@ -1767,7 +1818,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
 
               if (viewId !== undefined) {
                 if (chunk.visibilityFilter) {
-                  scopeFeedItemIds = applyScopeMembershipUpdate({
+                  scopeFeedItemIds = applyMergedScopeMembershipUpdate({
                     scopeFeedItemIds,
                     scopeKey: getFeedItemScopeKey(
                       "view",
@@ -1776,6 +1827,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                     ),
                     itemIds: chunk.feedItems.map((item) => item.id),
                     replace: true,
+                    feedItemsDict,
+                    incomingItems: chunk.feedItems,
                   });
                   scopeItemsChanged = true;
                 }

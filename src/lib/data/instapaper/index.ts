@@ -5,6 +5,7 @@ import {
   useFeedItemValue,
   useSetFeedItemValue,
 } from "../store";
+import { applyPendingFeedItemOverrides } from "../feed-items/pendingMutations";
 import { feedsStore } from "../feeds/store";
 import { orpc } from "~/lib/orpc";
 
@@ -33,14 +34,15 @@ export function useSaveToInstapaperMutation(contentId: string) {
 
   return useMutation(
     orpc.instapaper.saveBookmark.mutationOptions({
-      onSuccess: () => {
+      onSuccess: (serverValue) => {
         const currentFeedItem =
           feedItemsStore.getState().feedItemsDict[contentId];
         if (currentFeedItem) {
           setFeedItem({
-            ...currentFeedItem,
-            isWatched: true,
-            isWatchedUpdatedAt: new Date(),
+            ...applyPendingFeedItemOverrides({
+              ...currentFeedItem,
+              ...serverValue,
+            }),
           });
         }
         toast.success("Saved to Instapaper");

@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import type { ApplicationFeedItem } from "~/server/db/schema";
 import { mergeFeedItem } from "~/lib/data/feed-items/mergeFeedItem";
+import {
+  clearPendingFeedItemOverrides,
+  setPendingWatchedOverride,
+} from "~/lib/data/feed-items/pendingMutations";
 
 function makeItem(
   overrides: Partial<ApplicationFeedItem> = {},
@@ -32,6 +36,10 @@ function makeItem(
 }
 
 describe("mergeFeedItem", () => {
+  afterEach(() => {
+    clearPendingFeedItemOverrides();
+  });
+
   it("preserves versioned item fields when the content hash matches", () => {
     const existingItem = makeItem();
     const incomingItem = makeItem({
@@ -80,6 +88,38 @@ describe("mergeFeedItem", () => {
     expect(mergedItem.content).toBe("Incoming content");
     expect(mergedItem.contentSnippet).toBe("Incoming snippet");
     expect(mergedItem.thumbnail).toBe("https://example.com/incoming.jpg");
+  });
+
+  it("accepts incoming server metadata regardless of updatedAt", () => {
+    const existingItem = makeItem({
+      isWatched: true,
+      updatedAt: new Date("2026-01-04T12:00:00Z"),
+    });
+    const incomingItem = makeItem({
+      updatedAt: new Date("2026-01-04T11:59:59Z"),
+    });
+
+    const mergedItem = mergeFeedItem(existingItem, incomingItem);
+
+    expect(mergedItem.isWatched).toBe(false);
+    expect(mergedItem.updatedAt).toEqual(new Date("2026-01-04T11:59:59Z"));
+  });
+
+  it("preserves explicitly pending fields when server metadata arrives", () => {
+    const existingItem = makeItem({
+      isWatched: true,
+    });
+    const pendingWatchedAt = new Date("2026-01-04T12:00:00Z");
+    setPendingWatchedOverride(existingItem.id, true, pendingWatchedAt);
+    const incomingItem = makeItem({
+      updatedAt: new Date("2026-01-04T11:59:59Z"),
+    });
+
+    const mergedItem = mergeFeedItem(existingItem, incomingItem);
+
+    expect(mergedItem.isWatched).toBe(true);
+    expect(mergedItem.isWatchedUpdatedAt).toEqual(pendingWatchedAt);
+    expect(mergedItem.updatedAt).toEqual(new Date("2026-01-04T11:59:59Z"));
   });
 
   it("fills missing cached content when the hash matches", () => {

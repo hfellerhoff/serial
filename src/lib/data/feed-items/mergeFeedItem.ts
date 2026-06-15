@@ -1,3 +1,4 @@
+import { applyPendingFeedItemOverrides } from "./pendingMutations";
 import type { ApplicationFeedItem } from "~/server/db/schema";
 
 export type IncomingFeedItem = Omit<ApplicationFeedItem, "content"> &
@@ -39,12 +40,12 @@ function hasMatchingContentHash(
 
 function mergeItemMetadata(
   baseItem: ApplicationFeedItem,
-  incomingItem: IncomingFeedItem,
+  metadataItem: ApplicationFeedItem,
 ) {
   const mergedItem = { ...baseItem };
 
   for (const field of FEED_ITEM_MERGE_FIELDS.metadata) {
-    mergedItem[field] = incomingItem[field] as never;
+    mergedItem[field] = metadataItem[field] as never;
   }
 
   return mergedItem;
@@ -57,20 +58,22 @@ export function mergeFeedItem(
   const normalizedIncomingItem = normalizeIncomingFeedItem(incomingItem);
 
   if (!existingItem) {
-    return normalizedIncomingItem;
+    return applyPendingFeedItemOverrides(normalizedIncomingItem);
   }
 
   if (!hasMatchingContentHash(existingItem, incomingItem)) {
-    return normalizedIncomingItem;
+    return applyPendingFeedItemOverrides(normalizedIncomingItem);
   }
 
-  return mergeItemMetadata(
-    {
-      ...existingItem,
-      content: existingItem.content || normalizedIncomingItem.content,
-      contentSnippet:
-        existingItem.contentSnippet || normalizedIncomingItem.contentSnippet,
-    },
-    incomingItem,
+  return applyPendingFeedItemOverrides(
+    mergeItemMetadata(
+      {
+        ...existingItem,
+        content: existingItem.content || normalizedIncomingItem.content,
+        contentSnippet:
+          existingItem.contentSnippet || normalizedIncomingItem.contentSnippet,
+      },
+      normalizedIncomingItem,
+    ),
   );
 }

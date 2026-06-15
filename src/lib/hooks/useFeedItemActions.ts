@@ -3,7 +3,15 @@
 import { useCallback } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { orpcRouterClient } from "../orpc";
-import { feedItemsStore, useFeedItemValue } from "../data/store";
+import { useFeedItemValue } from "../data/store";
+import {
+  applyOptimisticWatchedValue,
+  applyOptimisticWatchLaterValue,
+  resolveOptimisticWatchedValue,
+  resolveOptimisticWatchLaterValue,
+  rollbackOptimisticWatchedValue,
+  rollbackOptimisticWatchLaterValue,
+} from "../data/feed-items/mutations";
 import { useFeeds as useFeedsArray } from "../data/feeds/store";
 import { saveHomeScrollPosition } from "~/lib/scroll";
 
@@ -16,32 +24,34 @@ export function useFeedItemActions(itemId: string) {
     if (!item) return;
     if (item.isWatched) return;
 
-    void orpcRouterClient.feedItem.setWatchedValue({
-      id: itemId,
-      feedId: item.feedId,
-      isWatched: true,
-    });
-    feedItemsStore.getState().setFeedItem(itemId, {
-      ...item,
-      isWatched: true,
-      isWatchedUpdatedAt: new Date(),
-    });
+    const context = applyOptimisticWatchedValue(itemId, true);
+    void orpcRouterClient.feedItem
+      .setWatchedValue({
+        id: itemId,
+        feedId: item.feedId,
+        isWatched: true,
+      })
+      .then((serverValue) =>
+        resolveOptimisticWatchedValue(context, serverValue),
+      )
+      .catch(() => rollbackOptimisticWatchedValue(context));
   }, [item, itemId]);
 
   const toggleRead = useCallback(() => {
     if (!item) return false;
 
     const newIsWatched = !item.isWatched;
-    void orpcRouterClient.feedItem.setWatchedValue({
-      id: itemId,
-      feedId: item.feedId,
-      isWatched: newIsWatched,
-    });
-    feedItemsStore.getState().setFeedItem(itemId, {
-      ...item,
-      isWatched: newIsWatched,
-      isWatchedUpdatedAt: newIsWatched ? new Date() : null,
-    });
+    const context = applyOptimisticWatchedValue(itemId, newIsWatched);
+    void orpcRouterClient.feedItem
+      .setWatchedValue({
+        id: itemId,
+        feedId: item.feedId,
+        isWatched: newIsWatched,
+      })
+      .then((serverValue) =>
+        resolveOptimisticWatchedValue(context, serverValue),
+      )
+      .catch(() => rollbackOptimisticWatchedValue(context));
 
     return true;
   }, [item, itemId]);
@@ -49,16 +59,17 @@ export function useFeedItemActions(itemId: string) {
   const toggleWatchLater = useCallback(() => {
     if (!item) return;
 
-    void orpcRouterClient.feedItem.setWatchLaterValue({
-      id: itemId,
-      feedId: item.feedId,
-      isWatchLater: !item.isWatchLater,
-    });
-    feedItemsStore.getState().setFeedItem(itemId, {
-      ...item,
-      isWatchLater: !item.isWatchLater,
-      isWatchLaterUpdatedAt: new Date(),
-    });
+    const context = applyOptimisticWatchLaterValue(itemId, !item.isWatchLater);
+    void orpcRouterClient.feedItem
+      .setWatchLaterValue({
+        id: itemId,
+        feedId: item.feedId,
+        isWatchLater: !item.isWatchLater,
+      })
+      .then((serverValue) =>
+        resolveOptimisticWatchLaterValue(context, serverValue),
+      )
+      .catch(() => rollbackOptimisticWatchLaterValue(context));
   }, [item, itemId]);
 
   const openItem = useCallback(() => {

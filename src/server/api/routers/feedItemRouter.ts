@@ -128,7 +128,8 @@ export const setWatchedValue = protectedProcedure
     }),
   )
   .handler(async ({ context, input }) => {
-    await context.db.transaction(async (tx) => {
+    const updatedAt = new Date();
+    return context.db.transaction(async (tx) => {
       const isOwned = await verifyFeedsOwnedByUser({
         feedIds: [input.feedId],
         userId: context.user.id,
@@ -139,16 +140,28 @@ export const setWatchedValue = protectedProcedure
         throw new Error("Unauthorized: Feed does not belong to user");
       }
 
-      await tx
+      const [updatedItem] = await tx
         .update(feedItems)
         .set({
           isWatched: input.isWatched,
-          isWatchedUpdatedAt: input.isWatched ? new Date() : null,
-          updatedAt: new Date(),
+          isWatchedUpdatedAt: input.isWatched ? updatedAt : null,
+          updatedAt,
         })
         .where(
           and(eq(feedItems.feedId, input.feedId), eq(feedItems.id, input.id)),
-        );
+        )
+        .returning({
+          id: feedItems.id,
+          isWatched: feedItems.isWatched,
+          isWatchedUpdatedAt: feedItems.isWatchedUpdatedAt,
+          updatedAt: feedItems.updatedAt,
+        });
+
+      if (!updatedItem) {
+        throw new Error("Feed item not found");
+      }
+
+      return updatedItem;
     });
   });
 
@@ -167,7 +180,8 @@ export const setBulkWatchedValue = protectedProcedure
   .handler(async ({ context, input }) => {
     if (input.items.length === 0) return;
 
-    await context.db.transaction(async (tx) => {
+    const updatedAt = new Date();
+    return context.db.transaction(async (tx) => {
       // Extract unique feedIds and verify ownership
       const feedIds = [...new Set(input.items.map((item) => item.feedId))];
 
@@ -185,14 +199,20 @@ export const setBulkWatchedValue = protectedProcedure
 
       // Bulk update using inArray
       const itemIds = input.items.map((item) => item.id);
-      await tx
+      return tx
         .update(feedItems)
         .set({
           isWatched: input.isWatched,
-          isWatchedUpdatedAt: input.isWatched ? new Date() : null,
-          updatedAt: new Date(),
+          isWatchedUpdatedAt: input.isWatched ? updatedAt : null,
+          updatedAt,
         })
-        .where(inArray(feedItems.id, itemIds));
+        .where(inArray(feedItems.id, itemIds))
+        .returning({
+          id: feedItems.id,
+          isWatched: feedItems.isWatched,
+          isWatchedUpdatedAt: feedItems.isWatchedUpdatedAt,
+          updatedAt: feedItems.updatedAt,
+        });
     });
   });
 
@@ -205,7 +225,8 @@ export const setWatchLaterValue = protectedProcedure
     }),
   )
   .handler(async ({ context, input }) => {
-    await context.db.transaction(async (tx) => {
+    const updatedAt = new Date();
+    return context.db.transaction(async (tx) => {
       const isOwned = await verifyFeedsOwnedByUser({
         feedIds: [input.feedId],
         userId: context.user.id,
@@ -216,16 +237,28 @@ export const setWatchLaterValue = protectedProcedure
         throw new Error("Unauthorized: Feed does not belong to user");
       }
 
-      await tx
+      const [updatedItem] = await tx
         .update(feedItems)
         .set({
           isWatchLater: input.isWatchLater,
-          isWatchLaterUpdatedAt: new Date(),
-          updatedAt: new Date(),
+          isWatchLaterUpdatedAt: updatedAt,
+          updatedAt,
         })
         .where(
           and(eq(feedItems.feedId, input.feedId), eq(feedItems.id, input.id)),
-        );
+        )
+        .returning({
+          id: feedItems.id,
+          isWatchLater: feedItems.isWatchLater,
+          isWatchLaterUpdatedAt: feedItems.isWatchLaterUpdatedAt,
+          updatedAt: feedItems.updatedAt,
+        });
+
+      if (!updatedItem) {
+        throw new Error("Feed item not found");
+      }
+
+      return updatedItem;
     });
   });
 

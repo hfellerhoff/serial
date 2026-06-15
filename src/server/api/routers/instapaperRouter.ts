@@ -115,10 +115,21 @@ export const saveBookmark = protectedProcedure
       },
     );
 
-    await context.db
+    const updatedAt = new Date();
+    const [updatedItem] = await context.db
       .update(feedItems)
-      .set({ isWatched: true, isWatchedUpdatedAt: new Date() })
-      .where(eq(feedItems.id, input.feedItemId));
+      .set({ isWatched: true, isWatchedUpdatedAt: updatedAt, updatedAt })
+      .where(eq(feedItems.id, input.feedItemId))
+      .returning({
+        id: feedItems.id,
+        isWatched: feedItems.isWatched,
+        isWatchedUpdatedAt: feedItems.isWatchedUpdatedAt,
+        updatedAt: feedItems.updatedAt,
+      });
 
-    return { success: true };
+    if (!updatedItem) {
+      throw new Error("Feed item not found");
+    }
+
+    return updatedItem;
   });
