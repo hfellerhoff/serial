@@ -214,7 +214,8 @@ export const feeds = sqliteTable(
       example.isActive,
       example.lastFetchedAt,
     ),
-    index("feed_is_active_next_fetch_at_idx").on(
+    index("feed_user_id_is_active_next_fetch_at_idx").on(
+      example.userId,
       example.isActive,
       example.nextFetchAt,
     ),
