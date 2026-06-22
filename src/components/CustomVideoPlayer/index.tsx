@@ -42,6 +42,8 @@ import {
 } from "./CustomVideoPlayerProvider";
 import {
   YOUTUBE_CAPTION_SIZES,
+  YOUTUBE_PLAYER_DEFAULT_ERROR_MESSAGE,
+  YOUTUBE_PLAYER_ERROR_MESSAGES,
   YOUTUBE_PLAYBACK_SPEEDS,
   YOUTUBE_PLAYER_STATES,
 } from "./constants";
@@ -51,6 +53,7 @@ import { useRef, useEffect } from "react";
 import { articleSelectedElementAtom } from "~/lib/hooks/useArticleNavigation";
 import { useSaveProgress } from "~/lib/hooks/useSaveProgress";
 import { useFeedItemValue } from "~/lib/data/store";
+import { YouTubePlayerErrorOverlay } from "./YouTubePlayerErrorOverlay";
 
 interface IResponsiveVideoProps {
   videoID?: string;
@@ -66,8 +69,10 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
     playerRef,
     onStateChange,
     onPlayerReady,
+    onPlayerError,
     toggleVideoPlayback,
     manualPlayerState,
+    playerErrorCode,
     playbackSpeed,
     changeVideoPlaybackSpeed,
     videoDuration,
@@ -155,6 +160,23 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
   const [hasInlineShortcutsVisible] = useFlagState("INLINE_SHORTCUTS");
 
   const player = playerRef?.current;
+  const originalVideoUrl =
+    savedFeedItem?.url ??
+    (props.videoID
+      ? `https://www.youtube.com/watch?v=${props.videoID}`
+      : undefined);
+  const playerErrorMessage =
+    playerErrorCode === null
+      ? null
+      : (YOUTUBE_PLAYER_ERROR_MESSAGES[
+          playerErrorCode as keyof typeof YOUTUBE_PLAYER_ERROR_MESSAGES
+        ] ?? YOUTUBE_PLAYER_DEFAULT_ERROR_MESSAGE);
+  const hasYouTubePlayerError = playerErrorMessage !== null;
+  const openOriginalVideoUrl = () => {
+    if (!originalVideoUrl) return;
+
+    window.open(originalVideoUrl, "_blank", "noopener noreferrer");
+  };
 
   const shouldShowVideoTimestamps = videoType === "video";
   const shouldShowLiveTimestamps =
@@ -182,41 +204,45 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
             }}
             onStateChange={onStateChange}
             onReady={onPlayerReady}
+            onError={onPlayerError}
             loading="eager"
           />
           <div className="group">
-            <div
-              className={clsx("transition-all", {
-                "opacity-0":
-                  manualPlayerState === YOUTUBE_PLAYER_STATES.PLAYING ||
-                  manualPlayerState === YOUTUBE_PLAYER_STATES.HELD ||
-                  isSeeking,
-              })}
-            >
-              <div className="absolute inset-0 h-full w-full bg-black">
-                <img
-                  className={clsx("h-full w-full", {
-                    "object-cover": props.orientation === "vertical",
-                    "object-contain": props.orientation === "horizontal",
-                  })}
-                  src={`https://img.youtube.com/vi/${props.videoID}/maxresdefault.jpg`}
-                />
-              </div>
-              <button
-                onClick={toggleVideoPlayback}
-                className={clsx(
-                  "absolute inset-0 inset-y-8 z-20 grid place-items-center",
-                  {
-                    "cursor-pointer": !props.isInactive,
-                    "cursor-none!": props.isInactive,
-                  },
-                )}
+            {!hasYouTubePlayerError && (
+              <div
+                className={clsx("transition-all", {
+                  "opacity-0":
+                    manualPlayerState === YOUTUBE_PLAYER_STATES.PLAYING ||
+                    manualPlayerState === YOUTUBE_PLAYER_STATES.HELD ||
+                    isSeeking,
+                })}
               >
-                <div className="bg-background grid size-20 place-items-center rounded-2xl shadow-2xl transition-all group-hover:scale-105">
-                  <PlayIcon size={32} />
+                <div className="absolute inset-0 h-full w-full bg-black">
+                  <img
+                    className={clsx("h-full w-full", {
+                      "object-cover": props.orientation === "vertical",
+                      "object-contain": props.orientation === "horizontal",
+                    })}
+                    alt=""
+                    src={`https://img.youtube.com/vi/${props.videoID}/maxresdefault.jpg`}
+                  />
                 </div>
-              </button>
-            </div>
+                <button
+                  onClick={toggleVideoPlayback}
+                  className={clsx(
+                    "absolute inset-0 inset-y-8 z-20 grid place-items-center",
+                    {
+                      "cursor-pointer": !props.isInactive,
+                      "cursor-none!": props.isInactive,
+                    },
+                  )}
+                >
+                  <div className="bg-background grid size-20 place-items-center rounded-2xl shadow-2xl transition-all group-hover:scale-105">
+                    <PlayIcon size={32} />
+                  </div>
+                </button>
+              </div>
+            )}
             <div
               className={clsx(
                 "dark absolute inset-y-0 right-0 z-30 flex flex-col items-end justify-center bg-gradient-to-l from-black/50 from-70% to-transparent p-4 pl-8 text-white opacity-0 transition-opacity",
@@ -469,6 +495,15 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
                 className="mt-2 mr-4"
               />
             </div>
+            {hasYouTubePlayerError && (
+              <YouTubePlayerErrorOverlay
+                errorMessage={playerErrorMessage}
+                isInactive={props.isInactive}
+                onWatchOnYouTube={openOriginalVideoUrl}
+                orientation={props.orientation}
+                videoID={props.videoID}
+              />
+            )}
           </div>
         </>
       )}

@@ -53,3 +53,36 @@ export const YOUTUBE_CAPTION_SIZES = [
   { label: "Larger", value: 2 },
   { label: "Largest", value: 3 },
 ];
+
+export const YOUTUBE_PLAYER_ERROR_CODES = {
+  INVALID_PARAMETER: 2,
+  HTML5_PLAYER: 5,
+  NOT_FOUND_OR_PRIVATE: 100,
+  EMBED_NOT_ALLOWED: 101,
+  EMBED_NOT_ALLOWED_DISGUISED: 150,
+  MISSING_CLIENT_IDENTITY: 153,
+} as const;
+
+export const YOUTUBE_PLAYER_DEFAULT_ERROR_MESSAGE =
+  "This YouTube embed could not be played.";
+
+export type YouTubePlayerErrorCode =
+  (typeof YOUTUBE_PLAYER_ERROR_CODES)[keyof typeof YOUTUBE_PLAYER_ERROR_CODES];
+
+export const YOUTUBE_PLAYER_ERROR_MESSAGES: Record<
+  YouTubePlayerErrorCode,
+  string
+> = {
+  [YOUTUBE_PLAYER_ERROR_CODES.INVALID_PARAMETER]:
+    "The YouTube video ID is invalid.",
+  [YOUTUBE_PLAYER_ERROR_CODES.HTML5_PLAYER]:
+    "YouTube could not play this video in the embedded player.",
+  [YOUTUBE_PLAYER_ERROR_CODES.NOT_FOUND_OR_PRIVATE]:
+    "This YouTube video was removed, is private, or could not be found.",
+  [YOUTUBE_PLAYER_ERROR_CODES.EMBED_NOT_ALLOWED]:
+    "This YouTube video cannot be played in embedded players.",
+  [YOUTUBE_PLAYER_ERROR_CODES.EMBED_NOT_ALLOWED_DISGUISED]:
+    "This YouTube video cannot be played in embedded players.",
+  [YOUTUBE_PLAYER_ERROR_CODES.MISSING_CLIENT_IDENTITY]:
+    "YouTube could not identify this embedded player request.",
+};

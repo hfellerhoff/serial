@@ -159,6 +159,111 @@ export async function seedArticleData(
 }
 
 /**
+ * Creates a user via the Better Auth sign-up API, then seeds a YouTube feed
+ * and video item directly in the DB.
+ */
+export async function seedYouTubeVideoData(
+  tursoPort: number,
+  appPort: number,
+): Promise<{
+  feedItemId: string;
+  videoId: string;
+  originalUrl: string;
+  email: string;
+  password: string;
+}> {
+  const testId = uniqueId();
+  const email = `test-${testId}@example.com`;
+  const password = "testpassword123";
+
+  const res = await fetch(
+    `http://localhost:${appPort}/api/auth/sign-up/email`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: `http://localhost:${appPort}`,
+      },
+      body: JSON.stringify({ name: "Test User", email, password }),
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(`Sign-up failed: ${res.status} ${await res.text()}`);
+  }
+
+  const { db, client } = getDb(tursoPort);
+
+  const testUser = await db
+    .select()
+    .from(schema.user)
+    .where(eq(schema.user.email, email))
+    .get();
+  if (!testUser) throw new Error("No user found after sign-up");
+
+  const now = new Date();
+  const farFuture = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365);
+
+  await db.insert(schema.views).values({
+    userId: testUser.id,
+    name: "All",
+    daysWindow: 0,
+    readStatus: 0,
+    orientation: "horizontal",
+    contentType: "all",
+    layout: "list",
+    placement: 0,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const [testFeed] = await db
+    .insert(schema.feeds)
+    .values({
+      userId: testUser.id,
+      name: "Test YouTube Feed",
+      url: `https://www.youtube.com/feeds/videos.xml?channel_id=UC${testId.padEnd(22, "0")}`,
+      imageUrl: "",
+      platform: "youtube",
+      openLocation: "serial",
+      createdAt: now,
+      updatedAt: now,
+      lastFetchedAt: now,
+      nextFetchAt: farFuture,
+    })
+    .returning();
+  if (!testFeed) throw new Error("Feed insert returned no rows");
+
+  const videoId = "dQw4w9WgXcQ";
+  const originalUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  const feedItemId = `youtube-${testId}`;
+
+  await db.insert(schema.feedItems).values({
+    id: feedItemId,
+    feedId: testFeed.id,
+    contentId: videoId,
+    title: "Test YouTube Video",
+    author: "Test Channel",
+    url: originalUrl,
+    thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+    content: "",
+    contentSnippet: "Test YouTube video",
+    isWatched: false,
+    isWatchLater: false,
+    progress: 0,
+    duration: 0,
+    orientation: "horizontal",
+    postedAt: now,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  client.close();
+
+  return { feedItemId, videoId, originalUrl, email, password };
+}
+
+/**
  * Creates a user via the Better Auth sign-up API, then seeds a website feed
  * and multiple articles with HTML content directly in the DB.
  *

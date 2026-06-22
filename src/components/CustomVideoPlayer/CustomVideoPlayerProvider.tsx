@@ -28,9 +28,11 @@ type CustomVideoPlayerContext = {
   videoContainerRef: React.RefObject<HTMLDivElement | null>;
   onStateChange: (event: YouTubeEvent) => void;
   onPlayerReady: (event: YouTubeEvent) => void;
+  onPlayerError: (event: YouTubeEvent) => void;
   toggleVideoPlayback: () => void;
   manualPlayerState: number;
   playerState: number;
+  playerErrorCode: number | null;
   playbackSpeed: number;
   changeVideoPlaybackSpeed: (speed: number) => void;
   videoDuration: number;
@@ -64,6 +66,7 @@ export function CustomVideoPlayerProvider({ children }: PropsWithChildren) {
     YOUTUBE_PLAYER_STATES.BUFFERING,
   );
   const [manualPlayerState, setManualPlayerState] = useState(playerState);
+  const [playerErrorCode, setPlayerErrorCode] = useState<number | null>(null);
 
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [videoProgress, setVideoProgress] = useState(0);
@@ -200,12 +203,23 @@ export function CustomVideoPlayerProvider({ children }: PropsWithChildren) {
   // Set up the onApiChange listener when player is ready
   const onPlayerReady = useCallback(
     (event: YouTubeEvent) => {
+      setPlayerErrorCode(null);
       event.target.addEventListener("onApiChange", () =>
         handleApiChange(event.target),
       );
     },
     [handleApiChange],
   );
+
+  const onPlayerError = useCallback((event: YouTubeEvent) => {
+    const errorCode = Number(event.data);
+
+    setPlayerErrorCode(Number.isNaN(errorCode) ? -1 : errorCode);
+    setManualPlayerState(YOUTUBE_PLAYER_STATES.PAUSED);
+    console.warn("YouTube player error", {
+      code: event.data,
+    });
+  }, []);
 
   const setCaptionTrack = useCallback((track: CaptionTrack) => {
     if (!playerRef?.current) return;
@@ -357,6 +371,8 @@ export function CustomVideoPlayerProvider({ children }: PropsWithChildren) {
       }
 
       if (event.data === YOUTUBE_PLAYER_STATES.PLAYING) {
+        setPlayerErrorCode(null);
+
         // Load captions module when video starts playing (required for captions API)
         if (!hasLoadedCaptionsModuleRef.current) {
           hasLoadedCaptionsModuleRef.current = true;
@@ -382,9 +398,11 @@ export function CustomVideoPlayerProvider({ children }: PropsWithChildren) {
         videoContainerRef,
         onStateChange,
         onPlayerReady,
+        onPlayerError,
         toggleVideoPlayback,
         manualPlayerState,
         playerState,
+        playerErrorCode,
         playbackSpeed,
         changeVideoPlaybackSpeed,
         videoDuration,
