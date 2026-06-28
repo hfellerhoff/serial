@@ -15,6 +15,7 @@ import { Button } from "~/components/ui/button";
 import { visibilityFilterAtom } from "~/lib/data/atoms";
 import { getContentTypeFromItem } from "~/lib/data/feed-items";
 import { useFeedItemsSetWatchLaterValueMutation } from "~/lib/data/feed-items/mutations";
+import { getDataSubscriptionClientId } from "~/lib/data/clientChannel";
 import { useFeeds as useFeedsArray } from "~/lib/data/feeds/store";
 import {
   useSaveToInstapaperMutation,
@@ -345,6 +346,7 @@ function ItemActions({
       id: item.id,
       feedId: item.feedId,
       isWatchLater: !item.isWatchLater,
+      clientId: getDataSubscriptionClientId(),
     });
   };
 

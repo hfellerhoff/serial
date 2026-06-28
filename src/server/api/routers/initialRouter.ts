@@ -19,6 +19,7 @@ import {
   REVALIDATE_VIEW_CHUNK_SIZE,
 } from "../constants";
 import { publisher, trackChannelConnection } from "../publisher";
+import { getClientChannel, getUserChannel } from "../channels";
 import { insertFeedWithCategories } from "./feed-router/utils";
 import type { SQL } from "drizzle-orm";
 import type { VisibilityFilter } from "~/lib/data/atoms";
@@ -469,14 +470,6 @@ function computeViewDiff(
   }
 
   return diff;
-}
-
-function getUserChannel(userId: string): string {
-  return `user:${userId}`;
-}
-
-function getClientChannel(userId: string, clientId: string): string {
-  return `${getUserChannel(userId)}:client:${clientId}`;
 }
 
 const clientScopedInputSchema = z.object({

@@ -1,9 +1,11 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
+import { getClientChannel } from "../channels";
 import { verifyFeedsOwnedByUser } from "./feed-router/utils";
 import type { ApplicationFeedItem } from "~/server/db/schema";
 import type { FetchFeedsStatus } from "~/server/rss/fetchFeeds";
 import { prepareArrayChunks } from "~/lib/iterators";
+import { publisher } from "~/server/api/publisher";
 
 import { feedItems, feeds } from "~/server/db/schema";
 import { protectedProcedure } from "~/server/orpc/base";
@@ -125,11 +127,12 @@ export const setWatchedValue = protectedProcedure
       id: z.string(),
       feedId: z.number(),
       isWatched: z.boolean(),
+      clientId: z.string().optional(),
     }),
   )
   .handler(async ({ context, input }) => {
     const updatedAt = new Date();
-    return context.db.transaction(async (tx) => {
+    const result = await context.db.transaction(async (tx) => {
       const isOwned = await verifyFeedsOwnedByUser({
         feedIds: [input.feedId],
         userId: context.user.id,
@@ -152,9 +155,24 @@ export const setWatchedValue = protectedProcedure
         )
         .returning({
           id: feedItems.id,
+          feedId: feedItems.feedId,
+          contentId: feedItems.contentId,
+          title: feedItems.title,
+          author: feedItems.author,
+          url: feedItems.url,
+          thumbnail: feedItems.thumbnail,
+          contentSnippet: feedItems.contentSnippet,
           isWatched: feedItems.isWatched,
           isWatchedUpdatedAt: feedItems.isWatchedUpdatedAt,
+          isWatchLater: feedItems.isWatchLater,
+          isWatchLaterUpdatedAt: feedItems.isWatchLaterUpdatedAt,
+          progress: feedItems.progress,
+          duration: feedItems.duration,
+          orientation: feedItems.orientation,
+          postedAt: feedItems.postedAt,
+          createdAt: feedItems.createdAt,
           updatedAt: feedItems.updatedAt,
+          contentHash: feedItems.contentHash,
         });
 
       if (!updatedItem) {
@@ -163,6 +181,37 @@ export const setWatchedValue = protectedProcedure
 
       return updatedItem;
     });
+
+    if (input.clientId) {
+      const [feedRow] = await context.db
+        .select({ platform: feeds.platform })
+        .from(feeds)
+        .where(eq(feeds.id, input.feedId));
+
+      void publisher.publish(
+        getClientChannel(context.user.id, input.clientId),
+        {
+          source: "initial",
+          chunk: {
+            type: "feed-items",
+            feedItems: [
+              {
+                ...result,
+                content: "",
+                platform: feedRow?.platform ?? "youtube",
+              } as ApplicationFeedItem,
+            ],
+          },
+        },
+      );
+    }
+
+    return {
+      id: result.id,
+      isWatched: result.isWatched,
+      isWatchedUpdatedAt: result.isWatchedUpdatedAt,
+      updatedAt: result.updatedAt,
+    };
   });
 
 export const setBulkWatchedValue = protectedProcedure
@@ -222,11 +271,12 @@ export const setWatchLaterValue = protectedProcedure
       id: z.string(),
       feedId: z.number(),
       isWatchLater: z.boolean(),
+      clientId: z.string().optional(),
     }),
   )
   .handler(async ({ context, input }) => {
     const updatedAt = new Date();
-    return context.db.transaction(async (tx) => {
+    const result = await context.db.transaction(async (tx) => {
       const isOwned = await verifyFeedsOwnedByUser({
         feedIds: [input.feedId],
         userId: context.user.id,
@@ -249,9 +299,24 @@ export const setWatchLaterValue = protectedProcedure
         )
         .returning({
           id: feedItems.id,
+          feedId: feedItems.feedId,
+          contentId: feedItems.contentId,
+          title: feedItems.title,
+          author: feedItems.author,
+          url: feedItems.url,
+          thumbnail: feedItems.thumbnail,
+          contentSnippet: feedItems.contentSnippet,
+          isWatched: feedItems.isWatched,
+          isWatchedUpdatedAt: feedItems.isWatchedUpdatedAt,
           isWatchLater: feedItems.isWatchLater,
           isWatchLaterUpdatedAt: feedItems.isWatchLaterUpdatedAt,
+          progress: feedItems.progress,
+          duration: feedItems.duration,
+          orientation: feedItems.orientation,
+          postedAt: feedItems.postedAt,
+          createdAt: feedItems.createdAt,
           updatedAt: feedItems.updatedAt,
+          contentHash: feedItems.contentHash,
         });
 
       if (!updatedItem) {
@@ -260,6 +325,37 @@ export const setWatchLaterValue = protectedProcedure
 
       return updatedItem;
     });
+
+    if (input.clientId) {
+      const [feedRow] = await context.db
+        .select({ platform: feeds.platform })
+        .from(feeds)
+        .where(eq(feeds.id, input.feedId));
+
+      void publisher.publish(
+        getClientChannel(context.user.id, input.clientId),
+        {
+          source: "initial",
+          chunk: {
+            type: "feed-items",
+            feedItems: [
+              {
+                ...result,
+                content: "",
+                platform: feedRow?.platform ?? "youtube",
+              } as ApplicationFeedItem,
+            ],
+          },
+        },
+      );
+    }
+
+    return {
+      id: result.id,
+      isWatchLater: result.isWatchLater,
+      isWatchLaterUpdatedAt: result.isWatchLaterUpdatedAt,
+      updatedAt: result.updatedAt,
+    };
   });
 
 export const setProgress = protectedProcedure

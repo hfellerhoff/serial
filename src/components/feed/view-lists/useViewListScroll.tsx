@@ -6,8 +6,6 @@ import { updateCurrentHomeRenderedItemCount } from "~/lib/scroll";
 
 type PendingServerExpansion = {
   id: number;
-  itemCountBeforeFetch: number;
-  renderCountBeforeFetch: number;
   isComplete: boolean;
 };
 
@@ -18,10 +16,6 @@ export function useViewListScroll(itemIds: string[]) {
   const [pendingServerExpansion, setPendingServerExpansion] =
     useState<PendingServerExpansion | null>(null);
   const [scrolledListKey, setScrolledListKey] = useState<string | null>(null);
-  const [
-    isAutoAnimatePausedForPagination,
-    setIsAutoAnimatePausedForPagination,
-  ] = useState(false);
   const firstItemId = itemIds[0];
   const currentListKey = `${paginationKey}:${firstItemId ?? "empty"}`;
   const { visibleItems, expandWindow, renderCount } = useItemWindow(
@@ -59,11 +53,8 @@ export function useViewListScroll(itemIds: string[]) {
     const serverLoadId = nextServerLoadIdRef.current + 1;
     nextServerLoadIdRef.current = serverLoadId;
 
-    setIsAutoAnimatePausedForPagination(true);
     setPendingServerExpansion({
       id: serverLoadId,
-      itemCountBeforeFetch: itemIds.length,
-      renderCountBeforeFetch: renderCount,
       isComplete: false,
     });
 
@@ -76,7 +67,7 @@ export function useViewListScroll(itemIds: string[]) {
         return { ...pendingExpansion, isComplete: true };
       });
     });
-  }, [handleLoadMore, itemIds.length, renderCount]);
+  }, [handleLoadMore]);
 
   const handleLoadMoreWithCache = useCallback(() => {
     if (renderCount < itemIds.length) {
@@ -108,39 +99,10 @@ export function useViewListScroll(itemIds: string[]) {
     expandWindow(itemIds.length);
   }, [expandWindow, itemIds.length, paginationState, pendingServerExpansion]);
 
-  useEffect(() => {
-    if (!isAutoAnimatePausedForPagination || !pendingServerExpansion) return;
-
-    const isHandledServerExpansion =
-      handledServerExpansionIdRef.current === pendingServerExpansion.id;
-    const hasRenderedExpandedWindow =
-      isHandledServerExpansion &&
-      renderCount > pendingServerExpansion.renderCountBeforeFetch;
-    const hasSettledWithoutNewItems =
-      pendingServerExpansion.isComplete &&
-      paginationState?.isFetching !== true &&
-      itemIds.length <= pendingServerExpansion.itemCountBeforeFetch;
-
-    if (hasRenderedExpandedWindow || hasSettledWithoutNewItems) {
-      const resumeAutoAnimateFrameTimeout = setTimeout(() => {
-        setIsAutoAnimatePausedForPagination(false);
-      }, 100);
-
-      return () => clearTimeout(resumeAutoAnimateFrameTimeout);
-    }
-  }, [
-    isAutoAnimatePausedForPagination,
-    itemIds.length,
-    paginationState,
-    pendingServerExpansion,
-    renderCount,
-  ]);
-
   return {
     sentinelRef,
     paginationState,
     visibleItems,
     hasRenderedAllItems: renderCount >= itemIds.length,
-    isAutoAnimatePausedForPagination,
   };
 }

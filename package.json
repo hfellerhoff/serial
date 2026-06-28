@@ -61,7 +61,6 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@fontsource-variable/noto-serif": "^5.2.9",
     "@fontsource-variable/outfit": "^5.2.8",
-    "@formkit/auto-animate": "^0.9.0",
     "@libsql/client": "0.17.2",
     "@libsql/linux-arm64-gnu": "^0.5.29",
     "@libsql/linux-arm64-musl": "0.5.29",
