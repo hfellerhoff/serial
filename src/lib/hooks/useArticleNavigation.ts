@@ -6,7 +6,7 @@ import { useShortcut } from "./useShortcut";
 import type { KeyboardEvent, RefObject } from "react";
 import {
   getShortcutAllowRepeat,
-  getShortcutKey,
+  getShortcutKeys,
   SHORTCUT_KEYS,
 } from "~/lib/constants/shortcuts";
 import { getScrollContainer } from "~/lib/scroll";
@@ -299,11 +299,11 @@ export function useArticleNavigation(
     return () => container.removeEventListener("focusin", handleFocusIn);
   }, [containerRef, selectedIndex, setArticleSelectedElement, scrollToElement]);
 
-  useShortcut(getShortcutKey(SHORTCUT_KEYS.ARROW_DOWN), handleArrowDown, {
+  useShortcut(getShortcutKeys(SHORTCUT_KEYS.ARROW_DOWN), handleArrowDown, {
     allowRepeat: getShortcutAllowRepeat(SHORTCUT_KEYS.ARROW_DOWN),
   });
 
-  useShortcut(getShortcutKey(SHORTCUT_KEYS.ARROW_UP), handleArrowUp, {
+  useShortcut(getShortcutKeys(SHORTCUT_KEYS.ARROW_UP), handleArrowUp, {
     allowRepeat: getShortcutAllowRepeat(SHORTCUT_KEYS.ARROW_UP),
   });
 

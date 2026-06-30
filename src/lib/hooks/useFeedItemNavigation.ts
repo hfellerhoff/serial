@@ -21,6 +21,7 @@ import {
 import {
   getShortcutAllowRepeat,
   getShortcutKey,
+  getShortcutKeys,
   SHORTCUT_KEYS,
 } from "~/lib/constants/shortcuts";
 import { getScrollContainer } from "~/lib/scroll";
@@ -550,19 +551,19 @@ export function useFeedItemNavigation(
     ],
   );
 
-  useShortcut(getShortcutKey(SHORTCUT_KEYS.ARROW_DOWN), handleArrowDown, {
+  useShortcut(getShortcutKeys(SHORTCUT_KEYS.ARROW_DOWN), handleArrowDown, {
     allowRepeat: getShortcutAllowRepeat(SHORTCUT_KEYS.ARROW_DOWN),
   });
 
-  useShortcut(getShortcutKey(SHORTCUT_KEYS.ARROW_UP), handleArrowUp, {
+  useShortcut(getShortcutKeys(SHORTCUT_KEYS.ARROW_UP), handleArrowUp, {
     allowRepeat: getShortcutAllowRepeat(SHORTCUT_KEYS.ARROW_UP),
   });
 
-  useShortcut(getShortcutKey(SHORTCUT_KEYS.ARROW_RIGHT), handleArrowRight, {
+  useShortcut(getShortcutKeys(SHORTCUT_KEYS.ARROW_RIGHT), handleArrowRight, {
     allowRepeat: getShortcutAllowRepeat(SHORTCUT_KEYS.ARROW_RIGHT),
   });
 
-  useShortcut(getShortcutKey(SHORTCUT_KEYS.ARROW_LEFT), handleArrowLeft, {
+  useShortcut(getShortcutKeys(SHORTCUT_KEYS.ARROW_LEFT), handleArrowLeft, {
     allowRepeat: getShortcutAllowRepeat(SHORTCUT_KEYS.ARROW_LEFT),
   });
 

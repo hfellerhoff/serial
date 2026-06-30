@@ -22,7 +22,7 @@ type UseShortcutOptions = {
 };
 
 export const useShortcut = (
-  shortcut: string,
+  shortcut: string | string[],
   callback: (event: KeyboardEvent<Element>) => void,
   options: UseShortcutOptions = {},
 ) => {
@@ -35,6 +35,12 @@ export const useShortcut = (
   const [keyCombo, setKeyCombo] = useState<string[]>([]);
 
   const hasOpenDialog = !!useDialogStore((store) => store.dialog);
+
+  // Support binding several keys (e.g. an arrow key and its vim-style
+  // equivalent) to the same handler.
+  const shortcuts = Array.isArray(shortcut) ? shortcut : [shortcut];
+  // Joined with a newline (never a valid key) so it serves as a stable dep.
+  const shortcutsKey = shortcuts.join("\n");
 
   useLayoutEffect(() => {
     callbackRef.current = callback;
@@ -62,71 +68,73 @@ export const useShortcut = (
         Shift: event.shiftKey,
       };
 
-      // Handle combined modifier key shortcuts (e.g. pressing Control + D)
-      if (shortcut.includes("+")) {
-        const keyArray = shortcut.split("+");
+      for (const currentShortcut of shortcutsKey.split("\n")) {
+        // Handle combined modifier key shortcuts (e.g. pressing Control + D)
+        if (currentShortcut.includes("+")) {
+          const keyArray = currentShortcut.split("+");
 
-        const initialModifierKey = keyArray[0]!;
+          const initialModifierKey = keyArray[0]!;
 
-        const modifierKeys = Object.keys(modifierMap);
+          const modifierKeys = Object.keys(modifierMap);
 
-        // If the first key is a modifier, handle combinations
-        if (modifierKeys.includes(initialModifierKey)) {
-          const finalKey = keyArray.pop();
+          // If the first key is a modifier, handle combinations
+          if (modifierKeys.includes(initialModifierKey)) {
+            const finalKey = keyArray.pop();
 
-          // Run handler if the modifier(s) + key have both been pressed
-          const doesEveryModifierMatch = modifierKeys.every((key) => {
-            // If modifier provided, expect `true`
-            if (keyArray.includes(key)) {
-              return modifierMap[key];
+            // Run handler if the modifier(s) + key have both been pressed
+            const doesEveryModifierMatch = modifierKeys.every((key) => {
+              // If modifier provided, expect `true`
+              if (keyArray.includes(key)) {
+                return modifierMap[key];
+              }
+              // If modifier not provided, expect `false`
+              return !modifierMap[key];
+            });
+
+            if (doesEveryModifierMatch && finalKey === event.key) {
+              return callbackRef.current(event);
             }
-            // If modifier not provided, expect `false`
-            return !modifierMap[key];
-          });
+          } else {
+            // If the shortcut doesn't begin with a modifier, it's a sequence
+            if (keyArray[keyCombo.length] === event.key) {
+              // Handle final key in the sequence
+              if (
+                keyArray[keyArray.length - 1] === event.key &&
+                keyCombo.length === keyArray.length - 1
+              ) {
+                // Run handler if the sequence is complete, then reset it
+                callbackRef.current(event);
+                return setKeyCombo([]);
+              }
 
-          if (doesEveryModifierMatch && finalKey === event.key) {
-            return callbackRef.current(event);
-          }
-        } else {
-          // If the shortcut doesn't begin with a modifier, it's a sequence
-          if (keyArray[keyCombo.length] === event.key) {
-            // Handle final key in the sequence
-            if (
-              keyArray[keyArray.length - 1] === event.key &&
-              keyCombo.length === keyArray.length - 1
-            ) {
-              // Run handler if the sequence is complete, then reset it
-              callbackRef.current(event);
+              // Add to the sequence
+              return setKeyCombo((prevCombo) => [...prevCombo, event.key]);
+            }
+            if (keyCombo.length > 0) {
+              // Reset key combo if it doesn't match the sequence
               return setKeyCombo([]);
             }
-
-            // Add to the sequence
-            return setKeyCombo((prevCombo) => [...prevCombo, event.key]);
-          }
-          if (keyCombo.length > 0) {
-            // Reset key combo if it doesn't match the sequence
-            return setKeyCombo([]);
           }
         }
-      }
 
-      // Single key shortcuts (e.g. pressing D)
-      if (shortcut === event.key) {
-        // Expect all modifiers to be false
-        const isEveryModifierFalse = Object.values(modifierMap).every(
-          (value) => !value,
-        );
+        // Single key shortcuts (e.g. pressing D)
+        if (currentShortcut === event.key) {
+          // Expect all modifiers to be false
+          const isEveryModifierFalse = Object.values(modifierMap).every(
+            (value) => !value,
+          );
 
-        if (!isEveryModifierFalse) {
-          return;
+          if (!isEveryModifierFalse) {
+            return;
+          }
+
+          return callbackRef.current(event);
         }
-
-        return callbackRef.current(event);
       }
     },
     [
       hasOpenDialog,
-      shortcut,
+      shortcutsKey,
       keyCombo.length,
       disableTextInputs,
       disableDialogs,
