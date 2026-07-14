@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { signIn, signUpAsAdmin } from "../fixtures/auth";
+import { signIn, signOut, signUpAsAdmin } from "../fixtures/auth";
 import { SELF_HOSTED_TURSO_PORT } from "../fixtures/ports";
 import { cleanupUser, generateTestEmail } from "../fixtures/seed-db";
 import type { Page } from "@playwright/test";
@@ -106,7 +106,7 @@ test.describe("invite flow", () => {
       await closeButton.first().click();
     }
 
-    await page.goto("/api/auth/sign-out", { waitUntil: "networkidle" });
+    await signOut(page);
 
     // ── 8. First invited user signs up ──────────────────────────────
     await page.goto(invitePath);
@@ -135,7 +135,7 @@ test.describe("invite flow", () => {
     await expect(page).toHaveURL("/", { timeout: 30000 });
 
     // ── 9. Sign out first invited user, sign in as admin ────────────
-    await page.goto("/api/auth/sign-out", { waitUntil: "networkidle" });
+    await signOut(page);
     await signIn({ page, email: adminEmail, password });
 
     // ── 10. Verify use count updated to 1, still active ────────────
@@ -147,7 +147,7 @@ test.describe("invite flow", () => {
     await expect(page.getByText("Active").first()).toBeVisible();
 
     // ── 11. Sign out admin ─────────────────────────────────────────
-    await page.goto("/api/auth/sign-out", { waitUntil: "networkidle" });
+    await signOut(page);
 
     // ── 12. Second invited user signs up with the same link ─────────
     await page.goto(invitePath);
@@ -170,7 +170,7 @@ test.describe("invite flow", () => {
     await expect(page).toHaveURL("/", { timeout: 30000 });
 
     // ── 13. Sign out second user, sign in as admin ──────────────────
-    await page.goto("/api/auth/sign-out", { waitUntil: "networkidle" });
+    await signOut(page);
     await signIn({ page, email: adminEmail, password });
 
     // ── 14. Verify use count updated to 2, still active ────────────
@@ -243,7 +243,7 @@ test.describe("invite flow", () => {
     await expect(page.getByText("Active").first()).toBeVisible();
 
     // ── 7. Sign out the admin ───────────────────────────────────────
-    await page.goto("/api/auth/sign-out", { waitUntil: "networkidle" });
+    await signOut(page);
 
     // ── 8. First user signs up successfully ─────────────────────────
     await page.goto(invitePath);
@@ -264,7 +264,7 @@ test.describe("invite flow", () => {
     await expect(page).toHaveURL("/", { timeout: 30000 });
 
     // ── 9. Sign out first user, sign in as admin ────────────────────
-    await page.goto("/api/auth/sign-out", { waitUntil: "networkidle" });
+    await signOut(page);
     await signIn({ page, email: adminEmail, password });
 
     // ── 10. Verify use count is 1/1 and status is Exhausted ─────────
@@ -274,7 +274,7 @@ test.describe("invite flow", () => {
     await expect(page.getByText("Used")).toBeVisible();
 
     // ── 11. Sign out admin ──────────────────────────────────────────
-    await page.goto("/api/auth/sign-out", { waitUntil: "networkidle" });
+    await signOut(page);
 
     // ── 12. Second user sees disabled sign-up ───────────────────────
     await page.goto(invitePath);

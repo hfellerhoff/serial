@@ -143,6 +143,23 @@ export async function signUpAsAdmin({
 }
 
 /**
+ * Signs out the current user. Better Auth's sign-out endpoint is POST-only,
+ * so navigating to /api/auth/sign-out with page.goto does NOT clear the
+ * session — this helper issues a real POST through the page's cookie jar.
+ */
+export async function signOut(page: Page) {
+  const result = await page.evaluate(async () => {
+    const response = await fetch("/api/auth/sign-out", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    return { ok: response.ok, status: response.status };
+  });
+  expect(result.ok, `sign-out failed with status ${result.status}`).toBe(true);
+}
+
+/**
  * Signs in an existing user, handling the case where the page may land on
  * sign-up instead of sign-in (e.g. if no users exist yet and the app
  * redirects to the first-user sign-up flow).

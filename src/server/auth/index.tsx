@@ -46,6 +46,12 @@ import { captureException, logError, logMessage } from "~/server/logger";
 import { env } from "~/env";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
 
+const SIGNED_IN_REDIRECT_AUTH_PATHS = [
+  "/auth",
+  "/auth/sign-in",
+  "/auth/sign-up",
+];
+
 export const authMiddleware = createMiddleware().server(
   async ({ pathname, next }) => {
     const headers = getRequestHeaders() as Headers;
@@ -64,6 +70,14 @@ export const authMiddleware = createMiddleware().server(
       } else if (pathname.startsWith("/auth/")) {
         throw redirect({ to: "/" });
       }
+    }
+
+    // Signed-in users have no business on the sign-in/sign-up pages —
+    // send them into the app instead of showing them an auth form.
+    const isSignedInOnAuthEntryPage =
+      !!session && SIGNED_IN_REDIRECT_AUTH_PATHS.includes(pathname);
+    if (isSignedInOnAuthEntryPage) {
+      throw redirect({ to: "/" });
     }
 
     if (!session) {
