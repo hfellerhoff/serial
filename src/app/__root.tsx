@@ -12,10 +12,8 @@ import { QueryProvider } from "~/lib/query-provider";
 import { ReloadPrompt } from "~/components/pwa/ReloadPrompt";
 import { UndoShortcutListener } from "~/lib/undo";
 import { Button } from "~/components/ui/button";
-import { env } from "~/env";
-import { BASE_SIGNED_OUT_URL, IS_MAIN_INSTANCE } from "~/lib/constants";
+import { BASE_SIGNED_OUT_URL } from "~/lib/constants";
 import { fetchConfigCss } from "~/server/auth/endpoints";
-import { buildPublicationLink } from "~/lib/standard-site";
 
 import appCss from "~/styles/globals.css?url";
 
@@ -32,11 +30,6 @@ export const Route = createRootRoute({
     return { configCss };
   },
   head: ({ loaderData }) => {
-    const publicationLink = buildPublicationLink({
-      isMainInstance: IS_MAIN_INSTANCE,
-      publicationUri: env.VITE_PUBLIC_STANDARD_SITE_PUBLICATION_URI,
-    });
-
     return {
       meta: [
         { charSet: "utf-8" },
@@ -99,7 +92,6 @@ export const Route = createRootRoute({
         { rel: "preconnect", href: "https://i.ytimg.com" },
         { rel: "preconnect", href: "https://img.youtube.com" },
         { rel: "dns-prefetch", href: "https://www.youtube-nocookie.com" },
-        ...(publicationLink ? [publicationLink] : []),
         // Preload YouTube IFrame API
         // {
         //   rel: "preload",

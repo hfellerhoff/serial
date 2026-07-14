@@ -22,7 +22,6 @@ import { usePlanSuccessStore } from "~/lib/data/plan-success";
 import { useSubscription } from "~/lib/data/subscription";
 import { useAltKeyHeld } from "~/lib/hooks/useAltKeyHeld";
 import { authMiddleware } from "~/server/auth";
-import { getMostRecentRelease } from "~/lib/markdown/loaders";
 import { orpc, orpcRouterClient } from "~/lib/orpc";
 import { PLANS } from "~/server/subscriptions/plans";
 import {
@@ -42,10 +41,6 @@ export const Route = createFileRoute("/_app")({
         to: "/maintenance",
       });
     }
-  },
-  loader: () => {
-    const mostRecentRelease = getMostRecentRelease();
-    return { mostRecentRelease };
   },
 });
 
@@ -230,7 +225,6 @@ function CheckoutSuccessDialog({
 }
 
 function RootLayout() {
-  const { mostRecentRelease } = Route.useLoaderData();
   useAltKeyHeld();
   usePortalReturn();
   const { awaitingUpgrade, billingEnabled } = useCheckoutSuccess();
@@ -270,7 +264,7 @@ function RootLayout() {
                 />
               )}
             </main>
-            <ReleaseNotifier mostRecentRelease={mostRecentRelease} />
+            <ReleaseNotifier />
           </SidebarInset>
           <AppRightSidebar />
         </SidebarProvider>

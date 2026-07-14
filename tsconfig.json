@@ -21,8 +21,7 @@
     "incremental": true,
     /* Path Aliases */
     "paths": {
-      "~/*": ["./src/*"],
-      "content-collections": ["./.content-collections/generated"]
+      "~/*": ["./src/*"]
     }
   },
   "include": [".eslintrc.cjs", "**/*.ts", "**/*.tsx", "**/*.cjs", "**/*.js"],

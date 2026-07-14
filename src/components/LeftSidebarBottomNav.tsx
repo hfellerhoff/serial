@@ -17,6 +17,7 @@ import {
   SidebarMenuItem,
 } from "~/components/ui/sidebar";
 import { useSession } from "~/lib/auth-client";
+import { getReleaseUrl } from "~/lib/constants";
 
 export function LeftSidebarBottomNav() {
   const { data } = useSession();
@@ -36,10 +37,14 @@ export function LeftSidebarBottomNav() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link to="/releases">
+              <a
+                href={getReleaseUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <NotebookIcon />
                 <span>Release Log</span>
-              </Link>
+              </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>

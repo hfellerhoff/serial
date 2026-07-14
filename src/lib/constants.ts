@@ -4,13 +4,18 @@ export const IS_MAIN_INSTANCE =
   String(import.meta.env.VITE_PUBLIC_IS_MAIN_INSTANCE) === "true" ||
   String(process.env.VITE_PUBLIC_IS_MAIN_INSTANCE) === "true";
 
-export const BASE_SIGNED_OUT_URL = IS_MAIN_INSTANCE
-  ? "/welcome"
-  : "/auth/sign-in";
+export const BASE_SIGNED_OUT_URL = "/auth/sign-in";
+
+/** The public marketing website (serial-www repo). */
+export const MAIN_SITE_URL = "https://www.serial.tube";
 
 export function getGuidesUrl(path = "") {
-  if (IS_MAIN_INSTANCE) return `/guides${path}`;
-  return `https://serial.tube/guides${path}`;
+  return `${MAIN_SITE_URL}/guides${path}`;
+}
+
+export function getReleaseUrl(slug = "") {
+  const path = slug ? `/${slug}` : "";
+  return `${MAIN_SITE_URL}/releases${path}`;
 }
 
 /**

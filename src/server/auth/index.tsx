@@ -203,6 +203,16 @@ export const auth = betterAuth({
     provider: "sqlite",
   }),
   trustedOrigins: Array.from(TRUSTED_ORIGINS_SET),
+  ...(env.COOKIE_DOMAIN
+    ? {
+        advanced: {
+          crossSubDomainCookies: {
+            enabled: true,
+            domain: env.COOKIE_DOMAIN,
+          },
+        },
+      }
+    : {}),
   emailAndPassword: {
     enabled: true,
     maxPasswordLength: 64,

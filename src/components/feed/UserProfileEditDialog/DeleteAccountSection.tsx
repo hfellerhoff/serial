@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
+import { BASE_SIGNED_OUT_URL } from "~/lib/constants";
 import { useDeleteAccountMutation } from "~/lib/data/user/useDeleteAccountMutation";
 import { orpc } from "~/lib/orpc";
 
@@ -64,7 +65,7 @@ function DeleteAccountConfirmationSection({
           await deleteAccount(undefined);
 
           void router.navigate({
-            to: "/welcome",
+            to: BASE_SIGNED_OUT_URL,
             reloadDocument: true,
           });
         }}

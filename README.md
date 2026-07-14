@@ -6,7 +6,7 @@ A calm, customizable, and non-algorithmic RSS reader. Lots of
 customization options and great support for video content. Fully
 open source and easily self-hostable.
 
-[Check it out →](https://serial.tube/welcome)
+[Check it out →](https://serial.tube)
 
 ## Releases & Changelog
 

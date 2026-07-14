@@ -7,10 +7,6 @@ export const env = createEnv({
     VITE_PUBLIC_BASE_URL: z.url(),
     VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS: z.string().email().optional(),
     VITE_PUBLIC_SENTRY_DSN_WEB: z.string().url().optional(),
-    VITE_PUBLIC_STANDARD_SITE_PUBLICATION_URI: z
-      .string()
-      .startsWith("at://")
-      .optional(),
     VITE_PUBLIC_IS_MAINTENANCE_MODE: z.string().optional().default("false"),
     VITE_PUBLIC_IS_MAIN_INSTANCE: z.string().optional().default("false"),
     VITE_PUBLIC_IS_DEMO_INSTANCE: z.string().optional().default("false"),
@@ -105,6 +101,11 @@ export const env = createEnv({
       .optional()
       .default("info"),
     IS_DEMO_INSTANCE: z.string().optional().default("false"),
+    /**
+     * When set (e.g. ".serial.tube"), the auth session cookie is shared
+     * across subdomains so the marketing site can detect signed-in users.
+     */
+    COOKIE_DOMAIN: z.string().optional(),
   },
   runtimeEnv: {
     VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS:
@@ -113,9 +114,6 @@ export const env = createEnv({
     VITE_PUBLIC_SENTRY_DSN_WEB:
       import.meta.env?.VITE_PUBLIC_SENTRY_DSN_WEB ??
       process.env.VITE_PUBLIC_SENTRY_DSN_WEB,
-    VITE_PUBLIC_STANDARD_SITE_PUBLICATION_URI:
-      import.meta.env?.VITE_PUBLIC_STANDARD_SITE_PUBLICATION_URI ??
-      process.env.VITE_PUBLIC_STANDARD_SITE_PUBLICATION_URI,
     VITE_PUBLIC_IS_MAINTENANCE_MODE:
       import.meta.env?.VITE_PUBLIC_IS_MAINTENANCE_MODE ??
       process.env.VITE_PUBLIC_IS_MAINTENANCE_MODE,
@@ -174,6 +172,7 @@ export const env = createEnv({
     SENTRY_DSN_BACKEND: process.env.SENTRY_DSN_BACKEND,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
     IS_DEMO_INSTANCE: process.env.IS_DEMO_INSTANCE,
+    COOKIE_DOMAIN: process.env.COOKIE_DOMAIN,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

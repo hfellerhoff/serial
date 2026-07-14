@@ -15,7 +15,7 @@ interface ResetPasswordProps {
   supportEmail?: string;
 }
 
-const baseUrl = `https://serial.tube`;
+const baseUrl = `https://www.serial.tube`;
 
 export default function ResetPasswordEmail({
   resetUrl,
