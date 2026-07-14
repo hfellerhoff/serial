@@ -11,11 +11,11 @@ var markdownReleaseSchema = z.object({
   description: z.string().optional(),
   publish_date: z.string().date(),
   public: z.boolean(),
-  content: z.string()
+  content: z.string(),
 });
 var releaseSchema = markdownReleaseSchema.extend({
   slug: z.string(),
-  excerpt: z.string()
+  excerpt: z.string(),
 });
 var markdownBlogPostSchema = z.object({
   title: z.string(),
@@ -24,11 +24,11 @@ var markdownBlogPostSchema = z.object({
   publish_date: z.string().date(),
   updated_at: z.string().date().optional(),
   public: z.boolean(),
-  content: z.string()
+  content: z.string(),
 });
 var blogPostSchema = markdownBlogPostSchema.extend({
   slug: z.string(),
-  excerpt: z.string()
+  excerpt: z.string(),
 });
 var releases = defineCollection({
   name: "releases",
@@ -42,9 +42,9 @@ var releases = defineCollection({
       ...post,
       slug: post._meta.path,
       excerpt: frontMatter.excerpt,
-      content: frontMatter.body
+      content: frontMatter.body,
     };
-  }
+  },
 });
 var blogPosts = defineCollection({
   name: "blogPosts",
@@ -57,15 +57,15 @@ var blogPosts = defineCollection({
       ...post,
       slug: post._meta.path,
       excerpt: frontMatter.excerpt,
-      content: frontMatter.body
+      content: frontMatter.body,
     };
-  }
+  },
 });
 var content_collections_default = defineConfig({
-  collections: [releases, blogPosts]
+  collections: [releases, blogPosts],
 });
 export {
   blogPostSchema,
   content_collections_default as default,
-  releaseSchema
+  releaseSchema,
 };
