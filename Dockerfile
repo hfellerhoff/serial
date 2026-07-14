@@ -53,7 +53,6 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
 
 # Copy the built application from the build stage into the image.
 COPY --from=build /usr/src/app/.output ./.output
-COPY --from=build /usr/src/app/.content-collections ./.content-collections
 
 # Copy migration files and source needed for running migrations
 COPY --from=build /usr/src/app/src/server/db ./src/server/db
