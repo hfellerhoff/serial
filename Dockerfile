@@ -25,6 +25,7 @@ FROM --platform=$BUILDPLATFORM base AS build
 # Download all dependencies (including devDependencies) needed for building.
 RUN --mount=type=bind,source=package.json,target=package.json \
     --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \
+    --mount=type=bind,source=pnpm-workspace.yaml,target=pnpm-workspace.yaml \
     --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 
@@ -42,8 +43,10 @@ RUN pnpm run build:atomic
 ################################################################################
 FROM base AS final
 
-# Copy package.json and pnpm-lock.yaml so that package manager commands can be used.
-COPY package.json pnpm-lock.yaml ./
+# Copy package.json, pnpm-lock.yaml, and pnpm-workspace.yaml so that package
+# manager commands can be used. pnpm-workspace.yaml holds the overrides config,
+# which must be present or --frozen-lockfile fails with a config mismatch.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install dependencies for the target platform.
 # --ignore-scripts skips native compilation which is
