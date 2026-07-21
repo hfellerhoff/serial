@@ -121,11 +121,7 @@ function getWatchedDatePrefix(
 }
 
 type ThumbnailType =
-  | "horizontal-video"
-  | "vertical-video"
-  | "article"
-  | "icon"
-  | "none";
+  "horizontal-video" | "vertical-video" | "article" | "icon" | "none";
 
 function getThumbnailType(
   item: {

@@ -1,7 +1,6 @@
 import { publisher } from "../api/publisher";
 import { captureException } from "../logger";
 import { fetchAndInsertFeedData } from "./fetchFeeds";
-import type { PublishedChunk } from "../api/publisher";
 import type { GetByViewChunk } from "../api/routers/initialRouter";
 import type { DatabaseFeed } from "../db/schema";
 import type { db as Database } from "../db";
@@ -55,7 +54,7 @@ export async function refreshUserFeeds({
         await publisher.publish(`${channel}`, {
           source: "initial",
           chunk,
-        } as PublishedChunk);
+        });
       }
     : async () => {};
 

@@ -7,7 +7,7 @@ import {
   Img,
   Preview,
   Text,
-} from "@react-email/components";
+} from "react-email";
 
 interface NewUserNotificationProps {
   userName?: string;

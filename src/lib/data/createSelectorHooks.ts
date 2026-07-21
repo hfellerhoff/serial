@@ -3,16 +3,15 @@ import { useShallow } from "zustand/react/shallow";
 import type { StoreApi, UseBoundStore } from "zustand";
 
 export type ZustandHookSelectors<TState> = {
-  [Key in NonNullable<keyof TState> as `use${Capitalize<
-    string & Key
-  >}`]: () => TState[Key];
+  [
+    Key in NonNullable<keyof TState> as `use${Capitalize<string & Key>}`
+  ]: () => TState[Key];
 };
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 type StoreWithHooks<TState> = (
-  | UseBoundStore<StoreApi<TState>>
-  | StoreApi<TState>
+  UseBoundStore<StoreApi<TState>> | StoreApi<TState>
 ) &
   Record<string, () => unknown>;
 

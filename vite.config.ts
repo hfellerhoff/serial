@@ -31,7 +31,7 @@ const plugins = [
   nitro({
     preset: "node",
     serverDir: "server",
-    experimental: { vite: {}, tasks: true } as any,
+    experimental: { vite: {}, tasks: true },
     scheduledTasks: {
       ...scheduleTask(
         { "* * * * *": ["feeds:background-refresh"] },
@@ -42,7 +42,7 @@ const plugins = [
         VITE_PUBLIC_IS_DEMO_INSTANCE === "true",
       ),
     },
-  } as any),
+  }),
   viteReact(),
 ];
 

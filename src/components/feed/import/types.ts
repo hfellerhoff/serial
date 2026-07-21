@@ -1,8 +1,5 @@
 export type SubscriptionImportStage =
-  | "upload"
-  | "select"
-  | "pending"
-  | "success";
+  "upload" | "select" | "pending" | "success";
 export type SubscriptionImportMethod = "subscriptions" | "opml";
 
 export type SubscriptionImportChannel = {

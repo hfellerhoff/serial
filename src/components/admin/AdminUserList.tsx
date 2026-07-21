@@ -51,7 +51,7 @@ export function AdminUserList() {
   // Update users when data changes
   useEffect(() => {
     if (data && offset === 0) {
-      setUsers(data.users as User[]);
+      setUsers(data.users);
       setOffset(PAGE_SIZE);
       setHasMore(data.users.length >= PAGE_SIZE);
     }

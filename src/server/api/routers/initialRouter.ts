@@ -173,6 +173,7 @@ export type GetByViewChunk =
       type: "fulltext-items";
       items: FeedItemFulltext[];
     }
+  | { type: "error"; message: string; phase: "initial-fetch" }
   | ViewDataChunk;
 
 export type RevalidateViewChunk =
@@ -1886,14 +1887,14 @@ export const streamingImport = protectedProcedure
         successfulFeeds.push({
           inputFeedUrl: feedInput.feedUrl,
           feedId: insertResult.feedId,
-          feed: insertResult.feed as typeof feeds.$inferSelect,
+          feed: insertResult.feed,
           categoryPaths: feedInput.categoryPaths,
           tagNames: feedInput.tagNames,
         });
 
         // 3. Immediately fetch RSS content for this feed
         for await (const feedResult of fetchAndInsertFeedData(context, [
-          insertResult.feed as typeof feeds.$inferSelect,
+          insertResult.feed,
         ])) {
           await publisher.publish(channel, {
             source: "initial",
@@ -2786,7 +2787,10 @@ export const requestItemsByCategoryId = protectedProcedure
 
 export const getAllByView = protectedProcedure
   .input(z.object({ visibilityFilter: visibilityFilterSchema }).optional())
-  .handler(async function* ({ context, input }) {
+  .handler(async function* ({
+    context,
+    input,
+  }): AsyncGenerator<GetByViewChunk> {
     const visibilityFilter = input?.visibilityFilter;
     const isVisibilityFilterFetch = !!visibilityFilter;
 
@@ -2803,7 +2807,7 @@ export const getAllByView = protectedProcedure
             ? error.message
             : "Failed to fetch initial data",
         phase: "initial-fetch",
-      } as GetByViewChunk;
+      };
       return;
     }
 
@@ -2826,22 +2830,22 @@ export const getAllByView = protectedProcedure
       yield {
         type: "views",
         views: allViews,
-      } as GetByViewChunk;
+      };
 
       yield {
         type: "feeds",
         feeds: applicationFeeds,
-      } as GetByViewChunk;
+      };
 
       yield {
         type: "content-categories",
         contentCategories: contentCategoriesList,
-      } as GetByViewChunk;
+      };
 
       yield {
         type: "feed-categories",
         feedCategories: feedCategoriesList,
-      } as GetByViewChunk;
+      };
 
       // Step 3: Yield view-feeds chunks for each view
       const feedCategoriesMap = buildFeedCategoriesMap(feedCategoriesList);
@@ -2860,7 +2864,7 @@ export const getAllByView = protectedProcedure
           type: "view-feeds",
           viewId: view.id,
           feedIds: feedIdsForView,
-        } as GetByViewChunk;
+        };
       }
     }
 
@@ -2868,7 +2872,7 @@ export const getAllByView = protectedProcedure
 
     if (feedIds.length === 0 || !firstView) {
       if (!isVisibilityFilterFetch) {
-        yield { type: "initial-data-complete" } as GetByViewChunk;
+        yield { type: "initial-data-complete" };
       }
       return;
     }
@@ -2895,7 +2899,7 @@ export const getAllByView = protectedProcedure
     // Skip initial-data-complete and RSS fetch when fetching for visibility filter
     if (!isVisibilityFilterFetch) {
       // Signal that initial data is complete - client can hide loading screen
-      yield { type: "initial-data-complete" } as GetByViewChunk;
+      yield { type: "initial-data-complete" };
 
       // Step 5: Run fetch and insert for fresh RSS items in background
       // Items are inserted to DB by fetchAndInsertFeedData - don't yield them here
@@ -2909,7 +2913,7 @@ export const getAllByView = protectedProcedure
           type: "feed-status",
           status: feedResult.status,
           feedId: feedResult.id,
-        } as GetByViewChunk;
+        };
         // Items already inserted to DB - they'll be included in pagination queries
       }
     }
@@ -2919,7 +2923,10 @@ export const getAllByView = protectedProcedure
 
 export const revalidateView = protectedProcedure
   .input(z.object({ viewId: z.number() }))
-  .handler(async function* ({ context, input }) {
+  .handler(async function* ({
+    context,
+    input,
+  }): AsyncGenerator<RevalidateViewChunk> {
     // Step 1: Fetch all prerequisite data using helper
     let prerequisiteData: PrerequisiteData;
     try {
@@ -2933,7 +2940,7 @@ export const revalidateView = protectedProcedure
             ? error.message
             : "Failed to fetch initial data",
         phase: "initial-fetch",
-      } as RevalidateViewChunk;
+      };
       return;
     }
 
@@ -2957,7 +2964,7 @@ export const revalidateView = protectedProcedure
     yield {
       type: "views",
       views: allViews,
-    } as RevalidateViewChunk;
+    };
 
     // Step 3: Yield view-feeds chunks for each view
     const feedCategoriesMap = buildFeedCategoriesMap(feedCategoriesList);
@@ -2976,7 +2983,7 @@ export const revalidateView = protectedProcedure
         type: "view-feeds",
         viewId: view.id,
         feedIds: feedIdsForView,
-      } as RevalidateViewChunk;
+      };
     }
 
     if (feedIds.length === 0) {
@@ -3014,7 +3021,7 @@ export const revalidateView = protectedProcedure
           type: "feed-items",
           viewId: view.id,
           feedItems: items,
-        } as RevalidateViewChunk;
+        };
       } catch (error) {
         captureException(error);
         yield {
@@ -3024,7 +3031,7 @@ export const revalidateView = protectedProcedure
               ? error.message
               : `Failed to fetch items for view ${view.id}`,
           phase: "feed-items",
-        } as RevalidateViewChunk;
+        };
       }
     }
 
@@ -3098,7 +3105,10 @@ export const getItemsByVisibility = protectedProcedure
       limit: z.number().min(1).max(500).optional(),
     }),
   )
-  .handler(async function* ({ context, input }) {
+  .handler(async function* ({
+    context,
+    input,
+  }): AsyncGenerator<GetItemsByVisibilityChunk> {
     const limit = input.limit ?? ITEMS_PER_PAGE;
 
     // Fetch prerequisite data using helper
@@ -3114,7 +3124,7 @@ export const getItemsByVisibility = protectedProcedure
             ? error.message
             : "Failed to fetch initial data",
         phase: "initial-fetch",
-      } as GetItemsByVisibilityChunk;
+      };
       return;
     }
 
@@ -3140,7 +3150,7 @@ export const getItemsByVisibility = protectedProcedure
         hasMore: false,
         nextCursor: null,
         replacesScope: input.cursor == null,
-      } as GetItemsByVisibilityChunk;
+      };
       return;
     }
 
@@ -3152,7 +3162,7 @@ export const getItemsByVisibility = protectedProcedure
         type: "error",
         message: `View with ID ${input.viewId} not found`,
         phase: "find-view",
-      } as GetItemsByVisibilityChunk;
+      };
       return;
     }
 
@@ -3218,7 +3228,7 @@ export const getItemsByVisibility = protectedProcedure
           hasMore,
           nextCursor,
           replacesScope: input.cursor == null && chunkIndex === 0,
-        } as GetItemsByVisibilityChunk;
+        };
       }
 
       if (applicationFeedItems.length === 0) {
@@ -3230,7 +3240,7 @@ export const getItemsByVisibility = protectedProcedure
           hasMore: false,
           nextCursor: null,
           replacesScope: input.cursor == null,
-        } as GetItemsByVisibilityChunk;
+        };
       }
     } catch (error) {
       captureException(error);
@@ -3241,7 +3251,7 @@ export const getItemsByVisibility = protectedProcedure
             ? error.message
             : `Failed to fetch items for view ${input.viewId}`,
         phase: "feed-items",
-      } as GetItemsByVisibilityChunk;
+      };
     }
   });
 

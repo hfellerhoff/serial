@@ -24,7 +24,9 @@ type GetAllItemsChunk =
 
 const GET_ALL_ITEMS_YIELD_BUFFER_MS = 100;
 const GET_ALL_CHUNK_SIZE = 100;
-export const getAll = protectedProcedure.handler(async function* ({ context }) {
+export const getAll = protectedProcedure.handler(async function* ({
+  context,
+}): AsyncGenerator<GetAllItemsChunk> {
   // Get existing items, yield
   const feedsList = await context.db.query.feeds.findMany({
     where: eq(feeds.userId, context.user.id),
@@ -72,7 +74,7 @@ export const getAll = protectedProcedure.handler(async function* ({ context }) {
     yield {
       type: "feed-items",
       feedItems: inProgressChunk,
-    } as GetAllItemsChunk;
+    };
 
     inProgressChunk = [];
   }
@@ -83,7 +85,7 @@ export const getAll = protectedProcedure.handler(async function* ({ context }) {
       type: "feed-status",
       status: feedResult.status,
       feedId: feedResult.id,
-    } as GetAllItemsChunk;
+    };
 
     if (feedResult.status !== "success") {
       continue;
@@ -112,7 +114,7 @@ export const getAll = protectedProcedure.handler(async function* ({ context }) {
       yield {
         type: "feed-items",
         feedItems: chunk,
-      } as GetAllItemsChunk;
+      };
 
       inProgressChunk = [];
     }
@@ -419,7 +421,10 @@ export const getById = protectedProcedure
 
 export const getByFeedId = protectedProcedure
   .input(z.object({ feedId: z.number() }))
-  .handler(async function* ({ context, input }) {
+  .handler(async function* ({
+    context,
+    input,
+  }): AsyncGenerator<GetAllItemsChunk> {
     const feed = await context.db.query.feeds.findFirst({
       where: and(eq(feeds.id, input.feedId), eq(feeds.userId, context.user.id)),
     });
@@ -442,7 +447,7 @@ export const getByFeedId = protectedProcedure
       yield {
         type: "feed-items",
         feedItems: chunk,
-      } as GetAllItemsChunk;
+      };
     }
 
     for await (const feedResult of fetchAndInsertFeedData(context, [feed])) {
@@ -450,7 +455,7 @@ export const getByFeedId = protectedProcedure
         type: "feed-status",
         status: feedResult.status,
         feedId: feedResult.id,
-      } as GetAllItemsChunk;
+      };
 
       if (feedResult.status !== "success") {
         continue;
@@ -460,7 +465,7 @@ export const getByFeedId = protectedProcedure
         yield {
           type: "feed-items",
           feedItems: chunk,
-        } as GetAllItemsChunk;
+        };
       }
     }
 

@@ -277,7 +277,6 @@ export function useDataSubscription() {
     requestItemsByVisibility,
     requestItemsByFeed,
     requestItemsByCategoryId,
-    isConnected: isConnectedRef.current,
   };
 }
 

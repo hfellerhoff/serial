@@ -41,8 +41,7 @@ type BulkImportFromFileError = {
   error: string;
 };
 export type BulkImportFromFileResult =
-  | BulkImportFromFileError
-  | BulkImportFromFileSuccess;
+  BulkImportFromFileError | BulkImportFromFileSuccess;
 
 export const create = protectedProcedure
   .input(

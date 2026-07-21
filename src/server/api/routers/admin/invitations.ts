@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { ORPCError } from "@orpc/server";
 import { createElement } from "react";
-import { render } from "@react-email/components";
+import { render } from "react-email";
 import { count, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 

@@ -26,16 +26,14 @@ export type ImportFeedDataFromFileError = {
   error: string;
 };
 export type ImportFeedDataFromFileResult =
-  | ImportFeedDataFromFileError
-  | ImportFeedDataFromFileSuccess;
+  ImportFeedDataFromFileError | ImportFeedDataFromFileSuccess;
 
 export type ImportFeedDataFromFilesError = {
   success: false;
   errors: string[];
 };
 export type ImportFeedDataFromFilesResult =
-  | ImportFeedDataFromFilesError
-  | ImportFeedDataFromFileSuccess;
+  ImportFeedDataFromFilesError | ImportFeedDataFromFileSuccess;
 
 export function formError(
   error: ImportFeedDataFromFileError["error"],

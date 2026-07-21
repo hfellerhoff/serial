@@ -1050,7 +1050,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                   // Ensure "unread" is always marked as fetched
                   fetchedFilters[view.id] = new Set([
                     ...(fetchedFilters[view.id] ?? []),
-                    "unread" as VisibilityFilter,
+                    "unread",
                   ]);
 
                   // Use cursor from view-diff chunk if available,

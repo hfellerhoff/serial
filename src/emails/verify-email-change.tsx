@@ -8,7 +8,7 @@ import {
   Link,
   Preview,
   Text,
-} from "@react-email/components";
+} from "react-email";
 
 interface VerifyEmailChangeProps {
   verificationUrl?: string;

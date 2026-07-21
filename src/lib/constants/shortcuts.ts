@@ -55,8 +55,7 @@ export const SHORTCUT_KEYS = {
 export const MAX_VIEW_SHORTCUTS = 10;
 
 export type ShortcutConfig =
-  | string
-  | { key: string; allowRepeat?: boolean; aliases?: readonly string[] };
+  string | { key: string; allowRepeat?: boolean; aliases?: readonly string[] };
 
 export function getShortcutKey(shortcut: ShortcutConfig): string {
   return typeof shortcut === "string" ? shortcut : shortcut.key;
