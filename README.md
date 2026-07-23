@@ -39,12 +39,13 @@ If your preferred platform doesn't have a guide, follow these rough steps:
 2. Use a git-based deployment system to deploy when a new commit happens. This will make it easy to keep your deploment up to date.
 3. Set up a custom domain (if desired)
 4. Set up your database:
-   - If you want to use a local libsql database, use the provided `docker-compose.yaml` configuration. This should require no additional configuration or environment variables.
+   - If you want to use a local libsql database, use the provided `docker-compose.yaml` configuration. The database requires no additional configuration, but the application variables below are still required.
      - It's less common, but you can also manually provide your local libsql server URL in `DATABASE_URL`.
    - If you want to use a cloud libsql database provider (like [Turso](https://turso.tech/)), set up a database with them and add your `DATABASE_AUTH_TOKEN` and `DATABASE_URL` to your environment variables.
-5. Navigate to [Better Auth](https://www.better-auth.com/docs/installation#set-environment-variables) and generate an auth secret. Set this as `BETTER_AUTH_SECRET` in your environment variables.
-6. Deploy your application
-7. To update Serial in the future, just sync your forked code from the main repo and the app will redeploy
+5. Set `VITE_PUBLIC_BASE_URL` to the public origin where Serial will be available, such as `https://serial.example.com` (or `http://localhost:3000` for a local Docker deployment).
+6. Navigate to [Better Auth](https://www.better-auth.com/docs/installation#set-environment-variables) and generate an auth secret. Set this as `BETTER_AUTH_SECRET` in your environment variables.
+7. Deploy your application. Docker images read public configuration when the container starts, so the same image can be used at different domains without rebuilding it.
+8. To update Serial in the future, just sync your forked code from the main repo and the app will redeploy
 
 If you'd like to support additional features, [see below!](#enabling-additional-features)
 

@@ -14,6 +14,9 @@ import { UndoShortcutListener } from "~/lib/undo";
 import { Button } from "~/components/ui/button";
 import { BASE_SIGNED_OUT_URL } from "~/lib/constants";
 import { fetchConfigCss } from "~/server/auth/endpoints";
+import { env } from "~/env";
+import { serializePublicConfig } from "~/lib/public-config";
+import { fetchPublicConfig } from "~/server/public-config";
 
 import appCss from "~/styles/globals.css?url";
 
@@ -26,8 +29,11 @@ const description =
 
 export const Route = createRootRoute({
   loader: async () => {
-    const configCss = await fetchConfigCss();
-    return { configCss };
+    const [configCss, publicConfig] = await Promise.all([
+      fetchConfigCss(),
+      fetchPublicConfig(),
+    ]);
+    return { configCss, publicConfig };
   },
   head: ({ loaderData }) => {
     return {
@@ -117,10 +123,18 @@ export const Route = createRootRoute({
 });
 
 export function RootLayout() {
+  const { publicConfig } = Route.useLoaderData();
+  const serializedPublicConfig = serializePublicConfig(publicConfig);
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__SERIAL_PUBLIC_CONFIG__=${serializedPublicConfig}`,
+          }}
+        />
         {/* {import.meta.env.DEV && (
           <>
             <script
@@ -129,17 +143,16 @@ export function RootLayout() {
             />
           </>
         )}*/}
-        {import.meta.env.VITE_PUBLIC_UMAMI_SRC &&
-          import.meta.env.VITE_PUBLIC_UMAMI_WEBSITE_ID && (
-            <>
-              <script
-                async
-                defer
-                data-website-id={import.meta.env.VITE_PUBLIC_UMAMI_WEBSITE_ID}
-                src={import.meta.env.VITE_PUBLIC_UMAMI_SRC}
-              />
-            </>
-          )}
+        {env.VITE_PUBLIC_UMAMI_SRC && env.VITE_PUBLIC_UMAMI_WEBSITE_ID && (
+          <>
+            <script
+              async
+              defer
+              data-website-id={env.VITE_PUBLIC_UMAMI_WEBSITE_ID}
+              src={env.VITE_PUBLIC_UMAMI_SRC}
+            />
+          </>
+        )}
         <meta
           name="apple-mobile-web-app-status-bar-style"
           content="black-translucent"

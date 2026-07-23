@@ -1,5 +1,36 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
+import { getBrowserPublicConfig } from "~/lib/public-config";
+
+const publicRuntimeEnv =
+  typeof window === "undefined"
+    ? {
+        VITE_PUBLIC_BASE_URL:
+          process.env.VITE_PUBLIC_BASE_URL ??
+          import.meta.env?.VITE_PUBLIC_BASE_URL,
+        VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS:
+          process.env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS ??
+          import.meta.env?.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS,
+        VITE_PUBLIC_SENTRY_DSN_WEB:
+          process.env.VITE_PUBLIC_SENTRY_DSN_WEB ??
+          import.meta.env?.VITE_PUBLIC_SENTRY_DSN_WEB,
+        VITE_PUBLIC_UMAMI_WEBSITE_ID:
+          process.env.VITE_PUBLIC_UMAMI_WEBSITE_ID ??
+          import.meta.env?.VITE_PUBLIC_UMAMI_WEBSITE_ID,
+        VITE_PUBLIC_UMAMI_SRC:
+          process.env.VITE_PUBLIC_UMAMI_SRC ??
+          import.meta.env?.VITE_PUBLIC_UMAMI_SRC,
+        VITE_PUBLIC_IS_MAINTENANCE_MODE:
+          process.env.VITE_PUBLIC_IS_MAINTENANCE_MODE ??
+          import.meta.env?.VITE_PUBLIC_IS_MAINTENANCE_MODE,
+        VITE_PUBLIC_IS_DEMO_INSTANCE:
+          process.env.VITE_PUBLIC_IS_DEMO_INSTANCE ??
+          import.meta.env?.VITE_PUBLIC_IS_DEMO_INSTANCE,
+        VITE_PUBLIC_IS_MAIN_INSTANCE:
+          process.env.VITE_PUBLIC_IS_MAIN_INSTANCE ??
+          import.meta.env?.VITE_PUBLIC_IS_MAIN_INSTANCE,
+      }
+    : getBrowserPublicConfig();
 
 export const env = createEnv({
   clientPrefix: "VITE_PUBLIC_",
@@ -7,6 +38,8 @@ export const env = createEnv({
     VITE_PUBLIC_BASE_URL: z.url(),
     VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS: z.string().email().optional(),
     VITE_PUBLIC_SENTRY_DSN_WEB: z.string().url().optional(),
+    VITE_PUBLIC_UMAMI_WEBSITE_ID: z.string().optional(),
+    VITE_PUBLIC_UMAMI_SRC: z.string().url().optional(),
     VITE_PUBLIC_IS_MAINTENANCE_MODE: z.string().optional().default("false"),
     VITE_PUBLIC_IS_MAIN_INSTANCE: z.string().optional().default("false"),
     VITE_PUBLIC_IS_DEMO_INSTANCE: z.string().optional().default("false"),
@@ -109,26 +142,19 @@ export const env = createEnv({
   },
   runtimeEnv: {
     VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS:
-      import.meta.env?.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS ??
-      process.env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS,
-    VITE_PUBLIC_SENTRY_DSN_WEB:
-      import.meta.env?.VITE_PUBLIC_SENTRY_DSN_WEB ??
-      process.env.VITE_PUBLIC_SENTRY_DSN_WEB,
+      publicRuntimeEnv.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS,
+    VITE_PUBLIC_SENTRY_DSN_WEB: publicRuntimeEnv.VITE_PUBLIC_SENTRY_DSN_WEB,
+    VITE_PUBLIC_UMAMI_WEBSITE_ID: publicRuntimeEnv.VITE_PUBLIC_UMAMI_WEBSITE_ID,
+    VITE_PUBLIC_UMAMI_SRC: publicRuntimeEnv.VITE_PUBLIC_UMAMI_SRC,
     VITE_PUBLIC_IS_MAINTENANCE_MODE:
-      import.meta.env?.VITE_PUBLIC_IS_MAINTENANCE_MODE ??
-      process.env.VITE_PUBLIC_IS_MAINTENANCE_MODE,
-    VITE_PUBLIC_IS_DEMO_INSTANCE:
-      import.meta.env?.VITE_PUBLIC_IS_DEMO_INSTANCE ??
-      process.env.VITE_PUBLIC_IS_DEMO_INSTANCE,
-    VITE_PUBLIC_IS_MAIN_INSTANCE:
-      import.meta.env?.VITE_PUBLIC_IS_MAIN_INSTANCE ??
-      process.env.VITE_PUBLIC_IS_MAIN_INSTANCE,
+      publicRuntimeEnv.VITE_PUBLIC_IS_MAINTENANCE_MODE,
+    VITE_PUBLIC_IS_DEMO_INSTANCE: publicRuntimeEnv.VITE_PUBLIC_IS_DEMO_INSTANCE,
+    VITE_PUBLIC_IS_MAIN_INSTANCE: publicRuntimeEnv.VITE_PUBLIC_IS_MAIN_INSTANCE,
     DATABASE_URL: process.env.DATABASE_URL,
     DATABASE_AUTH_TOKEN: process.env.DATABASE_AUTH_TOKEN,
     NODE_ENV: process.env.NODE_ENV,
     LOG_LEVEL: process.env.LOG_LEVEL,
-    VITE_PUBLIC_BASE_URL:
-      import.meta.env?.VITE_PUBLIC_BASE_URL ?? process.env.VITE_PUBLIC_BASE_URL,
+    VITE_PUBLIC_BASE_URL: publicRuntimeEnv.VITE_PUBLIC_BASE_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
