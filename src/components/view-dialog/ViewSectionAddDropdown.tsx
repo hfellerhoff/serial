@@ -78,14 +78,18 @@ export function ViewSectionAddDropdown({
   // content filters.
   const tagOptions = useMemo(
     () =>
-      contentCategories
-        .filter((c) => !existingIds.has(`${VIEW_LAYOUT_ITEM_TYPE.TAG}:${c.id}`))
-        .map((c) => ({
-          id: c.id,
-          label: `#${c.name}`,
-          rawLabel: c.name,
-          itemType: VIEW_LAYOUT_ITEM_TYPE.TAG,
-        })),
+      contentCategories.flatMap((c) =>
+        existingIds.has(`${VIEW_LAYOUT_ITEM_TYPE.TAG}:${c.id}`)
+          ? []
+          : [
+              {
+                id: c.id,
+                label: `#${c.name}`,
+                rawLabel: c.name,
+                itemType: VIEW_LAYOUT_ITEM_TYPE.TAG,
+              },
+            ],
+      ),
     [contentCategories, existingIds],
   );
 
