@@ -101,9 +101,10 @@ test.describe("full user lifecycle", () => {
       "data-variant",
       "outline",
     );
-    await expect(
-      cgpGreyItemContainer.locator('[data-slot="avatar"]'),
-    ).toBeVisible();
+    const cgpGreyAvatar = cgpGreyItemContainer.locator('[data-slot="avatar"]');
+    await expect(cgpGreyAvatar).toBeVisible();
+    await expect(cgpGreyAvatar).toHaveClass(/\bsize-7\b/);
+    await expect(cgpGreyAvatar).toHaveClass(/\brounded\b/);
     await expect(
       cgpGreyItemContainer.getByRole("link", { name: "CGP Grey" }),
     ).toHaveAttribute("href", /\/cgp-grey$/);

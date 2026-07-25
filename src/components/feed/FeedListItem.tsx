@@ -59,9 +59,11 @@ export function FeedAvatar({
   fallback?: React.ReactNode;
 }) {
   return (
-    <Avatar size="sm">
-      {imageUrl && <AvatarImage src={imageUrl} alt={title} />}
-      <AvatarFallback>
+    <Avatar className="size-7 rounded">
+      {imageUrl && (
+        <AvatarImage className="rounded" src={imageUrl} alt={title} />
+      )}
+      <AvatarFallback className="rounded">
         {fallback ?? <PlatformIcon platform={platform} />}
       </AvatarFallback>
     </Avatar>
