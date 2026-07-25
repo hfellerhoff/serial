@@ -45,6 +45,21 @@ export async function getFeedItemProgress(tursoPort: number, id: string) {
   return feedItem?.progress ?? null;
 }
 
+export async function getViewsForUser(tursoPort: number, email: string) {
+  const { db, client } = getDb(tursoPort);
+  const userViews = await db
+    .select({
+      name: schema.views.name,
+      layout: schema.views.layout,
+    })
+    .from(schema.views)
+    .innerJoin(schema.user, eq(schema.views.userId, schema.user.id))
+    .where(eq(schema.user.email, email));
+  client.close();
+
+  return userViews;
+}
+
 function uniqueId() {
   return randomBytes(8).toString("hex");
 }

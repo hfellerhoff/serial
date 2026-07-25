@@ -54,7 +54,10 @@ import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
 import { sortViewsByPlacement } from "~/lib/data/views/utils";
 import { prepareArrayChunks } from "~/lib/iterators";
 import { buildUncategorizedView } from "~/server/api/utils/buildUncategorizedView";
-import { VIEW_LAYOUT_ITEM_TYPE } from "~/server/db/constants";
+import {
+  DEFAULT_VIEW_LAYOUT,
+  VIEW_LAYOUT_ITEM_TYPE,
+} from "~/server/db/constants";
 
 import { parseArrayOfSchema } from "~/lib/schemas/utils";
 import { dbSemaphore } from "~/lib/semaphore";
@@ -2007,6 +2010,7 @@ export const streamingImport = protectedProcedure
                 namesToCreate.map((name) => ({
                   userId: context.user.id,
                   name,
+                  layout: DEFAULT_VIEW_LAYOUT,
                   placement: viewOrder.length - 1 - viewOrder.indexOf(name),
                 })),
               )

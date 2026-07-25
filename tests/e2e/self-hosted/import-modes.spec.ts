@@ -4,7 +4,11 @@ import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import { signUp } from "../fixtures/auth";
 import { SELF_HOSTED_TURSO_PORT } from "../fixtures/ports";
-import { cleanupUser, generateTestEmail } from "../fixtures/seed-db";
+import {
+  cleanupUser,
+  generateTestEmail,
+  getViewsForUser,
+} from "../fixtures/seed-db";
 import type { Page } from "@playwright/test";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -94,6 +98,16 @@ test.describe("import categorization modes", () => {
     });
 
     await importSectionedOpml(page, "views");
+
+    const importedViews = await getViewsForUser(
+      SELF_HOSTED_TURSO_PORT,
+      testEmail,
+    );
+    expect(
+      importedViews
+        .filter((view) => ["Music", "Tech"].includes(view.name))
+        .map((view) => view.layout),
+    ).toEqual(["large-list", "large-list"]);
 
     // Go home and open the sidebar so we can inspect Views and Tags groups
     await page.goto("/");
