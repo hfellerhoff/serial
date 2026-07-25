@@ -130,7 +130,10 @@ export function FeedDiscoveryCommand({
       <CommandInput
         ref={inputRef}
         value={url}
-        onValueChange={onUrlChange}
+        onValueChange={(nextUrl) => {
+          setLastAutoDiscoveredUrl(null);
+          onUrlChange(nextUrl);
+        }}
         className="h-14 text-base"
         placeholder="Paste a URL or search for a feed..."
         disabled={isAddingFeed}

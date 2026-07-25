@@ -178,6 +178,17 @@ test.describe("add feed manually", () => {
     });
     await expect(discoveredFeed).toBeVisible({ timeout: 10000 });
     await expect(discoveredFeed).toHaveAttribute("data-selected", "true");
+
+    // Editing the discovered URL clears its results. Returning to that same
+    // normalized URL should run discovery again instead of remaining idle.
+    await feedSearch.fill("not a feed url");
+    await expect(discoveredFeed).toHaveCount(0);
+    await feedSearch.fill(feedUrl);
+    await expect(
+      dialog.getByRole("option", { name: "Finding feeds…" }),
+    ).toBeVisible();
+    await expect(discoveredFeed).toBeVisible({ timeout: 10000 });
+
     await expect(feedSearch).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(
