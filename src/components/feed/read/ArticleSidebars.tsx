@@ -50,7 +50,7 @@ type FootnoteItem = {
   id: string;
   label: string;
   content: ReactNode[];
-  reference: HTMLAnchorElement;
+  references: HTMLAnchorElement[];
   source: HTMLElement;
 };
 
@@ -200,8 +200,8 @@ function getFootnoteContent(
 }
 
 function getFootnotes(article: HTMLElement): FootnoteItem[] {
-  const seenTargetIds = new Set<string>();
   const footnotes: FootnoteItem[] = [];
+  const footnotesByTargetId = new Map<string, FootnoteItem>();
   const graph = buildInnerDocumentLinkGraph(article);
 
   for (const { link, target, sourceAnchor } of graph.noteLinks) {
@@ -211,21 +211,28 @@ function getFootnotes(article: HTMLElement): FootnoteItem[] {
       target.getAttribute("data-id") ||
       link.getAttribute("href") ||
       String(footnotes.length + 1);
-    if (seenTargetIds.has(targetId)) continue;
+    const existingFootnote = footnotesByTargetId.get(targetId);
+    if (existingFootnote) {
+      link.setAttribute("data-serial-footnote-reference", "true");
+      existingFootnote.references.push(link);
+      continue;
+    }
+
     const { content, text } = getFootnoteContent(target, sourceAnchor);
     if (!text) continue;
 
     const source = getNoteSource(target, article);
     source.setAttribute("data-serial-footnotes-source", "true");
     link.setAttribute("data-serial-footnote-reference", "true");
-    seenTargetIds.add(targetId);
-    footnotes.push({
+    const footnote = {
       id: targetId,
       label: link.textContent?.trim() || String(footnotes.length + 1),
       content,
-      reference: link,
+      references: [link],
       source,
-    });
+    };
+    footnotesByTargetId.set(targetId, footnote);
+    footnotes.push(footnote);
   }
 
   return footnotes;
@@ -343,8 +350,10 @@ export function ArticleSidebars({
     let analysisAnimationFrame = 0;
 
     const clearAnalysis = () => {
-      analyzedFootnotes.forEach(({ reference, source }) => {
-        reference.removeAttribute("data-serial-footnote-reference");
+      analyzedFootnotes.forEach(({ references, source }) => {
+        references.forEach((reference) =>
+          reference.removeAttribute("data-serial-footnote-reference"),
+        );
         source.removeAttribute("data-serial-footnotes-source");
       });
       modifiedHeadings.forEach(({ heading, originalId }) => {
@@ -469,8 +478,8 @@ export function ArticleSidebars({
         "[data-serial-footnote-reference]",
       );
       if (!reference || !article.contains(reference)) return;
-      const footnote = footnotes.find(
-        (candidate) => candidate.reference === reference,
+      const footnote = footnotes.find((candidate) =>
+        candidate.references.includes(reference),
       );
       if (!footnote) return;
 
@@ -488,20 +497,22 @@ export function ArticleSidebars({
       setActiveFootnote(footnote);
     };
 
-    const referenceHoverCleanups = footnotes.map((footnote) => {
-      const handleMouseEnter = () => setHoveredFootnoteId(footnote.id);
-      const handleMouseLeave = () =>
-        setHoveredFootnoteId((currentId) =>
-          currentId === footnote.id ? null : currentId,
-        );
+    const referenceHoverCleanups = footnotes.flatMap((footnote) =>
+      footnote.references.map((reference) => {
+        const handleMouseEnter = () => setHoveredFootnoteId(footnote.id);
+        const handleMouseLeave = () =>
+          setHoveredFootnoteId((currentId) =>
+            currentId === footnote.id ? null : currentId,
+          );
 
-      footnote.reference.addEventListener("mouseenter", handleMouseEnter);
-      footnote.reference.addEventListener("mouseleave", handleMouseLeave);
-      return () => {
-        footnote.reference.removeEventListener("mouseenter", handleMouseEnter);
-        footnote.reference.removeEventListener("mouseleave", handleMouseLeave);
-      };
-    });
+        reference.addEventListener("mouseenter", handleMouseEnter);
+        reference.addEventListener("mouseleave", handleMouseLeave);
+        return () => {
+          reference.removeEventListener("mouseenter", handleMouseEnter);
+          reference.removeEventListener("mouseleave", handleMouseLeave);
+        };
+      }),
+    );
 
     const closeFallback = () => {
       setActiveFootnote(null);
@@ -524,16 +535,20 @@ export function ArticleSidebars({
 
   useLayoutEffect(() => {
     footnotes.forEach((footnote) => {
-      footnote.reference.toggleAttribute(
-        "data-serial-footnote-highlighted",
-        footnote.id === hoveredFootnoteId,
+      footnote.references.forEach((reference) =>
+        reference.toggleAttribute(
+          "data-serial-footnote-highlighted",
+          footnote.id === hoveredFootnoteId,
+        ),
       );
     });
 
     return () => {
-      footnotes.forEach((footnote) =>
-        footnote.reference.removeAttribute("data-serial-footnote-highlighted"),
-      );
+      footnotes.forEach((footnote) => {
+        footnote.references.forEach((reference) =>
+          reference.removeAttribute("data-serial-footnote-highlighted"),
+        );
+      });
     };
   }, [footnotes, hoveredFootnoteId]);
 
@@ -580,7 +595,7 @@ export function ArticleSidebars({
     let previousBottom = 0;
     const nextPositions = footnotes.map((footnote, index) => {
       const referenceTop =
-        footnote.reference.getBoundingClientRect().top - articleRect.top;
+        footnote.references[0]!.getBoundingClientRect().top - articleRect.top;
       const top = Math.max(referenceTop, previousBottom);
       previousBottom =
         top +
