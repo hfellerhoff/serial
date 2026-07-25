@@ -6,15 +6,15 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useReducer,
   useRef,
-  useState,
 } from "react";
 import {
   buildInnerDocumentLinkGraph,
   getNoteSource,
   isBacklinkToSource,
 } from "./innerDocumentLinks";
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import {
   Drawer,
   DrawerContent,
@@ -66,6 +66,99 @@ type ArticleSidebarsProps = {
   contentKey: string;
   scrollToElement: (element: HTMLElement) => void;
 };
+
+type SidebarState = {
+  headings: HeadingItem[];
+  footnotes: FootnoteItem[];
+  footnotePositions: number[];
+  activeHeadingId: string | null;
+  hoveredFootnoteId: string | null;
+  paneWidth: number | null;
+  contentsPaneLeft: number;
+  footnotesPaneWidth: number;
+  activeFootnote: FootnoteItem | null;
+  fallbackAnchorRect: AnchorRect | null;
+};
+
+type SidebarAction =
+  | {
+      type: "article-analyzed";
+      headings: HeadingItem[];
+      footnotes: FootnoteItem[];
+    }
+  | {
+      type: "layout-updated";
+      paneWidth: number | null;
+      contentsPaneLeft: number;
+      footnotesPaneWidth: number;
+    }
+  | { type: "active-heading-changed"; id: string }
+  | { type: "footnote-hovered"; id: string | null }
+  | { type: "footnote-opened"; footnote: FootnoteItem; rect: AnchorRect }
+  | { type: "footnote-closed" }
+  | { type: "footnote-positions-updated"; positions: number[] };
+
+const INITIAL_SIDEBAR_STATE: SidebarState = {
+  headings: [],
+  footnotes: [],
+  footnotePositions: [],
+  activeHeadingId: null,
+  hoveredFootnoteId: null,
+  paneWidth: null,
+  contentsPaneLeft: 16,
+  footnotesPaneWidth: PREFERRED_PANE_WIDTH,
+  activeFootnote: null,
+  fallbackAnchorRect: null,
+};
+
+function sidebarReducer(
+  state: SidebarState,
+  action: SidebarAction,
+): SidebarState {
+  switch (action.type) {
+    case "article-analyzed":
+      return {
+        ...state,
+        headings: action.headings,
+        footnotes: action.footnotes,
+        footnotePositions: [],
+        activeHeadingId: action.headings[0]?.id ?? null,
+        hoveredFootnoteId: null,
+        activeFootnote: null,
+        fallbackAnchorRect: null,
+      };
+    case "layout-updated":
+      return {
+        ...state,
+        paneWidth: action.paneWidth,
+        contentsPaneLeft: action.contentsPaneLeft,
+        footnotesPaneWidth: action.footnotesPaneWidth,
+      };
+    case "active-heading-changed":
+      return { ...state, activeHeadingId: action.id };
+    case "footnote-hovered":
+      return { ...state, hoveredFootnoteId: action.id };
+    case "footnote-opened":
+      return {
+        ...state,
+        activeFootnote: action.footnote,
+        fallbackAnchorRect: action.rect,
+      };
+    case "footnote-closed":
+      return { ...state, activeFootnote: null, fallbackAnchorRect: null };
+    case "footnote-positions-updated":
+      if (
+        state.footnotePositions.length === action.positions.length &&
+        state.footnotePositions.every(
+          (position, index) =>
+            Math.abs(position - action.positions[index]!) < 1,
+        )
+      ) {
+        return state;
+      }
+      return { ...state, footnotePositions: action.positions };
+  }
+}
 
 function slugifyHeading(label: string): string {
   return (
@@ -245,59 +338,65 @@ function getHeadings(article: HTMLElement): {
     originalId: string;
   }>;
 } {
-  const allHeadings = Array.from(
-    article.querySelectorAll<HTMLHeadingElement>("h1, h2, h3, h4, h5, h6"),
-  ).filter(
-    (heading) =>
+  const allHeadings: HTMLHeadingElement[] = [];
+  for (const heading of article.querySelectorAll<HTMLHeadingElement>(
+    "h1, h2, h3, h4, h5, h6",
+  )) {
+    if (
       !heading.hasAttribute("data-serial-header") &&
       !heading.closest('[data-serial-footnotes-source="true"]') &&
-      !!heading.textContent?.trim(),
-  );
+      heading.textContent?.trim()
+    ) {
+      allHeadings.push(heading);
+    }
+  }
 
   if (allHeadings.length === 0) {
     return { headings: [], modifiedHeadings: [] };
   }
 
-  const shallowestLevel = Math.min(
-    ...allHeadings.map((heading) => Number(heading.tagName.slice(1))),
-  );
+  let shallowestLevel = 6;
+  for (const heading of allHeadings) {
+    shallowestLevel = Math.min(
+      shallowestLevel,
+      Number(heading.tagName.slice(1)),
+    );
+  }
   const headingElements = new Set<HTMLElement>(allHeadings);
-  const usedIds = new Set(
-    Array.from(article.querySelectorAll<HTMLElement>("[id]"))
-      .filter((element) => !headingElements.has(element))
-      .map((element) => element.id)
-      .filter(Boolean),
-  );
+  const usedIds = new Set<string>();
+  for (const element of article.querySelectorAll<HTMLElement>("[id]")) {
+    if (!headingElements.has(element) && element.id) usedIds.add(element.id);
+  }
   const modifiedHeadings: Array<{
     heading: HTMLHeadingElement;
     originalId: string;
   }> = [];
 
-  const headings = allHeadings
-    .filter(
-      (heading) => Number(heading.tagName.slice(1)) <= shallowestLevel + 2,
-    )
-    .map((heading) => {
-      const label = heading.textContent.replace(/\s+/g, " ").trim();
-      let id = heading.id;
+  const headings: HeadingItem[] = [];
+  for (const heading of allHeadings) {
+    const level = Number(heading.tagName.slice(1));
+    if (level > shallowestLevel + 2) continue;
 
-      if (!id || usedIds.has(id)) {
-        const originalId = id;
-        id = getUniqueId(label, usedIds);
-        heading.id = id;
-        heading.setAttribute("data-serial-generated-heading-id", "true");
-        modifiedHeadings.push({ heading, originalId });
-      } else {
-        usedIds.add(id);
-      }
+    const label = heading.textContent.replace(/\s+/g, " ").trim();
+    let id = heading.id;
 
-      return {
-        id,
-        label,
-        depth: Number(heading.tagName.slice(1)) - shallowestLevel,
-        element: heading,
-      };
+    if (!id || usedIds.has(id)) {
+      const originalId = id;
+      id = getUniqueId(label, usedIds);
+      heading.id = id;
+      heading.setAttribute("data-serial-generated-heading-id", "true");
+      modifiedHeadings.push({ heading, originalId });
+    } else {
+      usedIds.add(id);
+    }
+
+    headings.push({
+      id,
+      label,
+      depth: level - shallowestLevel,
+      element: heading,
     });
+  }
 
   return { headings, modifiedHeadings };
 }
@@ -313,27 +412,181 @@ function FootnoteContent({ footnote }: { footnote: FootnoteItem }) {
   );
 }
 
-export function ArticleSidebars({
+type TableOfContentsPaneProps = {
+  headings: HeadingItem[];
+  activeHeadingId: string | null;
+  display: "show" | "hover";
+  left: number;
+  width: number;
+  scrollToElement: (element: HTMLElement) => void;
+};
+
+function TableOfContentsPane({
+  headings,
+  activeHeadingId,
+  display,
+  left,
+  width,
+  scrollToElement,
+}: TableOfContentsPaneProps) {
+  return (
+    <aside
+      aria-label="Table of contents"
+      className="group fixed top-1/2 z-10 flex h-[50svh] -translate-y-1/2 items-center"
+      style={{ left, width }}
+    >
+      <nav
+        className={`bg-background/95 border-border max-h-full w-full overflow-y-auto rounded-lg border p-2 shadow-sm backdrop-blur-sm transition-opacity ${
+          display === "hover"
+            ? "opacity-0 group-hover:opacity-100 focus-within:opacity-100"
+            : ""
+        }`}
+      >
+        <div className="text-muted-foreground flex items-center gap-2 px-2 py-1.5 text-xs font-medium tracking-wide uppercase">
+          <ListTree aria-hidden="true" className="size-3.5" />
+          Contents
+        </div>
+        <ol className="mt-1 space-y-0.5">
+          {headings.map((heading) => {
+            const isActive = heading.id === activeHeadingId;
+            return (
+              <li key={heading.id}>
+                <button
+                  type="button"
+                  aria-current={isActive ? "location" : undefined}
+                  className={`hover:bg-accent focus-visible:ring-ring w-full overflow-hidden rounded-md px-2 py-1.5 text-left text-sm text-ellipsis whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none ${
+                    isActive
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground"
+                  }`}
+                  style={{ paddingLeft: `${8 + heading.depth * 14}px` }}
+                  onClick={() => scrollToElement(heading.element)}
+                >
+                  {heading.label}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
+    </aside>
+  );
+}
+
+type DesktopFootnotesPaneProps = {
+  footnotes: FootnoteItem[];
+  positions: number[];
+  hoveredFootnoteId: string | null;
+  paneRef: RefObject<HTMLElement | null>;
+  width: number;
+  onHover: (id: string | null) => void;
+};
+
+function DesktopFootnotesPane({
+  footnotes,
+  positions,
+  hoveredFootnoteId,
+  paneRef,
+  width,
+  onHover,
+}: DesktopFootnotesPaneProps) {
+  return (
+    <aside
+      ref={paneRef}
+      aria-label="Footnotes"
+      className="absolute top-0 bottom-0 z-10"
+      style={{
+        left: `calc(100% + ${PANE_GAP}px)`,
+        width,
+      }}
+    >
+      {footnotes.map((footnote, index) => (
+        <div
+          key={footnote.id}
+          data-footnote-pane-item
+          className={`bg-background/95 text-muted-foreground absolute inset-x-0 rounded-lg border p-3 text-sm leading-relaxed break-words shadow-sm backdrop-blur-sm ${FOOTNOTE_RICH_TEXT_CLASSES} ${
+            hoveredFootnoteId === footnote.id
+              ? "border-primary"
+              : "border-border"
+          }`}
+          style={{ top: positions[index] ?? 0 }}
+          onMouseEnter={() => onHover(footnote.id)}
+          onMouseLeave={() => onHover(null)}
+        >
+          <FootnoteContent footnote={footnote} />
+        </div>
+      ))}
+    </aside>
+  );
+}
+
+type ResponsiveFootnoteProps = {
+  activeFootnote: FootnoteItem | null;
+  anchorRect: AnchorRect | null;
+  isDesktop: boolean;
+  onClose: () => void;
+};
+
+function ResponsiveFootnote({
+  activeFootnote,
+  anchorRect,
+  isDesktop,
+  onClose,
+}: ResponsiveFootnoteProps) {
+  if (isDesktop && activeFootnote && anchorRect) {
+    return (
+      <HoverCard open onOpenChange={(open) => !open && onClose()}>
+        <HoverCardTrigger
+          aria-hidden="true"
+          tabIndex={-1}
+          className="pointer-events-none fixed z-50 opacity-0"
+          style={anchorRect}
+        >
+          {activeFootnote.label}
+        </HoverCardTrigger>
+        <HoverCardContent
+          align="start"
+          side="right"
+          className={`text-muted-foreground w-[240px] text-sm leading-relaxed break-words ${FOOTNOTE_RICH_TEXT_CLASSES}`}
+        >
+          <FootnoteContent footnote={activeFootnote} />
+        </HoverCardContent>
+      </HoverCard>
+    );
+  }
+
+  if (isDesktop) return null;
+
+  return (
+    <Drawer
+      open={activeFootnote !== null}
+      onOpenChange={(open) => !open && onClose()}
+    >
+      <DrawerContent className="max-h-[calc(100dvh-6rem)]">
+        <DrawerHeader className="sr-only">
+          <DrawerTitle>Reference {activeFootnote?.label ?? ""}</DrawerTitle>
+          <DrawerDescription>
+            Reference details from this article
+          </DrawerDescription>
+        </DrawerHeader>
+        {activeFootnote && (
+          <div
+            className={`text-muted-foreground overflow-y-auto px-4 pt-4 pb-6 text-sm leading-relaxed break-words [&_a]:underline [&_a]:underline-offset-2 ${FOOTNOTE_RICH_TEXT_CLASSES}`}
+          >
+            <FootnoteContent footnote={activeFootnote} />
+          </div>
+        )}
+      </DrawerContent>
+    </Drawer>
+  );
+}
+
+function useArticleSidebarController({
   article,
   contentKey,
-  scrollToElement,
-}: ArticleSidebarsProps) {
-  const [headings, setHeadings] = useState<HeadingItem[]>([]);
-  const [footnotes, setFootnotes] = useState<FootnoteItem[]>([]);
-  const [footnotePositions, setFootnotePositions] = useState<number[]>([]);
-  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
-  const [hoveredFootnoteId, setHoveredFootnoteId] = useState<string | null>(
-    null,
-  );
-  const [paneWidth, setPaneWidth] = useState<number | null>(null);
-  const [contentsPaneLeft, setContentsPaneLeft] = useState(16);
-  const [footnotesPaneWidth, setFootnotesPaneWidth] =
-    useState(PREFERRED_PANE_WIDTH);
-  const [activeFootnote, setActiveFootnote] = useState<FootnoteItem | null>(
-    null,
-  );
-  const [fallbackAnchorRect, setFallbackAnchorRect] =
-    useState<AnchorRect | null>(null);
+}: Pick<ArticleSidebarsProps, "article" | "contentKey">) {
+  const [state, dispatch] = useReducer(sidebarReducer, INITIAL_SIDEBAR_STATE);
+  const { headings, footnotes, hoveredFootnoteId, paneWidth } = state;
   const footnotesPaneRef = useRef<HTMLElement>(null);
   const hasRoomForPanes = paneWidth !== null;
   const isDesktop = useMediaQuery("(min-width: 640px)");
@@ -373,13 +626,11 @@ export function ArticleSidebars({
       analyzedFootnotes = getFootnotes(article);
       const headingAnalysis = getHeadings(article);
       modifiedHeadings = headingAnalysis.modifiedHeadings;
-      setFootnotes(analyzedFootnotes);
-      setFootnotePositions([]);
-      setHeadings(headingAnalysis.headings);
-      setActiveHeadingId(headingAnalysis.headings[0]?.id ?? null);
-      setHoveredFootnoteId(null);
-      setActiveFootnote(null);
-      setFallbackAnchorRect(null);
+      dispatch({
+        type: "article-analyzed",
+        headings: headingAnalysis.headings,
+        footnotes: analyzedFootnotes,
+      });
     };
 
     const scheduleAnalysis = () => {
@@ -433,13 +684,15 @@ export function ArticleSidebars({
           ? Math.min(PREFERRED_CONTENTS_PANE_WIDTH, availablePaneWidth)
           : null;
 
-      setPaneWidth(nextPaneWidth);
-      setContentsPaneLeft(Math.round(leftBoundary));
-      setFootnotesPaneWidth(
-        rightAvailablePaneWidth < PREFERRED_CONTENTS_PANE_WIDTH
-          ? rightAvailablePaneWidth
-          : PREFERRED_PANE_WIDTH,
-      );
+      dispatch({
+        type: "layout-updated",
+        paneWidth: nextPaneWidth,
+        contentsPaneLeft: Math.round(leftBoundary),
+        footnotesPaneWidth:
+          rightAvailablePaneWidth < PREFERRED_CONTENTS_PANE_WIDTH
+            ? rightAvailablePaneWidth
+            : PREFERRED_PANE_WIDTH,
+      });
     };
 
     updatePaneVisibility();
@@ -488,47 +741,61 @@ export function ArticleSidebars({
       if (hasRoomForPanes) return;
 
       const rect = reference.getBoundingClientRect();
-      setFallbackAnchorRect({
-        top: rect.top,
-        left: rect.left,
-        width: rect.width,
-        height: rect.height,
+      dispatch({
+        type: "footnote-opened",
+        footnote,
+        rect: {
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height,
+        },
       });
-      setActiveFootnote(footnote);
     };
 
-    const referenceHoverCleanups = footnotes.flatMap((footnote) =>
-      footnote.references.map((reference) => {
-        const handleMouseEnter = () => setHoveredFootnoteId(footnote.id);
-        const handleMouseLeave = () =>
-          setHoveredFootnoteId((currentId) =>
-            currentId === footnote.id ? null : currentId,
-          );
-
-        reference.addEventListener("mouseenter", handleMouseEnter);
-        reference.addEventListener("mouseleave", handleMouseLeave);
-        return () => {
-          reference.removeEventListener("mouseenter", handleMouseEnter);
-          reference.removeEventListener("mouseleave", handleMouseLeave);
-        };
-      }),
-    );
+    const getHoveredFootnote = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return null;
+      const reference = event.target.closest<HTMLAnchorElement>(
+        "[data-serial-footnote-reference]",
+      );
+      if (!reference || !article.contains(reference)) return null;
+      if (
+        event.relatedTarget instanceof Node &&
+        reference.contains(event.relatedTarget)
+      ) {
+        return null;
+      }
+      return footnotes.find((candidate) =>
+        candidate.references.includes(reference),
+      );
+    };
+    const handleReferenceMouseOver = (event: MouseEvent) => {
+      const footnote = getHoveredFootnote(event);
+      if (footnote) dispatch({ type: "footnote-hovered", id: footnote.id });
+    };
+    const handleReferenceMouseOut = (event: MouseEvent) => {
+      if (getHoveredFootnote(event))
+        dispatch({ type: "footnote-hovered", id: null });
+    };
 
     const closeFallback = () => {
-      setActiveFootnote(null);
-      setFallbackAnchorRect(null);
+      dispatch({ type: "footnote-closed" });
     };
 
+    const scrollContainer = getScrollContainer();
     article.addEventListener("click", handleReferenceClick);
-    getScrollContainer().addEventListener("scroll", closeFallback, {
+    article.addEventListener("mouseover", handleReferenceMouseOver);
+    article.addEventListener("mouseout", handleReferenceMouseOut);
+    scrollContainer.addEventListener("scroll", closeFallback, {
       passive: true,
     });
     window.addEventListener("resize", closeFallback);
 
     return () => {
       article.removeEventListener("click", handleReferenceClick);
-      referenceHoverCleanups.forEach((cleanup) => cleanup());
-      getScrollContainer().removeEventListener("scroll", closeFallback);
+      article.removeEventListener("mouseover", handleReferenceMouseOver);
+      article.removeEventListener("mouseout", handleReferenceMouseOut);
+      scrollContainer.removeEventListener("scroll", closeFallback);
       window.removeEventListener("resize", closeFallback);
     };
   }, [article, footnoteDisplay, footnotes, hasRoomForPanes]);
@@ -569,7 +836,7 @@ export function ArticleSidebars({
           activeHeading = heading;
         }
 
-        setActiveHeadingId(activeHeading.id);
+        dispatch({ type: "active-heading-changed", id: activeHeading.id });
       });
     };
 
@@ -604,14 +871,10 @@ export function ArticleSidebars({
       return top;
     });
 
-    setFootnotePositions((currentPositions) =>
-      currentPositions.length === nextPositions.length &&
-      currentPositions.every(
-        (position, index) => Math.abs(position - nextPositions[index]!) < 1,
-      )
-        ? currentPositions
-        : nextPositions,
-    );
+    dispatch({
+      type: "footnote-positions-updated",
+      positions: nextPositions,
+    });
   }, [article, footnotes, hasRoomForPanes]);
 
   useLayoutEffect(() => {
@@ -643,138 +906,77 @@ export function ArticleSidebars({
     updateFootnotePositions,
   ]);
 
+  return {
+    state,
+    dispatch,
+    footnotesPaneRef,
+    hasRoomForPanes,
+    isDesktop,
+    footnoteDisplay,
+    tableOfContentsDisplay,
+  };
+}
+
+export function ArticleSidebars({
+  article,
+  contentKey,
+  scrollToElement,
+}: ArticleSidebarsProps) {
+  const {
+    state,
+    dispatch,
+    footnotesPaneRef,
+    hasRoomForPanes,
+    isDesktop,
+    footnoteDisplay,
+    tableOfContentsDisplay,
+  } = useArticleSidebarController({ article, contentKey });
+  const {
+    headings,
+    footnotes,
+    footnotePositions,
+    activeHeadingId,
+    hoveredFootnoteId,
+    paneWidth,
+    contentsPaneLeft,
+    footnotesPaneWidth,
+    activeFootnote,
+    fallbackAnchorRect,
+  } = state;
+
   return (
     <>
-      {hasRoomForPanes && headings.length > 0 && (
-        <aside
-          aria-label="Table of contents"
-          className="group fixed top-1/2 z-10 flex h-[50svh] -translate-y-1/2 items-center"
-          style={{ left: contentsPaneLeft, width: paneWidth }}
-        >
-          <nav
-            className={`bg-background/95 border-border max-h-full w-full overflow-y-auto rounded-lg border p-2 shadow-sm backdrop-blur-sm transition-opacity ${
-              tableOfContentsDisplay === "hover"
-                ? "opacity-0 group-hover:opacity-100 focus-within:opacity-100"
-                : ""
-            }`}
-          >
-            <div className="text-muted-foreground flex items-center gap-2 px-2 py-1.5 text-xs font-medium tracking-wide uppercase">
-              <ListTree aria-hidden="true" className="size-3.5" />
-              Contents
-            </div>
-            <ol className="mt-1 space-y-0.5">
-              {headings.map((heading) => {
-                const isActive = heading.id === activeHeadingId;
-                return (
-                  <li key={heading.id}>
-                    <button
-                      type="button"
-                      aria-current={isActive ? "location" : undefined}
-                      className={`hover:bg-accent focus-visible:ring-ring w-full overflow-hidden rounded-md px-2 py-1.5 text-left text-sm text-ellipsis whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none ${
-                        isActive
-                          ? "bg-accent text-accent-foreground"
-                          : "text-muted-foreground"
-                      }`}
-                      style={{ paddingLeft: `${8 + heading.depth * 14}px` }}
-                      onClick={() => scrollToElement(heading.element)}
-                    >
-                      {heading.label}
-                    </button>
-                  </li>
-                );
-              })}
-            </ol>
-          </nav>
-        </aside>
+      {paneWidth !== null && headings.length > 0 && (
+        <TableOfContentsPane
+          headings={headings}
+          activeHeadingId={activeHeadingId}
+          display={tableOfContentsDisplay}
+          left={contentsPaneLeft}
+          width={paneWidth}
+          scrollToElement={scrollToElement}
+        />
       )}
 
       {hasRoomForPanes &&
         footnoteDisplay === "show" &&
         footnotes.length > 0 && (
-          <aside
-            ref={footnotesPaneRef}
-            aria-label="Footnotes"
-            className="absolute top-0 bottom-0 z-10"
-            style={{
-              left: `calc(100% + ${PANE_GAP}px)`,
-              width: footnotesPaneWidth,
-            }}
-          >
-            {footnotes.map((footnote, index) => (
-              <div
-                key={footnote.id}
-                data-footnote-pane-item
-                className={`bg-background/95 text-muted-foreground absolute inset-x-0 rounded-lg border p-3 text-sm leading-relaxed break-words shadow-sm backdrop-blur-sm ${FOOTNOTE_RICH_TEXT_CLASSES} ${
-                  hoveredFootnoteId === footnote.id
-                    ? "border-primary"
-                    : "border-border"
-                }`}
-                style={{ top: footnotePositions[index] ?? 0 }}
-                onMouseEnter={() => setHoveredFootnoteId(footnote.id)}
-                onMouseLeave={() =>
-                  setHoveredFootnoteId((currentId) =>
-                    currentId === footnote.id ? null : currentId,
-                  )
-                }
-              >
-                <FootnoteContent footnote={footnote} />
-              </div>
-            ))}
-          </aside>
+          <DesktopFootnotesPane
+            footnotes={footnotes}
+            positions={footnotePositions}
+            hoveredFootnoteId={hoveredFootnoteId}
+            paneRef={footnotesPaneRef}
+            width={footnotesPaneWidth}
+            onHover={(id) => dispatch({ type: "footnote-hovered", id })}
+          />
         )}
 
-      {!hasRoomForPanes &&
-        footnoteDisplay === "show" &&
-        isDesktop &&
-        activeFootnote &&
-        fallbackAnchorRect && (
-          <HoverCard
-            open
-            onOpenChange={(open) => {
-              if (!open) setActiveFootnote(null);
-            }}
-          >
-            <HoverCardTrigger
-              aria-hidden="true"
-              tabIndex={-1}
-              className="pointer-events-none fixed z-50 opacity-0"
-              style={fallbackAnchorRect}
-            >
-              {activeFootnote.label}
-            </HoverCardTrigger>
-            <HoverCardContent
-              align="start"
-              side="right"
-              className={`text-muted-foreground w-[240px] text-sm leading-relaxed break-words ${FOOTNOTE_RICH_TEXT_CLASSES}`}
-            >
-              <FootnoteContent footnote={activeFootnote} />
-            </HoverCardContent>
-          </HoverCard>
-        )}
-
-      {!hasRoomForPanes && footnoteDisplay === "show" && !isDesktop && (
-        <Drawer
-          open={activeFootnote !== null}
-          onOpenChange={(open) => {
-            if (!open) setActiveFootnote(null);
-          }}
-        >
-          <DrawerContent className="max-h-[calc(100dvh-6rem)]">
-            <DrawerHeader className="sr-only">
-              <DrawerTitle>Reference {activeFootnote?.label ?? ""}</DrawerTitle>
-              <DrawerDescription>
-                Reference details from this article
-              </DrawerDescription>
-            </DrawerHeader>
-            {activeFootnote && (
-              <div
-                className={`text-muted-foreground overflow-y-auto px-4 pt-4 pb-6 text-sm leading-relaxed break-words [&_a]:underline [&_a]:underline-offset-2 ${FOOTNOTE_RICH_TEXT_CLASSES}`}
-              >
-                <FootnoteContent footnote={activeFootnote} />
-              </div>
-            )}
-          </DrawerContent>
-        </Drawer>
+      {!hasRoomForPanes && footnoteDisplay === "show" && (
+        <ResponsiveFootnote
+          activeFootnote={activeFootnote}
+          anchorRect={fallbackAnchorRect}
+          isDesktop={isDesktop}
+          onClose={() => dispatch({ type: "footnote-closed" })}
+        />
       )}
     </>
   );
