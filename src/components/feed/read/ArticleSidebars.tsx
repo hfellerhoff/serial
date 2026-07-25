@@ -32,7 +32,8 @@ import { getScrollContainer } from "~/lib/scroll";
 import { useFlagState } from "~/lib/hooks/useFlagState";
 
 const PREFERRED_PANE_WIDTH = 240;
-const MINIMUM_PANE_WIDTH = 176;
+const PREFERRED_CONTENTS_PANE_WIDTH = 264;
+const MINIMUM_PANE_WIDTH = 240;
 const PANE_GAP = 16;
 const FOOTNOTE_GAP = 12;
 const FOOTNOTE_RICH_TEXT_CLASSES =
@@ -314,8 +315,13 @@ export function ArticleSidebars({
   const [footnotes, setFootnotes] = useState<FootnoteItem[]>([]);
   const [footnotePositions, setFootnotePositions] = useState<number[]>([]);
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
+  const [hoveredFootnoteId, setHoveredFootnoteId] = useState<string | null>(
+    null,
+  );
   const [paneWidth, setPaneWidth] = useState<number | null>(null);
   const [contentsPaneLeft, setContentsPaneLeft] = useState(16);
+  const [footnotesPaneWidth, setFootnotesPaneWidth] =
+    useState(PREFERRED_PANE_WIDTH);
   const [activeFootnote, setActiveFootnote] = useState<FootnoteItem | null>(
     null,
   );
@@ -362,6 +368,7 @@ export function ArticleSidebars({
       setFootnotePositions([]);
       setHeadings(headingAnalysis.headings);
       setActiveHeadingId(headingAnalysis.headings[0]?.id ?? null);
+      setHoveredFootnoteId(null);
       setActiveFootnote(null);
       setFallbackAnchorRect(null);
     };
@@ -387,23 +394,43 @@ export function ArticleSidebars({
   useLayoutEffect(() => {
     if (!article) return;
     const scrollContainer = getScrollContainer();
+    const leftBoundaryElement = document.querySelector<HTMLElement>(
+      "[data-serial-reader-left-boundary]",
+    );
+    const rightBoundaryElement = document.querySelector<HTMLElement>(
+      "[data-serial-reader-right-boundary]",
+    );
 
     const updatePaneVisibility = () => {
       const articleRect = article.getBoundingClientRect();
       const containerRect = scrollContainer.getBoundingClientRect();
+      const leftBoundary =
+        leftBoundaryElement?.getBoundingClientRect().left ??
+        containerRect.left + 24;
+      const rightBoundary =
+        rightBoundaryElement?.getBoundingClientRect().right ??
+        containerRect.right - 36;
+      const rightAvailablePaneWidth = Math.floor(
+        rightBoundary - articleRect.right - PANE_GAP,
+      );
       const availablePaneWidth = Math.floor(
         Math.min(
-          articleRect.left - containerRect.left,
-          containerRect.right - articleRect.right,
-        ) - PANE_GAP,
+          articleRect.left - leftBoundary - PANE_GAP,
+          rightAvailablePaneWidth,
+        ),
       );
       const nextPaneWidth =
         availablePaneWidth >= MINIMUM_PANE_WIDTH
-          ? Math.min(PREFERRED_PANE_WIDTH, availablePaneWidth)
+          ? Math.min(PREFERRED_CONTENTS_PANE_WIDTH, availablePaneWidth)
           : null;
 
       setPaneWidth(nextPaneWidth);
-      setContentsPaneLeft(Math.max(16, Math.round(containerRect.left + 16)));
+      setContentsPaneLeft(Math.round(leftBoundary));
+      setFootnotesPaneWidth(
+        rightAvailablePaneWidth < PREFERRED_CONTENTS_PANE_WIDTH
+          ? rightAvailablePaneWidth
+          : PREFERRED_PANE_WIDTH,
+      );
     };
 
     updatePaneVisibility();
@@ -411,6 +438,8 @@ export function ArticleSidebars({
     const resizeObserver = new ResizeObserver(updatePaneVisibility);
     resizeObserver.observe(article);
     resizeObserver.observe(scrollContainer);
+    if (leftBoundaryElement) resizeObserver.observe(leftBoundaryElement);
+    if (rightBoundaryElement) resizeObserver.observe(rightBoundaryElement);
     window.addEventListener("resize", updatePaneVisibility);
 
     return () => {
@@ -432,7 +461,7 @@ export function ArticleSidebars({
 
   useEffect(() => {
     if (!article) return;
-    if (hasRoomForPanes || footnoteDisplay === "hide") return;
+    if (footnoteDisplay === "hide") return;
 
     const handleReferenceClick = (event: MouseEvent) => {
       if (!(event.target instanceof Element)) return;
@@ -445,9 +474,11 @@ export function ArticleSidebars({
       );
       if (!footnote) return;
 
-      const rect = reference.getBoundingClientRect();
       event.preventDefault();
       event.stopPropagation();
+      if (hasRoomForPanes) return;
+
+      const rect = reference.getBoundingClientRect();
       setFallbackAnchorRect({
         top: rect.top,
         left: rect.left,
@@ -456,6 +487,21 @@ export function ArticleSidebars({
       });
       setActiveFootnote(footnote);
     };
+
+    const referenceHoverCleanups = footnotes.map((footnote) => {
+      const handleMouseEnter = () => setHoveredFootnoteId(footnote.id);
+      const handleMouseLeave = () =>
+        setHoveredFootnoteId((currentId) =>
+          currentId === footnote.id ? null : currentId,
+        );
+
+      footnote.reference.addEventListener("mouseenter", handleMouseEnter);
+      footnote.reference.addEventListener("mouseleave", handleMouseLeave);
+      return () => {
+        footnote.reference.removeEventListener("mouseenter", handleMouseEnter);
+        footnote.reference.removeEventListener("mouseleave", handleMouseLeave);
+      };
+    });
 
     const closeFallback = () => {
       setActiveFootnote(null);
@@ -470,10 +516,26 @@ export function ArticleSidebars({
 
     return () => {
       article.removeEventListener("click", handleReferenceClick);
+      referenceHoverCleanups.forEach((cleanup) => cleanup());
       getScrollContainer().removeEventListener("scroll", closeFallback);
       window.removeEventListener("resize", closeFallback);
     };
   }, [article, footnoteDisplay, footnotes, hasRoomForPanes]);
+
+  useLayoutEffect(() => {
+    footnotes.forEach((footnote) => {
+      footnote.reference.toggleAttribute(
+        "data-serial-footnote-highlighted",
+        footnote.id === hoveredFootnoteId,
+      );
+    });
+
+    return () => {
+      footnotes.forEach((footnote) =>
+        footnote.reference.removeAttribute("data-serial-footnote-highlighted"),
+      );
+    };
+  }, [footnotes, hoveredFootnoteId]);
 
   useEffect(() => {
     if (!hasRoomForPanes || headings.length === 0) return;
@@ -571,13 +633,13 @@ export function ArticleSidebars({
       {hasRoomForPanes && headings.length > 0 && (
         <aside
           aria-label="Table of contents"
-          className="fixed top-1/2 z-10 -translate-y-1/2"
+          className="group fixed top-1/2 z-10 flex h-[50svh] -translate-y-1/2 items-center"
           style={{ left: contentsPaneLeft, width: paneWidth }}
         >
           <nav
-            className={`bg-background/95 border-border max-h-[calc(100svh-2rem)] overflow-y-auto rounded-lg border p-2 shadow-sm backdrop-blur-sm transition-opacity ${
+            className={`bg-background/95 border-border max-h-full w-full overflow-y-auto rounded-lg border p-2 shadow-sm backdrop-blur-sm transition-opacity ${
               tableOfContentsDisplay === "hover"
-                ? "opacity-0 focus-within:opacity-100 hover:opacity-100"
+                ? "opacity-0 group-hover:opacity-100 focus-within:opacity-100"
                 : ""
             }`}
           >
@@ -618,14 +680,27 @@ export function ArticleSidebars({
             ref={footnotesPaneRef}
             aria-label="Footnotes"
             className="absolute top-0 bottom-0 z-10"
-            style={{ left: `calc(100% + ${PANE_GAP}px)`, width: paneWidth }}
+            style={{
+              left: `calc(100% + ${PANE_GAP}px)`,
+              width: footnotesPaneWidth,
+            }}
           >
             {footnotes.map((footnote, index) => (
               <div
                 key={footnote.id}
                 data-footnote-pane-item
-                className={`bg-background/95 border-border text-muted-foreground absolute inset-x-0 rounded-lg border p-3 text-sm leading-relaxed break-words shadow-sm backdrop-blur-sm ${FOOTNOTE_RICH_TEXT_CLASSES}`}
+                className={`bg-background/95 text-muted-foreground absolute inset-x-0 rounded-lg border p-3 text-sm leading-relaxed break-words shadow-sm backdrop-blur-sm ${FOOTNOTE_RICH_TEXT_CLASSES} ${
+                  hoveredFootnoteId === footnote.id
+                    ? "border-primary"
+                    : "border-border"
+                }`}
                 style={{ top: footnotePositions[index] ?? 0 }}
+                onMouseEnter={() => setHoveredFootnoteId(footnote.id)}
+                onMouseLeave={() =>
+                  setHoveredFootnoteId((currentId) =>
+                    currentId === footnote.id ? null : currentId,
+                  )
+                }
               >
                 <FootnoteContent footnote={footnote} />
               </div>
@@ -678,7 +753,7 @@ export function ArticleSidebars({
             </DrawerHeader>
             {activeFootnote && (
               <div
-                className={`text-muted-foreground overflow-y-auto px-4 pt-4 pb-6 text-sm leading-relaxed break-words ${FOOTNOTE_RICH_TEXT_CLASSES}`}
+                className={`text-muted-foreground overflow-y-auto px-4 pt-4 pb-6 text-sm leading-relaxed break-words [&_a]:underline [&_a]:underline-offset-2 ${FOOTNOTE_RICH_TEXT_CLASSES}`}
               >
                 <FootnoteContent footnote={activeFootnote} />
               </div>
