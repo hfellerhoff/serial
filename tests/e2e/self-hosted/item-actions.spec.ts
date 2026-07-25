@@ -87,10 +87,10 @@ test.describe("feed item actions", () => {
 
     const copyButton = article.getByRole("button", { name: "Copy item URL" });
     await page.keyboard.down("Alt");
-    await expect(copyButton.locator("kbd")).toHaveText("Command+Shift+C");
+    await expect(copyButton.locator("kbd")).toHaveText("Shift+C");
     await page.keyboard.up("Alt");
 
-    await page.keyboard.press("Meta+Shift+C");
+    await page.keyboard.press("Shift+C");
     await expect(page.getByText("Link copied")).toBeVisible();
 
     const copiedUrl = await page.evaluate(() => navigator.clipboard.readText());

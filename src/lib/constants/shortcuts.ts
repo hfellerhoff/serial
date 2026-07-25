@@ -25,7 +25,7 @@ export const SHORTCUT_KEYS = {
   MARK_VISIBLE_READ: "Shift+F",
   MARK_SECTION_READ: "f",
   OPEN_ORIGINAL: "o",
-  COPY_URL: "Command+Shift+C",
+  COPY_URL: "Shift+C",
   SEND_TO_INSTAPAPER: "Shift+S",
   UNDO: "z",
   ARROW_UP: {
