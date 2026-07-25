@@ -58,6 +58,34 @@ export async function setFeedItemContent(
   client.close();
 }
 
+export async function setFeedItemAsYouTubeVideo(
+  tursoPort: number,
+  id: string,
+  videoId: string,
+) {
+  const { db, client } = getDb(tursoPort);
+  const feedItem = await db
+    .select({ feedId: schema.feedItems.feedId })
+    .from(schema.feedItems)
+    .where(eq(schema.feedItems.id, id))
+    .get();
+
+  if (!feedItem) {
+    client.close();
+    throw new Error(`No feed item found for ${id}`);
+  }
+
+  await db
+    .update(schema.feeds)
+    .set({ platform: "youtube" })
+    .where(eq(schema.feeds.id, feedItem.feedId));
+  await db
+    .update(schema.feedItems)
+    .set({ contentId: videoId })
+    .where(eq(schema.feedItems.id, id));
+  client.close();
+}
+
 export async function getViewsForUser(tursoPort: number, email: string) {
   const { db, client } = getDb(tursoPort);
   const userViews = await db

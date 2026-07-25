@@ -8,6 +8,7 @@ import {
   cleanupUser,
   seedArticleData,
   seedMultipleArticleData,
+  setFeedItemAsYouTubeVideo,
 } from "../fixtures/seed-db";
 import { signIn } from "../fixtures/auth";
 
@@ -115,6 +116,44 @@ test.describe("feed item actions", () => {
     await expect(buttons.first()).toHaveAccessibleName("Copy URL");
     await expect(buttons).toHaveCount(2);
     await expect(page.getByRole("button", { name: "Copy URL" })).toHaveCount(1);
+  });
+
+  test("loads the YouTube player with an identifiable embed context", async ({
+    page,
+  }) => {
+    const { email, password, feedItemId } = await seedArticleData(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+    );
+    testEmail = email;
+    await setFeedItemAsYouTubeVideo(
+      SELF_HOSTED_TURSO_PORT,
+      feedItemId,
+      "M7lc1UVf-VE",
+    );
+
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        "serial-flag-custom-video-player",
+        JSON.stringify("youtube"),
+      );
+    });
+    await page.route("https://www.youtube-nocookie.com/**", (route) =>
+      route.abort(),
+    );
+    await signIn({ page, email, password });
+    await page.goto(`/watch/${feedItemId}`);
+
+    const player = page.getByTitle("YouTube video player");
+    await expect(player).toHaveAttribute(
+      "src",
+      "https://www.youtube-nocookie.com/embed/M7lc1UVf-VE",
+    );
+    await expect(player).toHaveAttribute(
+      "referrerpolicy",
+      "strict-origin-when-cross-origin",
+    );
+    await expect(player).not.toHaveAttribute("sandbox", /.*/);
   });
 
   test("marking a saved item read keeps it selected", async ({ page }) => {
