@@ -8,7 +8,7 @@ const optionalString = <TSchema extends z.ZodType<string>>(schema: TSchema) =>
 
 const optionalBoolean = z.preprocess(
   (value) => (value === "" ? undefined : value),
-  z.stringbool().optional().default(false),
+  z.union([z.boolean(), z.stringbool()]).optional().default(false),
 );
 
 export const publicConfigSchema = z.object({

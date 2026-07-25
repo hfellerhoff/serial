@@ -58,6 +58,19 @@ describe("public config", () => {
     expect(publicConfig.PUBLIC_IS_DEMO_INSTANCE).toBe(false);
   });
 
+  it("preserves boolean values that were already coerced", () => {
+    const publicConfig = resolvePublicConfig({
+      ...REQUIRED_PUBLIC_CONFIG,
+      PUBLIC_IS_MAINTENANCE_MODE: true,
+      PUBLIC_IS_MAIN_INSTANCE: false,
+      PUBLIC_IS_DEMO_INSTANCE: true,
+    });
+
+    expect(publicConfig.PUBLIC_IS_MAINTENANCE_MODE).toBe(true);
+    expect(publicConfig.PUBLIC_IS_MAIN_INSTANCE).toBe(false);
+    expect(publicConfig.PUBLIC_IS_DEMO_INSTANCE).toBe(true);
+  });
+
   it("reads the config initialized in the browser document", () => {
     const publicConfig = publicConfigSchema.parse(REQUIRED_PUBLIC_CONFIG);
     vi.stubGlobal("window", { __SERIAL_PUBLIC_CONFIG__: publicConfig });
