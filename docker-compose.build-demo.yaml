@@ -29,10 +29,10 @@ services:
   server:
     build:
       context: .
+      target: final-demo
       args:
         DATABASE_URL: http://libsql:8080
         BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-        PUBLIC_IS_DEMO_INSTANCE: "true"
     environment:
       NODE_ENV: production
       DATABASE_URL: http://libsql:8080
@@ -51,7 +51,6 @@ services:
       INSTAPAPER_OAUTH_ID: ${INSTAPAPER_OAUTH_ID}
       INSTAPAPER_OAUTH_SECRET: ${INSTAPAPER_OAUTH_SECRET}
       PUBLIC_IS_MAINTENANCE_MODE: ${PUBLIC_IS_MAINTENANCE_MODE:-${VITE_PUBLIC_IS_MAINTENANCE_MODE:-}}
-      PUBLIC_IS_DEMO_INSTANCE: "true"
     depends_on:
       libsql:
         condition: service_healthy

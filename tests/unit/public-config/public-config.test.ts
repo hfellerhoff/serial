@@ -30,7 +30,6 @@ describe("public config", () => {
     vi.stubEnv("SKIP_ENV_VALIDATION", "");
     vi.stubEnv("PUBLIC_BASE_URL", REQUIRED_PUBLIC_CONFIG.PUBLIC_BASE_URL);
     vi.stubEnv("PUBLIC_SUPPORT_EMAIL_ADDRESS", "");
-    vi.stubEnv("PUBLIC_IS_DEMO_INSTANCE", "");
 
     const { env } = await import("~/env");
 
@@ -39,13 +38,11 @@ describe("public config", () => {
       PUBLIC_SUPPORT_EMAIL_ADDRESS: env.PUBLIC_SUPPORT_EMAIL_ADDRESS,
       PUBLIC_IS_MAINTENANCE_MODE: env.PUBLIC_IS_MAINTENANCE_MODE,
       PUBLIC_IS_MAIN_INSTANCE: env.PUBLIC_IS_MAIN_INSTANCE,
-      PUBLIC_IS_DEMO_INSTANCE: env.PUBLIC_IS_DEMO_INSTANCE,
     }).toEqual({
       PUBLIC_BASE_URL: REQUIRED_PUBLIC_CONFIG.PUBLIC_BASE_URL,
       PUBLIC_SUPPORT_EMAIL_ADDRESS: undefined,
       PUBLIC_IS_MAINTENANCE_MODE: false,
       PUBLIC_IS_MAIN_INSTANCE: false,
-      PUBLIC_IS_DEMO_INSTANCE: false,
     });
   });
 
@@ -67,13 +64,26 @@ describe("public config", () => {
     vi.stubEnv("SKIP_ENV_VALIDATION", "");
     vi.stubEnv("PUBLIC_BASE_URL", "https://canonical.example.com");
     vi.stubEnv("VITE_PUBLIC_BASE_URL", "https://legacy.example.com");
-    vi.stubEnv("PUBLIC_IS_DEMO_INSTANCE", "false");
-    vi.stubEnv("VITE_PUBLIC_IS_DEMO_INSTANCE", "true");
+    vi.stubEnv("PUBLIC_IS_MAIN_INSTANCE", "false");
+    vi.stubEnv("VITE_PUBLIC_IS_MAIN_INSTANCE", "true");
 
     const { env } = await import("~/env");
 
     expect(env.PUBLIC_BASE_URL).toBe("https://canonical.example.com");
-    expect(env.PUBLIC_IS_DEMO_INSTANCE).toBe(false);
+    expect(env.PUBLIC_IS_MAIN_INSTANCE).toBe(false);
+  });
+
+  it("does not enable demo mode from public environment variables", async () => {
+    vi.stubEnv("SKIP_ENV_VALIDATION", "");
+    vi.stubEnv("PUBLIC_BASE_URL", REQUIRED_PUBLIC_CONFIG.PUBLIC_BASE_URL);
+    vi.stubEnv("PUBLIC_IS_DEMO_INSTANCE", "true");
+    vi.stubEnv("VITE_PUBLIC_IS_DEMO_INSTANCE", "true");
+    vi.stubGlobal("__SERIAL_DEMO_BUILD__", false);
+
+    const { getServerPublicConfig } =
+      await import("~/server/public-config.server");
+
+    expect(getServerPublicConfig().PUBLIC_IS_DEMO_INSTANCE).toBe(false);
   });
 
   it("selects only validated public values for transport", async () => {
@@ -81,10 +91,10 @@ describe("public config", () => {
     vi.stubEnv("PUBLIC_BASE_URL", REQUIRED_PUBLIC_CONFIG.PUBLIC_BASE_URL);
     vi.stubEnv("PUBLIC_IS_MAINTENANCE_MODE", "true");
     vi.stubEnv("PUBLIC_IS_MAIN_INSTANCE", "false");
-    vi.stubEnv("PUBLIC_IS_DEMO_INSTANCE", "true");
     vi.stubGlobal("__SERIAL_DEMO_BUILD__", true);
 
-    const { getServerPublicConfig } = await import("~/server/public-config");
+    const { getServerPublicConfig } =
+      await import("~/server/public-config.server");
     const publicConfig = getServerPublicConfig();
 
     expect(publicConfig).toEqual({

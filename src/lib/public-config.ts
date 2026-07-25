@@ -1,6 +1,6 @@
 import { createIsomorphicFn } from "@tanstack/react-start";
 import SuperJSON from "superjson";
-import { getServerPublicConfig } from "~/server/public-config";
+import { getServerPublicConfig } from "~/server/public-config.server";
 
 export type PublicConfig = ReturnType<typeof getServerPublicConfig>;
 

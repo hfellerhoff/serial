@@ -213,6 +213,7 @@ function buildGenericOAuthPlugin() {
 }
 
 export const auth = betterAuth({
+  baseURL: env.PUBLIC_BASE_URL,
   database: drizzleAdapter(db, {
     provider: "sqlite",
   }),

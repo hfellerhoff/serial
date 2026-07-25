@@ -11,7 +11,6 @@ const PUBLIC_ENV_SCHEMA = {
   PUBLIC_UMAMI_SRC: z.url().optional(),
   PUBLIC_IS_MAINTENANCE_MODE: optionalBoolean,
   PUBLIC_IS_MAIN_INSTANCE: optionalBoolean,
-  PUBLIC_IS_DEMO_INSTANCE: optionalBoolean,
 };
 
 const PUBLIC_ENV_KEYS = /** @type {(keyof typeof PUBLIC_ENV_SCHEMA)[]} */ (
@@ -21,6 +20,7 @@ const PUBLIC_ENV_KEYS = /** @type {(keyof typeof PUBLIC_ENV_SCHEMA)[]} */ (
 const publicRuntimeEnv = Object.fromEntries(
   PUBLIC_ENV_KEYS.map((key) => {
     const canonicalValue = process.env[key];
+
     const publicValue =
       canonicalValue === undefined || canonicalValue === ""
         ? process.env[`VITE_${key}`]

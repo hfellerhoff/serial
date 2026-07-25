@@ -170,13 +170,12 @@ export function RootLayout() {
             disableTransitionOnChange
           >
             <Outlet />
-            {/* TODO: what is happening here */}
-            <Scripts />
             <Toaster />
             <UndoShortcutListener />
             <ReloadPrompt />
           </ThemeProvider>
         </QueryProvider>
+        <Scripts />
       </body>
     </html>
   );
