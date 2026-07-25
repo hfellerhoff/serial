@@ -45,7 +45,11 @@ function OpenInYouTubeButton() {
         target="_blank"
         rel="noopener noreferrer"
       >
-        <Button variant="outline" size="icon md:default">
+        <Button
+          data-serial-reader-right-boundary
+          variant="outline"
+          size="icon md:default"
+        >
           <span className="hidden pr-1.5 md:block">YouTube</span>
           <ExternalLinkIcon size={16} />
         </Button>
@@ -56,6 +60,7 @@ function OpenInYouTubeButton() {
   return (
     <a href={feedItem.url} target="_blank" rel="noopener noreferrer">
       <ButtonWithShortcut
+        data-serial-reader-right-boundary
         variant="outline"
         shortcut={SHORTCUT_KEYS.OPEN_ORIGINAL}
         size="icon md:default"

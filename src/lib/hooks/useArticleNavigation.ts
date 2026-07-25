@@ -136,8 +136,7 @@ export function useArticleNavigation(
 ) {
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const lastNavTimeRef = useRef<number>(0);
-  const prevSelectedRef = useRef<HTMLElement | null>(null);
-  // Suppress focusin handler during programmatic focus from arrow key navigation
+  const lastInputModalityRef = useRef<"keyboard" | "pointer">("keyboard");
   const suppressFocusInRef = useRef(false);
   const setArticleSelectedElement = useSetAtom(articleSelectedElementAtom);
 
@@ -177,10 +176,8 @@ export function useArticleNavigation(
         el.focus({ preventScroll: true });
         suppressFocusInRef.current = false;
 
-        prevSelectedRef.current = el;
         setArticleSelectedElement(el);
       } else {
-        prevSelectedRef.current = null;
         setArticleSelectedElement(null);
       }
     },
@@ -328,44 +325,63 @@ export function useArticleNavigation(
     const container = containerRef.current;
     if (!container) return;
 
-    const handleFocusIn = (e: FocusEvent) => {
-      if (suppressFocusInRef.current) return;
+    const handlePointerDown = () => {
+      lastInputModalityRef.current = "pointer";
+    };
+    const handleKeyDown = () => {
+      lastInputModalityRef.current = "keyboard";
+    };
+    const handleFocusIn = (event: FocusEvent) => {
+      if (
+        suppressFocusInRef.current ||
+        lastInputModalityRef.current !== "keyboard"
+      ) {
+        return;
+      }
 
-      const target = e.target;
+      const target = event.target;
       if (!(target instanceof HTMLElement)) return;
 
       const elements = getElements(container);
-      // Find the closest (most specific) selectable element containing the target
       let parentIndex = -1;
-      for (let i = 0; i < elements.length; i++) {
-        if (elements[i]!.contains(target) && elements[i] !== target) {
-          parentIndex = i;
+      for (let index = 0; index < elements.length; index += 1) {
+        const element = elements[index]!;
+        if (element !== target && element.contains(target)) {
+          parentIndex = index;
         }
       }
       if (parentIndex === -1 || parentIndex === selectedIndex) return;
 
-      // Clear all previous selections
-      container.querySelectorAll("[data-article-selected]").forEach((el) => {
-        el.removeAttribute("data-article-selected");
-        el.removeAttribute("tabindex");
-      });
-      const el = elements[parentIndex]!;
-      el.setAttribute("data-article-selected", "true");
-      if (el.tagName === "LI" && container) {
-        const elLeft = el.getBoundingClientRect().left;
+      container
+        .querySelectorAll("[data-article-selected]")
+        .forEach((element) => {
+          element.removeAttribute("data-article-selected");
+          element.removeAttribute("tabindex");
+        });
+      const parent = elements[parentIndex]!;
+      parent.setAttribute("data-article-selected", "true");
+      if (parent.tagName === "LI") {
+        const parentLeft = parent.getBoundingClientRect().left;
         const containerLeft = container.getBoundingClientRect().left;
-        const offset = elLeft - containerLeft - 20;
-        el.style.setProperty("--selection-offset", `${offset}px`);
+        parent.style.setProperty(
+          "--selection-offset",
+          `${parentLeft - containerLeft - 20}px`,
+        );
       }
-      el.setAttribute("tabindex", "-1");
-      prevSelectedRef.current = el;
+      parent.setAttribute("tabindex", "-1");
       setSelectedIndex(parentIndex);
-      setArticleSelectedElement(el);
-      scrollToElement(el);
+      setArticleSelectedElement(parent);
+      scrollToElement(parent);
     };
 
+    window.addEventListener("pointerdown", handlePointerDown, true);
+    window.addEventListener("keydown", handleKeyDown, true);
     container.addEventListener("focusin", handleFocusIn);
-    return () => container.removeEventListener("focusin", handleFocusIn);
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown, true);
+      window.removeEventListener("keydown", handleKeyDown, true);
+      container.removeEventListener("focusin", handleFocusIn);
+    };
   }, [containerRef, selectedIndex, setArticleSelectedElement, scrollToElement]);
 
   useShortcut(getShortcutKeys(SHORTCUT_KEYS.ARROW_DOWN), handleArrowDown, {
