@@ -1,4 +1,5 @@
 export { FeedDiscoveryInput } from "./FeedDiscoveryInput";
+export { FeedDiscoveryCommand } from "./FeedDiscoveryCommand";
 export {
   FeedDiscoveryResults,
   type DiscoveredFeed,

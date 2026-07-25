@@ -1,7 +1,13 @@
 "use client";
 
-import { createFileRoute } from "@tanstack/react-router";
-import { GlobeIcon, PlayCircleIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  GlobeIcon,
+  ImportIcon,
+  PlayCircleIcon,
+  PlusIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { FeedPlatform } from "~/server/db/schema";
@@ -445,13 +451,21 @@ function ManageFeedsPage() {
       <div className="mx-auto max-w-3xl p-6">
         <div className="flex items-center justify-between">
           <FeedManagementTabs value="feeds" />
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => launchDialog("add-feed")}
-          >
-            <PlusIcon size={16} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon md:default" asChild>
+              <Link to="/import" aria-label="Bulk Import">
+                <ImportIcon size={16} />
+                <span className="hidden md:block">Bulk Import</span>
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => launchDialog("add-feed")}
+            >
+              <PlusIcon size={16} />
+            </Button>
+          </div>
         </div>
         <FeedEmptyState />
       </div>
@@ -465,14 +479,22 @@ function ManageFeedsPage() {
           <div>
             <FeedManagementTabs value="feeds" />
           </div>
-          <ButtonWithShortcut
-            variant="outline"
-            size="icon"
-            onClick={() => launchDialog("add-feed")}
-            shortcut="a"
-          >
-            <PlusIcon size={16} />
-          </ButtonWithShortcut>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon md:default" asChild>
+              <Link to="/import" aria-label="Bulk Import">
+                <ImportIcon size={16} />
+                <span className="hidden md:block">Bulk Import</span>
+              </Link>
+            </Button>
+            <ButtonWithShortcut
+              variant="outline"
+              size="icon"
+              onClick={() => launchDialog("add-feed")}
+              shortcut="a"
+            >
+              <PlusIcon size={16} />
+            </ButtonWithShortcut>
+          </div>
         </div>
         {(billingEnabled || IS_DEMO_INSTANCE) &&
           maxActiveFeeds > 0 &&

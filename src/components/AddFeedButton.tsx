@@ -1,20 +1,26 @@
 "use client";
 
-import { PlusIcon } from "@radix-ui/react-icons";
-import { Button } from "./ui/button";
+import { useLocation } from "@tanstack/react-router";
+import { PlusIcon } from "lucide-react";
+import { ButtonWithShortcut } from "./ButtonWithShortcut";
 import { useDialogStore } from "~/components/feed/dialogStore";
 
 export function AddFeedButton() {
   const launchDialog = useDialogStore((store) => store.launchDialog);
+  const location = useLocation();
+
+  if (location.pathname !== "/") return null;
 
   return (
-    <Button
+    <ButtonWithShortcut
+      aria-label="Add Feed"
       variant="outline"
       size="icon md:default"
+      shortcut="a"
       onClick={() => launchDialog("add-feed")}
     >
-      <PlusIcon />
-      <span className="hidden md:block">Add</span>
-    </Button>
+      <PlusIcon size={16} />
+      <span className="hidden md:block">Add Feed</span>
+    </ButtonWithShortcut>
   );
 }

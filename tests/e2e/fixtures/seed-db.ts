@@ -214,6 +214,66 @@ export async function seedArticleData(
   return { feedItemId, email, password };
 }
 
+export async function seedAddFeedSelectionData(
+  tursoPort: number,
+  email: string,
+) {
+  const { db, client } = getDb(tursoPort);
+  const testUser = await db
+    .select()
+    .from(schema.user)
+    .where(eq(schema.user.email, email))
+    .get();
+  if (!testUser) throw new Error("No user found while seeding feed selections");
+
+  const now = new Date();
+  const tags = await db
+    .insert(schema.contentCategories)
+    .values(
+      ["Zebra", "Alpha", "Priority"].map((name) => ({
+        userId: testUser.id,
+        name,
+        createdAt: now,
+        updatedAt: now,
+      })),
+    )
+    .returning();
+  const priorityTag = tags.find((tag) => tag.name === "Priority");
+  if (!priorityTag) throw new Error("Priority tag insert returned no row");
+
+  const createdViews = await db
+    .insert(schema.views)
+    .values(
+      ["Zebra View", "Alpha View"].map((name, index) => ({
+        userId: testUser.id,
+        name,
+        daysWindow: 0,
+        readStatus: 0,
+        orientation: "horizontal",
+        contentType: "all",
+        layout: "list",
+        placement: index + 1,
+        createdAt: now,
+        updatedAt: now,
+      })),
+    )
+    .returning();
+  const zebraView = createdViews.find((view) => view.name === "Zebra View");
+  if (!zebraView) throw new Error("Zebra view insert returned no row");
+
+  await db.insert(schema.viewSections).values({
+    viewId: zebraView.id,
+    placement: 0,
+    itemType: "tag",
+    itemId: priorityTag.id,
+    layout: null,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  client.close();
+}
+
 /**
  * Creates a user via the Better Auth sign-up API, then seeds a website feed
  * and multiple articles with HTML content directly in the DB.

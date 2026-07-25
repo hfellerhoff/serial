@@ -4,8 +4,34 @@ import {
   SELF_HOSTED_RSS_SERVER_PORT,
   SELF_HOSTED_TURSO_PORT,
 } from "../fixtures/ports";
-import { cleanupUser, seedArticleData } from "../fixtures/seed-db";
+import {
+  cleanupUser,
+  seedAddFeedSelectionData,
+  seedArticleData,
+} from "../fixtures/seed-db";
 import { signIn } from "../fixtures/auth";
+import type { Locator } from "@playwright/test";
+
+async function expectVerticalPosition(
+  container: Locator,
+  content: Locator,
+  position: number,
+) {
+  const containerBox = await container.boundingBox();
+  const contentBox = await content.boundingBox();
+
+  expect(containerBox).not.toBeNull();
+  expect(contentBox).not.toBeNull();
+  expect(
+    contentBox!.y +
+      contentBox!.height / 2 -
+      (containerBox!.y + containerBox!.height * position),
+  ).toBeCloseTo(0, 0);
+  expect(contentBox!.y).toBeGreaterThanOrEqual(containerBox!.y);
+  expect(contentBox!.y + contentBox!.height).toBeLessThanOrEqual(
+    containerBox!.y + containerBox!.height,
+  );
+}
 
 test.describe("add feed manually", () => {
   test.use({ viewport: { width: 1920, height: 1080 } });
@@ -27,42 +53,175 @@ test.describe("add feed manually", () => {
       SELF_HOSTED_RSS_SERVER_PORT,
     );
     testEmail = email;
+    await seedAddFeedSelectionData(SELF_HOSTED_TURSO_PORT, email);
 
     await signIn({ page, email, password });
     await expect(page.locator("article").first()).toBeVisible({
       timeout: 30000,
     });
 
+    const addFeedHeaderButton = page.getByRole("button", {
+      name: "Add Feed",
+      exact: true,
+    });
+    const manageHeaderButton = page.getByRole("button", {
+      name: "Manage",
+      exact: true,
+    });
+    await expect(addFeedHeaderButton).toBeVisible();
+    await expect(manageHeaderButton).toBeVisible();
+    const addFeedBox = await addFeedHeaderButton.boundingBox();
+    const manageBox = await manageHeaderButton.boundingBox();
+    expect(addFeedBox?.x).toBeLessThan(manageBox?.x ?? 0);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(addFeedHeaderButton).toHaveCSS("width", "36px");
+    await page.setViewportSize({ width: 1920, height: 1080 });
+
     // Open the Add Feed dialog with the "a" keyboard shortcut
     await page.keyboard.press("a");
     await page.waitForTimeout(300);
 
-    // Wait for Add Feed dialog
+    // Discovery opens as a standalone command palette.
     const dialog = page.locator('[role="dialog"]');
-    await expect(dialog.getByRole("heading", { name: "Add Feed" })).toBeVisible(
-      { timeout: 5000 },
+    await expect(
+      dialog.getByPlaceholder("Paste a URL or search for a feed..."),
+    ).toBeVisible({ timeout: 5000 });
+    await expect(dialog.getByRole("heading", { name: "Add Feed" })).toHaveCount(
+      0,
     );
+    await expect(
+      dialog.getByText("Enter a website, channel, or RSS feed URL."),
+    ).toBeVisible();
+    await expect(
+      dialog
+        .getByText("Enter a website, channel, or RSS feed URL.")
+        .locator("xpath=preceding-sibling::*[name()='svg']"),
+    ).toBeVisible();
+    await expect(dialog.getByText("Bulk Import")).toHaveCount(0);
+
+    const commandList = dialog.locator("[cmdk-list]");
+    await expect(commandList).toHaveCSS("min-height", "320px");
+
+    // The command palette fills the visual viewport on mobile.
+    await page.setViewportSize({ width: 390, height: 500 });
+    await expect(dialog).toHaveCSS("width", "390px");
+    await expect(dialog).toHaveCSS("height", "500px");
+    const emptyState = dialog.getByTestId("feed-discovery-empty-state");
+    await expectVerticalPosition(commandList, emptyState, 1 / 3);
+    const mobileDialogBox = await dialog.boundingBox();
+    expect(mobileDialogBox).toMatchObject({
+      x: 0,
+      y: 0,
+      width: 390,
+      height: 500,
+    });
+    await expect(dialog.getByRole("button", { name: "Close" })).toBeVisible();
+
+    // Exercise the reduced visual height produced by a mobile keyboard. The
+    // palette follows it, and the empty state remains centered and visible.
+    await page.setViewportSize({ width: 390, height: 300 });
+    await expect(dialog).toHaveCSS("height", "300px");
+    await expectVerticalPosition(commandList, emptyState, 1 / 3);
+    await page.setViewportSize({ width: 390, height: 500 });
+
+    // Short desktop viewports remain entirely on-screen.
+    await page.setViewportSize({ width: 1920, height: 400 });
+    const shortViewportDialogBox = await dialog.boundingBox();
+    expect(shortViewportDialogBox?.y).toBeGreaterThanOrEqual(0);
+    expect(
+      (shortViewportDialogBox?.y ?? 0) + (shortViewportDialogBox?.height ?? 0),
+    ).toBeLessThanOrEqual(400);
+    await page.setViewportSize({ width: 1920, height: 1080 });
 
     // Enter the RSS server URL for the "cgp-grey" feed
     const feedUrl = `http://127.0.0.1:${SELF_HOSTED_RSS_SERVER_PORT}/feed/cgp-grey`;
-    await dialog.locator('input[type="url"]').fill(feedUrl);
-
-    // Click the Find button
-    await dialog.getByRole("button", { name: /find/i }).click();
-
-    // For a single discovered feed, the dialog auto-selects it (locked state).
-    // Wait for the selected feed badge to appear.
+    const feedSearch = dialog.getByPlaceholder(
+      "Paste a URL or search for a feed...",
+    );
+    await expect(feedSearch).toHaveCSS("height", "56px");
+    await expect(page.locator('[data-slot="dialog-overlay"]')).toHaveClass(
+      /bg-black\/40/,
+    );
+    await feedSearch.fill(
+      `http://127.0.0.1:${SELF_HOSTED_RSS_SERVER_PORT}/missing-feed`,
+    );
+    const noFeedsFound = dialog.getByText("No feeds found for URL.");
+    await expect(noFeedsFound).toBeVisible({ timeout: 10000 });
     await expect(
-      dialog.locator("p").filter({ hasText: "CGP Grey" }),
+      noFeedsFound.locator("xpath=preceding-sibling::*[name()='svg']"),
+    ).toBeVisible();
+    const failureState = dialog.getByTestId("feed-discovery-failure-state");
+    await expectVerticalPosition(commandList, failureState, 1 / 2);
+
+    await page.setViewportSize({ width: 390, height: 300 });
+    await expect(dialog).toHaveCSS("height", "300px");
+    await expectVerticalPosition(commandList, failureState, 1 / 3);
+    await page.setViewportSize({ width: 1920, height: 1080 });
+
+    await expect(dialog.getByText(/Find feeds at/)).toHaveCount(0);
+    await dialog.getByRole("button", { name: "Retry" }).click();
+    await expect(
+      dialog.getByRole("option", { name: "Finding feeds…" }),
+    ).toBeVisible();
+    await expect(noFeedsFound).toBeVisible({ timeout: 10000 });
+
+    await feedSearch.fill(feedUrl);
+    await expect(
+      dialog.getByRole("option", { name: "Finding feeds…" }),
+    ).toBeVisible();
+
+    // A recognized URL is discovered automatically after a short debounce.
+    // Even a single result requires an explicit selection.
+    const discoveredFeed = dialog.getByRole("option", {
+      name: /CGP Grey/,
+    });
+    await expect(discoveredFeed).toBeVisible({ timeout: 10000 });
+    await expect(discoveredFeed).toHaveAttribute("data-selected", "true");
+    await expect(feedSearch).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(
+      dialog.getByRole("option", { name: "Adding feed…" }),
+    ).toBeVisible();
+
+    // Selecting a result creates it, then opens its Edit Feed modal.
+    await expect(
+      dialog.getByRole("heading", { name: "Edit Feed" }),
     ).toBeVisible({ timeout: 10000 });
-
-    // Click Add Feed button
-    await dialog.getByRole("button", { name: /add .* feed/i }).click();
-
-    // Verify success toast
     await expect(page.getByText("Feed added!")).toBeVisible({
       timeout: 10000,
     });
+    await expect(dialog.getByRole("heading", { name: "Add Feed" })).toHaveCount(
+      0,
+    );
+    await expect(dialog.getByRole("textbox", { name: "Name" })).toHaveValue(
+      "CGP Grey",
+    );
+    await expect(dialog.getByRole("button", { name: "Save" })).toBeVisible();
+
+    const viewsField = dialog.getByText("Views", { exact: true }).locator("..");
+    const viewChips = viewsField.locator(
+      "xpath=following-sibling::div//button",
+    );
+    await expect(viewChips).toHaveText(["All", "Alpha View", "Zebra View"]);
+    await viewChips.filter({ hasText: "Zebra View" }).click();
+    await expect(viewChips.filter({ hasText: "Zebra View" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    const tagsField = dialog.getByText("Tags", { exact: true }).locator("..");
+    const tagChips = tagsField.locator("xpath=following-sibling::div//button");
+    await expect(tagChips).toHaveText(["Priority", "Alpha", "Zebra"]);
+    await tagChips.filter({ hasText: "Priority" }).click();
+    await expect(tagChips.filter({ hasText: "Priority" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    // Save the optional organization changes in Edit Feed.
+    await dialog.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Feed updated!")).toBeVisible();
 
     // Verify the feed appears in the sidebar
     const feedsSection = page.locator('[data-sidebar="group"]').filter({
