@@ -81,9 +81,50 @@ test.describe("full user lifecycle", () => {
 
     await expect(page).toHaveURL("/import");
     await expect(page.getByText("Feeds To Import")).toBeVisible();
+    const cgpGreyItem = page.getByRole("button", {
+      name: "CGP Grey",
+      exact: true,
+    });
+    const scaryPocketsItem = page.getByRole("button", {
+      name: "Scary Pockets",
+      exact: true,
+    });
+    const importButton = page.getByRole("button", {
+      name: /import \d+ feeds/i,
+    });
+    const cgpGreyItemContainer = cgpGreyItem.locator("..");
+
+    await expect(cgpGreyItemContainer).toHaveAttribute("data-size", "xs");
+    await expect(cgpGreyItemContainer).toHaveAttribute(
+      "data-variant",
+      "outline",
+    );
     await expect(
-      page.getByRole("button", { name: /import 4 feeds/i }),
-    ).toBeEnabled();
+      cgpGreyItemContainer.locator('[data-slot="avatar"]'),
+    ).toBeVisible();
+    await expect(
+      cgpGreyItemContainer.getByRole("link", { name: "CGP Grey" }),
+    ).toHaveAttribute("href", /\/cgp-grey$/);
+    await expect(cgpGreyItem).toHaveAttribute("aria-pressed", "true");
+    await expect(scaryPocketsItem).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.getByRole("button", { name: "Deselect CGP Grey" }),
+    ).toHaveClass(/bg-primary/);
+    await cgpGreyItem.click();
+    await expect(cgpGreyItem).toHaveAttribute("aria-pressed", "false");
+    await expect(scaryPocketsItem).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.getByRole("button", { name: "Select CGP Grey" }),
+    ).not.toHaveClass(/bg-primary/);
+    await expect(importButton).toHaveAccessibleName("Import 3 feeds");
+
+    await page.getByRole("button", { name: "Select CGP Grey" }).click();
+    await expect(cgpGreyItem).toHaveAttribute("aria-pressed", "true");
+    await expect(scaryPocketsItem).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.getByRole("button", { name: "Deselect CGP Grey" }),
+    ).toHaveClass(/bg-primary/);
+    await expect(importButton).toHaveAccessibleName("Import 4 feeds");
   });
 
   test("sign up, import, categorize, read, customize, delete feeds, delete account, verify db clean", async ({

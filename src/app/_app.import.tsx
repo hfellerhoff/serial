@@ -5,12 +5,10 @@ import { useSetAtom } from "jotai";
 import {
   AlertTriangleIcon,
   CheckIcon,
-  ExternalLinkIcon,
-  GlobeIcon,
   Loader2Icon,
   MinusIcon,
   PauseIcon,
-  PlayCircleIcon,
+  PlusIcon,
   XIcon,
 } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
@@ -18,18 +16,17 @@ import { toast } from "sonner";
 import { ImportDropzone } from "../components/feed/import/ImportDropzone";
 import { getInitialFeedDataFromFileInputElement } from "../components/feed/import/utils/getInitialFeedDataFromFileInputElement";
 import type { CardRadioOption } from "~/components/ui/card-radio-group";
-import type { FeedPlatform } from "~/server/db/schema";
 import type {
   ImportFeedDataFromFilesError,
   ImportFeedDataItem,
 } from "../components/feed/import/utils/shared";
-import { YoutubeIcon } from "~/components/brand-icons";
 import { useDialogStore } from "~/components/feed/dialogStore";
+import { FeedAvatar, FeedListItem } from "~/components/feed/FeedListItem";
 import { ImportLoading } from "~/components/ImportLoading";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { CardRadioGroup } from "~/components/ui/card-radio-group";
-import { Checkbox } from "~/components/ui/checkbox";
+import { ItemGroup } from "~/components/ui/item";
 import {
   Tooltip,
   TooltipContent,
@@ -66,23 +63,21 @@ function ImportedFeedStatus({
   );
 }
 
-function PlatformIcon({ platform }: { platform: FeedPlatform }) {
-  switch (platform) {
-    case "youtube":
-      return <YoutubeIcon size={16} />;
-    case "peertube":
-      return <PlayCircleIcon size={16} />;
-    case "website":
-    default:
-      return <GlobeIcon size={16} />;
-  }
-}
-
 export const Route = createFileRoute("/_app/import")({
   component: EditFeedsPage,
 });
 
 type ImportMode = "tags" | "views" | "ignore";
+
+function getFeedWebsiteUrl(feed: ImportFeedDataItem) {
+  if (feed.websiteUrl) return feed.websiteUrl;
+
+  try {
+    return new URL(feed.feedUrl).origin;
+  } catch {
+    return feed.feedUrl;
+  }
+}
 
 const IMPORT_MODE_OPTIONS: Array<CardRadioOption<ImportMode>> = [
   {
@@ -411,7 +406,7 @@ function EditFeedsPage() {
                 </Button>
               </div>
             )}
-            <div className="mt-4">
+            <ItemGroup className="mt-4">
               {[...feedsFoundFromFile]
                 .sort((a, b) => {
                   if (!a.title && !b.title) return 0;
@@ -419,7 +414,7 @@ function EditFeedsPage() {
                   if (!b.title) return -1;
                   return a.title.localeCompare(b.title);
                 })
-                .map((channel, i) => {
+                .map((channel) => {
                   const displayTitle = channel.title ?? channel.feedUrl;
                   // Check if feed already exists in the feeds store
                   const isAlreadyAdded = feeds.some(
@@ -427,79 +422,80 @@ function EditFeedsPage() {
                   );
                   // Check if feed was imported by looking in the feeds store
                   const wasImported = isPostImportScreen && isAlreadyAdded;
+                  const websiteUrl = getFeedWebsiteUrl(channel);
+                  const setShouldImport = (shouldImport: boolean) => {
+                    if (isAlreadyAdded || isPostImportScreen) return;
+
+                    setFeedsFoundFromFile((prevChannels) => {
+                      if (!prevChannels) return prevChannels;
+
+                      return prevChannels.map((previousChannel) =>
+                        previousChannel.feedUrl === channel.feedUrl
+                          ? { ...previousChannel, shouldImport }
+                          : previousChannel,
+                      );
+                    });
+                  };
 
                   return (
-                    <div
-                      key={displayTitle}
-                      className="border-muted/50 flex items-center justify-between border-0 border-t border-solid py-4"
-                    >
-                      {!isPostImportScreen && isAlreadyAdded ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="bg-background border-foreground/30 text-foreground/50 mr-3 grid size-7 place-items-center rounded border border-dashed">
-                              <AlertTriangleIcon size={16} />
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>Feed already exists</TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        <span className="bg-background border-foreground/30 text-foreground/50 mr-3 grid size-7 place-items-center rounded border border-solid">
-                          <PlatformIcon platform={channel.platform} />
-                        </span>
-                      )}
-                      <label
-                        className="line-clamp-1 flex-1"
-                        htmlFor={`channel ${displayTitle}`}
-                      >
-                        {displayTitle}
-                      </label>
-
-                      {!isPostImportScreen && (
-                        <span className="space-x-1 px-2">
-                          {channel.categories.map((category) => (
-                            <Badge key={category} variant="outline">
-                              {category}
-                            </Badge>
-                          ))}
-                        </span>
-                      )}
-                      <div className="flex items-center justify-between gap-3">
-                        {channel.websiteUrl && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <a
-                                href={channel.websiteUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-muted-foreground hover:text-foreground ml-1 shrink-0 transition-colors"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <ExternalLinkIcon size={16} />
-                              </a>
-                            </TooltipTrigger>
-                            <TooltipContent>Open original</TooltipContent>
-                          </Tooltip>
-                        )}
-                        <div className="flex items-center justify-between gap-2">
+                    <FeedListItem
+                      key={channel.feedUrl}
+                      title={displayTitle}
+                      titleHref={websiteUrl}
+                      description={channel.feedUrl}
+                      platform={channel.platform}
+                      variant="outline"
+                      size="xs"
+                      interactive={!isPostImportScreen && !isAlreadyAdded}
+                      disabled={isAlreadyAdded}
+                      selected={!isPostImportScreen && channel.shouldImport}
+                      onClick={() => setShouldImport(!channel.shouldImport)}
+                      media={
+                        <FeedAvatar
+                          title={displayTitle}
+                          platform={channel.platform}
+                          fallback={
+                            !isPostImportScreen && isAlreadyAdded ? (
+                              <AlertTriangleIcon
+                                size={14}
+                                aria-label="Feed already exists"
+                              />
+                            ) : undefined
+                          }
+                        />
+                      }
+                      details={
+                        <>
+                          {!isPostImportScreen &&
+                            channel.categories.map((category) => (
+                              <Badge key={category} variant="outline">
+                                {category}
+                              </Badge>
+                            ))}
+                        </>
+                      }
+                      actions={
+                        <>
                           {!isPostImportScreen && (
-                            <Checkbox
-                              id={`channel ${displayTitle}`}
-                              checked={channel.shouldImport}
-                              onCheckedChange={(value) => {
-                                setFeedsFoundFromFile((prevChannels) => {
-                                  if (!prevChannels?.[i]) {
-                                    return prevChannels;
-                                  }
-
-                                  prevChannels[i] = {
-                                    ...prevChannels[i],
-                                    shouldImport: value.valueOf() as boolean,
-                                  };
-                                  return [...prevChannels];
-                                });
-                              }}
+                            <Button
+                              type="button"
+                              variant={
+                                channel.shouldImport ? "default" : "ghost"
+                              }
+                              size="icon"
+                              className="size-7"
+                              aria-label={`${channel.shouldImport ? "Deselect" : "Select"} ${displayTitle}`}
                               disabled={isAlreadyAdded}
-                            />
+                              onClick={() =>
+                                setShouldImport(!channel.shouldImport)
+                              }
+                            >
+                              {channel.shouldImport ? (
+                                <CheckIcon size={16} />
+                              ) : (
+                                <PlusIcon size={16} />
+                              )}
+                            </Button>
                           )}
                           {isPostImportScreen &&
                             wasImported &&
@@ -531,12 +527,12 @@ function EditFeedsPage() {
                               </TooltipContent>
                             </Tooltip>
                           )}
-                        </div>
-                      </div>
-                    </div>
+                        </>
+                      }
+                    />
                   );
                 })}
-            </div>
+            </ItemGroup>
           </div>
           {!isPostImportScreen && (
             <div className="fixed inset-x-0 bottom-0">
