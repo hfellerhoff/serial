@@ -29,15 +29,16 @@ async function getInitialFeedDataFromFile(
   }
 }
 
-export async function getInitialFeedDataFromFileInputElement(
-  inputElement: HTMLInputElement,
+export async function getInitialFeedDataFromFiles(
+  files: Iterable<File>,
 ): Promise<ImportFeedDataFromFilesResult> {
-  if (!inputElement.files || inputElement.files.length === 0) {
+  const fileList = Array.from(files);
+
+  if (fileList.length === 0) {
     return formErrors(["Couldn't find a file."]);
   }
 
-  const files = Array.from(inputElement.files);
-  const results = await Promise.all(files.map(getInitialFeedDataFromFile));
+  const results = await Promise.all(fileList.map(getInitialFeedDataFromFile));
 
   const errors: string[] = [];
   const allFeeds: ImportFeedDataItem[] = [];
@@ -76,4 +77,10 @@ export async function getInitialFeedDataFromFileInputElement(
   }
 
   return formSuccess(allFeeds);
+}
+
+export async function getInitialFeedDataFromFileInputElement(
+  inputElement: HTMLInputElement,
+): Promise<ImportFeedDataFromFilesResult> {
+  return getInitialFeedDataFromFiles(inputElement.files ?? []);
 }

@@ -6,6 +6,7 @@ import { CheckIcon } from "lucide-react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { AppDialogs } from "../components/feed/AppDialogs";
 import { Header } from "../components/feed/Header";
+import { GlobalImportDropzone } from "../components/feed/import/GlobalImportDropzone";
 import type React from "react";
 import FeedLoading from "~/components/loading";
 import { AppLeftSidebar, AppRightSidebar } from "~/components/app-sidebar";
@@ -239,6 +240,7 @@ function RootLayout() {
     // <ApplyColorTheme>
     <Suspense fallback={<FeedLoading />}>
       <InitialClientQueries>
+        <GlobalImportDropzone />
         <ImpersonationBanner />
         <SidebarProvider
           style={
