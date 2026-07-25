@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { useFetchContentCategories } from "../content-categories/store";
 import { useFetchFeedCategories } from "../feed-categories/store";
 import { useFetchViewFeeds } from "../view-feeds/store";
-import { useFetchViews } from "../views/store";
+import { useFetchViews, useRemoveFeedReferences } from "../views/store";
 import {
   feedItemsStore,
   useFeedItemsDict,
@@ -87,11 +87,13 @@ export function useDeleteFeedMutation() {
   const setFeedItemsDict = feedItemsStore.useSetFeedItemsDict();
 
   const removeFeed = useRemoveFeed();
+  const removeFeedReferences = useRemoveFeedReferences();
 
   return useMutation(
     orpc.feed.delete.mutationOptions({
       onSuccess: (_, feedId) => {
         removeFeed(feedId);
+        removeFeedReferences([feedId]);
 
         const [updatedFeedItemsOrder, removedFeedItems] = feedItemsOrder.reduce(
           ([partialKeptItems, partialRemovedItems], feedItemContentId) => {
@@ -152,10 +154,13 @@ export function useBulkDeleteFeedsMutation() {
 
   const fetchFeeds = useFetchFeeds();
   const fetchFeedCategories = useFetchFeedCategories();
+  const removeFeedReferences = useRemoveFeedReferences();
 
   return useMutation(
     orpc.feed.bulkDelete.mutationOptions({
       onSuccess: (_, { feedIds }) => {
+        removeFeedReferences(feedIds);
+
         // Remove feed items belonging to deleted feeds
         const feedIdSet = new Set(feedIds);
         const [updatedFeedItemsOrder, removedFeedItemIds] =

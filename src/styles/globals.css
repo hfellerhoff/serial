@@ -34,7 +34,6 @@
 @layer base {
   html {
     background: hsl(var(--sidebar));
-    overflow-y: scroll;
   }
 
   :root {

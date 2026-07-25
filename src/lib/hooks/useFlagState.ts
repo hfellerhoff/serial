@@ -35,7 +35,14 @@ function parseFlagLocalStorageValue(experimentName: FlagName) {
   const storedValue = window.localStorage.getItem(experiment.key);
   if (!storedValue) return undefined;
 
-  const parsedValue = experiment.schema.safeParse(JSON.parse(storedValue));
+  let value: unknown = storedValue;
+  try {
+    value = JSON.parse(storedValue);
+  } catch {
+    // Support values written by older versions without JSON encoding.
+  }
+
+  const parsedValue = experiment.schema.safeParse(value);
 
   if (parsedValue.success) {
     return parsedValue.data;
@@ -46,7 +53,7 @@ const flagsAtom = atom({
   CUSTOM_VIDEO_PLAYER:
     parseFlagLocalStorageValue("CUSTOM_VIDEO_PLAYER") ?? "serial",
   INLINE_SHORTCUTS:
-    parseFlagLocalStorageValue("INLINE_SHORTCUTS") ?? "show-shortcuts",
+    parseFlagLocalStorageValue("INLINE_SHORTCUTS") ?? "hide-shortcuts",
   ARTICLE_STYLE: parseFlagLocalStorageValue("ARTICLE_STYLE") ?? "full",
 } as FlagsState);
 
@@ -59,7 +66,10 @@ export function useFlagState<TKey extends FlagName>(key: TKey) {
 
   const setValue = useCallback(
     (newValue: FlagValue<TKey>) => {
-      localStorage.setItem(key, newValue.toString());
+      localStorage.setItem(
+        LOCAL_STORAGE_FLAGS[key].key,
+        JSON.stringify(newValue),
+      );
       // @ts-expect-error leave me alone
       setStateValue(newValue);
     },
@@ -67,14 +77,12 @@ export function useFlagState<TKey extends FlagName>(key: TKey) {
   );
 
   useEffect(() => {
-    const storedValue = localStorage.getItem(key);
-    const parsedValue = LOCAL_STORAGE_FLAGS[key].schema.safeParse(storedValue);
-
-    if (parsedValue.success) {
+    const storedValue = parseFlagLocalStorageValue(key);
+    if (storedValue !== undefined) {
       // @ts-expect-error don't worry about this
-      setValue(parsedValue.data);
+      setStateValue(storedValue);
     }
-  }, [key, value, setValue]);
+  }, [key, setStateValue]);
 
   return [value, setValue] as const;
 }

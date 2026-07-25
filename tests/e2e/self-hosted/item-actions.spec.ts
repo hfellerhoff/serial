@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
   SELF_HOSTED_APP_PORT,
+  SELF_HOSTED_RSS_SERVER_PORT,
   SELF_HOSTED_TURSO_PORT,
 } from "../fixtures/ports";
 import {
@@ -65,9 +66,41 @@ test.describe("feed item actions", () => {
     await expect(readArticle).toBeVisible({ timeout: 10000 });
   });
 
-  test("read toggle shortcuts advance after marking items unread in read filter", async ({
+  test("copies the selected item URL and shows the shortcut overlay", async ({
+    context,
     page,
   }) => {
+    const { email, password, feedItemId } = await seedArticleData(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+    );
+    testEmail = email;
+
+    await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+      origin: `http://localhost:${SELF_HOSTED_APP_PORT}`,
+    });
+    await signIn({ page, email, password });
+
+    const article = page.locator(`article[data-item-id="${feedItemId}"]`);
+    await expect(article).toBeVisible({ timeout: 30000 });
+    await article.hover();
+
+    const copyButton = article.getByRole("button", { name: "Copy item URL" });
+    await page.keyboard.down("Alt");
+    await expect(copyButton.locator("kbd")).toHaveText("Command+Shift+C");
+    await page.keyboard.up("Alt");
+
+    await page.keyboard.press("Meta+Shift+C");
+    await expect(page.getByText("URL copied")).toBeVisible();
+
+    const copiedUrl = await page.evaluate(() => navigator.clipboard.readText());
+    const itemUrlSuffix = feedItemId.replace(/^article-/, "");
+    expect(copiedUrl).toBe(
+      `http://127.0.0.1:${SELF_HOSTED_RSS_SERVER_PORT}/test-blog/${itemUrlSuffix}`,
+    );
+  });
+
+  test("marking a saved item read keeps it selected", async ({ page }) => {
     test.setTimeout(30000);
 
     const { email, password } = await seedMultipleArticleData(
@@ -87,40 +120,48 @@ test.describe("feed item actions", () => {
       timeout: 30000,
     });
 
-    await page.keyboard.press("Shift+F");
-    await expect(
-      page.locator("text=/Marked.*item.*as read/i").first(),
-    ).toBeVisible({ timeout: 5000 });
-
-    await page.keyboard.press("y");
-    await expect(page.locator("article").first()).toBeVisible({
-      timeout: 10000,
-    });
-
-    const readItemIds = await page
+    const unreadItemIds = await page
       .locator("article")
       .evaluateAll((articles) =>
         articles
           .map((article) => article.getAttribute("data-item-id"))
           .filter((itemId): itemId is string => itemId !== null),
       );
-    const [firstReadItemId, secondReadItemId, thirdReadItemId] = readItemIds;
-    if (!firstReadItemId || !secondReadItemId || !thirdReadItemId) {
-      throw new Error("Expected three read feed items");
+    const [firstUnreadItemId] = unreadItemIds;
+    if (!firstUnreadItemId) {
+      throw new Error("Expected an unread feed item");
     }
 
-    await itemLink(firstReadItemId).hover();
-    await expect(itemLink(firstReadItemId)).toHaveClass(selectedItemClass, {
+    await itemLink(firstUnreadItemId).hover();
+    await page.keyboard.press("s");
+
+    await page.keyboard.press("b");
+    await expect(page.locator("article").first()).toBeVisible({
+      timeout: 10000,
+    });
+
+    const savedItemIds = await page
+      .locator("article")
+      .evaluateAll((articles) =>
+        articles
+          .map((article) => article.getAttribute("data-item-id"))
+          .filter((itemId): itemId is string => itemId !== null),
+      );
+    const [firstSavedItemId] = savedItemIds;
+    if (!firstSavedItemId) {
+      throw new Error("Expected a saved feed item");
+    }
+
+    // Exit keyboard-navigation mode before selecting by hover.
+    await page.mouse.move(1, 1);
+    await page.mouse.move(10, 10);
+    await itemLink(firstSavedItemId).hover();
+    await expect(itemLink(firstSavedItemId)).toHaveClass(selectedItemClass, {
       timeout: 5000,
     });
 
     await page.keyboard.press("e");
-    await expect(itemLink(secondReadItemId)).toHaveClass(selectedItemClass, {
-      timeout: 5000,
-    });
-
-    await page.keyboard.press("Space");
-    await expect(itemLink(thirdReadItemId)).toHaveClass(selectedItemClass, {
+    await expect(itemLink(firstSavedItemId)).toHaveClass(selectedItemClass, {
       timeout: 5000,
     });
   });

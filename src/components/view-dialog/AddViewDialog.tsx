@@ -28,7 +28,7 @@ export function AddViewDialog() {
   const [contentType, setContentType] = useState<ViewContentType>(
     VIEW_CONTENT_TYPE.LONGFORM,
   );
-  const [layout, setLayout] = useState<ViewLayout>(VIEW_LAYOUT.LIST);
+  const [layout, setLayout] = useState<ViewLayout>(VIEW_LAYOUT.LARGE_LIST);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [selectedFeedIds, setSelectedFeedIds] = useState<number[]>([]);
   const [viewSections, setViewSections] = useState<ViewSection[]>([]);
@@ -45,7 +45,7 @@ export function AddViewDialog() {
       setName("");
       setDaysTimeWindow(0);
       setContentType(VIEW_CONTENT_TYPE.LONGFORM);
-      setLayout(VIEW_LAYOUT.LIST);
+      setLayout(VIEW_LAYOUT.LARGE_LIST);
       setSelectedCategories([]);
       setSelectedFeedIds([]);
       setViewSections([]);

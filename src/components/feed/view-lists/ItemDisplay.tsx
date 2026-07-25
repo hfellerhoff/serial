@@ -7,6 +7,7 @@ import {
   ArchiveIcon,
   BookmarkCheckIcon,
   BookmarkIcon,
+  CopyIcon,
   SendIcon,
 } from "lucide-react";
 import { VIEW_CONTENT_TYPE } from "~/server/db/constants";
@@ -321,7 +322,7 @@ function ItemActions({
 }: ItemActionsProps) {
   const { mutateAsync: setWatchLaterValue } =
     useFeedItemsSetWatchLaterValueMutation(contentId);
-  const { toggleRead } = useFeedItemActions(contentId);
+  const { copyUrl, toggleRead } = useFeedItemActions(contentId);
 
   const showInstapaperAction = useShowInstapaperAction(contentId);
   const { mutateAsync: saveToInstapaper, isPending: isSavingToInstapaper } =
@@ -380,6 +381,18 @@ function ItemActions({
           />
         </Button>
       )}
+      <Button
+        size="icon"
+        variant="ghost"
+        onClick={() => void copyUrl()}
+        aria-label="Copy item URL"
+        className={clsx("relative overflow-visible", {
+          "h-8 w-8 p-0": isGrid,
+        })}
+      >
+        <CopyIcon size={isGrid ? 14 : 16} />
+        <KeyboardShortcutDisplay shortcut={SHORTCUT_KEYS.COPY_URL} />
+      </Button>
       <Button
         size="icon"
         variant="ghost"
