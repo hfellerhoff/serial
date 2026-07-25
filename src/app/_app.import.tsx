@@ -442,7 +442,17 @@ function EditFeedsPage() {
                       key={channel.feedUrl}
                       title={displayTitle}
                       titleHref={websiteUrl}
-                      description={channel.feedUrl}
+                      description={
+                        <a
+                          href={channel.feedUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="pointer-events-auto relative z-10"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          {channel.feedUrl}
+                        </a>
+                      }
                       platform={channel.platform}
                       variant="outline"
                       size="xs"

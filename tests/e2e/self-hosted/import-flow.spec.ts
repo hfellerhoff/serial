@@ -105,6 +105,11 @@ test.describe("full user lifecycle", () => {
     await expect(
       cgpGreyItemContainer.getByRole("link", { name: "CGP Grey" }),
     ).toHaveAttribute("href", /\/cgp-grey$/);
+    await expect(
+      cgpGreyItemContainer.getByRole("link", {
+        name: /\/feed\/cgp-grey$/,
+      }),
+    ).toHaveAttribute("href", /\/feed\/cgp-grey$/);
     await expect(cgpGreyItem).toHaveAttribute("aria-pressed", "true");
     await expect(scaryPocketsItem).toHaveAttribute("aria-pressed", "true");
     await expect(
