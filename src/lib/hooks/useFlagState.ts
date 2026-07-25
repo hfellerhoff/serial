@@ -65,7 +65,7 @@ const flagsAtom = atom({
   ARTICLE_STYLE: parseFlagLocalStorageValue("ARTICLE_STYLE") ?? "full",
   ARTICLE_FOOTNOTES: parseFlagLocalStorageValue("ARTICLE_FOOTNOTES") ?? "show",
   ARTICLE_TABLE_OF_CONTENTS:
-    parseFlagLocalStorageValue("ARTICLE_TABLE_OF_CONTENTS") ?? "show",
+    parseFlagLocalStorageValue("ARTICLE_TABLE_OF_CONTENTS") ?? "hover",
 } as FlagsState);
 
 export function useFlagState<TKey extends FlagName>(key: TKey) {
