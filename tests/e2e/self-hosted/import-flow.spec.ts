@@ -1,14 +1,17 @@
 import path from "node:path";
-import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import { signUp } from "../fixtures/auth";
-import { SELF_HOSTED_TURSO_PORT } from "../fixtures/ports";
+import {
+  SELF_HOSTED_RSS_SERVER_PORT,
+  SELF_HOSTED_TURSO_PORT,
+} from "../fixtures/ports";
 import {
   cleanupUser,
   generateTestEmail,
   verifyUserCleanup,
 } from "../fixtures/seed-db";
+import { readOpmlFixture } from "../fixtures/opml";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,7 +42,7 @@ test.describe("full user lifecycle", () => {
       password: "testpassword123",
     });
 
-    const opmlContent = fs.readFileSync(OPML_PATH, "utf-8");
+    const opmlContent = readOpmlFixture(OPML_PATH, SELF_HOSTED_RSS_SERVER_PORT);
     const globalDropzone = page.getByTestId("global-import-dropzone");
     await expect(globalDropzone).toHaveAttribute("data-ready", "true");
     await expect(globalDropzone).toBeHidden();
@@ -108,7 +111,9 @@ test.describe("full user lifecycle", () => {
     const fileChooserPromise = page.waitForEvent("filechooser");
     await dropzone.click();
     const fileChooser = await fileChooserPromise;
-    const opmlContent = fs.readFileSync(OPML_PATH);
+    const opmlContent = Buffer.from(
+      readOpmlFixture(OPML_PATH, SELF_HOSTED_RSS_SERVER_PORT),
+    );
     await fileChooser.setFiles({
       name: "subscriptions.opml",
       mimeType: "application/xml",

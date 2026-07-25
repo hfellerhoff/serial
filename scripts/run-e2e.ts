@@ -6,6 +6,7 @@ type TestEnvironment = "main" | "self-hosted" | "demo";
 
 const MIN_FIVE_DIGIT_PORT = 10_000;
 const MAX_TCP_PORT = 65_535;
+const LOOPBACK_HOSTS = ["127.0.0.1", "::1"] as const;
 
 const environments: Record<
   TestEnvironment,
@@ -41,16 +42,23 @@ async function findAvailablePort(excludedPorts: Set<number>) {
     const port = randomInt(MIN_FIVE_DIGIT_PORT, MAX_TCP_PORT + 1);
     if (excludedPorts.has(port)) continue;
 
-    const isAvailable = await new Promise<boolean>((resolve) => {
-      const server = net.createServer();
-      server.unref();
-      server.once("error", () => resolve(false));
-      server.listen(port, () => {
-        server.close(() => resolve(true));
-      });
-    });
+    const availability = await Promise.all(
+      LOOPBACK_HOSTS.map(
+        (host) =>
+          new Promise<boolean>((resolve) => {
+            const server = net.createServer();
+            server.unref();
+            server.once("error", () => resolve(false));
+            server.listen(port, host, () => {
+              server.close(() => resolve(true));
+            });
+          }),
+      ),
+    );
 
-    if (isAvailable) return port;
+    if (availability.every(Boolean)) {
+      return port;
+    }
   }
 }
 

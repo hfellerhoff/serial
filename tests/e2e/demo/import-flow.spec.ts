@@ -1,20 +1,14 @@
 import path from "node:path";
-import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import { DEMO_RSS_SERVER_PORT, DEMO_TURSO_PORT } from "../fixtures/ports";
 import { resetDb } from "../fixtures/reset-db";
+import { readOpmlFixture } from "../fixtures/opml";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const OPML_PATH = path.join(__dirname, "../fixtures/subscriptions.opml");
-
-function getDemoOpmlContent() {
-  const raw = fs.readFileSync(OPML_PATH, "utf-8");
-  // Replace the self-hosted RSS port (3003) with the demo RSS port (3006)
-  return raw.replace(/:3003\//g, `:${DEMO_RSS_SERVER_PORT}/`);
-}
 
 test.describe("demo instance full import flow", () => {
   test.beforeAll(async () => {
@@ -48,7 +42,9 @@ test.describe("demo instance full import flow", () => {
     const fileChooserPromise = page.waitForEvent("filechooser");
     await dropzone.click();
     const fileChooser = await fileChooserPromise;
-    const opmlContent = Buffer.from(getDemoOpmlContent());
+    const opmlContent = Buffer.from(
+      readOpmlFixture(OPML_PATH, DEMO_RSS_SERVER_PORT),
+    );
     await fileChooser.setFiles({
       name: "subscriptions.opml",
       mimeType: "application/xml",

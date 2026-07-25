@@ -7,6 +7,10 @@ import {
 
 export default defineConfig({
   ...baseConfig,
+  // These tests share one mutable database. Running files in parallel allows
+  // suite-level cleanup hooks to delete users while another test is using
+  // them, so keep this environment serial locally just as it is in CI.
+  workers: 1,
   globalSetup: "./tests/global-setup.self-hosted.ts",
   testDir: "./tests/e2e/self-hosted",
   use: {
