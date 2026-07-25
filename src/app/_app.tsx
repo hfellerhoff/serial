@@ -1,6 +1,11 @@
 import "~/styles/globals.css";
 
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useLocation,
+} from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckIcon } from "lucide-react";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -228,6 +233,7 @@ function CheckoutSuccessDialog({
 function RootLayout() {
   useAltKeyHeld();
   usePortalReturn();
+  const { pathname } = useLocation();
   const { awaitingUpgrade, billingEnabled } = useCheckoutSuccess();
   const showPlanSuccess = usePlanSuccessStore((s) => s.showDialog);
   const closePlanSuccess = usePlanSuccessStore((s) => s.closeDialog);
@@ -241,35 +247,44 @@ function RootLayout() {
     <Suspense fallback={<FeedLoading />}>
       <InitialClientQueries>
         <GlobalImportDropzone />
-        <ImpersonationBanner />
-        <SidebarProvider
-          style={
-            {
-              "--sidebar-width": "calc(var(--spacing) * 72)",
-              "--header-height": "calc(var(--spacing) * 12)",
-            } as React.CSSProperties
-          }
-        >
-          <AppLeftSidebar />
-          <SidebarInset>
-            <DemoBanner />
-            <Header />
-            <main className="flex flex-col">
-              <div className="h-full w-full pb-6">
-                <Outlet />
-              </div>
-              <AppDialogs />
-              {billingEnabled && (
-                <CheckoutSuccessDialog
-                  open={showPlanSuccess}
-                  onOpenChange={closePlanSuccess}
-                />
-              )}
-            </main>
-            <ReleaseNotifier />
-          </SidebarInset>
-          <AppRightSidebar />
-        </SidebarProvider>
+        <div className="flex h-svh flex-col overflow-hidden">
+          <ImpersonationBanner />
+          <DemoBanner />
+          <SidebarProvider
+            className="h-auto min-h-0 flex-1"
+            style={
+              {
+                "--sidebar-width": "calc(var(--spacing) * 72)",
+                "--header-height": "calc(var(--spacing) * 12)",
+              } as React.CSSProperties
+            }
+          >
+            <AppLeftSidebar />
+            <SidebarInset
+              style={
+                pathname.startsWith("/watch/")
+                  ? { scrollbarGutter: "auto" }
+                  : undefined
+              }
+            >
+              <Header />
+              <main className="flex flex-col">
+                <div className="h-full w-full pb-6">
+                  <Outlet />
+                </div>
+                <AppDialogs />
+                {billingEnabled && (
+                  <CheckoutSuccessDialog
+                    open={showPlanSuccess}
+                    onOpenChange={closePlanSuccess}
+                  />
+                )}
+              </main>
+              <ReleaseNotifier />
+            </SidebarInset>
+            <AppRightSidebar />
+          </SidebarProvider>
+        </div>
       </InitialClientQueries>
     </Suspense>
     // </ApplyColorTheme>
