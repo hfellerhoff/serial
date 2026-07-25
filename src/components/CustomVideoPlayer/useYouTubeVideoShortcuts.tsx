@@ -16,7 +16,6 @@ export function useVideoShortcuts({ disabled = false } = {}) {
     videoDuration,
     seekToSecond,
     videoProgress,
-    captionsAvailable,
     captionsModuleLoaded,
     toggleCaptions,
     toggleNativeFullscreen,
@@ -97,10 +96,6 @@ export function useVideoShortcuts({ disabled = false } = {}) {
           toast.error("Play video to load available captions");
           return;
         }
-        if (!captionsAvailable) {
-          toast.error("Captions not available for this video");
-          return;
-        }
         toggleCaptions();
         return;
       }
@@ -149,7 +144,6 @@ export function useVideoShortcuts({ disabled = false } = {}) {
     seekToSecond,
     videoDuration,
     captionsModuleLoaded,
-    captionsAvailable,
     toggleCaptions,
     toggleNativeFullscreen,
     isNativeFullscreen,
