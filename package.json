@@ -19,7 +19,7 @@
     "dev:atomic": "NODE_OPTIONS='--import ./instrument.server.mjs' dotenv -e .env.local -- vite dev",
     "dev:polar": "polar listen http://localhost:3000/api/auth/polar/webhooks",
     "dev": "concurrently --kill-others \"pnpm dev:db\" \"pnpm dev:migrate && pnpm dev:atomic\"",
-    "dev:demo": "PUBLIC_BASE_URL=http://localhost:3000 PUBLIC_IS_MAIN_INSTANCE=false BETTER_AUTH_SECRET=asdfasdfasdfasdf DATABASE_URL=http://127.0.0.1:8080 KV_STORE=none concurrently --kill-others \"pnpm dev:db:demo\" \"pnpm dev:migrate && NODE_OPTIONS='--import ./instrument.server.mjs' vite dev --mode demo\"",
+    "dev:demo": "node scripts/dev-demo.mjs",
     "dev:email": "email dev --dir ./src/emails --port 4000",
     "prebuild": "pnpm typecheck && pnpm format && pnpm lint",
     "build:sw": "node --import=tsx ./scripts/generate-sw.ts",
