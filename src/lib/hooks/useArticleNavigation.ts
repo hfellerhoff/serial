@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { atom, useSetAtom } from "jotai";
 import { useShortcut } from "./useShortcut";
 import type { KeyboardEvent, RefObject } from "react";
@@ -136,9 +136,6 @@ export function useArticleNavigation(
 ) {
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const lastNavTimeRef = useRef<number>(0);
-  const prevSelectedRef = useRef<HTMLElement | null>(null);
-  // Suppress focusin handler during programmatic focus from arrow key navigation
-  const suppressFocusInRef = useRef(false);
   const setArticleSelectedElement = useSetAtom(articleSelectedElementAtom);
 
   const applySelection = useCallback(
@@ -173,14 +170,10 @@ export function useArticleNavigation(
         // Set tabindex so the element itself is focusable,
         // allowing Tab to naturally move to the first link inside
         el.setAttribute("tabindex", "-1");
-        suppressFocusInRef.current = true;
         el.focus({ preventScroll: true });
-        suppressFocusInRef.current = false;
 
-        prevSelectedRef.current = el;
         setArticleSelectedElement(el);
       } else {
-        prevSelectedRef.current = null;
         setArticleSelectedElement(null);
       }
     },
@@ -323,50 +316,6 @@ export function useArticleNavigation(
     },
     [containerRef, selectedIndex],
   );
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleFocusIn = (e: FocusEvent) => {
-      if (suppressFocusInRef.current) return;
-
-      const target = e.target;
-      if (!(target instanceof HTMLElement)) return;
-
-      const elements = getElements(container);
-      // Find the closest (most specific) selectable element containing the target
-      let parentIndex = -1;
-      for (let i = 0; i < elements.length; i++) {
-        if (elements[i]!.contains(target) && elements[i] !== target) {
-          parentIndex = i;
-        }
-      }
-      if (parentIndex === -1 || parentIndex === selectedIndex) return;
-
-      // Clear all previous selections
-      container.querySelectorAll("[data-article-selected]").forEach((el) => {
-        el.removeAttribute("data-article-selected");
-        el.removeAttribute("tabindex");
-      });
-      const el = elements[parentIndex]!;
-      el.setAttribute("data-article-selected", "true");
-      if (el.tagName === "LI" && container) {
-        const elLeft = el.getBoundingClientRect().left;
-        const containerLeft = container.getBoundingClientRect().left;
-        const offset = elLeft - containerLeft - 20;
-        el.style.setProperty("--selection-offset", `${offset}px`);
-      }
-      el.setAttribute("tabindex", "-1");
-      prevSelectedRef.current = el;
-      setSelectedIndex(parentIndex);
-      setArticleSelectedElement(el);
-      scrollToElement(el);
-    };
-
-    container.addEventListener("focusin", handleFocusIn);
-    return () => container.removeEventListener("focusin", handleFocusIn);
-  }, [containerRef, selectedIndex, setArticleSelectedElement, scrollToElement]);
 
   useShortcut(getShortcutKeys(SHORTCUT_KEYS.ARROW_DOWN), handleArrowDown, {
     allowRepeat: getShortcutAllowRepeat(SHORTCUT_KEYS.ARROW_DOWN),

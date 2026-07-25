@@ -45,8 +45,12 @@ export function ArticleContent({ content }: { content: string }) {
     replace: (domNode) => {
       if (!(domNode instanceof Element)) return;
 
-      // Open all links in new tabs
-      if (domNode.name === "a" && domNode.attribs.href) {
+      // Open external links in new tabs. In-page links include footnote refs.
+      if (
+        domNode.name === "a" &&
+        domNode.attribs.href &&
+        !domNode.attribs.href.startsWith("#")
+      ) {
         domNode.attribs.target = "_blank";
         domNode.attribs.rel = "noopener noreferrer";
       }

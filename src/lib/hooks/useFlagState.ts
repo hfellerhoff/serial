@@ -18,6 +18,14 @@ const LOCAL_STORAGE_FLAGS = {
     key: "serial-flag-article-style",
     schema: z.enum(["simplified", "full"]),
   },
+  ARTICLE_FOOTNOTES: {
+    key: "serial-article-footnotes",
+    schema: z.enum(["show", "hide"]),
+  },
+  ARTICLE_TABLE_OF_CONTENTS: {
+    key: "serial-article-table-of-contents",
+    schema: z.enum(["show", "hover"]),
+  },
 } as const;
 type FlagName = keyof typeof LOCAL_STORAGE_FLAGS;
 type FlagSchema<T extends FlagName> = (typeof LOCAL_STORAGE_FLAGS)[T]["schema"];
@@ -55,6 +63,9 @@ const flagsAtom = atom({
   INLINE_SHORTCUTS:
     parseFlagLocalStorageValue("INLINE_SHORTCUTS") ?? "hide-shortcuts",
   ARTICLE_STYLE: parseFlagLocalStorageValue("ARTICLE_STYLE") ?? "full",
+  ARTICLE_FOOTNOTES: parseFlagLocalStorageValue("ARTICLE_FOOTNOTES") ?? "show",
+  ARTICLE_TABLE_OF_CONTENTS:
+    parseFlagLocalStorageValue("ARTICLE_TABLE_OF_CONTENTS") ?? "show",
 } as FlagsState);
 
 export function useFlagState<TKey extends FlagName>(key: TKey) {

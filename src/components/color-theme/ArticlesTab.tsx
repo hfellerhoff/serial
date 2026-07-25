@@ -13,6 +13,7 @@ import {
   CSS_TO_FONT_FAMILY,
   FONT_FAMILY_CSS,
 } from "~/lib/constants/article-fonts";
+import { useFlagState } from "~/lib/hooks/useFlagState";
 
 const MIN_FONT_SIZE = 12;
 const MAX_FONT_SIZE = 24;
@@ -123,10 +124,60 @@ function FontFamilyControl() {
   );
 }
 
+function ReaderSidebarControls() {
+  const [footnotes, setFootnotes] = useFlagState("ARTICLE_FOOTNOTES");
+  const [tableOfContents, setTableOfContents] = useFlagState(
+    "ARTICLE_TABLE_OF_CONTENTS",
+  );
+
+  return (
+    <div className="mt-4 space-y-4">
+      <div>
+        <Label className="mb-2 block font-semibold">Footnotes</Label>
+        <ToggleGroup
+          type="single"
+          size="sm"
+          value={footnotes}
+          onValueChange={(value) => {
+            if (value === "show" || value === "hide") setFootnotes(value);
+          }}
+        >
+          <ToggleGroupItem className="w-full" value="show">
+            Show
+          </ToggleGroupItem>
+          <ToggleGroupItem className="w-full" value="hide">
+            Hide
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+      <div>
+        <Label className="mb-2 block font-semibold">Table of Contents</Label>
+        <ToggleGroup
+          type="single"
+          size="sm"
+          value={tableOfContents}
+          onValueChange={(value) => {
+            if (value === "show" || value === "hover")
+              setTableOfContents(value);
+          }}
+        >
+          <ToggleGroupItem className="w-full" value="show">
+            Always
+          </ToggleGroupItem>
+          <ToggleGroupItem className="w-full" value="hover">
+            Hover
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+    </div>
+  );
+}
+
 export function ArticlesTab() {
   return (
     <>
       <ShowArticleStyleToggle />
+      <ReaderSidebarControls />
       <FontFamilyControl />
       <FontSizeControl />
     </>

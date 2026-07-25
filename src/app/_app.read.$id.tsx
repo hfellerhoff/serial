@@ -38,6 +38,7 @@ import { useFeedCategories } from "~/lib/data/feed-categories/store";
 import { useViewFeeds } from "~/lib/data/view-feeds/store";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
+import { ArticleSidebars } from "~/components/feed/read/ArticleSidebars";
 
 const parser = unified()
   .use(rehypeParse, { fragment: true })
@@ -81,6 +82,13 @@ function ReadPage() {
   }
 
   const articleRef = useRef<HTMLDivElement>(null);
+  const [articleElement, setArticleElement] = useState<HTMLDivElement | null>(
+    null,
+  );
+  const updateArticleRef = useCallback((element: HTMLDivElement | null) => {
+    articleRef.current = element;
+    setArticleElement(element);
+  }, []);
 
   // Show/hide header and footer bars based on scroll direction
   const setBarsHidden = useSetAtom(barsHiddenAtom);
@@ -265,21 +273,28 @@ function ReadPage() {
         )}
         <span className="line-clamp-1 font-sans text-sm">{feed?.name}</span>
       </div>
-      <div
-        ref={articleRef}
-        className={`h-full w-full px-6 sm:pb-6 ${classes.article}`}
-      >
-        <h1 data-serial-header>{feedItem?.title}</h1>
-        <h6 data-serial-header>{feedItem?.author || feed?.name || ""}</h6>
-        {articleStyle === "simplified" ? (
-          <div
-            dangerouslySetInnerHTML={{
-              __html: content,
-            }}
-          />
-        ) : (
-          <ArticleContent content={content} />
-        )}
+      <div key={params.id} className="relative w-full">
+        <ArticleSidebars
+          article={articleElement}
+          contentKey={`${params.id}:${articleStyle}:${zoom}:${content}`}
+          scrollToElement={scrollToElement}
+        />
+        <div
+          ref={updateArticleRef}
+          className={`h-full w-full px-6 sm:pb-6 ${classes.article}`}
+        >
+          <h1 data-serial-header>{feedItem?.title}</h1>
+          <h6 data-serial-header>{feedItem?.author || feed?.name || ""}</h6>
+          {articleStyle === "simplified" ? (
+            <div
+              dangerouslySetInnerHTML={{
+                __html: content,
+              }}
+            />
+          ) : (
+            <ArticleContent content={content} />
+          )}
+        </div>
       </div>
       {shouldShowTruncationAlert && (
         <div className="w-full px-6">

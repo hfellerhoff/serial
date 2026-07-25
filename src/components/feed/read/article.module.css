@@ -156,3 +156,34 @@
   background: var(--color-muted);
   border-radius: var(--radius-md);
 }
+
+.article[data-serial-sidebars-visible="true"]
+  :global([data-serial-footnotes-source="true"]) {
+  display: none;
+}
+
+.article :global([data-serial-footnote-reference="true"]) {
+  display: inline-flex;
+  min-width: 1.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  padding-inline: 0.25rem !important;
+  background: var(--color-secondary) !important;
+  color: var(--color-secondary-foreground) !important;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  vertical-align: baseline;
+  word-break: normal;
+  hyphens: none;
+  scroll-margin-top: 6rem;
+}
+
+.article :global([data-serial-footnote-reference="true"]):hover,
+.article :global([data-serial-footnote-reference="true"]):focus-visible {
+  background: var(--color-secondary) !important;
+  color: var(--color-secondary-foreground) !important;
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
