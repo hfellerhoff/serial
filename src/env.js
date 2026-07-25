@@ -3,6 +3,10 @@ import { z } from "zod";
 
 const optionalBoolean = z.union([z.boolean(), z.stringbool()]).default(false);
 
+const shouldSkipEnvValidation =
+  process.env.SKIP_ENV_VALIDATION === "true" &&
+  process.env.NODE_ENV !== "production";
+
 const PUBLIC_ENV_SCHEMA = {
   PUBLIC_BASE_URL: z.url(),
   PUBLIC_SUPPORT_EMAIL_ADDRESS: z.email().optional(),
@@ -179,10 +183,10 @@ export const env = createEnv({
     COOKIE_DOMAIN: process.env.COOKIE_DOMAIN,
   },
   /**
-   * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
-   * useful for Docker builds.
+   * Allow local tooling to skip validation without permitting unparsed values
+   * such as the string "false" to reach production consumers.
    */
-  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+  skipValidation: shouldSkipEnvValidation,
   /**
    * Makes it so that empty strings are treated as undefined.
    * `SOME_VAR: z.string()` and `SOME_VAR=''` will throw an error.

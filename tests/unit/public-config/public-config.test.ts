@@ -73,6 +73,22 @@ describe("public config", () => {
     expect(env.PUBLIC_IS_MAIN_INSTANCE).toBe(false);
   });
 
+  it("does not skip boolean coercion in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("SKIP_ENV_VALIDATION", "true");
+    vi.stubEnv("PUBLIC_BASE_URL", REQUIRED_PUBLIC_CONFIG.PUBLIC_BASE_URL);
+    vi.stubEnv("PUBLIC_IS_MAINTENANCE_MODE", "false");
+    vi.stubEnv("PUBLIC_IS_MAIN_INSTANCE", "false");
+    vi.stubEnv("BACKGROUND_REFRESH_ENABLED", "false");
+    vi.stubEnv("BETTER_AUTH_SECRET", "test-secret");
+
+    const { env } = await import("~/env");
+
+    expect(env.PUBLIC_IS_MAINTENANCE_MODE).toBe(false);
+    expect(env.PUBLIC_IS_MAIN_INSTANCE).toBe(false);
+    expect(env.BACKGROUND_REFRESH_ENABLED).toBe(false);
+  });
+
   it("does not enable demo mode from public environment variables", async () => {
     vi.stubEnv("SKIP_ENV_VALIDATION", "");
     vi.stubEnv("PUBLIC_BASE_URL", REQUIRED_PUBLIC_CONFIG.PUBLIC_BASE_URL);
@@ -124,5 +140,24 @@ describe("public config", () => {
 
     expect(browserPublicConfig).toEqual(publicConfig);
     expect(getBrowserPublicConfig()).toBe(browserPublicConfig);
+  });
+
+  it("escapes configuration embedded in an inline script", async () => {
+    const publicConfig = {
+      ...REQUIRED_PUBLIC_CONFIG,
+      PUBLIC_UMAMI_WEBSITE_ID: "</script><script>alert('test')</script>",
+    };
+    const { serializePublicConfigForInlineScript } =
+      await import("~/server/public-config.server");
+
+    const inlinePublicConfig =
+      serializePublicConfigForInlineScript(publicConfig);
+    const serializedPublicConfig = JSON.parse(inlinePublicConfig) as string;
+    vi.stubGlobal("window", {
+      [SERIAL_PUBLIC_CONFIG_KEY]: serializedPublicConfig,
+    });
+
+    expect(inlinePublicConfig).not.toContain("</script>");
+    expect(getBrowserPublicConfig()).toEqual(publicConfig);
   });
 });

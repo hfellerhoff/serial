@@ -1,3 +1,4 @@
+import SuperJSON from "superjson";
 import { env } from "~/env";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
 
@@ -11,5 +12,23 @@ export function getServerPublicConfig() {
     PUBLIC_IS_MAINTENANCE_MODE: env.PUBLIC_IS_MAINTENANCE_MODE,
     PUBLIC_IS_MAIN_INSTANCE: env.PUBLIC_IS_MAIN_INSTANCE,
     PUBLIC_IS_DEMO_INSTANCE: IS_DEMO_INSTANCE,
+  };
+}
+
+export function serializePublicConfigForInlineScript(
+  publicConfig: ReturnType<typeof getServerPublicConfig>,
+): string {
+  return JSON.stringify(SuperJSON.stringify(publicConfig))
+    .replaceAll("<", "\\u003c")
+    .replaceAll("\u2028", "\\u2028")
+    .replaceAll("\u2029", "\\u2029");
+}
+
+export function getServerPublicConfigPayload() {
+  const publicConfig = getServerPublicConfig();
+
+  return {
+    publicConfig,
+    inlinePublicConfig: serializePublicConfigForInlineScript(publicConfig),
   };
 }
