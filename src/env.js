@@ -1,48 +1,30 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
-import { getBrowserPublicConfig } from "~/lib/public-config";
+import {
+  getBrowserPublicConfig,
+  getPublicConfigEnv,
+} from "~/lib/public-config";
 
 const publicRuntimeEnv =
   typeof window === "undefined"
-    ? {
-        VITE_PUBLIC_BASE_URL:
-          process.env.VITE_PUBLIC_BASE_URL ??
-          import.meta.env?.VITE_PUBLIC_BASE_URL,
-        VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS:
-          process.env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS ??
-          import.meta.env?.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS,
-        VITE_PUBLIC_SENTRY_DSN_WEB:
-          process.env.VITE_PUBLIC_SENTRY_DSN_WEB ??
-          import.meta.env?.VITE_PUBLIC_SENTRY_DSN_WEB,
-        VITE_PUBLIC_UMAMI_WEBSITE_ID:
-          process.env.VITE_PUBLIC_UMAMI_WEBSITE_ID ??
-          import.meta.env?.VITE_PUBLIC_UMAMI_WEBSITE_ID,
-        VITE_PUBLIC_UMAMI_SRC:
-          process.env.VITE_PUBLIC_UMAMI_SRC ??
-          import.meta.env?.VITE_PUBLIC_UMAMI_SRC,
-        VITE_PUBLIC_IS_MAINTENANCE_MODE:
-          process.env.VITE_PUBLIC_IS_MAINTENANCE_MODE ??
-          import.meta.env?.VITE_PUBLIC_IS_MAINTENANCE_MODE,
-        VITE_PUBLIC_IS_DEMO_INSTANCE:
-          process.env.VITE_PUBLIC_IS_DEMO_INSTANCE ??
-          import.meta.env?.VITE_PUBLIC_IS_DEMO_INSTANCE,
-        VITE_PUBLIC_IS_MAIN_INSTANCE:
-          process.env.VITE_PUBLIC_IS_MAIN_INSTANCE ??
-          import.meta.env?.VITE_PUBLIC_IS_MAIN_INSTANCE,
-      }
+    ? getPublicConfigEnv(process.env)
     : getBrowserPublicConfig();
 
+const publicBooleanSchema = z
+  .union([z.boolean(), z.stringbool()])
+  .default(false);
+
 export const env = createEnv({
-  clientPrefix: "VITE_PUBLIC_",
+  clientPrefix: "PUBLIC_",
   client: {
-    VITE_PUBLIC_BASE_URL: z.url(),
-    VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS: z.string().email().optional(),
-    VITE_PUBLIC_SENTRY_DSN_WEB: z.string().url().optional(),
-    VITE_PUBLIC_UMAMI_WEBSITE_ID: z.string().optional(),
-    VITE_PUBLIC_UMAMI_SRC: z.string().url().optional(),
-    VITE_PUBLIC_IS_MAINTENANCE_MODE: z.string().optional().default("false"),
-    VITE_PUBLIC_IS_MAIN_INSTANCE: z.string().optional().default("false"),
-    VITE_PUBLIC_IS_DEMO_INSTANCE: z.string().optional().default("false"),
+    PUBLIC_BASE_URL: z.url(),
+    PUBLIC_SUPPORT_EMAIL_ADDRESS: z.string().email().optional(),
+    PUBLIC_SENTRY_DSN_WEB: z.string().url().optional(),
+    PUBLIC_UMAMI_WEBSITE_ID: z.string().optional(),
+    PUBLIC_UMAMI_SRC: z.string().url().optional(),
+    PUBLIC_IS_MAINTENANCE_MODE: publicBooleanSchema,
+    PUBLIC_IS_MAIN_INSTANCE: publicBooleanSchema,
+    PUBLIC_IS_DEMO_INSTANCE: publicBooleanSchema,
   },
   server: {
     DATABASE_URL: z.url().optional().default("http://127.0.0.1:8080"),
@@ -92,7 +74,7 @@ export const env = createEnv({
         (val) => !(process.env.KV_STORE === "ioredis" && !val),
         "REDIS_URL is required when KV_STORE is 'ioredis'.",
       ),
-    BACKGROUND_REFRESH_ENABLED: z.string().optional().default("true"),
+    BACKGROUND_REFRESH_ENABLED: z.stringbool().optional().default(true),
     OAUTH_PROVIDER_ID: z.string().optional(),
     OAUTH_PROVIDER_NAME: z.string().optional(),
     OAUTH_CLIENT_ID: z.string().optional(),
@@ -102,7 +84,7 @@ export const env = createEnv({
     OAUTH_TOKEN_URL: z.string().optional(),
     OAUTH_USER_INFO_URL: z.string().optional(),
     OAUTH_SCOPES: z.string().optional(),
-    OAUTH_PKCE: z.string().optional(),
+    OAUTH_PKCE: z.stringbool().optional(),
     OAUTH_REDIRECT_URI: z.string().optional(),
     TRUSTED_ORIGINS: z
       .string()
@@ -133,7 +115,6 @@ export const env = createEnv({
       .enum(["error", "warning", "info", "debug"])
       .optional()
       .default("info"),
-    IS_DEMO_INSTANCE: z.string().optional().default("false"),
     /**
      * When set (e.g. ".serial.tube"), the auth session cookie is shared
      * across subdomains so the marketing site can detect signed-in users.
@@ -141,20 +122,18 @@ export const env = createEnv({
     COOKIE_DOMAIN: z.string().optional(),
   },
   runtimeEnv: {
-    VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS:
-      publicRuntimeEnv.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS,
-    VITE_PUBLIC_SENTRY_DSN_WEB: publicRuntimeEnv.VITE_PUBLIC_SENTRY_DSN_WEB,
-    VITE_PUBLIC_UMAMI_WEBSITE_ID: publicRuntimeEnv.VITE_PUBLIC_UMAMI_WEBSITE_ID,
-    VITE_PUBLIC_UMAMI_SRC: publicRuntimeEnv.VITE_PUBLIC_UMAMI_SRC,
-    VITE_PUBLIC_IS_MAINTENANCE_MODE:
-      publicRuntimeEnv.VITE_PUBLIC_IS_MAINTENANCE_MODE,
-    VITE_PUBLIC_IS_DEMO_INSTANCE: publicRuntimeEnv.VITE_PUBLIC_IS_DEMO_INSTANCE,
-    VITE_PUBLIC_IS_MAIN_INSTANCE: publicRuntimeEnv.VITE_PUBLIC_IS_MAIN_INSTANCE,
+    PUBLIC_SUPPORT_EMAIL_ADDRESS: publicRuntimeEnv.PUBLIC_SUPPORT_EMAIL_ADDRESS,
+    PUBLIC_SENTRY_DSN_WEB: publicRuntimeEnv.PUBLIC_SENTRY_DSN_WEB,
+    PUBLIC_UMAMI_WEBSITE_ID: publicRuntimeEnv.PUBLIC_UMAMI_WEBSITE_ID,
+    PUBLIC_UMAMI_SRC: publicRuntimeEnv.PUBLIC_UMAMI_SRC,
+    PUBLIC_IS_MAINTENANCE_MODE: publicRuntimeEnv.PUBLIC_IS_MAINTENANCE_MODE,
+    PUBLIC_IS_DEMO_INSTANCE: publicRuntimeEnv.PUBLIC_IS_DEMO_INSTANCE,
+    PUBLIC_IS_MAIN_INSTANCE: publicRuntimeEnv.PUBLIC_IS_MAIN_INSTANCE,
     DATABASE_URL: process.env.DATABASE_URL,
     DATABASE_AUTH_TOKEN: process.env.DATABASE_AUTH_TOKEN,
     NODE_ENV: process.env.NODE_ENV,
     LOG_LEVEL: process.env.LOG_LEVEL,
-    VITE_PUBLIC_BASE_URL: publicRuntimeEnv.VITE_PUBLIC_BASE_URL,
+    PUBLIC_BASE_URL: publicRuntimeEnv.PUBLIC_BASE_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
@@ -197,7 +176,6 @@ export const env = createEnv({
     TRUSTED_ORIGINS: process.env.TRUSTED_ORIGINS,
     SENTRY_DSN_BACKEND: process.env.SENTRY_DSN_BACKEND,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
-    IS_DEMO_INSTANCE: process.env.IS_DEMO_INSTANCE,
     COOKIE_DOMAIN: process.env.COOKIE_DOMAIN,
   },
   /**

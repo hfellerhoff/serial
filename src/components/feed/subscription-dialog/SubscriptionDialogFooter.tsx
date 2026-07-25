@@ -60,7 +60,7 @@ export function SubscriptionDialogFooter({
       Price too high or need higher limits?{" "}
       <span>
         <a
-          href={`mailto:${env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS}`}
+          href={`mailto:${env.PUBLIC_SUPPORT_EMAIL_ADDRESS}`}
           target="_blank"
           rel="noopener noreferrer"
           className="underline"

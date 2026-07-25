@@ -42,10 +42,12 @@ If your preferred platform doesn't have a guide, follow these rough steps:
    - If you want to use a local libsql database, use the provided `docker-compose.yaml` configuration. The database requires no additional configuration, but the application variables below are still required.
      - It's less common, but you can also manually provide your local libsql server URL in `DATABASE_URL`.
    - If you want to use a cloud libsql database provider (like [Turso](https://turso.tech/)), set up a database with them and add your `DATABASE_AUTH_TOKEN` and `DATABASE_URL` to your environment variables.
-5. Set `VITE_PUBLIC_BASE_URL` to the public origin where Serial will be available, such as `https://serial.example.com` (or `http://localhost:3000` for a local Docker deployment).
+5. Set `PUBLIC_BASE_URL` to the public origin where Serial will be available, such as `https://serial.example.com` (or `http://localhost:3000` for a local Docker deployment). The previous `VITE_PUBLIC_*` names remain supported for backwards compatibility.
 6. Navigate to [Better Auth](https://www.better-auth.com/docs/installation#set-environment-variables) and generate an auth secret. Set this as `BETTER_AUTH_SECRET` in your environment variables.
 7. Deploy your application. Docker images read public configuration when the container starts, so the same image can be used at different domains without rebuilding it.
 8. To update Serial in the future, just sync your forked code from the main repo and the app will redeploy
+
+Demo instances must be built with `docker-compose.build-demo.yaml`. Demo mode cannot be enabled on the standard images because its build includes the destructive daily database cleanup task.
 
 If you'd like to support additional features, [see below!](#enabling-additional-features)
 

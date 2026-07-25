@@ -19,7 +19,7 @@ export const authClient = createAuthClient({
   baseURL:
     typeof window !== "undefined"
       ? window.location.origin
-      : env.VITE_PUBLIC_BASE_URL,
+      : env.PUBLIC_BASE_URL,
 });
 
 export const { signIn, signOut, signUp, useSession, resetPassword } =

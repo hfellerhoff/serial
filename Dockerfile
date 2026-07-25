@@ -22,6 +22,11 @@ RUN --mount=type=cache,target=/root/.npm \
 ################################################################################
 FROM --platform=$BUILDPLATFORM base AS build
 
+# Demo mode is an image-level capability because it includes a destructive
+# scheduled task. Standard images leave this disabled.
+ARG PUBLIC_IS_DEMO_INSTANCE=false
+ENV PUBLIC_IS_DEMO_INSTANCE=${PUBLIC_IS_DEMO_INSTANCE}
+
 # Download all dependencies (including devDependencies) needed for building.
 RUN --mount=type=bind,source=package.json,target=package.json \
     --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \

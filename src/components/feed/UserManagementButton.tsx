@@ -25,7 +25,7 @@ import {
 import { authClient, signOut } from "~/lib/auth-client";
 import { useClearAllUserData } from "~/lib/data/atoms";
 import { useSubscription } from "~/lib/data/subscription";
-import { env } from "~/env";
+import { IS_DEMO_INSTANCE } from "~/lib/demo";
 
 export function UserManagementNavItem() {
   const {
@@ -58,7 +58,7 @@ export function UserManagementNavItem() {
                     {" "}
                     {data?.user.name || "Account"}
                   </span>
-                  {env.VITE_PUBLIC_IS_DEMO_INSTANCE !== "true" && (
+                  {!IS_DEMO_INSTANCE && (
                     <span className="text-muted-foreground truncate text-xs">
                       {data?.user.email}
                     </span>
@@ -74,7 +74,7 @@ export function UserManagementNavItem() {
               <h2 className="text-sm font-semibold">
                 {data?.user.name || "Serial User"}
               </h2>
-              {env.VITE_PUBLIC_IS_DEMO_INSTANCE !== "true" && (
+              {!IS_DEMO_INSTANCE && (
                 <p className="text-muted-foreground text-xs">
                   {data?.user.email}
                 </p>
@@ -90,7 +90,7 @@ export function UserManagementNavItem() {
               </Link>
             </div>
           </ResponsiveDropdownLabel>
-          {env.VITE_PUBLIC_IS_DEMO_INSTANCE !== "true" && (
+          {!IS_DEMO_INSTANCE && (
             <ResponsiveDropdownMenuItem asChild>
               <Button
                 variant="outline"
@@ -116,7 +116,7 @@ export function UserManagementNavItem() {
               </Button>
             </ResponsiveDropdownMenuItem>
           )}
-          {env.VITE_PUBLIC_IS_DEMO_INSTANCE !== "true" && (
+          {!IS_DEMO_INSTANCE && (
             <div className="my-4">
               <DropdownMenuSeparator />
             </div>

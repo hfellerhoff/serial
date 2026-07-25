@@ -13,8 +13,7 @@ import { authMiddleware } from "~/server/auth";
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
   beforeLoad: () => {
-    console.log(env.VITE_PUBLIC_IS_MAINTENANCE_MODE);
-    if (env.VITE_PUBLIC_IS_MAINTENANCE_MODE === "true") {
+    if (env.PUBLIC_IS_MAINTENANCE_MODE) {
       throw redirect({
         to: "/maintenance",
       });

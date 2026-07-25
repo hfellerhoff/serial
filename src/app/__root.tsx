@@ -143,13 +143,13 @@ export function RootLayout() {
             />
           </>
         )}*/}
-        {env.VITE_PUBLIC_UMAMI_SRC && env.VITE_PUBLIC_UMAMI_WEBSITE_ID && (
+        {env.PUBLIC_UMAMI_SRC && env.PUBLIC_UMAMI_WEBSITE_ID && (
           <>
             <script
               async
               defer
-              data-website-id={env.VITE_PUBLIC_UMAMI_WEBSITE_ID}
-              src={env.VITE_PUBLIC_UMAMI_SRC}
+              data-website-id={env.PUBLIC_UMAMI_WEBSITE_ID}
+              src={env.PUBLIC_UMAMI_SRC}
             />
           </>
         )}

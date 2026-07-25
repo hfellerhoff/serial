@@ -1,6 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { publicConfigSchema } from "~/lib/public-config";
+import { resolvePublicConfig } from "~/lib/public-config";
 
 export const fetchPublicConfig = createServerFn({ method: "GET" }).handler(() =>
-  publicConfigSchema.parse(process.env),
+  resolvePublicConfig({
+    ...process.env,
+    PUBLIC_IS_DEMO_INSTANCE: __SERIAL_DEMO_BUILD__,
+  }),
 );

@@ -7,7 +7,7 @@ export const Route = createFileRoute("/maintenance")({
 });
 
 function RouteComponent() {
-  const supportEmail = env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS;
+  const supportEmail = env.PUBLIC_SUPPORT_EMAIL_ADDRESS;
 
   return (
     <main className="bg-background text-pretty">

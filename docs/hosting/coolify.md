@@ -19,8 +19,9 @@
 7. (optional) Customize your domain in `Domains for server`:
    - If you don't have a custom domain, click `Generate domain`
    - Otherwise, add your custom domain (e.g. `https://example.com`)
-8. Navigate to `Environment Variables` and update your `BETTER_AUTH_SECRET`
-   - You can generate one in [this section of the Better Auth documentation](https://www.better-auth.com/docs/installation#set-environment-variables)
+8. Navigate to `Environment Variables` and configure the required variables:
+   - Set `PUBLIC_BASE_URL` to the generated or custom Coolify origin for the server, including the protocol (for example, `https://serial.example.com`).
+   - Set `BETTER_AUTH_SECRET`. You can generate one in [this section of the Better Auth documentation](https://www.better-auth.com/docs/installation#set-environment-variables).
 9. If using a cloud database, set up your database
    - If you want to use a cloud libsql database provider (like [Turso](https://turso.tech/)), set up a database with them and add your `DATABASE_AUTH_TOKEN` and `DATABASE_URL` to your environment variables.
 10. Click deploy and wait for your app to be ready! You'll be able to access it once Coolify says it's running.
@@ -48,8 +49,9 @@ If you'd like to support additional features, [see this section](https://github.
 7. (optional) Add your custom domain:
    - Click `Settings` for the `Serial` service
    - Add your custom domain (e.g. `https://example.com`)
-8. Navigate to `Environment Variables` and update your `BETTER_AUTH_SECRET`
-   - You can generate one in [this section of the Better Auth documentation](https://www.better-auth.com/docs/installation#set-environment-variables)
+8. Navigate to `Environment Variables` and configure the required variables:
+   - Set `PUBLIC_BASE_URL` to the generated or custom Coolify origin for the server, including the protocol (for example, `https://serial.example.com`).
+   - Set `BETTER_AUTH_SECRET`. You can generate one in [this section of the Better Auth documentation](https://www.better-auth.com/docs/installation#set-environment-variables).
 9. If using a cloud database, set up your database
    - If you want to use a cloud libsql database provider (like [Turso](https://turso.tech/)), set up a database with them and add your `DATABASE_AUTH_TOKEN` and `DATABASE_URL` to your environment variables.
 10. Click deploy and wait for your app to be ready! You'll be able to access it once Coolify says it's running.
@@ -78,8 +80,9 @@ If you'd like to support additional features, [see this section](https://github.
 8. (optional) Customize your domain in `Domains for server`:
    - If you don't have a custom domain, click `Generate domain`
    - Otherwise, add your custom domain (e.g. `https://example.com`)
-9. Navigate to `Environment Variables` and update your `BETTER_AUTH_SECRET`
-   - You can generate one in [this section of the Better Auth documentation](https://www.better-auth.com/docs/installation#set-environment-variables)
+9. Navigate to `Environment Variables` and configure the required variables:
+   - Set `PUBLIC_BASE_URL` to the generated or custom Coolify origin for the server, including the protocol (for example, `https://serial.example.com`).
+   - Set `BETTER_AUTH_SECRET`. You can generate one in [this section of the Better Auth documentation](https://www.better-auth.com/docs/installation#set-environment-variables).
 10. If using a cloud database, set up your database
     - If you want to use a cloud libsql database provider (like [Turso](https://turso.tech/)), set up a database with them and add your `DATABASE_AUTH_TOKEN` and `DATABASE_URL` to your environment variables.
 11. Click deploy and wait for your app to be ready! You'll be able to access it once Coolify says it's running.

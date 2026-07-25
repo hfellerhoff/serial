@@ -4,11 +4,18 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
+import { z } from "zod";
 
-const BACKGROUND_REFRESH_ENABLED = process.env.BACKGROUND_REFRESH_ENABLED;
-const VITE_PUBLIC_IS_DEMO_INSTANCE =
-  import.meta.env?.VITE_PUBLIC_IS_DEMO_INSTANCE ??
-  process.env.VITE_PUBLIC_IS_DEMO_INSTANCE;
+const BACKGROUND_REFRESH_ENABLED = z
+  .stringbool()
+  .parse(process.env.BACKGROUND_REFRESH_ENABLED ?? "true");
+const IS_DEMO_BUILD = z
+  .stringbool()
+  .parse(
+    process.env.PUBLIC_IS_DEMO_INSTANCE ??
+      process.env.VITE_PUBLIC_IS_DEMO_INSTANCE ??
+      "false",
+  );
 
 function scheduleTask(task: object, condition: boolean) {
   if (condition) {
@@ -35,12 +42,9 @@ const plugins = [
     scheduledTasks: {
       ...scheduleTask(
         { "* * * * *": ["feeds:background-refresh"] },
-        BACKGROUND_REFRESH_ENABLED === "true",
+        BACKGROUND_REFRESH_ENABLED,
       ),
-      ...scheduleTask(
-        { "0 0 * * *": ["demo:midnight-wipe"] },
-        VITE_PUBLIC_IS_DEMO_INSTANCE === "true",
-      ),
+      ...scheduleTask({ "0 0 * * *": ["demo:midnight-wipe"] }, IS_DEMO_BUILD),
     },
   }),
   viteReact(),
@@ -58,6 +62,9 @@ if (process.env.SENTRY_AUTH_TOKEN) {
 }
 
 export default defineConfig({
+  define: {
+    __SERIAL_DEMO_BUILD__: JSON.stringify(IS_DEMO_BUILD),
+  },
   // During e2e tests, VITE_ENV_DIR redirects Vite's .env* loading away from
   // root so that only the test env file (loaded by dotenv-cli) takes effect.
   envDir: process.env.VITE_ENV_DIR ?? undefined,

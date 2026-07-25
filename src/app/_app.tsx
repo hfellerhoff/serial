@@ -36,7 +36,7 @@ export const Route = createFileRoute("/_app")({
     middleware: [authMiddleware],
   },
   beforeLoad: () => {
-    if (env.VITE_PUBLIC_IS_MAINTENANCE_MODE === "true") {
+    if (env.PUBLIC_IS_MAINTENANCE_MODE) {
       throw redirect({
         to: "/maintenance",
       });

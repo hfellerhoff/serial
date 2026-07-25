@@ -204,7 +204,7 @@ function buildGenericOAuthPlugin() {
           tokenUrl: env.OAUTH_TOKEN_URL,
           userInfoUrl: env.OAUTH_USER_INFO_URL,
           scopes: env.OAUTH_SCOPES?.split(" ") ?? undefined,
-          pkce: env.OAUTH_PKCE === "true",
+          pkce: env.OAUTH_PKCE,
           redirectURI: env.OAUTH_REDIRECT_URI,
         },
       ],
@@ -235,7 +235,7 @@ export const auth = betterAuth({
         const html = await render(
           <ResetPasswordEmail
             resetUrl={data.url}
-            supportEmail={env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS}
+            supportEmail={env.PUBLIC_SUPPORT_EMAIL_ADDRESS}
           />,
         );
 
@@ -268,7 +268,7 @@ export const auth = betterAuth({
         const html = await render(
           <VerifyEmailChangeEmail
             verificationUrl={url}
-            supportEmail={env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS}
+            supportEmail={env.PUBLIC_SUPPORT_EMAIL_ADDRESS}
           />,
         );
 
@@ -303,7 +303,7 @@ export const auth = betterAuth({
                   const html = await render(
                     <VerifyEmailEmail
                       otp={otp}
-                      supportEmail={env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS}
+                      supportEmail={env.PUBLIC_SUPPORT_EMAIL_ADDRESS}
                     />,
                   );
                   await sendEmail({

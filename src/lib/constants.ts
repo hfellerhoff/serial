@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { env } from "~/env";
 
-export const IS_MAIN_INSTANCE = env.VITE_PUBLIC_IS_MAIN_INSTANCE === "true";
+export const IS_MAIN_INSTANCE = env.PUBLIC_IS_MAIN_INSTANCE;
 
 export const BASE_SIGNED_OUT_URL = "/auth/sign-in";
 

@@ -15,7 +15,7 @@ import { db } from "~/server/db";
 import { IS_EMAIL_ENABLED, sendEmail } from "~/server/email";
 
 function getInviteUrl(token: string, origin?: string) {
-  const base = origin ?? env.VITE_PUBLIC_BASE_URL;
+  const base = origin ?? env.PUBLIC_BASE_URL;
   return `${base}/auth/sign-up?token=${token}`;
 }
 
@@ -141,7 +141,7 @@ export const sendInvitationEmail = adminProcedure
       createElement(InviteUserEmail, {
         inviteUrl,
         inviterName: context.user.name,
-        supportEmail: env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS,
+        supportEmail: env.PUBLIC_SUPPORT_EMAIL_ADDRESS,
       }),
     );
 

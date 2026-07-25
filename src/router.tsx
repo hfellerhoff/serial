@@ -10,7 +10,7 @@ export function getRouter() {
   });
 
   if (!router.isServer) {
-    const dsn = env.VITE_PUBLIC_SENTRY_DSN_WEB;
+    const dsn = env.PUBLIC_SENTRY_DSN_WEB;
     if (dsn) {
       Sentry.init({
         dsn,
