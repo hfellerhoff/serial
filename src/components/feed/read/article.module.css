@@ -1,7 +1,17 @@
 .article {
+  --article-flow-spacing: 1rem;
+
   font-size: calc(var(--article-font-size, 18) / 16 * 1rem);
   font-family: var(--article-font-family);
   line-height: 1.7;
+}
+
+.article * {
+  margin-block: 0;
+}
+
+.article * + * {
+  margin-block-start: var(--article-flow-spacing);
 }
 
 .article h1 {
@@ -12,40 +22,27 @@
 .article h2 {
   font-size: 1.2rem;
   font-weight: 900;
-  margin-top: 2rem;
-  margin-bottom: 1rem;
 }
 
 .article h3 {
   font-size: 1.1rem;
   font-weight: 900;
-  margin-top: 2rem;
-  margin-bottom: 1rem;
 }
 
 .article h4 {
   font-size: 1rem;
   font-weight: 900;
-  margin-top: 2rem;
-  margin-bottom: 1rem;
 }
 
 .article h5 {
   font-size: 1rem;
   font-weight: 800;
-  margin-top: 2rem;
-  margin-bottom: 1rem;
 }
 
 .article h6 {
   font-size: 1rem;
   font-weight: 700;
   color: var(--color-foreground);
-  margin-block: 0.5rem;
-}
-
-.article p {
-  margin-block: 1rem;
 }
 
 .article a {
@@ -75,8 +72,6 @@
 }
 
 .article img {
-  margin-top: 1.5rem;
-  margin-bottom: 0.5rem;
   width: 100%;
 }
 
@@ -95,10 +90,6 @@
   max-width: none;
 }
 
-.article img + :not(span) {
-  margin-bottom: 1.5rem;
-}
-
 .article ul {
   padding-left: 1.5rem;
   list-style: disc;
@@ -109,8 +100,8 @@
   list-style: decimal;
 }
 
-.article li {
-  margin-block: 0.25rem;
+.article li + li {
+  margin-block-start: calc(var(--article-flow-spacing) / 4);
 }
 
 .article blockquote {
@@ -125,7 +116,6 @@
 .article span {
   opacity: 0.7;
   font-size: 0.9rem;
-  margin-block: 0.5rem;
 }
 
 .article pre {

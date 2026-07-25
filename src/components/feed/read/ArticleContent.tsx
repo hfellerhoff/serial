@@ -72,7 +72,7 @@ export function ArticleContent({ content }: { content: string }) {
       if (videoPlayer === "serial") {
         return (
           <div
-            className={`${classes.videoEmbed} my-4 aspect-video w-full overflow-hidden rounded`}
+            className={`${classes.videoEmbed} aspect-video w-full overflow-hidden rounded`}
           >
             <CustomVideoPlayer
               videoID={videoId}
@@ -85,7 +85,7 @@ export function ArticleContent({ content }: { content: string }) {
       }
 
       return (
-        <div className="my-4 aspect-video w-full overflow-hidden rounded">
+        <div className="aspect-video w-full overflow-hidden rounded">
           <iframe
             width="1600"
             height="900"
