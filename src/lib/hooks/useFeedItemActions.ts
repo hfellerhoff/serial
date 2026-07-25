@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { useRouter } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { orpcRouterClient } from "../orpc";
 import { useFeedItemValue } from "../data/store";
 import {
@@ -97,11 +98,25 @@ export function useFeedItemActions(itemId: string) {
     window.open(item.url, "_blank", "noopener noreferrer");
   }, [item]);
 
+  const copyUrl = useCallback(async () => {
+    if (!item?.url) return false;
+
+    try {
+      await navigator.clipboard.writeText(item.url);
+      toast.success("Link copied");
+      return true;
+    } catch {
+      toast.error("Could not copy URL");
+      return false;
+    }
+  }, [item]);
+
   return {
     toggleRead,
     toggleWatchLater,
     markAsRead,
     openItem,
     openOriginal,
+    copyUrl,
   };
 }

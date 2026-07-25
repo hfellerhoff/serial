@@ -72,7 +72,8 @@ export function ArticleContent({ content }: { content: string }) {
       if (videoPlayer === "serial") {
         return (
           <div
-            className={`${classes.videoEmbed} my-4 aspect-video w-full overflow-hidden rounded`}
+            data-article-video-embed
+            className={`${classes.videoEmbed} aspect-video w-full overflow-hidden rounded`}
           >
             <CustomVideoPlayer
               videoID={videoId}
@@ -85,7 +86,10 @@ export function ArticleContent({ content }: { content: string }) {
       }
 
       return (
-        <div className="my-4 aspect-video w-full overflow-hidden rounded">
+        <div
+          data-article-video-embed
+          className="aspect-video w-full overflow-hidden rounded"
+        >
           <iframe
             width="1600"
             height="900"
@@ -93,7 +97,7 @@ export function ArticleContent({ content }: { content: string }) {
             title="YouTube video player"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
-            sandbox="allow-scripts allow-popups allow-presentation"
+            referrerPolicy="strict-origin-when-cross-origin"
             className="h-full w-full border-none"
           />
         </div>

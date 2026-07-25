@@ -13,7 +13,7 @@ import {
   PlayCircleIcon,
   XIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ImportDropzone } from "../components/feed/import/ImportDropzone";
 import { getInitialFeedDataFromFileInputElement } from "../components/feed/import/utils/getInitialFeedDataFromFileInputElement";
@@ -38,6 +38,7 @@ import {
 import { getGuidesUrl } from "~/lib/constants";
 import { shouldAlwaysKeepSSEConnectionAlive } from "~/lib/data/atoms";
 import { useFeeds } from "~/lib/data/feeds";
+import { useImportDropStore } from "~/lib/data/import-drop";
 import { useImportResults, useLoadingMode } from "~/lib/data/loading-machine";
 import { feedItemsStore } from "~/lib/data/store";
 import { dataSubscriptionActions } from "~/lib/data/useDataSubscription";
@@ -117,6 +118,10 @@ function EditFeedsPage() {
 
   const [fileInputErrorList, setFileInputErrorList] =
     useState<ImportFeedDataFromFilesError | null>(null);
+  const pendingDropResult = useImportDropStore((state) => state.pendingResult);
+  const clearPendingDropResult = useImportDropStore(
+    (state) => state.clearPendingResult,
+  );
 
   // Signal to Playwright tests that React has hydrated and the onChange handler
   // is attached to the file input, so file-chooser interactions are reliable.
@@ -139,6 +144,39 @@ function EditFeedsPage() {
   const setShouldAlwaysKeepSSEConnectionAlive = useSetAtom(
     shouldAlwaysKeepSSEConnectionAlive,
   );
+
+  const applyFileResult = (
+    feedResult:
+      | ImportFeedDataFromFilesError
+      | { success: true; data: ImportFeedDataItem[] },
+  ) => {
+    if (feedResult.success) {
+      // Mark already-added feeds as shouldImport: false
+      const feedsWithImportStatus = feedResult.data.map((feed) => ({
+        ...feed,
+        shouldImport: !feeds.some(
+          (existingFeed) => existingFeed.url === feed.feedUrl,
+        ),
+      }));
+      setFeedsFoundFromFile(feedsWithImportStatus);
+      setFileInputErrorList(null);
+    } else {
+      setFeedsFoundFromFile(null);
+      setFileInputErrorList(feedResult);
+    }
+  };
+  const applyPendingDropResult = useEffectEvent(applyFileResult);
+
+  useEffect(() => {
+    if (!pendingDropResult) return;
+
+    const frame = requestAnimationFrame(() => {
+      applyPendingDropResult(pendingDropResult);
+      clearPendingDropResult();
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [pendingDropResult, clearPendingDropResult]);
 
   // Keep SSE open during import so visibility changes don't disconnect the
   // streaming import. Reset when the import loader is hidden.
@@ -192,19 +230,7 @@ function EditFeedsPage() {
     );
     inputElementRef.current.value = "";
 
-    if (feedResult.success) {
-      // Mark already-added feeds as shouldImport: false
-      const feedsWithImportStatus = feedResult.data.map((feed) => ({
-        ...feed,
-        shouldImport: !feeds.some(
-          (existingFeed) => existingFeed.url === feed.feedUrl,
-        ),
-      }));
-      setFeedsFoundFromFile(feedsWithImportStatus);
-      setFileInputErrorList(null);
-    } else {
-      setFileInputErrorList(feedResult);
-    }
+    applyFileResult(feedResult);
   };
 
   const onFeedImport = async () => {

@@ -45,6 +45,62 @@ export async function getFeedItemProgress(tursoPort: number, id: string) {
   return feedItem?.progress ?? null;
 }
 
+export async function setFeedItemContent(
+  tursoPort: number,
+  id: string,
+  content: string,
+) {
+  const { db, client } = getDb(tursoPort);
+  await db
+    .update(schema.feedItems)
+    .set({ content })
+    .where(eq(schema.feedItems.id, id));
+  client.close();
+}
+
+export async function setFeedItemAsYouTubeVideo(
+  tursoPort: number,
+  id: string,
+  videoId: string,
+) {
+  const { db, client } = getDb(tursoPort);
+  const feedItem = await db
+    .select({ feedId: schema.feedItems.feedId })
+    .from(schema.feedItems)
+    .where(eq(schema.feedItems.id, id))
+    .get();
+
+  if (!feedItem) {
+    client.close();
+    throw new Error(`No feed item found for ${id}`);
+  }
+
+  await db
+    .update(schema.feeds)
+    .set({ platform: "youtube" })
+    .where(eq(schema.feeds.id, feedItem.feedId));
+  await db
+    .update(schema.feedItems)
+    .set({ contentId: videoId })
+    .where(eq(schema.feedItems.id, id));
+  client.close();
+}
+
+export async function getViewsForUser(tursoPort: number, email: string) {
+  const { db, client } = getDb(tursoPort);
+  const userViews = await db
+    .select({
+      name: schema.views.name,
+      layout: schema.views.layout,
+    })
+    .from(schema.views)
+    .innerJoin(schema.user, eq(schema.views.userId, schema.user.id))
+    .where(eq(schema.user.email, email));
+  client.close();
+
+  return userViews;
+}
+
 function uniqueId() {
   return randomBytes(8).toString("hex");
 }

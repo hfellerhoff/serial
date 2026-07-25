@@ -1,10 +1,17 @@
 import path from "node:path";
-import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import { signUp } from "../fixtures/auth";
-import { SELF_HOSTED_TURSO_PORT } from "../fixtures/ports";
-import { cleanupUser, generateTestEmail } from "../fixtures/seed-db";
+import {
+  SELF_HOSTED_RSS_SERVER_PORT,
+  SELF_HOSTED_TURSO_PORT,
+} from "../fixtures/ports";
+import {
+  cleanupUser,
+  generateTestEmail,
+  getViewsForUser,
+} from "../fixtures/seed-db";
+import { readOpmlFixture } from "../fixtures/opml";
 import type { Page } from "@playwright/test";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,7 +40,9 @@ async function importSectionedOpml(
   const fileChooserPromise = page.waitForEvent("filechooser");
   await dropzone.click();
   const fileChooser = await fileChooserPromise;
-  const buffer = fs.readFileSync(SECTIONED_OPML_PATH);
+  const buffer = Buffer.from(
+    readOpmlFixture(SECTIONED_OPML_PATH, SELF_HOSTED_RSS_SERVER_PORT),
+  );
   await fileChooser.setFiles({
     name: "sectioned-subscriptions.opml",
     mimeType: "application/xml",
@@ -94,6 +103,16 @@ test.describe("import categorization modes", () => {
     });
 
     await importSectionedOpml(page, "views");
+
+    const importedViews = await getViewsForUser(
+      SELF_HOSTED_TURSO_PORT,
+      testEmail,
+    );
+    expect(
+      importedViews
+        .filter((view) => ["Music", "Tech"].includes(view.name))
+        .map((view) => view.layout),
+    ).toEqual(["large-list", "large-list"]);
 
     // Go home and open the sidebar so we can inspect Views and Tags groups
     await page.goto("/");

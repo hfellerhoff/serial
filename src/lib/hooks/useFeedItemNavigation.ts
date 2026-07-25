@@ -17,6 +17,7 @@ import {
   feedFilterAtom,
   selectedItemIdAtom,
   viewFilterIdAtom,
+  visibilityFilterAtom,
 } from "~/lib/data/atoms";
 import {
   getShortcutAllowRepeat,
@@ -147,6 +148,7 @@ export function useFeedItemNavigation(
   const viewFilterId = useAtomValue(viewFilterIdAtom);
   const categoryFilter = useAtomValue(categoryFilterAtom);
   const feedFilter = useAtomValue(feedFilterAtom);
+  const visibilityFilter = useAtomValue(visibilityFilterAtom);
   const { pathname } = useLocation();
 
   const prevViewFilterIdRef = useRef<number | null>(null);
@@ -576,13 +578,16 @@ export function useFeedItemNavigation(
       const didToggleRead = selectedItemActions.toggleRead();
       if (!didToggleRead) return;
 
-      selectItemAfterCurrentItemLeavesView(idx);
+      if (visibilityFilter === "unread") {
+        selectItemAfterCurrentItemLeavesView(idx);
+      }
     },
     [
       pathname,
       selectedItemId,
       selectedItemActions,
       items,
+      visibilityFilter,
       selectItemAfterCurrentItemLeavesView,
     ],
   );
@@ -597,6 +602,13 @@ export function useFeedItemNavigation(
     selectedItemActions.toggleWatchLater();
     const idx = items.indexOf(selectedItemId);
     selectItemAfterCurrentItemLeavesView(idx);
+  });
+
+  useShortcut(getShortcutKey(SHORTCUT_KEYS.COPY_URL), (event) => {
+    event.preventDefault();
+    if (pathname !== "/" || !selectedItemId) return;
+
+    void selectedItemActions.copyUrl();
   });
 
   useShortcut(getShortcutKey(SHORTCUT_KEYS.ENTER), () => {

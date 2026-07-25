@@ -9,6 +9,7 @@ import type { ApplicationView } from "~/server/db/schema";
 import { sortViewsByPlacement } from "~/lib/data/views/utils";
 import { buildUncategorizedView } from "~/server/api/utils/buildUncategorizedView";
 import { protectedProcedure } from "~/server/orpc/base";
+import { DEFAULT_VIEW_LAYOUT } from "~/server/db/constants";
 import {
   contentCategories,
   createViewSchema,
@@ -57,7 +58,7 @@ export const create = protectedProcedure
           readStatus: input.readStatus,
           orientation: input.orientation,
           contentType: input.contentType,
-          layout: input.layout,
+          layout: input.layout ?? DEFAULT_VIEW_LAYOUT,
           placement: input.placement,
         })
         .returning();

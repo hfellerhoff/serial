@@ -8,6 +8,7 @@ import {
   cleanupUser,
   getFeedItemProgress,
   seedArticleData,
+  setFeedItemContent,
 } from "../fixtures/seed-db";
 
 test.describe("article progress tracking", () => {
@@ -104,5 +105,49 @@ test.describe("article progress tracking", () => {
 
     await page.keyboard.press("ArrowDown");
     await expect(selectedElements).toHaveCount(1);
+  });
+
+  test("navigates through content inside top-level div wrappers", async ({
+    page,
+  }) => {
+    const { feedItemId, email, password } = await seedArticleData(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+    );
+    testEmail = email;
+
+    await setFeedItemContent(
+      SELF_HOSTED_TURSO_PORT,
+      feedItemId,
+      `
+        <div class="feed-wrapper">
+          <p>First wrapped paragraph</p>
+          <div><p>Second nested paragraph</p></div>
+          <ul><li>Wrapped list item</li></ul>
+          <div>Leaf callout</div>
+          <div data-article-video-embed><p>Video internals</p></div>
+        </div>
+      `,
+    );
+
+    await signIn({ page, email, password });
+    await page.goto(`/read/${feedItemId}`);
+    await expect(page.getByText("First wrapped paragraph")).toBeVisible();
+
+    const selectedElement = page.locator("[data-article-selected]");
+    const expectedSelections = [
+      ["P", "First wrapped paragraph"],
+      ["P", "Second nested paragraph"],
+      ["LI", "Wrapped list item"],
+      ["DIV", "Leaf callout"],
+      ["DIV", "Video internals"],
+    ] as const;
+
+    for (const [tagName, text] of expectedSelections) {
+      await page.keyboard.press("ArrowDown");
+      await expect(selectedElement).toHaveCount(1);
+      await expect(selectedElement).toHaveJSProperty("tagName", tagName);
+      await expect(selectedElement).toContainText(text);
+    }
   });
 });

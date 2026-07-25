@@ -8,8 +8,6 @@ import { cleanupUser, seedViewLayoutData } from "../fixtures/seed-db";
 import { signIn } from "../fixtures/auth";
 import type { Locator } from "@playwright/test";
 
-test.describe.configure({ mode: "serial" });
-
 test.describe("view subview sections", () => {
   test.use({ viewport: { width: 1920, height: 1080 } });
 
@@ -198,7 +196,7 @@ test.describe("view subview sections", () => {
     await selectSectionLayout(viewSectionRows.nth(2), "Default", "List");
 
     // Uncategorized -> Grid
-    await selectSectionLayout(viewSectionRows.nth(3), "List", "Grid");
+    await selectSectionLayout(viewSectionRows.nth(3), "Large List", "Grid");
 
     // ── 6. Save the view ─────────────────────────────────────────────
     await dialog.getByRole("button", { name: /add view/i }).click();

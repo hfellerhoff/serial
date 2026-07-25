@@ -1,14 +1,17 @@
 import path from "node:path";
-import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import { signUp } from "../fixtures/auth";
-import { SELF_HOSTED_TURSO_PORT } from "../fixtures/ports";
+import {
+  SELF_HOSTED_RSS_SERVER_PORT,
+  SELF_HOSTED_TURSO_PORT,
+} from "../fixtures/ports";
 import {
   cleanupUser,
   generateTestEmail,
   verifyUserCleanup,
 } from "../fixtures/seed-db";
+import { readOpmlFixture } from "../fixtures/opml";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,6 +29,61 @@ test.describe("full user lifecycle", () => {
     if (testEmail) {
       await cleanupUser(SELF_HOSTED_TURSO_PORT, testEmail);
     }
+  });
+
+  test("opens the import review when an OPML file is dropped anywhere", async ({
+    page,
+  }) => {
+    testEmail = generateTestEmail();
+    await signUp({
+      page,
+      name: "Drop Import User",
+      email: testEmail,
+      password: "testpassword123",
+    });
+
+    const opmlContent = readOpmlFixture(OPML_PATH, SELF_HOSTED_RSS_SERVER_PORT);
+    const globalDropzone = page.getByTestId("global-import-dropzone");
+    await expect(globalDropzone).toHaveAttribute("data-ready", "true");
+    await expect(globalDropzone).toBeHidden();
+
+    await page.evaluate(() => {
+      const dragEnter = new DragEvent("dragenter", { bubbles: true });
+
+      // Native OS drags may expose only the "Files" type until drop.
+      Object.defineProperty(dragEnter, "dataTransfer", {
+        value: {
+          files: [],
+          items: [],
+          types: ["Files"],
+        },
+      });
+      window.dispatchEvent(dragEnter);
+    });
+
+    await expect(globalDropzone).toBeVisible();
+    await expect(page.getByText("Drop file here")).toBeVisible();
+
+    await page.evaluate((content) => {
+      const transfer = new DataTransfer();
+      transfer.items.add(
+        new File([content], "subscriptions.opml", {
+          type: "application/xml",
+        }),
+      );
+      window.dispatchEvent(
+        new DragEvent("drop", {
+          bubbles: true,
+          dataTransfer: transfer,
+        }),
+      );
+    }, opmlContent);
+
+    await expect(page).toHaveURL("/import");
+    await expect(page.getByText("Feeds To Import")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /import 4 feeds/i }),
+    ).toBeEnabled();
   });
 
   test("sign up, import, categorize, read, customize, delete feeds, delete account, verify db clean", async ({
@@ -53,7 +111,9 @@ test.describe("full user lifecycle", () => {
     const fileChooserPromise = page.waitForEvent("filechooser");
     await dropzone.click();
     const fileChooser = await fileChooserPromise;
-    const opmlContent = fs.readFileSync(OPML_PATH);
+    const opmlContent = Buffer.from(
+      readOpmlFixture(OPML_PATH, SELF_HOSTED_RSS_SERVER_PORT),
+    );
     await fileChooser.setFiles({
       name: "subscriptions.opml",
       mimeType: "application/xml",

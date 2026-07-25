@@ -74,8 +74,6 @@ async function pressShortcutForDialog(
   await expect(dialog).toBeVisible({ timeout: 5000 });
 }
 
-test.describe.configure({ mode: "serial" });
-
 test.describe("manage feeds/views/tags tabs", () => {
   test.use({ viewport: { width: 1920, height: 1080 } });
 
@@ -194,9 +192,9 @@ test.describe("manage feeds/views/tags tabs", () => {
     // Close the dialog
     await page.keyboard.press("Escape");
 
-    // Select all rows by clicking the visible "Select All" button (more
-    // reliable than the "s" shortcut in CI).
-    await mainContent.getByRole("button", { name: "s Select All" }).click();
+    await mainContent
+      .getByRole("button", { name: "Select All", exact: true })
+      .click();
 
     // Open bulk edit dialog with "e"
     await pressShortcutForDialog(page, "e", "Edit Views");
@@ -434,10 +432,9 @@ test.describe("manage feeds/views/tags tabs", () => {
       });
     }
 
-    // Select all rows by clicking the visible "Select All" button
     await page
       .locator("main main")
-      .getByRole("button", { name: "s Select All" })
+      .getByRole("button", { name: "Select All", exact: true })
       .click();
 
     // Open Assign Feeds bulk dialog with "e"
