@@ -1,16 +1,42 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
+const optionalBoolean = z.union([z.boolean(), z.stringbool()]).default(false);
+
+const shouldSkipEnvValidation =
+  process.env.SKIP_ENV_VALIDATION === "true" &&
+  process.env.NODE_ENV !== "production";
+
+const PUBLIC_ENV_SCHEMA = {
+  PUBLIC_BASE_URL: z.url(),
+  PUBLIC_SUPPORT_EMAIL_ADDRESS: z.email().optional(),
+  PUBLIC_SENTRY_DSN_WEB: z.url().optional(),
+  PUBLIC_UMAMI_WEBSITE_ID: z.string().optional(),
+  PUBLIC_UMAMI_SRC: z.url().optional(),
+  PUBLIC_IS_MAINTENANCE_MODE: optionalBoolean,
+  PUBLIC_IS_MAIN_INSTANCE: optionalBoolean,
+};
+
+const PUBLIC_ENV_KEYS = /** @type {(keyof typeof PUBLIC_ENV_SCHEMA)[]} */ (
+  Object.keys(PUBLIC_ENV_SCHEMA)
+);
+
+const publicRuntimeEnv = Object.fromEntries(
+  PUBLIC_ENV_KEYS.map((key) => {
+    const canonicalValue = process.env[key];
+
+    const publicValue =
+      canonicalValue === undefined || canonicalValue === ""
+        ? process.env[`VITE_${key}`]
+        : canonicalValue;
+
+    return [key, publicValue];
+  }),
+);
+
 export const env = createEnv({
-  clientPrefix: "VITE_PUBLIC_",
-  client: {
-    VITE_PUBLIC_BASE_URL: z.url(),
-    VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS: z.string().email().optional(),
-    VITE_PUBLIC_SENTRY_DSN_WEB: z.string().url().optional(),
-    VITE_PUBLIC_IS_MAINTENANCE_MODE: z.string().optional().default("false"),
-    VITE_PUBLIC_IS_MAIN_INSTANCE: z.string().optional().default("false"),
-    VITE_PUBLIC_IS_DEMO_INSTANCE: z.string().optional().default("false"),
-  },
+  clientPrefix: "PUBLIC_",
+  client: PUBLIC_ENV_SCHEMA,
   server: {
     DATABASE_URL: z.url().optional().default("http://127.0.0.1:8080"),
     DATABASE_AUTH_TOKEN: z
@@ -59,7 +85,7 @@ export const env = createEnv({
         (val) => !(process.env.KV_STORE === "ioredis" && !val),
         "REDIS_URL is required when KV_STORE is 'ioredis'.",
       ),
-    BACKGROUND_REFRESH_ENABLED: z.string().optional().default("true"),
+    BACKGROUND_REFRESH_ENABLED: z.stringbool().optional().default(true),
     OAUTH_PROVIDER_ID: z.string().optional(),
     OAUTH_PROVIDER_NAME: z.string().optional(),
     OAUTH_CLIENT_ID: z.string().optional(),
@@ -69,7 +95,7 @@ export const env = createEnv({
     OAUTH_TOKEN_URL: z.string().optional(),
     OAUTH_USER_INFO_URL: z.string().optional(),
     OAUTH_SCOPES: z.string().optional(),
-    OAUTH_PKCE: z.string().optional(),
+    OAUTH_PKCE: z.stringbool().optional(),
     OAUTH_REDIRECT_URI: z.string().optional(),
     TRUSTED_ORIGINS: z
       .string()
@@ -100,7 +126,6 @@ export const env = createEnv({
       .enum(["error", "warning", "info", "debug"])
       .optional()
       .default("info"),
-    IS_DEMO_INSTANCE: z.string().optional().default("false"),
     /**
      * When set (e.g. ".serial.tube"), the auth session cookie is shared
      * across subdomains so the marketing site can detect signed-in users.
@@ -108,27 +133,11 @@ export const env = createEnv({
     COOKIE_DOMAIN: z.string().optional(),
   },
   runtimeEnv: {
-    VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS:
-      import.meta.env?.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS ??
-      process.env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS,
-    VITE_PUBLIC_SENTRY_DSN_WEB:
-      import.meta.env?.VITE_PUBLIC_SENTRY_DSN_WEB ??
-      process.env.VITE_PUBLIC_SENTRY_DSN_WEB,
-    VITE_PUBLIC_IS_MAINTENANCE_MODE:
-      import.meta.env?.VITE_PUBLIC_IS_MAINTENANCE_MODE ??
-      process.env.VITE_PUBLIC_IS_MAINTENANCE_MODE,
-    VITE_PUBLIC_IS_DEMO_INSTANCE:
-      import.meta.env?.VITE_PUBLIC_IS_DEMO_INSTANCE ??
-      process.env.VITE_PUBLIC_IS_DEMO_INSTANCE,
-    VITE_PUBLIC_IS_MAIN_INSTANCE:
-      import.meta.env?.VITE_PUBLIC_IS_MAIN_INSTANCE ??
-      process.env.VITE_PUBLIC_IS_MAIN_INSTANCE,
+    ...publicRuntimeEnv,
     DATABASE_URL: process.env.DATABASE_URL,
     DATABASE_AUTH_TOKEN: process.env.DATABASE_AUTH_TOKEN,
     NODE_ENV: process.env.NODE_ENV,
     LOG_LEVEL: process.env.LOG_LEVEL,
-    VITE_PUBLIC_BASE_URL:
-      import.meta.env?.VITE_PUBLIC_BASE_URL ?? process.env.VITE_PUBLIC_BASE_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
@@ -171,14 +180,13 @@ export const env = createEnv({
     TRUSTED_ORIGINS: process.env.TRUSTED_ORIGINS,
     SENTRY_DSN_BACKEND: process.env.SENTRY_DSN_BACKEND,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
-    IS_DEMO_INSTANCE: process.env.IS_DEMO_INSTANCE,
     COOKIE_DOMAIN: process.env.COOKIE_DOMAIN,
   },
   /**
-   * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
-   * useful for Docker builds.
+   * Allow local tooling to skip validation without permitting unparsed values
+   * such as the string "false" to reach production consumers.
    */
-  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+  skipValidation: shouldSkipEnvValidation,
   /**
    * Makes it so that empty strings are treated as undefined.
    * `SOME_VAR: z.string()` and `SOME_VAR=''` will throw an error.

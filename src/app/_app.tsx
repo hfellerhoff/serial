@@ -28,7 +28,7 @@ import {
   getPlanFeatures,
   PLAN_ICONS,
 } from "~/components/feed/subscription-dialog";
-import { env } from "~/env";
+import { getPublicConfigKey } from "~/lib/public-config";
 
 export const Route = createFileRoute("/_app")({
   component: RootLayout,
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/_app")({
     middleware: [authMiddleware],
   },
   beforeLoad: () => {
-    if (env.VITE_PUBLIC_IS_MAINTENANCE_MODE === "true") {
+    if (getPublicConfigKey("PUBLIC_IS_MAINTENANCE_MODE")) {
       throw redirect({
         to: "/maintenance",
       });

@@ -1,8 +1,7 @@
 import { z } from "zod";
+import { getPublicConfigKey } from "~/lib/public-config";
 
-export const IS_MAIN_INSTANCE =
-  String(import.meta.env.VITE_PUBLIC_IS_MAIN_INSTANCE) === "true" ||
-  String(process.env.VITE_PUBLIC_IS_MAIN_INSTANCE) === "true";
+export const IS_MAIN_INSTANCE = getPublicConfigKey("PUBLIC_IS_MAIN_INSTANCE");
 
 export const BASE_SIGNED_OUT_URL = "/auth/sign-in";
 

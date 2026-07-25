@@ -22,7 +22,7 @@ export default defineTask({
     description: "Background refresh of active feeds for paid users",
   },
   async run() {
-    const backgroundRefreshEnabled = env.BACKGROUND_REFRESH_ENABLED !== "false";
+    const backgroundRefreshEnabled = env.BACKGROUND_REFRESH_ENABLED;
 
     if (!backgroundRefreshEnabled) {
       logMessage(

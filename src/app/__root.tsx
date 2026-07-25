@@ -14,6 +14,8 @@ import { UndoShortcutListener } from "~/lib/undo";
 import { Button } from "~/components/ui/button";
 import { BASE_SIGNED_OUT_URL } from "~/lib/constants";
 import { fetchConfigCss } from "~/server/auth/endpoints";
+import { SERIAL_PUBLIC_CONFIG_KEY } from "~/lib/public-config";
+import { fetchPublicConfig } from "~/server/public-config";
 
 import appCss from "~/styles/globals.css?url";
 
@@ -26,8 +28,11 @@ const description =
 
 export const Route = createRootRoute({
   loader: async () => {
-    const configCss = await fetchConfigCss();
-    return { configCss };
+    const [configCss, publicConfigPayload] = await Promise.all([
+      fetchConfigCss(),
+      fetchPublicConfig(),
+    ]);
+    return { configCss, ...publicConfigPayload };
   },
   head: ({ loaderData }) => {
     return {
@@ -117,10 +122,17 @@ export const Route = createRootRoute({
 });
 
 export function RootLayout() {
+  const { inlinePublicConfig, publicConfig } = Route.useLoaderData();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.${SERIAL_PUBLIC_CONFIG_KEY}=${inlinePublicConfig}`,
+          }}
+        />
         {/* {import.meta.env.DEV && (
           <>
             <script
@@ -129,14 +141,14 @@ export function RootLayout() {
             />
           </>
         )}*/}
-        {import.meta.env.VITE_PUBLIC_UMAMI_SRC &&
-          import.meta.env.VITE_PUBLIC_UMAMI_WEBSITE_ID && (
+        {publicConfig.PUBLIC_UMAMI_SRC &&
+          publicConfig.PUBLIC_UMAMI_WEBSITE_ID && (
             <>
               <script
                 async
                 defer
-                data-website-id={import.meta.env.VITE_PUBLIC_UMAMI_WEBSITE_ID}
-                src={import.meta.env.VITE_PUBLIC_UMAMI_SRC}
+                data-website-id={publicConfig.PUBLIC_UMAMI_WEBSITE_ID}
+                src={publicConfig.PUBLIC_UMAMI_SRC}
               />
             </>
           )}
@@ -154,13 +166,12 @@ export function RootLayout() {
             disableTransitionOnChange
           >
             <Outlet />
-            {/* TODO: what is happening here */}
-            <Scripts />
             <Toaster />
             <UndoShortcutListener />
             <ReloadPrompt />
           </ThemeProvider>
         </QueryProvider>
+        <Scripts />
       </body>
     </html>
   );

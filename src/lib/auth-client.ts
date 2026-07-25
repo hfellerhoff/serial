@@ -5,7 +5,7 @@ import {
   genericOAuthClient,
 } from "better-auth/client/plugins";
 import { polarClient } from "@polar-sh/better-auth/client";
-import { env } from "~/env";
+import { getPublicConfigKey } from "~/lib/public-config";
 
 const plugins = [
   adminClient(),
@@ -19,7 +19,7 @@ export const authClient = createAuthClient({
   baseURL:
     typeof window !== "undefined"
       ? window.location.origin
-      : env.VITE_PUBLIC_BASE_URL,
+      : getPublicConfigKey("PUBLIC_BASE_URL"),
 });
 
 export const { signIn, signOut, signUp, useSession, resetPassword } =

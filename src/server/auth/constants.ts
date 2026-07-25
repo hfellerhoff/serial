@@ -1,6 +1,6 @@
 import { env } from "~/env";
 
-const BASE_ORIGIN = new URL(env.VITE_PUBLIC_BASE_URL).origin;
+const BASE_ORIGIN = new URL(env.PUBLIC_BASE_URL).origin;
 export const TRUSTED_ORIGINS_SET = new Set([
   BASE_ORIGIN,
   ...env.TRUSTED_ORIGINS.map((o) => new URL(o).origin),
@@ -30,7 +30,7 @@ export function isTrustedCorsOrigin(origin: string): boolean {
 
 /**
  * Validate an incoming origin/referer against the trusted origins list.
- * Returns the matched origin, or falls back to VITE_PUBLIC_BASE_URL.
+ * Returns the matched origin, or falls back to PUBLIC_BASE_URL.
  */
 export function getValidatedOrigin(headers: Headers): string {
   const origin = headers.get("origin") ?? headers.get("referer");
