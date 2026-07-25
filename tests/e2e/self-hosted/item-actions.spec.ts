@@ -91,7 +91,7 @@ test.describe("feed item actions", () => {
     await page.keyboard.up("Alt");
 
     await page.keyboard.press("Meta+Shift+C");
-    await expect(page.getByText("URL copied")).toBeVisible();
+    await expect(page.getByText("Link copied")).toBeVisible();
 
     const copiedUrl = await page.evaluate(() => navigator.clipboard.readText());
     const itemUrlSuffix = feedItemId.replace(/^article-/, "");

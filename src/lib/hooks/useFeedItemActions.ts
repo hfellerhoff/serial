@@ -103,7 +103,7 @@ export function useFeedItemActions(itemId: string) {
 
     try {
       await navigator.clipboard.writeText(item.url);
-      toast.success("URL copied");
+      toast.success("Link copied");
       return true;
     } catch {
       toast.error("Could not copy URL");
