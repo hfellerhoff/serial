@@ -72,6 +72,7 @@ export function ArticleContent({ content }: { content: string }) {
       if (videoPlayer === "serial") {
         return (
           <div
+            data-article-video-embed
             className={`${classes.videoEmbed} aspect-video w-full overflow-hidden rounded`}
           >
             <CustomVideoPlayer
@@ -85,7 +86,10 @@ export function ArticleContent({ content }: { content: string }) {
       }
 
       return (
-        <div className="aspect-video w-full overflow-hidden rounded">
+        <div
+          data-article-video-embed
+          className="aspect-video w-full overflow-hidden rounded"
+        >
           <iframe
             width="1600"
             height="900"

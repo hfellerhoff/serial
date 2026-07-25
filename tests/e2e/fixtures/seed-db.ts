@@ -45,6 +45,19 @@ export async function getFeedItemProgress(tursoPort: number, id: string) {
   return feedItem?.progress ?? null;
 }
 
+export async function setFeedItemContent(
+  tursoPort: number,
+  id: string,
+  content: string,
+) {
+  const { db, client } = getDb(tursoPort);
+  await db
+    .update(schema.feedItems)
+    .set({ content })
+    .where(eq(schema.feedItems.id, id));
+  client.close();
+}
+
 export async function getViewsForUser(tursoPort: number, email: string) {
   const { db, client } = getDb(tursoPort);
   const userViews = await db

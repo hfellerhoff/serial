@@ -15,19 +15,88 @@ export const articleSelectedElementAtom = atom<HTMLElement | null>(null);
 
 const SCROLL_DURATION_MS = 300;
 const TARGET_VIEWPORT_POSITION = 1 / 3;
-const SELECTABLE =
-  ":scope > p, :scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6, :scope > blockquote, :scope > img, :scope > figure, :scope > div, li";
+const SELECTABLE_TAGS = new Set([
+  "P",
+  "H1",
+  "H2",
+  "H3",
+  "H4",
+  "H5",
+  "H6",
+  "BLOCKQUOTE",
+  "IMG",
+  "FIGURE",
+  "LI",
+]);
+const INTERACTIVE_ROLES = new Set([
+  "button",
+  "checkbox",
+  "link",
+  "radio",
+  "switch",
+]);
+const TEXT_BLOCK_SELECTOR = "p, h1, h2, h3, h4, h5, h6, blockquote, figure, li";
+
+function hasNavigableContent(element: HTMLElement): boolean {
+  return !!(
+    element.textContent?.trim() ||
+    element.tagName === "IMG" ||
+    element.tagName === "FIGURE" ||
+    element.querySelector("img, iframe, video")
+  );
+}
+
+function isAtomicDiv(element: HTMLElement): boolean {
+  const role = element.getAttribute("role");
+  const isInteractive = role ? INTERACTIVE_ROLES.has(role) : false;
+  const isMediaOnly =
+    !!element.querySelector("iframe, video") &&
+    !element.querySelector(TEXT_BLOCK_SELECTOR);
+
+  return (
+    element.hasAttribute("data-lightbox") ||
+    element.hasAttribute("data-article-video-embed") ||
+    isInteractive ||
+    isMediaOnly
+  );
+}
+
+function getNavigableDescendants(container: HTMLElement): HTMLElement[] {
+  const elements: HTMLElement[] = [];
+
+  for (const child of container.children) {
+    if (!(child instanceof HTMLElement)) continue;
+    if (child.hasAttribute("data-serial-header")) continue;
+
+    if (SELECTABLE_TAGS.has(child.tagName)) {
+      if (hasNavigableContent(child)) elements.push(child);
+      continue;
+    }
+
+    if (child.tagName === "DIV") {
+      if (isAtomicDiv(child)) {
+        if (hasNavigableContent(child)) elements.push(child);
+        continue;
+      }
+
+      const descendants = getNavigableDescendants(child);
+      if (descendants.length > 0) {
+        elements.push(...descendants);
+      } else if (hasNavigableContent(child)) {
+        elements.push(child);
+      }
+      continue;
+    }
+
+    elements.push(...getNavigableDescendants(child));
+  }
+
+  return elements;
+}
 
 export function getElements(container: HTMLElement | null): HTMLElement[] {
   if (!container) return [];
-  return Array.from(container.querySelectorAll<HTMLElement>(SELECTABLE)).filter(
-    (el) =>
-      !el.hasAttribute("data-serial-header") &&
-      (el.textContent?.trim() ||
-        el.tagName === "IMG" ||
-        el.tagName === "FIGURE" ||
-        el.querySelector("img")),
-  );
+  return getNavigableDescendants(container);
 }
 
 export function isElementInViewport(element: Element): boolean {
