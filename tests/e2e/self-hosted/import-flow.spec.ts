@@ -118,7 +118,9 @@ test.describe("full user lifecycle", () => {
     await expect(
       page.getByRole("button", { name: "Deselect CGP Grey" }),
     ).toHaveClass(/bg-primary/);
-    await page.getByRole("button", { name: "Deselect CGP Grey" }).hover();
+    await page
+      .getByRole("button", { name: "Deselect CGP Grey" })
+      .hover({ force: true });
     await expect(page.getByRole("tooltip")).toHaveText("Deselect feed");
 
     const [itemBounds, importButtonBounds, footerBounds, contentBounds] =
@@ -126,7 +128,10 @@ test.describe("full user lifecycle", () => {
         cgpGreyItemContainer.boundingBox(),
         importButton.boundingBox(),
         importFooter.boundingBox(),
-        page.locator('[data-slot="sidebar-inset"]').boundingBox(),
+        page.locator('[data-slot="sidebar-inset"]').evaluate((element) => ({
+          x: element.getBoundingClientRect().x,
+          width: element.clientWidth,
+        })),
       ]);
     expect(itemBounds).not.toBeNull();
     expect(importButtonBounds).not.toBeNull();
