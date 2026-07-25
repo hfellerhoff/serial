@@ -66,10 +66,13 @@ export function GlobalImportDropzone() {
       resetDragState();
       setIsProcessing(true);
 
-      const result = await getInitialFeedDataFromFiles(dataTransfer.files);
-      setPendingResult(result);
-      await navigate({ to: "/import" });
-      setIsProcessing(false);
+      try {
+        const result = await getInitialFeedDataFromFiles(dataTransfer.files);
+        setPendingResult(result);
+        await navigate({ to: "/import" });
+      } finally {
+        setIsProcessing(false);
+      }
     };
 
     window.addEventListener("dragenter", onDragEnter);

@@ -13,7 +13,7 @@ import {
   PlayCircleIcon,
   XIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ImportDropzone } from "../components/feed/import/ImportDropzone";
 import { getInitialFeedDataFromFileInputElement } from "../components/feed/import/utils/getInitialFeedDataFromFileInputElement";
@@ -145,40 +145,38 @@ function EditFeedsPage() {
     shouldAlwaysKeepSSEConnectionAlive,
   );
 
-  const applyFileResult = useCallback(
-    (
-      feedResult:
-        | ImportFeedDataFromFilesError
-        | { success: true; data: ImportFeedDataItem[] },
-    ) => {
-      if (feedResult.success) {
-        // Mark already-added feeds as shouldImport: false
-        const feedsWithImportStatus = feedResult.data.map((feed) => ({
-          ...feed,
-          shouldImport: !feeds.some(
-            (existingFeed) => existingFeed.url === feed.feedUrl,
-          ),
-        }));
-        setFeedsFoundFromFile(feedsWithImportStatus);
-        setFileInputErrorList(null);
-      } else {
-        setFeedsFoundFromFile(null);
-        setFileInputErrorList(feedResult);
-      }
-    },
-    [feeds],
-  );
+  const applyFileResult = (
+    feedResult:
+      | ImportFeedDataFromFilesError
+      | { success: true; data: ImportFeedDataItem[] },
+  ) => {
+    if (feedResult.success) {
+      // Mark already-added feeds as shouldImport: false
+      const feedsWithImportStatus = feedResult.data.map((feed) => ({
+        ...feed,
+        shouldImport: !feeds.some(
+          (existingFeed) => existingFeed.url === feed.feedUrl,
+        ),
+      }));
+      setFeedsFoundFromFile(feedsWithImportStatus);
+      setFileInputErrorList(null);
+    } else {
+      setFeedsFoundFromFile(null);
+      setFileInputErrorList(feedResult);
+    }
+  };
+  const applyPendingDropResult = useEffectEvent(applyFileResult);
 
   useEffect(() => {
     if (!pendingDropResult) return;
 
     const frame = requestAnimationFrame(() => {
-      applyFileResult(pendingDropResult);
+      applyPendingDropResult(pendingDropResult);
       clearPendingDropResult();
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [pendingDropResult, applyFileResult, clearPendingDropResult]);
+  }, [pendingDropResult, clearPendingDropResult]);
 
   // Keep SSE open during import so visibility changes don't disconnect the
   // streaming import. Reset when the import loader is hidden.
