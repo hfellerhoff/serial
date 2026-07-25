@@ -25,7 +25,13 @@ import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { getDataSubscriptionClientId } from "~/lib/data/clientChannel";
 import { useFeedItemActions } from "~/lib/hooks/useFeedItemActions";
 
-export function ContentActions({ contentID }: { contentID: string }) {
+export function ContentActions({
+  contentID,
+  showCopyUrl = true,
+}: {
+  contentID: string;
+  showCopyUrl?: boolean;
+}) {
   const { view } = useView();
 
   const video = useFeedItemValue(contentID);
@@ -144,15 +150,17 @@ export function ContentActions({ contentID }: { contentID: string }) {
           <span className="hidden pl-1.5 md:block">Instapaper</span>
         </ButtonWithShortcut>
       )}
-      <ButtonWithShortcut
-        shortcut={SHORTCUT_KEYS.COPY_URL}
-        variant="outline"
-        onClick={() => void copyUrl()}
-        size="icon md:default"
-      >
-        <CopyIcon size={16} />
-        <span className="hidden pl-1.5 md:block">Copy URL</span>
-      </ButtonWithShortcut>
+      {showCopyUrl && (
+        <ButtonWithShortcut
+          shortcut={SHORTCUT_KEYS.COPY_URL}
+          variant="outline"
+          onClick={() => void copyUrl()}
+          size="icon md:default"
+        >
+          <CopyIcon size={16} />
+          <span className="hidden pl-1.5 md:block">Copy URL</span>
+        </ButtonWithShortcut>
+      )}
       <ButtonWithShortcut
         shortcut={SHORTCUT_KEYS.TOGGLE_SAVED}
         variant={isWatchLater ? "secondary" : "outline"}

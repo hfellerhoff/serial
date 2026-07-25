@@ -100,6 +100,23 @@ test.describe("feed item actions", () => {
     );
   });
 
+  test("shows Copy URL before Open in the video header", async ({ page }) => {
+    const { email, password, feedItemId } = await seedArticleData(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+    );
+    testEmail = email;
+
+    await signIn({ page, email, password });
+    await page.goto(`/watch/${feedItemId}`);
+
+    const headerActions = page.locator("header > span").last();
+    const buttons = headerActions.getByRole("button");
+    await expect(buttons.first()).toHaveAccessibleName("Copy URL");
+    await expect(buttons).toHaveCount(2);
+    await expect(page.getByRole("button", { name: "Copy URL" })).toHaveCount(1);
+  });
+
   test("marking a saved item read keeps it selected", async ({ page }) => {
     test.setTimeout(30000);
 
