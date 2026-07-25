@@ -149,7 +149,10 @@ function InviteRow({
 
   return (
     <>
-      <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-3">
+      <div
+        data-testid="invitation-row"
+        className="flex items-center justify-between gap-3 rounded-lg px-3 py-3"
+      >
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="text-base font-medium">
             {invite.name ? (

@@ -3,6 +3,7 @@ import {
   SELF_HOSTED_APP_PORT,
   SELF_HOSTED_TURSO_PORT,
 } from "./e2e/fixtures/ports";
+import { seedAdmin } from "./e2e/fixtures/auth";
 import { resetDb } from "./e2e/fixtures/reset-db";
 
 async function waitForApp(url: string, timeoutMs = 60000) {
@@ -23,4 +24,10 @@ export default async function globalSetup() {
   await waitForApp(`http://localhost:${SELF_HOSTED_APP_PORT}/api/health`);
   await resetDb(SELF_HOSTED_TURSO_PORT);
   await enablePublicSignups(SELF_HOSTED_TURSO_PORT);
+  await seedAdmin({
+    tursoPort: SELF_HOSTED_TURSO_PORT,
+    name: "E2E Harness Admin",
+    email: "e2e-harness-admin@example.com",
+    password: "testpassword123",
+  });
 }

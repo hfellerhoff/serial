@@ -74,8 +74,6 @@ async function pressShortcutForDialog(
   await expect(dialog).toBeVisible({ timeout: 5000 });
 }
 
-test.describe.configure({ mode: "serial" });
-
 test.describe("manage feeds/views/tags tabs", () => {
   test.use({ viewport: { width: 1920, height: 1080 } });
 

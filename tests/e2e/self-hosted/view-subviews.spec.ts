@@ -8,8 +8,6 @@ import { cleanupUser, seedViewLayoutData } from "../fixtures/seed-db";
 import { signIn } from "../fixtures/auth";
 import type { Locator } from "@playwright/test";
 
-test.describe.configure({ mode: "serial" });
-
 test.describe("view subview sections", () => {
   test.use({ viewport: { width: 1920, height: 1080 } });
 
