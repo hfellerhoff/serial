@@ -1,5 +1,9 @@
 import { defineConfig } from "@playwright/test";
 import { baseConfig } from "./playwright.config";
+import {
+  SELF_HOSTED_APP_PORT,
+  SELF_HOSTED_RSS_SERVER_PORT,
+} from "./tests/e2e/fixtures/ports";
 
 export default defineConfig({
   ...baseConfig,
@@ -7,17 +11,17 @@ export default defineConfig({
   testDir: "./tests/e2e/self-hosted",
   use: {
     ...baseConfig.use,
-    baseURL: "http://localhost:3001",
+    baseURL: `http://localhost:${SELF_HOSTED_APP_PORT}`,
   },
   webServer: [
     {
       command: "pnpm dev:test:self-hosted",
-      url: "http://localhost:3001",
+      url: `http://localhost:${SELF_HOSTED_APP_PORT}`,
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: "node --import=tsx tests/e2e/fixtures/rss-server.ts 3003",
-      url: "http://127.0.0.1:3003",
+      command: `node --import=tsx tests/e2e/fixtures/rss-server.ts ${SELF_HOSTED_RSS_SERVER_PORT}`,
+      url: `http://127.0.0.1:${SELF_HOSTED_RSS_SERVER_PORT}`,
       reuseExistingServer: !process.env.CI,
     },
   ],
