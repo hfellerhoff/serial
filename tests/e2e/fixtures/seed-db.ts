@@ -391,8 +391,9 @@ export async function seedMultipleArticleData(
 }
 
 /**
- * Creates a user via the Better Auth sign-up API, then seeds 3 feeds, 2 tags,
- * feed-tag associations, and multiple articles per feed directly in the DB.
+ * Creates a user via the Better Auth sign-up API, then seeds 3 feeds, 3 tags
+ * (including one unassigned tag), feed-tag associations, and multiple articles
+ * per feed directly in the DB.
  *
  * Returns feed IDs, tag IDs, feed item IDs and credentials so the test can
  * log in via the UI and configure view layouts.
@@ -442,7 +443,7 @@ export async function seedViewLayoutData(
   const now = new Date();
   const farFuture = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365);
 
-  // Create 2 content categories (tags)
+  // Create 3 content categories (tags), leaving one unassigned.
   const tags = await db
     .insert(schema.contentCategories)
     .values([
@@ -450,6 +451,12 @@ export async function seedViewLayoutData(
       {
         userId: testUser.id,
         name: "News",
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        userId: testUser.id,
+        name: "Unassigned Tag",
         createdAt: now,
         updatedAt: now,
       },

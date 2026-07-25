@@ -36,6 +36,8 @@ import { useViews } from "~/lib/data/views";
 import { useViewFeeds } from "~/lib/data/view-feeds";
 import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
 import { useContentCategories } from "~/lib/data/content-categories";
+import { useCreateContentCategoryMutation } from "~/lib/data/content-categories/mutations";
+import { useQuickCreateViewMutation } from "~/lib/data/views/mutations";
 import { VIEW_LAYOUT_ITEM_TYPE } from "~/server/db/constants";
 
 function useViewOptions() {
@@ -245,6 +247,9 @@ export function EditFeedDialog({
   const { mutateAsync: editFeed } = useEditFeedMutation();
   const { mutateAsync: deleteFeed } = useDeleteFeedMutation();
   const { mutate: setFeedActive } = useSetFeedActiveMutation();
+  const { mutateAsync: quickCreateView } = useQuickCreateViewMutation();
+  const { mutateAsync: createContentCategory } =
+    useCreateContentCategoryMutation();
 
   const [name, setName] = useState<string>("");
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
@@ -461,6 +466,21 @@ export function EditFeedDialog({
           onToggle={(id) =>
             toggleSelectedId(selectedViewIds, setSelectedViewIds, id)
           }
+          onCreate={async (viewName) => {
+            try {
+              const createdView = await quickCreateView({ name: viewName });
+              if (createdView) {
+                setSelectedViewIds((ids) =>
+                  ids.includes(createdView.id) ? ids : [...ids, createdView.id],
+                );
+              }
+            } catch {
+              toast.error("Failed to create view.");
+              throw new Error("Failed to create view.");
+            }
+          }}
+          createLabel="Create view"
+          createPlaceholder="New view name..."
         />
         <SelectableChipList
           label="Tags"
@@ -470,6 +490,24 @@ export function EditFeedDialog({
           onToggle={(id) =>
             toggleSelectedId(selectedCategories, setSelectedCategories, id)
           }
+          onCreate={async (tagName) => {
+            try {
+              const createdTag = await createContentCategory({
+                name: tagName,
+                feedCategorizations: [],
+              });
+              if (createdTag) {
+                setSelectedCategories((ids) =>
+                  ids.includes(createdTag.id) ? ids : [...ids, createdTag.id],
+                );
+              }
+            } catch {
+              toast.error("Failed to create tag.");
+              throw new Error("Failed to create tag.");
+            }
+          }}
+          createLabel="Create tag"
+          createPlaceholder="New tag name..."
         />
         <FeedOpenLocationToggleGroup
           feedPlatform={feed?.platform ?? "youtube"}

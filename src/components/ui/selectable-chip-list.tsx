@@ -1,10 +1,24 @@
 "use client";
 
-import { CheckIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import {
+  CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PlusIcon,
+} from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { badgeVariants } from "./badge";
 import { Button } from "./button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "./command";
 import { Label } from "./label";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { sortSelectableChipOptions } from "./selectable-chip-list.utils";
 import { cn } from "~/lib/utils";
 
@@ -18,6 +32,9 @@ type SelectableChipListProps = {
   options: SelectableChipOption[];
   selectedIds: number[];
   onToggle: (id: number) => void;
+  onCreate?: (name: string) => void | Promise<void>;
+  createLabel?: string;
+  createPlaceholder?: string;
   prioritizedIds?: ReadonlySet<number>;
   emptyMessage?: string;
 };
@@ -58,9 +75,16 @@ export function SelectableChipList({
   options,
   selectedIds,
   onToggle,
+  onCreate,
+  createLabel = `Create ${label.toLowerCase()}`,
+  createPlaceholder = `New ${label.toLowerCase().replace(/s$/, "")} name...`,
   prioritizedIds = new Set(),
   emptyMessage = `No ${label.toLowerCase()} available`,
 }: SelectableChipListProps) {
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createSearch, setCreateSearch] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+  const createInputRef = useRef<HTMLInputElement>(null);
   const sortedOptions = sortSelectableChipOptions(options, prioritizedIds);
   const selectedSet = new Set(selectedIds);
   const totalCount = sortedOptions.length;
@@ -92,6 +116,13 @@ export function SelectableChipList({
   const showPagination = hasMore || hasPrevious;
   const estimatedTotalPages =
     firstPageCount > 0 ? Math.ceil(totalCount / firstPageCount) : 1;
+  const trimmedCreateSearch = createSearch.trim();
+  const hasExactCreateMatch = options.some(
+    (option) =>
+      option.label.toLowerCase() === trimmedCreateSearch.toLowerCase(),
+  );
+  const canCreate =
+    !!onCreate && !!trimmedCreateSearch && !hasExactCreateMatch && !isCreating;
 
   useLayoutEffect(() => {
     if (totalCount !== measuredTotalCountRef.current) {
@@ -142,10 +173,89 @@ export function SelectableChipList({
     }));
   };
 
+  const handleCreate = async () => {
+    if (!onCreate || !canCreate) return;
+
+    setIsCreating(true);
+    try {
+      await onCreate(trimmedCreateSearch);
+      setCreateSearch("");
+      setCreateOpen(false);
+    } catch {
+      // The caller owns creation error messaging.
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   return (
-    <div className="grid gap-2">
+    <div
+      className="grid gap-2"
+      data-slot="selectable-chip-list"
+      data-label={label}
+    >
       <div className="flex items-center justify-between">
-        <Label>{label}</Label>
+        <div className="flex items-center gap-2">
+          <Label>{label}</Label>
+          {onCreate && (
+            <Popover
+              open={createOpen}
+              onOpenChange={(open) => {
+                setCreateOpen(open);
+                if (!open) setCreateSearch("");
+              }}
+            >
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-6"
+                  aria-label={createLabel}
+                >
+                  <PlusIcon size={14} />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[250px] p-0" align="start">
+                <Command
+                  shouldFilter={false}
+                  className="[&_[cmdk-item]]:pointer-events-auto [&_[cmdk-item]]:opacity-100"
+                >
+                  <CommandInput
+                    ref={createInputRef}
+                    placeholder={createPlaceholder}
+                    value={createSearch}
+                    onValueChange={setCreateSearch}
+                  />
+                  <CommandList>
+                    {!trimmedCreateSearch && (
+                      <CommandEmpty>Enter a name to create.</CommandEmpty>
+                    )}
+                    {hasExactCreateMatch && (
+                      <CommandEmpty>
+                        A {label.toLowerCase().replace(/s$/, "")} with this name
+                        already exists.
+                      </CommandEmpty>
+                    )}
+                    {canCreate && (
+                      <CommandGroup>
+                        <CommandItem
+                          value="__create__"
+                          onSelect={() => void handleCreate()}
+                        >
+                          <PlusIcon className="mr-2 size-4" />
+                          <span className="truncate">
+                            {createLabel} &quot;{trimmedCreateSearch}&quot;
+                          </span>
+                        </CommandItem>
+                      </CommandGroup>
+                    )}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
         {showPagination && (
           <div className="flex items-center gap-1">
             <span className="text-muted-foreground text-xs">
@@ -196,15 +306,18 @@ export function SelectableChipList({
                     variant: isSelected ? "default" : "outline",
                   }),
                   "cursor-pointer",
-                  isPrioritized &&
-                    !isSelected &&
-                    "border-primary/50 bg-primary/10 font-semibold",
+                  isPrioritized && !isSelected && "border-primary/50",
+                  !isPrioritized && !isSelected && "border-dashed",
                 )}
               >
-                <CheckIcon
-                  aria-hidden="true"
-                  className={cn(!isSelected && "opacity-0")}
-                />
+                {isSelected ? (
+                  <CheckIcon aria-hidden="true" />
+                ) : (
+                  <PlusIcon
+                    aria-hidden="true"
+                    className="text-muted-foreground"
+                  />
+                )}
                 {option.label}
               </button>
             );

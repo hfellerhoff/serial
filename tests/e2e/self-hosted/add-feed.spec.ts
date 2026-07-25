@@ -199,20 +199,40 @@ test.describe("add feed manually", () => {
     );
     await expect(dialog.getByRole("button", { name: "Save" })).toBeVisible();
 
-    const viewsField = dialog.getByText("Views", { exact: true }).locator("..");
-    const viewChips = viewsField.locator(
-      "xpath=following-sibling::div//button",
+    const viewsField = dialog.locator(
+      '[data-slot="selectable-chip-list"][data-label="Views"]',
     );
+    const viewChips = viewsField.locator("button[aria-pressed]");
     await expect(viewChips).toHaveText(["All", "Alpha View", "Zebra View"]);
+    await viewsField.getByRole("button", { name: "Create view" }).click();
+    const newViewNameInput = page.getByPlaceholder("New view name...");
+    await newViewNameInput.fill("Inline View");
+    await page
+      .getByRole("option", { name: 'Create view "Inline View"' })
+      .click();
+    await expect(viewChips.filter({ hasText: "Inline View" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     await viewChips.filter({ hasText: "Zebra View" }).click();
     await expect(viewChips.filter({ hasText: "Zebra View" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
 
-    const tagsField = dialog.getByText("Tags", { exact: true }).locator("..");
-    const tagChips = tagsField.locator("xpath=following-sibling::div//button");
+    const tagsField = dialog.locator(
+      '[data-slot="selectable-chip-list"][data-label="Tags"]',
+    );
+    const tagChips = tagsField.locator("button[aria-pressed]");
     await expect(tagChips).toHaveText(["Priority", "Alpha", "Zebra"]);
+    await tagsField.getByRole("button", { name: "Create tag" }).click();
+    const newTagNameInput = page.getByPlaceholder("New tag name...");
+    await newTagNameInput.fill("Inline Tag");
+    await page.getByRole("option", { name: 'Create tag "Inline Tag"' }).click();
+    await expect(tagChips.filter({ hasText: "Inline Tag" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     await tagChips.filter({ hasText: "Priority" }).click();
     await expect(tagChips.filter({ hasText: "Priority" })).toHaveAttribute(
       "aria-pressed",
@@ -239,5 +259,11 @@ test.describe("add feed manually", () => {
     await expect(
       page.locator("main").getByRole("button", { name: "CGP Grey" }),
     ).toBeVisible({ timeout: 10000 });
+    const feedRow = page
+      .locator("main")
+      .getByRole("button", { name: "CGP Grey" })
+      .locator("..");
+    await expect(feedRow.getByText("Inline View")).toBeVisible();
+    await expect(feedRow.getByText("Inline Tag")).toBeVisible();
   });
 });
