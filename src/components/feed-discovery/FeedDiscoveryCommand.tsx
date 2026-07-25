@@ -48,10 +48,7 @@ interface FeedDiscoveryCommandProps {
   onDiscover: (url?: string) => void;
   onSelectFeed: (feed: DiscoveredFeed) => void;
   discoveredFeeds: DiscoveredFeed[];
-  isDiscovering: boolean;
-  hasNoResults: boolean;
-  isAddingFeed?: boolean;
-  isSelecting: boolean;
+  state: "input" | "discovering" | "no-results" | "select" | "adding";
   inputRef?: Ref<HTMLInputElement>;
 }
 
@@ -63,14 +60,15 @@ export function FeedDiscoveryCommand({
   onDiscover,
   onSelectFeed,
   discoveredFeeds,
-  isDiscovering,
-  hasNoResults,
-  isAddingFeed = false,
-  isSelecting,
+  state,
   inputRef,
 }: FeedDiscoveryCommandProps) {
   const commandRef = useRef<HTMLDivElement>(null);
   const normalizedUrl = normalizeFeedSearchUrl(url);
+  const isAddingFeed = state === "adding";
+  const isDiscovering = state === "discovering";
+  const hasNoResults = state === "no-results";
+  const isSelecting = state === "select";
   const [lastAutoDiscoveredUrl, setLastAutoDiscoveredUrl] = useState<
     string | null
   >(null);

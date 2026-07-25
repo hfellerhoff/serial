@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sortSelectableChipOptions } from "../../../src/components/ui/selectable-chip-list";
+import { sortSelectableChipOptions } from "../../../src/components/ui/selectable-chip-list.utils";
 
 describe("sortSelectableChipOptions", () => {
   const options = [

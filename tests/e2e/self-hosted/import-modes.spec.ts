@@ -151,12 +151,14 @@ test.describe("import categorization modes", () => {
     await expect(
       main
         .getByRole("button", { name: /Scary Pockets/ })
+        .locator("..")
         .locator('[data-slot="badge"]')
         .filter({ hasText: "Music" }),
     ).toBeVisible({ timeout: 10000 });
     await expect(
       main
         .getByRole("button", { name: /Fireship/ })
+        .locator("..")
         .locator('[data-slot="badge"]')
         .filter({ hasText: "Tech" }),
     ).toBeVisible();
@@ -165,6 +167,7 @@ test.describe("import categorization modes", () => {
     await expect(
       main
         .getByRole("button", { name: /Test Blog/ })
+        .locator("..")
         .locator('[data-slot="badge"]'),
     ).toHaveCount(0);
   });
@@ -218,18 +221,21 @@ test.describe("import categorization modes", () => {
     await expect(
       main
         .getByRole("button", { name: /Scary Pockets/ })
+        .locator("..")
         .locator('[data-slot="badge"]')
         .filter({ hasText: "Music" }),
     ).toBeVisible({ timeout: 10000 });
     await expect(
       main
         .getByRole("button", { name: /Fireship/ })
+        .locator("..")
         .locator('[data-slot="badge"]')
         .filter({ hasText: "Tech" }),
     ).toBeVisible();
     await expect(
       main
         .getByRole("button", { name: /Test Blog/ })
+        .locator("..")
         .locator('[data-slot="badge"]'),
     ).toHaveCount(0);
   });

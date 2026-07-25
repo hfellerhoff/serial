@@ -92,8 +92,10 @@ test.describe("full user lifecycle", () => {
     const importButton = page.getByRole("button", {
       name: /import \d+ feeds/i,
     });
+    const importFooter = page.getByTestId("import-footer");
     const cgpGreyItemContainer = cgpGreyItem.locator("..");
 
+    await expect(importFooter).toHaveClass(/border-border/);
     await expect(cgpGreyItemContainer).toHaveAttribute("data-size", "xs");
     await expect(cgpGreyItemContainer).toHaveAttribute(
       "data-variant",
@@ -115,6 +117,30 @@ test.describe("full user lifecycle", () => {
     await expect(
       page.getByRole("button", { name: "Deselect CGP Grey" }),
     ).toHaveClass(/bg-primary/);
+    await page.getByRole("button", { name: "Deselect CGP Grey" }).hover();
+    await expect(page.getByRole("tooltip")).toHaveText("Deselect feed");
+
+    const [itemBounds, importButtonBounds, footerBounds, contentBounds] =
+      await Promise.all([
+        cgpGreyItemContainer.boundingBox(),
+        importButton.boundingBox(),
+        importFooter.boundingBox(),
+        page.locator('[data-slot="sidebar-inset"]').boundingBox(),
+      ]);
+    expect(itemBounds).not.toBeNull();
+    expect(importButtonBounds).not.toBeNull();
+    expect(footerBounds).not.toBeNull();
+    expect(contentBounds).not.toBeNull();
+    expect(importButtonBounds?.x).toBeCloseTo(itemBounds?.x ?? 0, 0);
+    expect(importButtonBounds?.width).toBeCloseTo(itemBounds?.width ?? 0, 0);
+    expect(footerBounds?.x).toBeCloseTo(contentBounds?.x ?? 0, 0);
+    expect(footerBounds?.width).toBeCloseTo(contentBounds?.width ?? 0, 0);
+
+    await page.locator('[data-slot="sidebar-inset"]').evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(importFooter).toHaveClass(/border-transparent/);
+
     await cgpGreyItem.click();
     await expect(cgpGreyItem).toHaveAttribute("aria-pressed", "false");
     await expect(scaryPocketsItem).toHaveAttribute("aria-pressed", "true");
@@ -300,6 +326,7 @@ test.describe("full user lifecycle", () => {
     await expect(
       mainContent
         .getByRole("button", { name: /Scary Pockets/ })
+        .locator("..")
         .getByText("Music"),
     ).toBeVisible({ timeout: 10000 });
 
@@ -331,7 +358,10 @@ test.describe("full user lifecycle", () => {
     await page.waitForTimeout(1000);
 
     await expect(
-      mainContent.getByRole("button", { name: /Fireship/ }).getByText("Tech"),
+      mainContent
+        .getByRole("button", { name: /Fireship/ })
+        .locator("..")
+        .getByText("Tech"),
     ).toBeVisible({ timeout: 10000 });
 
     // ── 5. Open and Read an Article ─────────────────────────────────

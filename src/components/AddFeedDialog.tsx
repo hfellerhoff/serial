@@ -3,7 +3,8 @@ import { CheckIcon, ExternalLinkIcon, LinkIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "@tanstack/react-router";
-import { FeedDiscoveryCommand, useFeedDiscovery } from "./feed-discovery";
+import { FeedDiscoveryCommand } from "./feed-discovery/FeedDiscoveryCommand";
+import { useFeedDiscovery } from "./feed-discovery/useFeedDiscovery";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -179,10 +180,7 @@ export function AddFeedDialog() {
           onDiscover={discovery.discoverFeeds}
           onSelectFeed={(feed) => void handleSelectFeed(feed)}
           discoveredFeeds={discovery.discoveredFeeds}
-          isDiscovering={discovery.isDiscovering}
-          hasNoResults={discovery.hasNoResults}
-          isAddingFeed={isAddingFeed}
-          isSelecting={discovery.isSelecting}
+          state={isAddingFeed ? "adding" : discovery.discoveryState}
           inputRef={urlInputRef}
         />
         <DialogClose asChild>
@@ -267,15 +265,16 @@ export function EditFeedDialog({
     label: category.name,
   }));
   const selectedViewIdSet = new Set(selectedViewIds);
-  const prioritizedTagIds = new Set(
-    views
-      .filter((view) => selectedViewIdSet.has(view.id))
-      .flatMap((view) =>
-        view.viewSections
-          .filter((section) => section.itemType === VIEW_LAYOUT_ITEM_TYPE.TAG)
-          .map((section) => section.itemId),
-      ),
-  );
+  const prioritizedTagIds = new Set<number>();
+  for (const view of views) {
+    if (!selectedViewIdSet.has(view.id)) continue;
+
+    for (const section of view.viewSections) {
+      if (section.itemType === VIEW_LAYOUT_ITEM_TYPE.TAG) {
+        prioritizedTagIds.add(section.itemId);
+      }
+    }
+  }
 
   useEffect(() => {
     if (selectedFeedId == null) return;

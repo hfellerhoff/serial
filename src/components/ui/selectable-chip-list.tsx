@@ -5,6 +5,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { badgeVariants } from "./badge";
 import { Button } from "./button";
 import { Label } from "./label";
+import { sortSelectableChipOptions } from "./selectable-chip-list.utils";
 import { cn } from "~/lib/utils";
 
 export type SelectableChipOption = {
@@ -50,17 +51,6 @@ function measureVisibleCount(container: HTMLElement) {
   }
 
   return { count, clipHeight: rowCount > MAX_ROWS ? clipBottom : 0 };
-}
-
-export function sortSelectableChipOptions(
-  options: SelectableChipOption[],
-  prioritizedIds: ReadonlySet<number>,
-) {
-  return [...options].sort((a, b) => {
-    const priorityDifference =
-      Number(prioritizedIds.has(b.id)) - Number(prioritizedIds.has(a.id));
-    return priorityDifference || a.label.localeCompare(b.label);
-  });
 }
 
 export function SelectableChipList({
