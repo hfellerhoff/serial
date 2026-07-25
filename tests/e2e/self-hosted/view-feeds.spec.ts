@@ -110,8 +110,11 @@ test.describe("view-feed direct assignment CRUD", () => {
     // ── 5. Select feed and use Edit Views bulk action ───────────────
     // Click the feed row to select it
     const feedRow = page
-      .locator("button[type='button']")
-      .filter({ hasText: "Test Blog" });
+      .locator('[data-slot="item-group"]')
+      .getByRole("button", {
+        name: "Test Blog",
+        exact: true,
+      });
     await feedRow.click();
 
     // Click "Edit" button in the action bar

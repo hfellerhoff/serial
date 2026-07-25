@@ -180,6 +180,7 @@ test.describe("demo instance full import flow", () => {
     await expect(
       mainContent
         .getByRole("button", { name: /Scary Pockets/ })
+        .locator("..")
         .getByText("Music"),
     ).toBeVisible({ timeout: 10000 });
 
@@ -210,7 +211,10 @@ test.describe("demo instance full import flow", () => {
     await page.waitForTimeout(1000);
 
     await expect(
-      mainContent.getByRole("button", { name: /Fireship/ }).getByText("Tech"),
+      mainContent
+        .getByRole("button", { name: /Fireship/ })
+        .locator("..")
+        .getByText("Tech"),
     ).toBeVisible({ timeout: 10000 });
 
     // ── 5. Open and Read an Article ─────────────────────────────────

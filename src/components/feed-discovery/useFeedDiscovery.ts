@@ -1,108 +1,74 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { normalizeFeedSearchUrl } from "./feedSearchOptions";
 import type { DiscoveredFeed } from "./FeedDiscoveryResults";
 import { orpcRouterClient } from "~/lib/orpc";
 
-type DiscoveryState = "input" | "discovering" | "select" | "locked";
+type DiscoveryState = "input" | "discovering" | "no-results" | "select";
 
 export function useFeedDiscovery() {
+  const requestIdRef = useRef(0);
   const [url, setUrl] = useState("");
   const [discoveryState, setDiscoveryState] = useState<DiscoveryState>("input");
   const [discoveredFeeds, setDiscoveredFeeds] = useState<DiscoveredFeed[]>([]);
-  const [selectedFeed, setSelectedFeed] = useState<DiscoveredFeed | null>(null);
 
   const reset = useCallback(() => {
+    requestIdRef.current++;
     setUrl("");
     setDiscoveryState("input");
     setDiscoveredFeeds([]);
-    setSelectedFeed(null);
   }, []);
 
-  const discoverFeeds = useCallback(async () => {
-    if (!url) {
-      return;
-    }
-
-    let normalizedUrl = url;
-    if (!url.startsWith("http://") && !url.startsWith("https://")) {
-      normalizedUrl = `https://${url}`;
-    }
-
-    try {
-      new URL(normalizedUrl);
-    } catch {
-      return;
-    }
-
-    setDiscoveryState("discovering");
-    setDiscoveredFeeds([]);
-    setSelectedFeed(null);
-
-    try {
-      const feeds = await orpcRouterClient.feed.discoverFeeds({
-        url: normalizedUrl,
-      });
-
-      if (feeds.length === 0) {
-        setDiscoveryState("input");
-      } else if (feeds.length === 1) {
-        setSelectedFeed(feeds[0]!);
-        setDiscoveryState("locked");
-      } else {
-        setDiscoveredFeeds(feeds);
-        setDiscoveryState("select");
+  const discoverFeeds = useCallback(
+    async (urlOverride?: string) => {
+      const requestedUrl = urlOverride ?? url;
+      if (!requestedUrl) {
+        return;
       }
-    } catch {
-      setDiscoveryState("input");
-    }
-  }, [url]);
+
+      const normalizedUrl = normalizeFeedSearchUrl(requestedUrl);
+      if (!normalizedUrl) return;
+      const requestId = ++requestIdRef.current;
+
+      setDiscoveryState("discovering");
+      setUrl(requestedUrl);
+      setDiscoveredFeeds([]);
+
+      try {
+        const feeds = await orpcRouterClient.feed.discoverFeeds({
+          url: normalizedUrl,
+        });
+        if (requestId !== requestIdRef.current) return;
+
+        if (feeds.length === 0) {
+          setDiscoveryState("no-results");
+        } else {
+          setDiscoveredFeeds(feeds);
+          setDiscoveryState("select");
+        }
+      } catch {
+        if (requestId !== requestIdRef.current) return;
+        setDiscoveryState("no-results");
+      }
+    },
+    [url],
+  );
 
   const handleUrlChange = useCallback((newUrl: string) => {
+    requestIdRef.current++;
     setUrl(newUrl);
     setDiscoveryState("input");
     setDiscoveredFeeds([]);
-    setSelectedFeed(null);
   }, []);
-
-  const handleSelectFeed = useCallback((feed: DiscoveredFeed) => {
-    setSelectedFeed(feed);
-    setDiscoveryState("locked");
-  }, []);
-
-  const handleClearSelection = useCallback(() => {
-    setSelectedFeed(null);
-    setDiscoveryState(discoveredFeeds.length > 1 ? "select" : "input");
-  }, [discoveredFeeds.length]);
-
-  const feedUrl = selectedFeed?.url ?? url;
-
-  let canDiscover = false;
-  if (discoveryState === "input" && url.length > 0) {
-    let testUrl = url;
-    if (!url.startsWith("http://") && !url.startsWith("https://")) {
-      testUrl = `https://${url}`;
-    }
-    try {
-      new URL(testUrl);
-      canDiscover = true;
-    } catch {
-      canDiscover = false;
-    }
-  }
 
   return {
     url,
-    feedUrl,
     discoveryState,
     discoveredFeeds,
-    selectedFeed,
     isDiscovering: discoveryState === "discovering",
-    isLocked: discoveryState === "locked",
+    hasNoResults: discoveryState === "no-results",
     isSelecting: discoveryState === "select",
-    canDiscover,
     discoverFeeds,
     handleUrlChange,
-    handleSelectFeed,
-    handleClearSelection,
     reset,
   };
 }

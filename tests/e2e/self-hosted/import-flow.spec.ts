@@ -81,9 +81,87 @@ test.describe("full user lifecycle", () => {
 
     await expect(page).toHaveURL("/import");
     await expect(page.getByText("Feeds To Import")).toBeVisible();
+    const cgpGreyItem = page.getByRole("button", {
+      name: "CGP Grey",
+      exact: true,
+    });
+    const scaryPocketsItem = page.getByRole("button", {
+      name: "Scary Pockets",
+      exact: true,
+    });
+    const importButton = page.getByRole("button", {
+      name: /import \d+ feeds/i,
+    });
+    const importFooter = page.getByTestId("import-footer");
+    const cgpGreyItemContainer = cgpGreyItem.locator("..");
+
+    await expect(importFooter).toHaveClass(/border-border/);
+    await expect(cgpGreyItemContainer).toHaveAttribute("data-size", "xs");
+    await expect(cgpGreyItemContainer).toHaveAttribute(
+      "data-variant",
+      "outline",
+    );
+    const cgpGreyAvatar = cgpGreyItemContainer.locator('[data-slot="avatar"]');
+    await expect(cgpGreyAvatar).toBeVisible();
+    await expect(cgpGreyAvatar).toHaveClass(/\bsize-7\b/);
+    await expect(cgpGreyAvatar).toHaveClass(/\brounded\b/);
     await expect(
-      page.getByRole("button", { name: /import 4 feeds/i }),
-    ).toBeEnabled();
+      cgpGreyItemContainer.getByRole("link", { name: "CGP Grey" }),
+    ).toHaveAttribute("href", /\/cgp-grey$/);
+    await expect(
+      cgpGreyItemContainer.getByRole("link", {
+        name: /\/feed\/cgp-grey$/,
+      }),
+    ).toHaveAttribute("href", /\/feed\/cgp-grey$/);
+    await expect(cgpGreyItem).toHaveAttribute("aria-pressed", "true");
+    await expect(scaryPocketsItem).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.getByRole("button", { name: "Deselect CGP Grey" }),
+    ).toHaveClass(/bg-primary/);
+    await page
+      .getByRole("button", { name: "Deselect CGP Grey" })
+      .hover({ force: true });
+    await expect(page.getByRole("tooltip")).toHaveText("Deselect feed");
+
+    const [itemBounds, importButtonBounds, footerBounds, contentBounds] =
+      await Promise.all([
+        cgpGreyItemContainer.boundingBox(),
+        importButton.boundingBox(),
+        importFooter.boundingBox(),
+        page.locator('[data-slot="sidebar-inset"]').evaluate((element) => ({
+          x: element.getBoundingClientRect().x,
+          width: element.clientWidth,
+        })),
+      ]);
+    expect(itemBounds).not.toBeNull();
+    expect(importButtonBounds).not.toBeNull();
+    expect(footerBounds).not.toBeNull();
+    expect(contentBounds).not.toBeNull();
+    expect(importButtonBounds?.x).toBeCloseTo(itemBounds?.x ?? 0, 0);
+    expect(importButtonBounds?.width).toBeCloseTo(itemBounds?.width ?? 0, 0);
+    expect(footerBounds?.x).toBeCloseTo(contentBounds?.x ?? 0, 0);
+    expect(footerBounds?.width).toBeCloseTo(contentBounds?.width ?? 0, 0);
+
+    await page.locator('[data-slot="sidebar-inset"]').evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(importFooter).toHaveClass(/border-transparent/);
+
+    await cgpGreyItem.click();
+    await expect(cgpGreyItem).toHaveAttribute("aria-pressed", "false");
+    await expect(scaryPocketsItem).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.getByRole("button", { name: "Select CGP Grey" }),
+    ).not.toHaveClass(/bg-primary/);
+    await expect(importButton).toHaveAccessibleName("Import 3 feeds");
+
+    await page.getByRole("button", { name: "Select CGP Grey" }).click();
+    await expect(cgpGreyItem).toHaveAttribute("aria-pressed", "true");
+    await expect(scaryPocketsItem).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.getByRole("button", { name: "Deselect CGP Grey" }),
+    ).toHaveClass(/bg-primary/);
+    await expect(importButton).toHaveAccessibleName("Import 4 feeds");
   });
 
   test("sign up, import, categorize, read, customize, delete feeds, delete account, verify db clean", async ({
@@ -254,6 +332,7 @@ test.describe("full user lifecycle", () => {
     await expect(
       mainContent
         .getByRole("button", { name: /Scary Pockets/ })
+        .locator("..")
         .getByText("Music"),
     ).toBeVisible({ timeout: 10000 });
 
@@ -285,7 +364,10 @@ test.describe("full user lifecycle", () => {
     await page.waitForTimeout(1000);
 
     await expect(
-      mainContent.getByRole("button", { name: /Fireship/ }).getByText("Tech"),
+      mainContent
+        .getByRole("button", { name: /Fireship/ })
+        .locator("..")
+        .getByText("Tech"),
     ).toBeVisible({ timeout: 10000 });
 
     // ── 5. Open and Read an Article ─────────────────────────────────

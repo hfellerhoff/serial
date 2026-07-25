@@ -109,6 +109,9 @@ test.describe("manage feeds/views/tags tabs", () => {
     const tagsTab = page.getByRole("tab", { name: /tags/i });
     await expect(feedsTab).toBeVisible({ timeout: 10000 });
     await expect(feedsTab).toHaveAttribute("data-state", "active");
+    await expect(
+      page.getByRole("link", { name: "Bulk Import" }),
+    ).toHaveAttribute("href", "/import");
 
     // Click navigates to /views
     await viewsTab.click();

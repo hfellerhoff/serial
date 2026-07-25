@@ -22,7 +22,7 @@ test.describe("view subview sections", () => {
   test("create view with feeds and tags, configure layout sections, verify rendering and keyboard navigation", async ({
     page,
   }) => {
-    test.setTimeout(30000);
+    test.setTimeout(45000);
 
     // ── 1. Seed user with 3 feeds, 2 tags, and articles ─────────────
     const { email, password, feedItemIds } = await seedViewLayoutData(
@@ -142,6 +142,18 @@ test.describe("view subview sections", () => {
       .getByRole("button")
       .first();
     await expect(addSubviewBtn).toBeVisible({ timeout: 3000 });
+
+    await addSubviewBtn.click();
+    const allTagsSearchInput = page
+      .getByPlaceholder("Search feeds or tags...")
+      .filter({ visible: true });
+    await allTagsSearchInput.fill("Unassigned Tag");
+    await expect(
+      allTagsSearchInput
+        .locator("xpath=ancestor::*[@cmdk-root]")
+        .getByRole("option", { name: "#Unassigned Tag", exact: true }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
 
     const addViewSection = async (optionName: string) => {
       await addSubviewBtn.click();

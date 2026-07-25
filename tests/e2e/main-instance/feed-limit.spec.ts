@@ -117,7 +117,7 @@ test.describe("feed limit for free plan", () => {
     await page.keyboard.press("Escape");
 
     // Verify exactly 10 inactive feed rows (opacity-50 class)
-    const inactiveFeedRows = page.locator("button.opacity-50");
+    const inactiveFeedRows = page.locator('[data-slot="item"].opacity-50');
     await expect(inactiveFeedRows).toHaveCount(EXPECTED_INACTIVE, {
       timeout: 10000,
     });

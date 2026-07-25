@@ -89,7 +89,10 @@ test.describe("feed limit on self-hosted (no limit)", () => {
 
     // Wait for feeds to load — at least one feed row should be visible
     await expect(
-      page.locator("button").filter({ hasText: "Test Feed" }).first(),
+      page
+        .locator('[data-slot="item"]')
+        .filter({ hasText: "Test Feed" })
+        .first(),
     ).toBeVisible({ timeout: 15000 });
 
     // Self-hosted has no billing, so the "X / Y feeds active" counter and
@@ -98,13 +101,13 @@ test.describe("feed limit on self-hosted (no limit)", () => {
     await expect(page.getByText("Max active feeds reached")).toHaveCount(0);
 
     // No inactive feed rows
-    const inactiveFeedRows = page.locator("button.opacity-50");
+    const inactiveFeedRows = page.locator('[data-slot="item"].opacity-50');
     await expect(inactiveFeedRows).toHaveCount(0, { timeout: 10000 });
 
     // Verify all 110 feed rows are present in the main list
     const allFeedRows = page
       .locator("main")
-      .locator("button")
+      .locator('[data-slot="item"]')
       .filter({ hasText: /^Test Feed \d+/ });
     await expect(allFeedRows).toHaveCount(TOTAL_FEEDS, { timeout: 15000 });
   });
