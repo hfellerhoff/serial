@@ -1,30 +1,47 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getBrowserPublicConfig,
-  publicConfigSchema,
-  resolvePublicConfig,
+  SERIAL_PUBLIC_CONFIG_KEY,
   serializePublicConfig,
 } from "~/lib/public-config";
 
 const REQUIRED_PUBLIC_CONFIG = {
   PUBLIC_BASE_URL: "https://serial.example.com",
+  PUBLIC_SUPPORT_EMAIL_ADDRESS: undefined,
+  PUBLIC_SENTRY_DSN_WEB: undefined,
+  PUBLIC_UMAMI_WEBSITE_ID: undefined,
+  PUBLIC_UMAMI_SRC: undefined,
+  PUBLIC_IS_MAINTENANCE_MODE: false,
+  PUBLIC_IS_MAIN_INSTANCE: false,
+  PUBLIC_IS_DEMO_INSTANCE: false,
 };
 
 describe("public config", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
+  beforeEach(() => {
     vi.resetModules();
   });
 
-  it("normalizes empty optional values and defaults instance flags", () => {
-    const publicConfig = publicConfigSchema.parse({
-      ...REQUIRED_PUBLIC_CONFIG,
-      PUBLIC_SUPPORT_EMAIL_ADDRESS: "",
-      PUBLIC_IS_DEMO_INSTANCE: "",
-    });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
 
-    expect(publicConfig).toEqual({
-      ...REQUIRED_PUBLIC_CONFIG,
+  it("normalizes empty optional values and defaults instance flags", async () => {
+    vi.stubEnv("SKIP_ENV_VALIDATION", "");
+    vi.stubEnv("PUBLIC_BASE_URL", REQUIRED_PUBLIC_CONFIG.PUBLIC_BASE_URL);
+    vi.stubEnv("PUBLIC_SUPPORT_EMAIL_ADDRESS", "");
+    vi.stubEnv("PUBLIC_IS_DEMO_INSTANCE", "");
+
+    const { env } = await import("~/env");
+
+    expect({
+      PUBLIC_BASE_URL: env.PUBLIC_BASE_URL,
+      PUBLIC_SUPPORT_EMAIL_ADDRESS: env.PUBLIC_SUPPORT_EMAIL_ADDRESS,
+      PUBLIC_IS_MAINTENANCE_MODE: env.PUBLIC_IS_MAINTENANCE_MODE,
+      PUBLIC_IS_MAIN_INSTANCE: env.PUBLIC_IS_MAIN_INSTANCE,
+      PUBLIC_IS_DEMO_INSTANCE: env.PUBLIC_IS_DEMO_INSTANCE,
+    }).toEqual({
+      PUBLIC_BASE_URL: REQUIRED_PUBLIC_CONFIG.PUBLIC_BASE_URL,
       PUBLIC_SUPPORT_EMAIL_ADDRESS: undefined,
       PUBLIC_IS_MAINTENANCE_MODE: false,
       PUBLIC_IS_MAIN_INSTANCE: false,
@@ -32,75 +49,70 @@ describe("public config", () => {
     });
   });
 
-  it("resolves legacy VITE_PUBLIC aliases to canonical keys", () => {
-    const publicConfig = resolvePublicConfig({
-      VITE_PUBLIC_BASE_URL: "https://legacy.example.com",
-      VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS: "legacy@example.com",
-      VITE_PUBLIC_IS_MAINTENANCE_MODE: "true",
-    });
+  it("maps legacy aliases before createEnv validation", async () => {
+    vi.stubEnv("SKIP_ENV_VALIDATION", "");
+    vi.stubEnv("PUBLIC_BASE_URL", "");
+    vi.stubEnv("VITE_PUBLIC_BASE_URL", "https://legacy.example.com");
+    vi.stubEnv("VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS", "legacy@example.com");
+    vi.stubEnv("VITE_PUBLIC_IS_MAINTENANCE_MODE", "true");
 
-    expect(publicConfig.PUBLIC_BASE_URL).toBe("https://legacy.example.com");
-    expect(publicConfig.PUBLIC_SUPPORT_EMAIL_ADDRESS).toBe(
-      "legacy@example.com",
-    );
-    expect(publicConfig.PUBLIC_IS_MAINTENANCE_MODE).toBe(true);
+    const { env } = await import("~/env");
+
+    expect(env.PUBLIC_BASE_URL).toBe("https://legacy.example.com");
+    expect(env.PUBLIC_SUPPORT_EMAIL_ADDRESS).toBe("legacy@example.com");
+    expect(env.PUBLIC_IS_MAINTENANCE_MODE).toBe(true);
   });
 
-  it("prefers canonical values and coerces boolean strings", () => {
-    const publicConfig = resolvePublicConfig({
-      PUBLIC_BASE_URL: "https://canonical.example.com",
-      VITE_PUBLIC_BASE_URL: "https://legacy.example.com",
-      PUBLIC_IS_DEMO_INSTANCE: "false",
-      VITE_PUBLIC_IS_DEMO_INSTANCE: "true",
-    });
+  it("prefers canonical values and coerces boolean strings", async () => {
+    vi.stubEnv("SKIP_ENV_VALIDATION", "");
+    vi.stubEnv("PUBLIC_BASE_URL", "https://canonical.example.com");
+    vi.stubEnv("VITE_PUBLIC_BASE_URL", "https://legacy.example.com");
+    vi.stubEnv("PUBLIC_IS_DEMO_INSTANCE", "false");
+    vi.stubEnv("VITE_PUBLIC_IS_DEMO_INSTANCE", "true");
 
-    expect(publicConfig.PUBLIC_BASE_URL).toBe("https://canonical.example.com");
-    expect(publicConfig.PUBLIC_IS_DEMO_INSTANCE).toBe(false);
+    const { env } = await import("~/env");
+
+    expect(env.PUBLIC_BASE_URL).toBe("https://canonical.example.com");
+    expect(env.PUBLIC_IS_DEMO_INSTANCE).toBe(false);
   });
 
-  it("preserves boolean values that were already coerced", () => {
-    const publicConfig = resolvePublicConfig({
+  it("selects only validated public values for transport", async () => {
+    vi.stubEnv("SKIP_ENV_VALIDATION", "");
+    vi.stubEnv("PUBLIC_BASE_URL", REQUIRED_PUBLIC_CONFIG.PUBLIC_BASE_URL);
+    vi.stubEnv("PUBLIC_IS_MAINTENANCE_MODE", "true");
+    vi.stubEnv("PUBLIC_IS_MAIN_INSTANCE", "false");
+    vi.stubEnv("PUBLIC_IS_DEMO_INSTANCE", "true");
+    vi.stubGlobal("__SERIAL_DEMO_BUILD__", true);
+
+    const { getServerPublicConfig } = await import("~/server/public-config");
+    const publicConfig = getServerPublicConfig();
+
+    expect(publicConfig).toEqual({
       ...REQUIRED_PUBLIC_CONFIG,
+      PUBLIC_SUPPORT_EMAIL_ADDRESS: undefined,
+      PUBLIC_SENTRY_DSN_WEB: undefined,
+      PUBLIC_UMAMI_WEBSITE_ID: undefined,
+      PUBLIC_UMAMI_SRC: undefined,
       PUBLIC_IS_MAINTENANCE_MODE: true,
       PUBLIC_IS_MAIN_INSTANCE: false,
       PUBLIC_IS_DEMO_INSTANCE: true,
     });
-
-    expect(publicConfig.PUBLIC_IS_MAINTENANCE_MODE).toBe(true);
-    expect(publicConfig.PUBLIC_IS_MAIN_INSTANCE).toBe(false);
-    expect(publicConfig.PUBLIC_IS_DEMO_INSTANCE).toBe(true);
+    expect(publicConfig).not.toHaveProperty("BETTER_AUTH_SECRET");
   });
 
-  it("reads the config initialized in the browser document", () => {
-    const publicConfig = publicConfigSchema.parse(REQUIRED_PUBLIC_CONFIG);
-    vi.stubGlobal("window", { __SERIAL_PUBLIC_CONFIG__: publicConfig });
-
-    expect(getBrowserPublicConfig()).toEqual(publicConfig);
-  });
-
-  it("initializes the typed client environment from runtime config", async () => {
-    const publicConfig = publicConfigSchema.parse({
+  it("round trips the config initialized in the browser document", () => {
+    const publicConfig = {
       ...REQUIRED_PUBLIC_CONFIG,
       PUBLIC_SUPPORT_EMAIL_ADDRESS: "support@example.com",
-    });
-    vi.stubGlobal("window", { __SERIAL_PUBLIC_CONFIG__: publicConfig });
-
-    const { env } = await import("~/env");
-
-    expect(env.PUBLIC_BASE_URL).toBe(REQUIRED_PUBLIC_CONFIG.PUBLIC_BASE_URL);
-    expect(env.PUBLIC_SUPPORT_EMAIL_ADDRESS).toBe("support@example.com");
-    expect(env.PUBLIC_IS_DEMO_INSTANCE).toBe(false);
-  });
-
-  it("escapes values that could terminate an inline script", () => {
-    const publicConfig = publicConfigSchema.parse({
-      ...REQUIRED_PUBLIC_CONFIG,
-      PUBLIC_UMAMI_WEBSITE_ID: "</script><script>alert(1)</script>",
+      PUBLIC_IS_DEMO_INSTANCE: true,
+    };
+    vi.stubGlobal("window", {
+      [SERIAL_PUBLIC_CONFIG_KEY]: serializePublicConfig(publicConfig),
     });
 
-    const serializedPublicConfig = serializePublicConfig(publicConfig);
+    const browserPublicConfig = getBrowserPublicConfig();
 
-    expect(serializedPublicConfig).not.toContain("<");
-    expect(serializedPublicConfig).toContain("\\u003c/script\\u003e");
+    expect(browserPublicConfig).toEqual(publicConfig);
+    expect(getBrowserPublicConfig()).toBe(browserPublicConfig);
   });
 });

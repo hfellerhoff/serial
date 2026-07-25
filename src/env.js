@@ -1,31 +1,38 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
-import {
-  getBrowserPublicConfig,
-  getPublicConfigEnv,
-} from "~/lib/public-config";
 
-const publicRuntimeEnv =
-  typeof window === "undefined"
-    ? getPublicConfigEnv(process.env)
-    : getBrowserPublicConfig();
+const optionalBoolean = z.union([z.boolean(), z.stringbool()]).default(false);
 
-const publicBooleanSchema = z
-  .union([z.boolean(), z.stringbool()])
-  .default(false);
+const PUBLIC_ENV_SCHEMA = {
+  PUBLIC_BASE_URL: z.url(),
+  PUBLIC_SUPPORT_EMAIL_ADDRESS: z.email().optional(),
+  PUBLIC_SENTRY_DSN_WEB: z.url().optional(),
+  PUBLIC_UMAMI_WEBSITE_ID: z.string().optional(),
+  PUBLIC_UMAMI_SRC: z.url().optional(),
+  PUBLIC_IS_MAINTENANCE_MODE: optionalBoolean,
+  PUBLIC_IS_MAIN_INSTANCE: optionalBoolean,
+  PUBLIC_IS_DEMO_INSTANCE: optionalBoolean,
+};
+
+const PUBLIC_ENV_KEYS = /** @type {(keyof typeof PUBLIC_ENV_SCHEMA)[]} */ (
+  Object.keys(PUBLIC_ENV_SCHEMA)
+);
+
+const publicRuntimeEnv = Object.fromEntries(
+  PUBLIC_ENV_KEYS.map((key) => {
+    const canonicalValue = process.env[key];
+    const publicValue =
+      canonicalValue === undefined || canonicalValue === ""
+        ? process.env[`VITE_${key}`]
+        : canonicalValue;
+
+    return [key, publicValue];
+  }),
+);
 
 export const env = createEnv({
   clientPrefix: "PUBLIC_",
-  client: {
-    PUBLIC_BASE_URL: z.url(),
-    PUBLIC_SUPPORT_EMAIL_ADDRESS: z.string().email().optional(),
-    PUBLIC_SENTRY_DSN_WEB: z.string().url().optional(),
-    PUBLIC_UMAMI_WEBSITE_ID: z.string().optional(),
-    PUBLIC_UMAMI_SRC: z.string().url().optional(),
-    PUBLIC_IS_MAINTENANCE_MODE: publicBooleanSchema,
-    PUBLIC_IS_MAIN_INSTANCE: publicBooleanSchema,
-    PUBLIC_IS_DEMO_INSTANCE: publicBooleanSchema,
-  },
+  client: PUBLIC_ENV_SCHEMA,
   server: {
     DATABASE_URL: z.url().optional().default("http://127.0.0.1:8080"),
     DATABASE_AUTH_TOKEN: z
@@ -122,18 +129,11 @@ export const env = createEnv({
     COOKIE_DOMAIN: z.string().optional(),
   },
   runtimeEnv: {
-    PUBLIC_SUPPORT_EMAIL_ADDRESS: publicRuntimeEnv.PUBLIC_SUPPORT_EMAIL_ADDRESS,
-    PUBLIC_SENTRY_DSN_WEB: publicRuntimeEnv.PUBLIC_SENTRY_DSN_WEB,
-    PUBLIC_UMAMI_WEBSITE_ID: publicRuntimeEnv.PUBLIC_UMAMI_WEBSITE_ID,
-    PUBLIC_UMAMI_SRC: publicRuntimeEnv.PUBLIC_UMAMI_SRC,
-    PUBLIC_IS_MAINTENANCE_MODE: publicRuntimeEnv.PUBLIC_IS_MAINTENANCE_MODE,
-    PUBLIC_IS_DEMO_INSTANCE: publicRuntimeEnv.PUBLIC_IS_DEMO_INSTANCE,
-    PUBLIC_IS_MAIN_INSTANCE: publicRuntimeEnv.PUBLIC_IS_MAIN_INSTANCE,
+    ...publicRuntimeEnv,
     DATABASE_URL: process.env.DATABASE_URL,
     DATABASE_AUTH_TOKEN: process.env.DATABASE_AUTH_TOKEN,
     NODE_ENV: process.env.NODE_ENV,
     LOG_LEVEL: process.env.LOG_LEVEL,
-    PUBLIC_BASE_URL: publicRuntimeEnv.PUBLIC_BASE_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,

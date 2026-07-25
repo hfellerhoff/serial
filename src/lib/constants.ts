@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { env } from "~/env";
+import { getPublicConfigKey } from "~/lib/public-config";
 
-export const IS_MAIN_INSTANCE = env.PUBLIC_IS_MAIN_INSTANCE;
+export const IS_MAIN_INSTANCE = getPublicConfigKey("PUBLIC_IS_MAIN_INSTANCE");
 
 export const BASE_SIGNED_OUT_URL = "/auth/sign-in";
 

@@ -14,8 +14,10 @@ import { UndoShortcutListener } from "~/lib/undo";
 import { Button } from "~/components/ui/button";
 import { BASE_SIGNED_OUT_URL } from "~/lib/constants";
 import { fetchConfigCss } from "~/server/auth/endpoints";
-import { env } from "~/env";
-import { serializePublicConfig } from "~/lib/public-config";
+import {
+  SERIAL_PUBLIC_CONFIG_KEY,
+  serializePublicConfig,
+} from "~/lib/public-config";
 import { fetchPublicConfig } from "~/server/public-config";
 
 import appCss from "~/styles/globals.css?url";
@@ -132,7 +134,7 @@ export function RootLayout() {
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.__SERIAL_PUBLIC_CONFIG__=${serializedPublicConfig}`,
+            __html: `window.${SERIAL_PUBLIC_CONFIG_KEY}=${JSON.stringify(serializedPublicConfig)}`,
           }}
         />
         {/* {import.meta.env.DEV && (
@@ -143,16 +145,17 @@ export function RootLayout() {
             />
           </>
         )}*/}
-        {env.PUBLIC_UMAMI_SRC && env.PUBLIC_UMAMI_WEBSITE_ID && (
-          <>
-            <script
-              async
-              defer
-              data-website-id={env.PUBLIC_UMAMI_WEBSITE_ID}
-              src={env.PUBLIC_UMAMI_SRC}
-            />
-          </>
-        )}
+        {publicConfig.PUBLIC_UMAMI_SRC &&
+          publicConfig.PUBLIC_UMAMI_WEBSITE_ID && (
+            <>
+              <script
+                async
+                defer
+                data-website-id={publicConfig.PUBLIC_UMAMI_WEBSITE_ID}
+                src={publicConfig.PUBLIC_UMAMI_SRC}
+              />
+            </>
+          )}
         <meta
           name="apple-mobile-web-app-status-bar-style"
           content="black-translucent"

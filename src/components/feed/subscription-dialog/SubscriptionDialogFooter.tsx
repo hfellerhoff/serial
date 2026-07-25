@@ -1,6 +1,6 @@
 import type { SubscriptionDialogController } from "./useSubscriptionDialogController";
 import { Button } from "~/components/ui/button";
-import { env } from "~/env";
+import { getPublicConfigKey } from "~/lib/public-config";
 
 export function SubscriptionDialogFooter({
   controller,
@@ -60,7 +60,7 @@ export function SubscriptionDialogFooter({
       Price too high or need higher limits?{" "}
       <span>
         <a
-          href={`mailto:${env.PUBLIC_SUPPORT_EMAIL_ADDRESS}`}
+          href={`mailto:${getPublicConfigKey("PUBLIC_SUPPORT_EMAIL_ADDRESS")}`}
           target="_blank"
           rel="noopener noreferrer"
           className="underline"

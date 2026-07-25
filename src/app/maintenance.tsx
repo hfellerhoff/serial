@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AlertTriangleIcon } from "lucide-react";
-import { env } from "~/env";
+import { getPublicConfigKey } from "~/lib/public-config";
 
 export const Route = createFileRoute("/maintenance")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const supportEmail = env.PUBLIC_SUPPORT_EMAIL_ADDRESS;
+  const supportEmail = getPublicConfigKey("PUBLIC_SUPPORT_EMAIL_ADDRESS");
 
   return (
     <main className="bg-background text-pretty">

@@ -3,10 +3,10 @@ import { RPCLink } from "@orpc/client/fetch";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
 import type { RouterClient } from "@orpc/server";
 import type { orpcRouter } from "~/server/orpc/router";
-import { env } from "~/env";
+import { getPublicConfigKey } from "~/lib/public-config";
 
 const link = new RPCLink({
-  url: `${typeof window !== "undefined" ? window.location.origin : env.PUBLIC_BASE_URL}/api/rpc`,
+  url: `${typeof window !== "undefined" ? window.location.origin : getPublicConfigKey("PUBLIC_BASE_URL")}/api/rpc`,
 });
 
 export const orpcRouterClient: RouterClient<typeof orpcRouter> =
