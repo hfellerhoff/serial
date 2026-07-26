@@ -257,9 +257,10 @@ export const createFromSubscriptionImport = protectedProcedure
               const matchingCategoryNames = matchingCategories.map(
                 (category) => category.name,
               );
+              const matchingCategoryNameSet = new Set(matchingCategoryNames);
 
               const nonMatchingCategories = feed.categories.filter(
-                (category) => !matchingCategoryNames.includes(category),
+                (category) => !matchingCategoryNameSet.has(category),
               );
 
               const matchingCategoryPromises = matchingCategories.map(

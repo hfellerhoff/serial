@@ -37,7 +37,8 @@ export function BulkEditViewsDialog({
   useEffect(() => {
     if (!open || selectedViewIds.length === 0) return;
 
-    const selected = views.filter((v) => selectedViewIds.includes(v.id));
+    const selectedViewIdSet = new Set(selectedViewIds);
+    const selected = views.filter((v) => selectedViewIdSet.has(v.id));
     if (selected.length === 0) return;
 
     const first = selected[0]!;

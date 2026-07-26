@@ -76,15 +76,17 @@ export const useShortcut = (
           const initialModifierKey = keyArray[0]!;
 
           const modifierKeys = Object.keys(modifierMap);
+          const modifierKeySet = new Set(modifierKeys);
 
           // If the first key is a modifier, handle combinations
-          if (modifierKeys.includes(initialModifierKey)) {
+          if (modifierKeySet.has(initialModifierKey)) {
             const finalKey = keyArray.pop();
+            const pressedModifierSet = new Set(keyArray);
 
             // Run handler if the modifier(s) + key have both been pressed
             const doesEveryModifierMatch = modifierKeys.every((key) => {
               // If modifier provided, expect `true`
-              if (keyArray.includes(key)) {
+              if (pressedModifierSet.has(key)) {
                 return modifierMap[key];
               }
               // If modifier not provided, expect `false`

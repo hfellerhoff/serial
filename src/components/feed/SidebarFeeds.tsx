@@ -142,6 +142,7 @@ export function SidebarFeeds() {
   const feedsInCurrentView = viewFilter
     ? (viewFeedIds[viewFilter.id] ?? [])
     : [];
+  const feedsInCurrentViewSet = new Set(feedsInCurrentView);
 
   if (!hasInitialData || loading.mode === "initialLoad") {
     return (
@@ -224,7 +225,7 @@ export function SidebarFeeds() {
 
         // Show at bottom of preferred section if feed belongs to the current view
         // but has no visible entries (e.g., outside time window or all read)
-        if (feedsInCurrentView.includes(feedOption.id)) {
+        if (feedsInCurrentViewSet.has(feedOption.id)) {
           acc.preferredFeedOptionsWithoutEntries.push(feedOption);
           acc.preferredFeedOptionsWithoutEntries.sort(sortFeedOptions);
           return acc;

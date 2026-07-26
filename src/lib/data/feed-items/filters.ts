@@ -164,8 +164,9 @@ export function buildViewCategoryFilter(
   }
 
   // Get feed IDs that are in any of the view's categories
+  const viewCategoryIds = new Set(viewFilter.categoryIds);
   const feedsFromCategories = feedCategories
-    .filter((fc) => viewFilter.categoryIds.includes(fc.categoryId))
+    .filter((fc) => viewCategoryIds.has(fc.categoryId))
     .map((fc) => fc.feedId);
 
   // Union category-based feeds with directly assigned feeds
