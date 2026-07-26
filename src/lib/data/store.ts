@@ -31,7 +31,7 @@ import type {
 } from "~/server/api/routers/initialRouter";
 import type { PublishedChunk } from "~/server/api/publisher";
 import type { IncomingFeedItem } from "./feed-items/mergeFeedItem";
-import { getQueryClient } from "~/lib/query-provider";
+import { getQueryClient } from "~/lib/query-client";
 import { orpc } from "~/lib/orpc";
 
 export { getFeedItemScopeKey } from "./scopeMembership";
