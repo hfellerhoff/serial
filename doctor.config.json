@@ -1,6 +1,7 @@
 {
   "$schema": "https://react.doctor/schema/config.json",
   "ignore": {
+    "rules": ["react-doctor/js-combine-iterations"],
     "files": [".output/**"],
     "overrides": [
       {
