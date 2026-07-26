@@ -119,5 +119,4 @@ export const {
   useViewFeeds,
   useFetchStatus: useViewFeedsFetchStatus,
   useFetch: useFetchViewFeeds,
-  useReset: useResetViewFeeds,
 } = viewFeedsStore;

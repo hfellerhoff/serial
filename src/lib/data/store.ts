@@ -1996,11 +1996,9 @@ export const {
   useFeedStatusDict,
   useFetchFeedItemsLastFetchedAt,
   useHasInitialData,
-  useFetchFeedItems,
   useFetchFeedItemsForFeed,
   useFetchNewData,
   useRevalidateView,
-  useCurrentViewId,
   useViewFeedIds,
   useViewPaginationState,
   useFetchMoreItems,
@@ -2008,7 +2006,6 @@ export const {
   useCategoryPaginationState,
   useFetchMoreItemsForFeed,
   useFetchMoreItemsForCategory,
-  useReset: useResetFeedItems,
 } = feedItemsStore;
 
 export const useFeedItemValue = (id: string) => {

@@ -163,6 +163,5 @@ export const {
   useFetchStatus: useViewsFetchStatus,
   useFetch: useFetchViews,
   useSet: useSetViews,
-  useReset: useResetViews,
   useRemoveFeedReferences,
 } = viewsStore;

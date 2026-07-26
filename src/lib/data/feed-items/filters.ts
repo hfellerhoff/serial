@@ -97,47 +97,6 @@ export function buildVisibilityFilter(
 }
 
 /**
- * Build a Drizzle filter condition for category filtering
- *
- * Filters items to only those whose feedId is in the specified category.
- * If categoryFilter < 0, no filter is applied.
- */
-export function buildCategoryFilter(
-  categoryFilter: number,
-  feedCategories: DatabaseFeedCategory[],
-): SQL | undefined {
-  if (categoryFilter < 0) {
-    return undefined;
-  }
-
-  const feedIdsInCategory = feedCategories
-    .filter((fc) => fc.categoryId === categoryFilter)
-    .map((fc) => fc.feedId);
-
-  if (feedIdsInCategory.length === 0) {
-    // No feeds in this category - return a condition that matches nothing
-    // Using feedId = -1 since IDs are auto-increment positive integers
-    return eq(feedItems.feedId, -1);
-  }
-
-  return inArray(feedItems.feedId, feedIdsInCategory);
-}
-
-/**
- * Build a Drizzle filter condition for feed filtering
- *
- * Filters items to only those from a specific feed.
- * If feedFilter < 0, no filter is applied.
- */
-export function buildFeedFilter(feedFilter: number): SQL | undefined {
-  if (feedFilter < 0) {
-    return undefined;
-  }
-
-  return eq(feedItems.feedId, feedFilter);
-}
-
-/**
  * Build a Drizzle filter condition for view category filtering
  *
  * For the Uncategorized view: includes feeds that either match the view's categories

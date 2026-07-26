@@ -5,7 +5,7 @@ import { db } from "~/server/db";
 import { auth } from "~/server/auth";
 import { logMessage } from "~/server/logger";
 
-export async function createRPCContext(opts: { headers: Headers }) {
+async function createRPCContext(opts: { headers: Headers }) {
   const { headers } = getRequest();
 
   const authResponse = await auth.api.getSession({

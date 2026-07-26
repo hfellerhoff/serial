@@ -19,13 +19,6 @@ const NEBULA_URL_SEGMENTS = [
   "https://rss.nebula.app",
 ];
 
-export const FEED_PLATFORM_LABEL_MAP = {
-  website: "Website",
-  youtube: "YouTube",
-  peertube: "PeerTube",
-  nebula: "Nebula",
-} as const satisfies Record<FeedPlatform, string>;
-
 export function getAssumedFeedPlatform(url: string): FeedPlatform {
   if (YOUTUBE_URL_SEGMENTS.some((supported) => url.includes(supported))) {
     return "youtube";

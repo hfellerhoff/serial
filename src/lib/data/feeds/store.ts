@@ -151,5 +151,4 @@ export const {
   useAdd: useAddFeed,
   useUpdate: useUpdateFeed,
   useRemove: useRemoveFeed,
-  useReset: useResetFeeds,
 } = feedsStore;

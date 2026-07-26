@@ -26,7 +26,5 @@ export const {
   useEnabled: useCaptionsEnabled,
   useSize: useCaptionSize,
   useSetEnabled: useSetCaptionsEnabled,
-  useToggleEnabled: useToggleCaptionsEnabled,
   useSetSize: useSetCaptionSize,
-  useReset: useResetCaptions,
 } = captionsStore;

@@ -200,7 +200,7 @@ export function AddFeedDialog() {
   );
 }
 
-export function FeedOpenLocationToggleGroup({
+function FeedOpenLocationToggleGroup({
   feedPlatform,
   openLocation,
   setOpenLocation,

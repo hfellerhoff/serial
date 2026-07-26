@@ -20,11 +20,3 @@ export function setTruncationAlertResponded(feedId: number): void {
     // Best-effort — don't crash if localStorage is unavailable
   }
 }
-
-export function clearTruncationAlertResponse(feedId: number): void {
-  try {
-    localStorage.removeItem(getStorageKey(feedId));
-  } catch {
-    // Best-effort
-  }
-}

@@ -95,34 +95,6 @@ export async function fetchNebulaFeedDetails(
   return null;
 }
 
-export async function getNebulaFeedIfMatches(
-  rssString: string,
-  url: string,
-): Promise<NewFeedDetails | null> {
-  if (!url.includes("nebula.app") && !url.includes("nebula.tv")) {
-    return null;
-  }
-
-  try {
-    const rssData = await parser.parseString(rssString);
-    const { data: nebulaData, success: nebulaSuccess } =
-      nebulaSchema.safeParse(rssData);
-
-    if (nebulaSuccess) {
-      return {
-        name: nebulaData.title,
-        url: url,
-        platform: "nebula",
-      };
-    }
-  } catch (e) {
-    captureException(e, { context: "nebula-feed-parse", url });
-    logError("Error parsing Nebula feed:", e);
-  }
-
-  return null;
-}
-
 export async function fetchNebulaFeedData(
   feed: DatabaseFeed,
   cached?: ConditionalHeaders,

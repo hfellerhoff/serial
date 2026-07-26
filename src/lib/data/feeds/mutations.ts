@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useFetchContentCategories } from "../content-categories/store";
 import { useFetchFeedCategories } from "../feed-categories/store";
 import { useFetchViewFeeds } from "../view-feeds/store";
 import { useFetchViews, useRemoveFeedReferences } from "../views/store";
@@ -8,14 +7,12 @@ import {
   feedItemsStore,
   useFeedItemsDict,
   useFeedItemsOrder,
-  useFetchFeedItems,
   useFetchFeedItemsForFeed,
 } from "../store";
 import {
   useAddFeed,
   useFetchFeeds,
   useRemoveFeed,
-  useSetFeeds,
   useUpdateFeed,
 } from "./store";
 import { useDialogStore } from "~/components/feed/dialogStore";
@@ -53,27 +50,6 @@ export function useCreateFeedMutation() {
             },
           );
         }
-      },
-    }),
-  );
-}
-
-export function useCreateFeedsFromSubscriptionImportMutation() {
-  const refetchFeedItems = useFetchFeedItems();
-  const fetchFeedCategories = useFetchFeedCategories();
-  const fetchContentCategories = useFetchContentCategories();
-  const setFeeds = useSetFeeds();
-  const fetchFeeds = useFetchFeeds();
-
-  return useMutation(
-    orpc.feed.createFromSubscriptionImport.mutationOptions({
-      onSuccess: () => {
-        // Reset and refetch feeds
-        setFeeds([]);
-        void fetchFeeds();
-        void refetchFeedItems();
-        void fetchFeedCategories();
-        void fetchContentCategories();
       },
     }),
   );
