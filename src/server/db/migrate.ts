@@ -99,6 +99,8 @@ async function runPostMigrationFiles(
     for (const stmt of file.statements) {
       // Migration statements are order-dependent by definition.
       // oxlint-disable-next-line react-doctor/async-await-in-loop
+      // SQL comes from version-controlled migration files, never user input.
+      // react-doctor-disable-next-line react-doctor/raw-sql-injection-risk
       await runner.run(sql.raw(stmt));
     }
 

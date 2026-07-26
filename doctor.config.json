@@ -14,6 +14,10 @@
           "src/server/subscriptions/fetchProducts.ts"
         ],
         "rules": ["deslop/unused-file"]
+      },
+      {
+        "files": [".github/workflows/pull-request.yml"],
+        "rules": ["react-doctor/plugin-update-trust-risk"]
       }
     ]
   }

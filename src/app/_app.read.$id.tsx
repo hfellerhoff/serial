@@ -286,6 +286,8 @@ function ReadPage() {
           <h1 data-serial-header>{feedItem?.title}</h1>
           <h6 data-serial-header>{feedItem?.author || feed?.name || ""}</h6>
           {articleStyle === "simplified" ? (
+            // Content is sanitized by the module-level rehype pipeline above.
+            // react-doctor-disable-next-line react-doctor/dangerous-html-sink
             <div
               dangerouslySetInnerHTML={{
                 __html: content,

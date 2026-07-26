@@ -2350,6 +2350,8 @@ function buildSectionPlacementExpression(viewId: number): SQL<number> {
     Symbol.for("drizzle:Name")
   ];
   const colName = (feedItems.feedId as unknown as { name: string }).name;
+  // Both identifiers come from static Drizzle schema metadata, not input.
+  // react-doctor-disable-next-line react-doctor/raw-sql-injection-risk
   const feedIdRef = sql.raw(`"${tableName}"."${colName}"`);
 
   return sql<number>`COALESCE(
