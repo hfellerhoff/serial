@@ -5,6 +5,7 @@ volumes:
 services:
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     volumes:
       - redis-data:/data
     healthcheck:
@@ -15,6 +16,7 @@ services:
       start_period: 2s
   libsql:
     image: ghcr.io/tursodatabase/libsql-server:latest-arm
+    restart: unless-stopped
     volumes:
       - libsql-data:/var/lib/sqld
     command: ["sqld", "--http-listen-addr", "0.0.0.0:8080"]
@@ -28,6 +30,7 @@ services:
       SQLD_NODE: primary
   server:
     image: ghcr.io/megaflorasoftware/serial:latest
+    restart: unless-stopped
     environment:
       NODE_ENV: production
       DATABASE_URL: http://libsql:8080
