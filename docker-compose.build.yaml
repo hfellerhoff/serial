@@ -61,4 +61,4 @@ services:
         condition: service_healthy
         required: true
     ports:
-      - 3001:3000
+      - 3008:3000
