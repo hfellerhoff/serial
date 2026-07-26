@@ -1,16 +1,15 @@
 "use client";
 
-import { CopyIcon, ExternalLinkIcon } from "lucide-react";
 import { useLocation } from "@tanstack/react-router";
+import { CopyIcon, ExternalLinkIcon } from "lucide-react";
 import { ManageFeedsButton } from "./ManageFeedsButton";
 import { OpenRightSidebarButton } from "./OpenRightSidebarButton";
 import { RefetchItemsButton } from "./RefetchItemsButton";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { Button } from "~/components/ui/button";
-import { AddFeedButton } from "~/components/AddFeedButton";
+import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { PLATFORM_TO_FORMATTED_NAME_MAP } from "~/lib/data/feeds/utils";
 import { useFeedItemValue } from "~/lib/data/store";
-import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { useFeedItemActions } from "~/lib/hooks/useFeedItemActions";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 
@@ -97,7 +96,6 @@ export function TopRightHeaderContent() {
 
   return (
     <div className="flex items-center gap-2">
-      <AddFeedButton />
       <ManageFeedsButton />
       <RefetchItemsButton />
       <div className="lg:hidden">
