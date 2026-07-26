@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useSelector } from "@xstate/react";
 import { loadingActor } from "~/lib/data/loading-machine";
 
@@ -194,6 +194,7 @@ export function useFlipItems(items: string[]) {
     // item owns its own clock, so rapid sequential removals don't pile up as
     // never-unmounted ghost nodes.
     const removalTimers = removalTimersRef.current;
+    const scheduledIds: string[] = [];
     for (const id of leavingIds) {
       if (removalTimers.has(id)) continue;
       const timer = setTimeout(() => {
@@ -204,16 +205,17 @@ export function useFlipItems(items: string[]) {
         }));
       }, REMOVAL_DELAY_MS);
       removalTimers.set(id, timer);
+      scheduledIds.push(id);
     }
-  }, [leavingKey]);
 
-  useEffect(() => {
-    const removalTimers = removalTimersRef.current;
     return () => {
-      for (const timer of removalTimers.values()) clearTimeout(timer);
-      removalTimers.clear();
+      for (const id of scheduledIds) {
+        const timer = removalTimers.get(id);
+        if (timer !== undefined) clearTimeout(timer);
+        removalTimers.delete(id);
+      }
     };
-  }, []);
+  }, [leavingKey]);
 
   return { renderedItems: state.rendered, containerRef };
 }

@@ -61,7 +61,7 @@ export function RefetchItemsButton() {
   useEffect(() => {
     if (nextRefreshAt === null) return;
 
-    let timeoutId: ReturnType<typeof setTimeout>;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
     const scheduleTick = () => {
       const remaining = nextRefreshAt - Date.now();
@@ -79,7 +79,9 @@ export function RefetchItemsButton() {
     setNow(Date.now());
     scheduleTick();
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    };
   }, [nextRefreshAt]);
 
   const onClick = useCallback(async () => {

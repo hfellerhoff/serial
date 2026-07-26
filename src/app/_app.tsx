@@ -97,6 +97,7 @@ function useCheckoutSuccess() {
     }
 
     const controller = new AbortController();
+    let interval: ReturnType<typeof setInterval> | undefined;
     let attempts = 0;
     let isSyncing = false;
 
@@ -140,7 +141,7 @@ function useCheckoutSuccess() {
     void sync().then((done) => {
       if (done || controller.signal.aborted) return;
 
-      const interval = setInterval(() => {
+      interval = setInterval(() => {
         if (controller.signal.aborted) {
           clearInterval(interval);
           return;
@@ -161,6 +162,7 @@ function useCheckoutSuccess() {
 
     return () => {
       controller.abort();
+      if (interval !== undefined) clearInterval(interval);
     };
   }, [awaitingUpgrade, planId, queryClient, openPlanSuccess]);
 

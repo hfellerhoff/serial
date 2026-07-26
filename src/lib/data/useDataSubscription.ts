@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getDefaultStore } from "jotai";
 import { orpcRouterClient } from "../orpc";
 import { getDataSubscriptionClientId } from "./clientChannel";
@@ -24,7 +24,7 @@ const BACKOFF_MULTIPLIER = 2;
  * Handles connection lifecycle, auto-reconnection, and exposes request methods.
  */
 export function useDataSubscription() {
-  const clientIdRef = useRef(getDataSubscriptionClientId());
+  const [clientId] = useState(() => getDataSubscriptionClientId());
   const abortControllerRef = useRef<AbortController | null>(null);
   const retryDelayRef = useRef(INITIAL_RETRY_DELAY);
   const isConnectedRef = useRef(false);
@@ -85,7 +85,7 @@ export function useDataSubscription() {
           retryDelayRef.current = INITIAL_RETRY_DELAY;
 
           const iterator = await orpcRouterClient.initial.subscribe(
-            { clientId: clientIdRef.current },
+            { clientId },
             { signal: conn.signal },
           );
 
@@ -95,7 +95,7 @@ export function useDataSubscription() {
           if (visibilityReconnect) {
             visibilityReconnect = false;
             void orpcRouterClient.initial.requestInitialData({
-              clientId: clientIdRef.current,
+              clientId,
             });
           }
 
@@ -119,9 +119,17 @@ export function useDataSubscription() {
           console.error("Subscription error, retrying...", error);
 
           // Wait with exponential backoff before retrying
-          await new Promise((resolve) =>
-            setTimeout(resolve, retryDelayRef.current),
-          );
+          await new Promise<void>((resolve) => {
+            const timeoutId = setTimeout(resolve, retryDelayRef.current);
+            controller.signal.addEventListener(
+              "abort",
+              () => {
+                clearTimeout(timeoutId);
+                resolve();
+              },
+              { once: true },
+            );
+          });
 
           // Increase retry delay for next attempt
           retryDelayRef.current = Math.min(
@@ -199,21 +207,21 @@ export function useDataSubscription() {
         chunkBufferRef.current = [];
       }
     };
-  }, [flushBuffer]);
+  }, [clientId, flushBuffer]);
 
   // Request methods that trigger data fetching via the publisher
   const requestInitialData = useCallback(() => {
     return orpcRouterClient.initial.requestInitialData({
-      clientId: clientIdRef.current,
+      clientId,
     });
-  }, []);
+  }, [clientId]);
 
   const requestFullTextForItems = useCallback((itemIds: string[]) => {
     return orpcRouterClient.initial.requestFullTextForItems({
       itemIds,
-      clientId: clientIdRef.current,
+      clientId,
     });
-  }, []);
+  }, [clientId]);
 
   const requestItemsByVisibility = useCallback(
     (
@@ -229,10 +237,10 @@ export function useDataSubscription() {
         cursor,
         limit,
         clientItems,
-        clientId: clientIdRef.current,
+        clientId,
       });
     },
-    [],
+    [clientId],
   );
 
   const requestItemsByFeed = useCallback(
@@ -247,10 +255,10 @@ export function useDataSubscription() {
         visibilityFilter,
         cursor,
         limit,
-        clientId: clientIdRef.current,
+        clientId,
       });
     },
-    [],
+    [clientId],
   );
 
   const requestItemsByCategoryId = useCallback(
@@ -265,10 +273,10 @@ export function useDataSubscription() {
         visibilityFilter,
         cursor,
         limit,
-        clientId: clientIdRef.current,
+        clientId,
       });
     },
-    [],
+    [clientId],
   );
 
   return {
