@@ -128,7 +128,7 @@ export function VideoDisplay({
           )}
         </div>
       </div>
-      <ContentActions contentID={id} showCopyUrl={false} />
+      <ContentActions contentID={id} />
     </>
   );
 }

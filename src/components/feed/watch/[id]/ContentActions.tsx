@@ -4,7 +4,6 @@ import {
   BookmarkCheckIcon,
   BookmarkIcon,
   CheckIcon,
-  CopyIcon,
   SendIcon,
 } from "lucide-react";
 import { useView } from "./useView";
@@ -23,19 +22,11 @@ import { useMediaQuery } from "~/lib/hooks/use-media-query";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { getDataSubscriptionClientId } from "~/lib/data/clientChannel";
-import { useFeedItemActions } from "~/lib/hooks/useFeedItemActions";
 
-export function ContentActions({
-  contentID,
-  showCopyUrl = true,
-}: {
-  contentID: string;
-  showCopyUrl?: boolean;
-}) {
+export function ContentActions({ contentID }: { contentID: string }) {
   const { view } = useView();
 
   const video = useFeedItemValue(contentID);
-  const { copyUrl } = useFeedItemActions(contentID);
 
   const { mutateAsync: setWatchedValue } =
     useFeedItemsSetWatchedValueMutation(contentID);
@@ -86,11 +77,6 @@ export function ContentActions({
 
   useShortcut(SHORTCUT_KEYS.SEND_TO_INSTAPAPER, () => {
     void handleSaveToInstapaper();
-  });
-
-  useShortcut(SHORTCUT_KEYS.COPY_URL, (event) => {
-    event.preventDefault();
-    void copyUrl();
   });
 
   if (!video) return null;
@@ -148,17 +134,6 @@ export function ContentActions({
         >
           <SendIcon size={16} />
           <span className="hidden pl-1.5 md:block">Instapaper</span>
-        </ButtonWithShortcut>
-      )}
-      {showCopyUrl && (
-        <ButtonWithShortcut
-          shortcut={SHORTCUT_KEYS.COPY_URL}
-          variant="outline"
-          onClick={() => void copyUrl()}
-          size="icon md:default"
-        >
-          <CopyIcon size={16} />
-          <span className="hidden pl-1.5 md:block">Copy URL</span>
         </ButtonWithShortcut>
       )}
       <ButtonWithShortcut

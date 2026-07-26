@@ -12,9 +12,15 @@ import { PLATFORM_TO_FORMATTED_NAME_MAP } from "~/lib/data/feeds/utils";
 import { useFeedItemValue } from "~/lib/data/store";
 import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { useFeedItemActions } from "~/lib/hooks/useFeedItemActions";
+import { useShortcut } from "~/lib/hooks/useShortcut";
 
 function CopyUrlButton({ contentId }: { contentId: string }) {
   const { copyUrl } = useFeedItemActions(contentId);
+
+  useShortcut(SHORTCUT_KEYS.COPY_URL, (event) => {
+    event.preventDefault();
+    void copyUrl();
+  });
 
   return (
     <ButtonWithShortcut
