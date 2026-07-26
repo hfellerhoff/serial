@@ -4,13 +4,11 @@ export function parseArrayOfSchema<TSchema extends ZodSchema>(
   array: unknown[],
   schema: TSchema,
 ) {
-  return array
-    .map((item) => {
+  return array.flatMap((item) => {
       try {
-        return schema.parse(item);
+        return [schema.parse(item)];
       } catch {
-        return null;
+        return [];
       }
-    })
-    .filter(Boolean);
+    });
 }

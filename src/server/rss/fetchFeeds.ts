@@ -84,9 +84,9 @@ export async function fetchNewFeedDetails(
       /<link rel="alternate" type="application\/rss\+xml" title="RSS" href="(https:\/\/www\.youtube\.com\/feeds\/videos\.xml\?channel_id=[^&]{24})">/gm,
     );
 
-    urls = Array.from(rssFeedUrlMatches)
-      .map((id) => id[1])
-      .filter(Boolean);
+    urls = Array.from(rssFeedUrlMatches).flatMap((id) =>
+      id[1] ? [id[1]] : [],
+    );
   }
 
   const feedDetailList = (

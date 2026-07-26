@@ -154,8 +154,7 @@ export async function fetchNebulaFeedData(
       id: feed.id,
       title: data.title,
       url: data.link,
-      items: data.items
-        .map((item) => {
+      items: data.items.map((item) => {
           const idParts = item.guid.split("/");
           const id = idParts[idParts.length - 1] || item.guid;
 
@@ -169,8 +168,7 @@ export async function fetchNebulaFeedData(
             content: item.contentSnippet,
             contentSnippet: item.contentSnippet,
           } satisfies RSSContent;
-        })
-        .filter(Boolean),
+        }),
       fetchMetadata,
     };
   } catch (e) {

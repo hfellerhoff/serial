@@ -206,7 +206,7 @@ export const createFromSubscriptionImport = protectedProcedure
               if (!newFeed?.url) {
                 return {
                   feedUrl: feed.feedUrl,
-                  success: false,
+                  success: false as const,
                   error: "Unsupported feed URL",
                 };
               }
@@ -219,7 +219,7 @@ export const createFromSubscriptionImport = protectedProcedure
               if (existingFeed) {
                 return {
                   feedUrl: newFeed.url,
-                  success: false,
+                  success: false as const,
                   error: "Feed already exists",
                 };
               }
@@ -239,7 +239,7 @@ export const createFromSubscriptionImport = protectedProcedure
               if (!newFeedRow) {
                 return {
                   feedUrl: newFeed.url,
-                  success: false,
+                  success: false as const,
                   error: "Couldn't find new feed",
                 };
               }
@@ -301,15 +301,15 @@ export const createFromSubscriptionImport = protectedProcedure
               return {
                 feedUrl: newFeed.url,
                 feedId: newFeedRow.id,
-                success: true,
+                success: true as const,
               };
             }),
           );
         }),
       );
 
-      const chunkResults: BulkImportFromFileResult[] = promiseResults
-        .map((result, i) => {
+      const chunkResults: BulkImportFromFileResult[] = promiseResults.map(
+        (result, i): BulkImportFromFileResult => {
           if (result.status === "fulfilled") {
             return result.value;
           }
@@ -325,8 +325,8 @@ export const createFromSubscriptionImport = protectedProcedure
                 ? result.reason.message
                 : "Import failed",
           };
-        })
-        .filter(Boolean);
+        },
+      );
 
       allResults.push(...chunkResults);
     }
@@ -499,9 +499,9 @@ async function discoverYouTubeFeeds(url: string) {
       /<meta property="og:title" content="([^"]+)">/.exec(text);
     const channelName = channelNameMatch?.[1];
 
-    const feedUrls = Array.from(rssFeedUrlMatches)
-      .map((match) => match[1])
-      .filter(Boolean);
+    const feedUrls = Array.from(rssFeedUrlMatches).flatMap((match) =>
+      match[1] ? [match[1]] : [],
+    );
 
     if (feedUrls.length === 0) {
       return null;

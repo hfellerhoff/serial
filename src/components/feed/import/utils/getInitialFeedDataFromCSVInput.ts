@@ -31,26 +31,26 @@ export function getInitialFeedDataFromCSVInput(
     );
   }
 
-  const initialFeedData = channelRows
-    .map((row): ImportFeedDataItem | null => {
+  const initialFeedData = channelRows.flatMap(
+    (row): ImportFeedDataItem[] => {
       const [channelId, channelUrl, title] = row.split(",");
 
       if (!channelId || !channelUrl || !title) {
-        return null;
+        return [];
       }
 
       const feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
 
-      return {
+      return [{
         title,
         feedUrl,
         websiteUrl: channelUrl,
         categories: [],
         platform: getAssumedFeedPlatform(feedUrl),
         shouldImport: true,
-      };
-    })
-    .filter(Boolean);
+      }];
+    },
+  );
 
   if (initialFeedData.length) {
     return formSuccess(initialFeedData);
