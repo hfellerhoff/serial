@@ -19,6 +19,30 @@ const INITIAL_RETRY_DELAY = 1000; // 1 second
 const MAX_RETRY_DELAY = 30000; // 30 seconds
 const BACKOFF_MULTIPLIER = 2;
 
+function waitForAbortableDelay(delay: number, signal: AbortSignal) {
+  return new Promise<void>((resolve) => {
+    const finish = () => {
+      clearTimeout(timeoutId);
+      signal.removeEventListener("abort", finish);
+      resolve();
+    };
+    const timeoutId = setTimeout(finish, delay);
+    signal.addEventListener("abort", finish, { once: true });
+  });
+}
+
+function waitForVisibilityChange(signal: AbortSignal) {
+  return new Promise<void>((resolve) => {
+    const finish = () => {
+      document.removeEventListener("visibilitychange", finish);
+      signal.removeEventListener("abort", finish);
+      resolve();
+    };
+    document.addEventListener("visibilitychange", finish, { once: true });
+    signal.addEventListener("abort", finish, { once: true });
+  });
+}
+
 /**
  * Hook that manages the subscription to the user's data channel.
  * Handles connection lifecycle, auto-reconnection, and exposes request methods.
@@ -41,6 +65,9 @@ export function useDataSubscription() {
     feedItemsStore.getState().processChunks(chunks);
   }, []);
 
+  // Cleanup aborts the stream and removes both direct subscriptions. The
+  // subscription loop also combines its connection signal with this abort.
+  // oxlint-disable-next-line react-doctor/effect-needs-cleanup
   useEffect(() => {
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -51,34 +78,21 @@ export function useDataSubscription() {
     let visibilityReconnect = false;
     let paused = false;
 
-    async function subscribe() {
+    async function runSubscriptionLoop() {
       while (!controller.signal.aborted) {
         // Wait while the page is hidden — no point holding an SSE
         // connection open when the tab isn't visible.
-        if (paused) {
-          await new Promise<void>((resolve) => {
-            const check = () => {
-              if (!paused || controller.signal.aborted) {
-                document.removeEventListener("visibilitychange", check);
-                resolve();
-              }
-            };
-            document.addEventListener("visibilitychange", check);
-            // In case the flag was already flipped before we started listening
-            check();
-          });
+        while (paused && !controller.signal.aborted) {
+          await waitForVisibilityChange(controller.signal);
           if (controller.signal.aborted) break;
         }
 
         const conn = new AbortController();
         connectionController = conn;
-
-        // Cascade main abort → connection abort so unmount kills the
-        // active connection immediately.
-        const forwardAbort = () => conn.abort();
-        controller.signal.addEventListener("abort", forwardAbort, {
-          once: true,
-        });
+        const connectionSignal = AbortSignal.any([
+          controller.signal,
+          conn.signal,
+        ]);
 
         try {
           isConnectedRef.current = true;
@@ -86,7 +100,7 @@ export function useDataSubscription() {
 
           const iterator = await orpcRouterClient.initial.subscribe(
             { clientId },
-            { signal: conn.signal },
+            { signal: connectionSignal },
           );
 
           // After reconnecting due to page refocus, re-request data so
@@ -119,25 +133,16 @@ export function useDataSubscription() {
           console.error("Subscription error, retrying...", error);
 
           // Wait with exponential backoff before retrying
-          await new Promise<void>((resolve) => {
-            const timeoutId = setTimeout(resolve, retryDelayRef.current);
-            controller.signal.addEventListener(
-              "abort",
-              () => {
-                clearTimeout(timeoutId);
-                resolve();
-              },
-              { once: true },
-            );
-          });
+          await waitForAbortableDelay(
+            retryDelayRef.current,
+            controller.signal,
+          );
 
           // Increase retry delay for next attempt
           retryDelayRef.current = Math.min(
             retryDelayRef.current * BACKOFF_MULTIPLIER,
             MAX_RETRY_DELAY,
           );
-        } finally {
-          controller.signal.removeEventListener("abort", forwardAbort);
         }
       }
     }
@@ -189,7 +194,7 @@ export function useDataSubscription() {
       },
     );
 
-    subscribe();
+    void runSubscriptionLoop();
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -216,12 +221,15 @@ export function useDataSubscription() {
     });
   }, [clientId]);
 
-  const requestFullTextForItems = useCallback((itemIds: string[]) => {
-    return orpcRouterClient.initial.requestFullTextForItems({
-      itemIds,
-      clientId,
-    });
-  }, [clientId]);
+  const requestFullTextForItems = useCallback(
+    (itemIds: string[]) => {
+      return orpcRouterClient.initial.requestFullTextForItems({
+        itemIds,
+        clientId,
+      });
+    },
+    [clientId],
+  );
 
   const requestItemsByVisibility = useCallback(
     (

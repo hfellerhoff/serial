@@ -54,33 +54,17 @@ export function RefetchItemsButton() {
   const showCheck = isRateLimited && !isMachineActive;
 
   // Tick `now` so the tooltip text updates live and the button re-enables
-  // when cooldown expires. Uses chained timeouts so the tick interval
-  // adapts as the remaining time shrinks (every second when <2min,
-  // every 20s otherwise). Max delay is 20s so long cooldowns still feel
-  // responsive.
+  // when the cooldown expires.
   useEffect(() => {
     if (nextRefreshAt === null) return;
 
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-    const scheduleTick = () => {
-      const remaining = nextRefreshAt - Date.now();
-      if (remaining <= 0) {
-        setNow(Date.now());
-        return; // expired, no more ticks needed
-      }
-      const delayMs = remaining <= 2 * 60 * 1000 ? 1_000 : 20_000;
-      timeoutId = setTimeout(() => {
-        setNow(Date.now());
-        scheduleTick();
-      }, delayMs);
-    };
-
     setNow(Date.now());
-    scheduleTick();
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 1_000);
 
     return () => {
-      if (timeoutId !== undefined) clearTimeout(timeoutId);
+      clearInterval(interval);
     };
   }, [nextRefreshAt]);
 

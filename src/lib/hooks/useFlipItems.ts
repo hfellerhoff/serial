@@ -180,6 +180,8 @@ export function useFlipItems(items: string[]) {
     : new Set(state.rendered.filter((id) => !currentItemIds.has(id)));
   const leavingKey = [...leavingItems].join(ITEM_ID_SEPARATOR);
 
+  // Every timer allocated below is cleared by the returned cleanup.
+  // oxlint-disable-next-line react-doctor/effect-needs-cleanup
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container || leavingKey === "") return;

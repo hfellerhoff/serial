@@ -97,7 +97,6 @@ function useCheckoutSuccess() {
     }
 
     const controller = new AbortController();
-    let interval: ReturnType<typeof setInterval> | undefined;
     let attempts = 0;
     let isSyncing = false;
 
@@ -137,32 +136,27 @@ function useCheckoutSuccess() {
       return false;
     };
 
-    // First attempt immediately, then poll with interval
-    void sync().then((done) => {
-      if (done || controller.signal.aborted) return;
-
-      interval = setInterval(() => {
-        if (controller.signal.aborted) {
+    const interval = setInterval(() => {
+      attempts++;
+      void sync().then((planWasUpdated) => {
+        if (planWasUpdated || attempts >= MAX_SYNC_ATTEMPTS) {
           clearInterval(interval);
-          return;
-        }
-
-        attempts++;
-        void sync().then((done) => {
-          if (done || attempts >= MAX_SYNC_ATTEMPTS) {
-            clearInterval(interval);
-            if (!done) {
-              // Give up gracefully — user will see the upgrade on next load
-              setAwaitingUpgrade(false);
-            }
+          if (!planWasUpdated) {
+            // Give up gracefully — user will see the upgrade on next load
+            setAwaitingUpgrade(false);
           }
-        });
-      }, SYNC_POLL_INTERVAL_MS);
+        }
+      });
+    }, SYNC_POLL_INTERVAL_MS);
+
+    // First attempt immediately, then continue polling until the plan changes.
+    void sync().then((planWasUpdated) => {
+      if (planWasUpdated) clearInterval(interval);
     });
 
     return () => {
       controller.abort();
-      if (interval !== undefined) clearInterval(interval);
+      clearInterval(interval);
     };
   }, [awaitingUpgrade, planId, queryClient, openPlanSuccess]);
 
