@@ -18,6 +18,37 @@
       {
         "files": [".github/workflows/pull-request.yml"],
         "rules": ["react-doctor/plugin-update-trust-risk"]
+      },
+      {
+        "files": ["src/lib/hooks/useItemWindow.ts"],
+        "rules": ["react-doctor/no-pass-data-to-parent"]
+      },
+      {
+        "files": [
+          "src/components/admin/EditInviteDialog.tsx",
+          "src/components/view-dialog/EditViewDialog.tsx"
+        ],
+        "rules": ["react-doctor/prefer-useReducer"]
+      },
+      {
+        "files": [
+          "src/components/admin/UserFeedCountChart.tsx",
+          "src/components/admin/UserRetentionChart.tsx",
+          "src/components/admin/UserSigninsChart.tsx",
+          "src/components/admin/UserSignupsChart.tsx",
+          "src/components/debug/FeedRefreshTimeframesChart.tsx"
+        ],
+        "rules": ["react-doctor/prefer-dynamic-import"]
+      },
+      {
+        "files": [
+          "src/app/_app.feeds.tsx",
+          "src/app/_app.import.tsx",
+          "src/app/_app.tags.tsx",
+          "src/app/_app.views.tsx",
+          "src/components/feed/SidebarFeeds.tsx"
+        ],
+        "rules": ["react-doctor/no-giant-component"]
       }
     ]
   }
