@@ -94,10 +94,7 @@ export function EditableSavableTextField({
     <form
       ref={formRef}
       className="grid gap-2"
-      onSubmit={async (e) => {
-        e.preventDefault();
-
-        const formValues = new FormData(e.currentTarget);
+      action={async (formValues) => {
         const fieldValue = formValues.get(id);
 
         if (fieldValue === initialValue) {
@@ -117,7 +114,7 @@ export function EditableSavableTextField({
         }
         setErrors([]);
 
-        e.currentTarget.reset();
+        formRef.current?.reset();
 
         setIsSaving(true);
         setIsEditing(false);

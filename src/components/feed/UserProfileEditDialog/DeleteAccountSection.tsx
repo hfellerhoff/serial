@@ -50,10 +50,7 @@ function DeleteAccountConfirmationSection({
       </p>
       <form
         className="grid gap-4"
-        onSubmit={async (e) => {
-          e.preventDefault();
-
-          const formValues = new FormData(e.currentTarget);
+        action={async (formValues) => {
           const fieldValue = formValues.get(DELETE_FIELD_NAME);
 
           const { success } = targetValueSchema.safeParse(fieldValue);
