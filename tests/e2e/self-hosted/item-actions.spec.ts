@@ -118,6 +118,23 @@ test.describe("feed item actions", () => {
     await expect(page.getByRole("button", { name: "Copy URL" })).toHaveCount(1);
   });
 
+  test("shows Copy URL before Open in the article header", async ({ page }) => {
+    const { email, password, feedItemId } = await seedArticleData(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+    );
+    testEmail = email;
+
+    await signIn({ page, email, password });
+    await page.goto(`/read/${feedItemId}`);
+
+    const headerActions = page.locator("header > span").last();
+    const buttons = headerActions.getByRole("button");
+    await expect(buttons.first()).toHaveAccessibleName("Copy URL");
+    await expect(buttons).toHaveCount(2);
+    await expect(page.getByRole("button", { name: "Copy URL" })).toHaveCount(1);
+  });
+
   test("loads the YouTube player with an identifiable embed context", async ({
     page,
   }) => {

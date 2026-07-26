@@ -78,7 +78,8 @@ export function TopRightHeaderContent() {
   const { pathname } = useLocation();
 
   if (pathname.includes("/watch/") || pathname.includes("/read/")) {
-    const contentId = pathname.split("/watch/")[1];
+    const contentId =
+      pathname.split("/watch/")[1] ?? pathname.split("/read/")[1];
 
     return (
       <div className="flex items-center gap-2">

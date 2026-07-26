@@ -327,7 +327,7 @@ function ReadPage() {
           },
         )}
       >
-        <ContentActions contentID={params.id} />
+        <ContentActions contentID={params.id} showCopyUrl={false} />
       </div>
     </div>
   );
