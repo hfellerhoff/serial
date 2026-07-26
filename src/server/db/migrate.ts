@@ -97,6 +97,8 @@ async function runPostMigrationFiles(
     );
 
     for (const stmt of file.statements) {
+      // Migration statements are order-dependent by definition.
+      // oxlint-disable-next-line react-doctor/async-await-in-loop
       await runner.run(sql.raw(stmt));
     }
 
@@ -181,8 +183,12 @@ async function run() {
       `[migrate]   [${i + 1}/${pending.length}] ${entry.tag} (${statements.length} statement(s))...`,
     );
 
+    // Migrations must commit in timestamp order.
+    // oxlint-disable-next-line react-doctor/async-await-in-loop
     await db.transaction(async (tx) => {
       for (const stmt of statements) {
+        // Statements within a migration are also order-dependent.
+        // oxlint-disable-next-line react-doctor/async-await-in-loop
         await tx.run(sql.raw(stmt));
       }
 

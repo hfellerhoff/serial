@@ -84,6 +84,8 @@ export function useDataSubscription() {
         // Wait while the page is hidden — no point holding an SSE
         // connection open when the tab isn't visible.
         while (paused && !signal.aborted) {
+          // Visibility changes must be consumed in order.
+          // oxlint-disable-next-line react-doctor/async-await-in-loop
           await waitForVisibilityChange(signal);
           if (signal.aborted) break;
         }
@@ -96,6 +98,8 @@ export function useDataSubscription() {
           isConnectedRef.current = true;
           retryDelayRef.current = INITIAL_RETRY_DELAY;
 
+          // Each reconnect depends on the prior connection closing.
+          // oxlint-disable-next-line react-doctor/async-await-in-loop
           const iterator = await orpcRouterClient.initial.subscribe(
             { clientId },
             { signal: connectionSignal },

@@ -1246,6 +1246,8 @@ async function publishViewFeedsChunks(
       customViewFeedIds,
     );
 
+    // Preserve view publication order for the client-side reducer.
+    // oxlint-disable-next-line react-doctor/async-await-in-loop
     await publisher.publish(channel, {
       source,
       chunk: {
@@ -2583,6 +2585,8 @@ export const requestItemsByFeed = protectedProcedure
         GET_BY_VIEW_CHUNK_SIZE,
       );
       for (const [chunkIndex, chunk] of chunks.entries()) {
+        // Chunks must arrive in order so replacement precedes append chunks.
+        // oxlint-disable-next-line react-doctor/async-await-in-loop
         await publisher.publish(channel, {
           source: "feed",
           chunk: {
@@ -2734,6 +2738,8 @@ export const requestItemsByCategoryId = protectedProcedure
         GET_BY_VIEW_CHUNK_SIZE,
       );
       for (const [chunkIndex, chunk] of chunks.entries()) {
+        // Chunks must arrive in order so replacement precedes append chunks.
+        // oxlint-disable-next-line react-doctor/async-await-in-loop
         await publisher.publish(channel, {
           source: "category",
           chunk: {
