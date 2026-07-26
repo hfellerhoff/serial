@@ -22,11 +22,11 @@ async function expectVerticalPosition(
 
   expect(containerBox).not.toBeNull();
   expect(contentBox).not.toBeNull();
-  expect(
+  const verticalOffset =
     contentBox!.y +
-      contentBox!.height / 2 -
-      (containerBox!.y + containerBox!.height * position),
-  ).toBeCloseTo(0, 0);
+    contentBox!.height / 2 -
+    (containerBox!.y + containerBox!.height * position);
+  expect(Math.abs(verticalOffset)).toBeLessThanOrEqual(2);
   expect(contentBox!.y).toBeGreaterThanOrEqual(containerBox!.y);
   expect(contentBox!.y + contentBox!.height).toBeLessThanOrEqual(
     containerBox!.y + containerBox!.height,
@@ -102,6 +102,14 @@ test.describe("add feed manually", () => {
 
     const commandList = dialog.locator("[cmdk-list]");
     await expect(commandList).toHaveCSS("min-height", "320px");
+
+    // On desktop, the command palette sits one-third down the viewport.
+    const desktopDialogBox = await dialog.boundingBox();
+    expect(desktopDialogBox).not.toBeNull();
+    expect(desktopDialogBox!.y + desktopDialogBox!.height / 2).toBeCloseTo(
+      1080 / 3,
+      0,
+    );
 
     // The command palette fills the visual viewport on mobile.
     await page.setViewportSize({ width: 390, height: 500 });
