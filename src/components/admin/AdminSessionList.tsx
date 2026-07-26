@@ -2,7 +2,13 @@
 
 import dayjs from "dayjs";
 import { MonitorIcon, SmartphoneIcon, UserIcon } from "lucide-react";
+import { useSyncExternalStore } from "react";
 import { Badge } from "~/components/ui/badge";
+
+const CLIENT_RENDER_TIME = Date.now();
+const subscribeToStaticTime = () => () => undefined;
+const getClientRenderTime = () => CLIENT_RENDER_TIME;
+const getServerRenderTime = () => null;
 
 interface Session {
   id: string;
@@ -53,6 +59,12 @@ function getDeviceName(userAgent?: string | null) {
 }
 
 export function AdminSessionList({ sessions }: AdminSessionListProps) {
+  const renderTime = useSyncExternalStore(
+    subscribeToStaticTime,
+    getClientRenderTime,
+    getServerRenderTime,
+  );
+
   if (sessions.length === 0) {
     return (
       <p className="text-muted-foreground py-4 text-center text-sm">
@@ -64,7 +76,8 @@ export function AdminSessionList({ sessions }: AdminSessionListProps) {
   return (
     <div className="flex flex-col gap-2">
       {sessions.map((session) => {
-        const isExpired = new Date(session.expiresAt) < new Date();
+        const isExpired =
+          renderTime !== null && session.expiresAt.getTime() < renderTime;
 
         return (
           <div
