@@ -1884,21 +1884,22 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
 
         for (let i = 0; i < payloads.length; i++) {
           const payload = payloads[i]!;
+          const { chunk } = payload;
           const isBatchable =
             payload.source === "initial" &&
-            (payload.chunk.type === "feed-items" ||
-              payload.chunk.type === "view-diff" ||
-              payload.chunk.type === "feed-status");
+            (chunk.type === "feed-items" ||
+              chunk.type === "view-diff" ||
+              chunk.type === "feed-status");
 
           if (isBatchable) {
-            if (payload.chunk.type === "view-diff") {
+            if (chunk.type === "view-diff") {
               pendingInitialViewDiffs.push(payload as InitialViewDiffPayload);
-            } else if (payload.chunk.type === "feed-items") {
+            } else if (chunk.type === "feed-items") {
               pendingInitialFeedItems.push(payload as InitialFeedItemPayload);
-            } else if (payload.chunk.type === "feed-status") {
+            } else if (chunk.type === "feed-status") {
               pendingInitialFeedStatuses.push({
-                feedId: payload.chunk.feedId,
-                status: payload.chunk.status,
+                feedId: chunk.feedId,
+                status: chunk.status,
               });
             }
           } else {

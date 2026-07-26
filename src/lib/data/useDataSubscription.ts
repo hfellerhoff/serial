@@ -70,6 +70,7 @@ export function useDataSubscription() {
   // oxlint-disable-next-line react-doctor/effect-needs-cleanup
   useEffect(() => {
     const controller = new AbortController();
+    const { signal } = controller;
     abortControllerRef.current = controller;
 
     // Per-connection controller — aborted on visibility change to force
@@ -79,18 +80,18 @@ export function useDataSubscription() {
     let paused = false;
 
     async function runSubscriptionLoop() {
-      while (!controller.signal.aborted) {
+      while (!signal.aborted) {
         // Wait while the page is hidden — no point holding an SSE
         // connection open when the tab isn't visible.
-        while (paused && !controller.signal.aborted) {
-          await waitForVisibilityChange(controller.signal);
-          if (controller.signal.aborted) break;
+        while (paused && !signal.aborted) {
+          await waitForVisibilityChange(signal);
+          if (signal.aborted) break;
         }
 
         const conn = new AbortController();
         connectionController = conn;
         const connectionSignal = AbortSignal.any([
-          controller.signal,
+          signal,
           conn.signal,
         ]);
 
@@ -133,10 +134,7 @@ export function useDataSubscription() {
           console.error("Subscription error, retrying...", error);
 
           // Wait with exponential backoff before retrying
-          await waitForAbortableDelay(
-            retryDelayRef.current,
-            controller.signal,
-          );
+          await waitForAbortableDelay(retryDelayRef.current, controller.signal);
 
           // Increase retry delay for next attempt
           retryDelayRef.current = Math.min(

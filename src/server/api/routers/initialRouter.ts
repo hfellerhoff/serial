@@ -288,9 +288,7 @@ function computeFeedsForView(
 
       // Also check if feed's categories overlap with Uncategorized view's categoryIds
       if (
-        feedCategoryIds.some((categoryId) =>
-          viewCategoryIdSet.has(categoryId),
-        )
+        feedCategoryIds.some((categoryId) => viewCategoryIdSet.has(categoryId))
       ) {
         feedIds.add(feed.id);
         continue;
@@ -400,17 +398,12 @@ async function* fetchContentForViews(
 
   while (pendingPromises.size > 0) {
     const result = await Promise.any(pendingPromises.values());
+    const { chunk } = result;
 
-    if (
-      result.chunk.type === "feed-items" &&
-      result.chunk.viewId !== undefined
-    ) {
-      pendingPromises.delete(result.chunk.viewId);
-    } else if (
-      result.chunk.type === "error" &&
-      result.chunk.viewId !== undefined
-    ) {
-      pendingPromises.delete(result.chunk.viewId);
+    if (chunk.type === "feed-items" && chunk.viewId !== undefined) {
+      pendingPromises.delete(chunk.viewId);
+    } else if (chunk.type === "error" && chunk.viewId !== undefined) {
+      pendingPromises.delete(chunk.viewId);
     }
     yield result;
   }

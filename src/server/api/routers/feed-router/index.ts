@@ -210,15 +210,16 @@ export const createFromSubscriptionImport = protectedProcedure
                   error: "Unsupported feed URL",
                 };
               }
+              const newFeedUrl = newFeed.url;
 
               const existingFeed = await findExistingFeedThatMatches(tx, {
-                feedUrl: newFeed.url,
+                feedUrl: newFeedUrl,
                 userId: context.user.id,
               });
 
               if (existingFeed) {
                 return {
-                  feedUrl: newFeed.url,
+                  feedUrl: newFeedUrl,
                   success: false as const,
                   error: "Feed already exists",
                 };
