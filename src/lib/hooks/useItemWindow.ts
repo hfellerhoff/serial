@@ -34,6 +34,9 @@ export function useItemWindow(itemIds: string[], listKey: string) {
   // Auto-expand window if keyboard navigation selects an item outside the
   // visible range so scroll-to-item always finds a DOM node.
   const selectedItemId = useAtomValue(selectedItemIdAtom);
+  // The effect updates this hook's own window state; it does not pass data to
+  // a parent component.
+  // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent
   useEffect(() => {
     if (!selectedItemId) return;
     const index = itemIds.indexOf(selectedItemId);

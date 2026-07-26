@@ -6,6 +6,9 @@ import { getReleaseUrl } from "~/lib/constants";
 const RELEASE_SLUG_KEY = "last-viewed-release";
 
 export function ReleaseNotifierClient({ slug }: { slug: string | undefined }) {
+  // This synchronizes a server-provided release slug with browser storage on
+  // mount; there is no user event that can own the notification.
+  // react-doctor-disable-next-line react-doctor/no-effect-event-handler
   useEffect(() => {
     if (!slug) return;
 
