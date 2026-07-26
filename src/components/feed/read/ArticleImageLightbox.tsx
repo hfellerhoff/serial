@@ -20,20 +20,15 @@ export function ArticleImageLightbox({
   const toggle = () => setOpen((prev) => !prev);
 
   return (
-    <div
-      data-lightbox
-      role="button"
-      tabIndex={0}
-      style={{ position: "relative", cursor: "zoom-in" }}
-      onClick={toggle}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          toggle();
-        }
-      }}
-    >
-      <img src={src} alt={alt} className={className} />
+    <div data-lightbox style={{ position: "relative" }}>
+      <button
+        type="button"
+        aria-label="Open image preview"
+        style={{ display: "block", cursor: "zoom-in" }}
+        onClick={toggle}
+      >
+        <img src={src} alt={alt} className={className} />
+      </button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogPortal>
           <DialogOverlay />

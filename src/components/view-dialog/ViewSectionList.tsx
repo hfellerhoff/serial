@@ -214,6 +214,7 @@ function SortableViewSectionItem({
       </div>
       <button
         type="button"
+        aria-label={`Remove ${displayName}`}
         className="text-muted-foreground hover:text-foreground rounded-sm p-1"
         onClick={() => onRemove(item.id)}
       >

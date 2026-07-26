@@ -450,6 +450,7 @@ export function EditFeedDialog({
                     href={websiteUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label={`Open in ${platformName}`}
                   >
                     <ExternalLinkIcon size={16} />
                   </a>

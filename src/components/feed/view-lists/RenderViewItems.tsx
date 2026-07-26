@@ -395,7 +395,7 @@ export function RenderViewItems() {
             key={
               section.isUncategorized
                 ? `${viewListKey}-uncategorized`
-                : `${viewListKey}-${section.name}-${index}`
+                : `${viewListKey}-${section.itemType}-${section.itemId}`
             }
             section={section}
             sectionIndex={index}

@@ -361,6 +361,7 @@ function EditFeedsPage() {
           ref={inputElementRef}
           type="file"
           accept="text"
+          aria-label="Import feed files"
           className="sr-only"
           multiple
           onChange={onSelectFiles}
