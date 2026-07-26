@@ -194,6 +194,7 @@ export const createFromSubscriptionImport = protectedProcedure
     const BATCH_SIZE = 4;
     const feedChunks = prepareArrayChunks(feedsWithActivation, BATCH_SIZE);
     const allResults: BulkImportFromFileResult[] = [];
+    const userId = context.user.id;
 
     for (const chunk of feedChunks) {
       const promiseResults = await Promise.allSettled(
@@ -214,7 +215,7 @@ export const createFromSubscriptionImport = protectedProcedure
 
               const existingFeed = await findExistingFeedThatMatches(tx, {
                 feedUrl: newFeedUrl,
-                userId: context.user.id,
+                userId,
               });
 
               if (existingFeed) {
@@ -228,7 +229,7 @@ export const createFromSubscriptionImport = protectedProcedure
               const newFeeds = await tx
                 .insert(feeds)
                 .values({
-                  userId: context.user.id,
+                  userId,
                   ...newFeed,
                   isActive: feed.shouldBeActive,
                   openLocation:
@@ -251,7 +252,7 @@ export const createFromSubscriptionImport = protectedProcedure
                 .where(
                   and(
                     inArray(contentCategories.name, feed.categories),
-                    eq(contentCategories.userId, context.user.id),
+                    eq(contentCategories.userId, userId),
                   ),
                 )
                 .all();
@@ -281,7 +282,7 @@ export const createFromSubscriptionImport = protectedProcedure
                     .insert(contentCategories)
                     .values({
                       name: nonMatchingCategory,
-                      userId: context.user.id,
+                      userId,
                     })
                     .returning();
                   const newContentCategory = newContentCategoryList[0];

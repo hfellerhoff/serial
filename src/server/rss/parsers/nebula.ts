@@ -155,20 +155,20 @@ export async function fetchNebulaFeedData(
       title: data.title,
       url: data.link,
       items: data.items.map((item) => {
-          const idParts = item.guid.split("/");
-          const id = idParts[idParts.length - 1] || item.guid;
+        const idParts = item.guid.split("/");
+        const id = idParts[idParts.length - 1] || item.guid;
 
-          return {
-            id,
-            title: item.title,
-            publishedDate: item.isoDate,
-            url: item.link,
-            author: item["dc:creator"] ?? item.creator ?? data.title,
-            thumbnail: extractThumbnailFromContent(item.content),
-            content: item.contentSnippet,
-            contentSnippet: item.contentSnippet,
-          } satisfies RSSContent;
-        }),
+        return {
+          id,
+          title: item.title,
+          publishedDate: item.isoDate,
+          url: item.link,
+          author: item["dc:creator"] ?? item.creator ?? data.title,
+          thumbnail: extractThumbnailFromContent(item.content),
+          content: item.contentSnippet,
+          contentSnippet: item.contentSnippet,
+        } satisfies RSSContent;
+      }),
       fetchMetadata,
     };
   } catch (e) {

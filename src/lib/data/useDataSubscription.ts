@@ -90,10 +90,7 @@ export function useDataSubscription() {
 
         const conn = new AbortController();
         connectionController = conn;
-        const connectionSignal = AbortSignal.any([
-          signal,
-          conn.signal,
-        ]);
+        const connectionSignal = AbortSignal.any([signal, conn.signal]);
 
         try {
           isConnectedRef.current = true;

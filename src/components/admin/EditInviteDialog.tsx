@@ -70,16 +70,16 @@ export function EditInviteDialog({
 }: EditInviteDialogProps) {
   const queryClient = useQueryClient();
   const [name, setName] = useState(invitation.name ?? "");
-  const [usageMode, setUsageMode] = useState<UsageMode>(
-    () => getInitialUsageMode(invitation.maxUses),
+  const [usageMode, setUsageMode] = useState<UsageMode>(() =>
+    getInitialUsageMode(invitation.maxUses),
   );
   const [customUsesInput, setCustomUsesInput] = useState(
     invitation.maxUses !== null && invitation.maxUses !== 1
       ? String(invitation.maxUses)
       : "",
   );
-  const [expiryMode, setExpiryMode] = useState<ExpiryMode>(
-    () => getInitialExpiryMode(invitation.expiresAt),
+  const [expiryMode, setExpiryMode] = useState<ExpiryMode>(() =>
+    getInitialExpiryMode(invitation.expiresAt),
   );
   const [customExpiryDate, setCustomExpiryDate] = useState<Date | undefined>(
     invitation.expiresAt ?? undefined,

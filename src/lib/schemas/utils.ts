@@ -5,10 +5,10 @@ export function parseArrayOfSchema<TSchema extends ZodSchema>(
   schema: TSchema,
 ) {
   return array.flatMap((item) => {
-      try {
-        return [schema.parse(item)];
-      } catch {
-        return [];
-      }
-    });
+    try {
+      return [schema.parse(item)];
+    } catch {
+      return [];
+    }
+  });
 }

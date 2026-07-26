@@ -83,9 +83,11 @@ export function doesFeedItemPassFilters({
     return false;
   }
 
-  const feedIdsInCategory = new Set(feedCategories
-    .filter((category) => category.categoryId === categoryFilter)
-    .map((category) => category.feedId));
+  const feedIdsInCategory = new Set(
+    feedCategories
+      .filter((category) => category.categoryId === categoryFilter)
+      .map((category) => category.feedId),
+  );
   if (categoryFilter >= 0 && !feedIdsInCategory.has(item.feedId)) {
     return false;
   }
