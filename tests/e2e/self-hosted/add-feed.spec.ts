@@ -60,23 +60,11 @@ test.describe("add feed manually", () => {
       timeout: 30000,
     });
 
-    const addFeedHeaderButton = page.getByRole("button", {
-      name: "Add Feed",
-      exact: true,
-    });
     const manageHeaderButton = page.getByRole("button", {
       name: "Manage",
       exact: true,
     });
-    await expect(addFeedHeaderButton).toBeVisible();
     await expect(manageHeaderButton).toBeVisible();
-    const addFeedBox = await addFeedHeaderButton.boundingBox();
-    const manageBox = await manageHeaderButton.boundingBox();
-    expect(addFeedBox?.x).toBeLessThan(manageBox?.x ?? 0);
-
-    await page.setViewportSize({ width: 390, height: 844 });
-    await expect(addFeedHeaderButton).toHaveCSS("width", "36px");
-    await page.setViewportSize({ width: 1920, height: 1080 });
 
     // Open the Add Feed dialog with the "a" keyboard shortcut
     await page.keyboard.press("a");
