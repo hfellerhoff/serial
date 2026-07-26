@@ -2,13 +2,10 @@
 
 import dayjs from "dayjs";
 import { MonitorIcon, SmartphoneIcon, UserIcon } from "lucide-react";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "~/components/ui/badge";
 
-const CLIENT_RENDER_TIME = Date.now();
-const subscribeToStaticTime = () => () => undefined;
-const getClientRenderTime = () => CLIENT_RENDER_TIME;
-const getServerRenderTime = () => null;
+const MAX_TIMEOUT_MS = 2_147_483_647;
 
 interface Session {
   id: string;
@@ -59,11 +56,32 @@ function getDeviceName(userAgent?: string | null) {
 }
 
 export function AdminSessionList({ sessions }: AdminSessionListProps) {
-  const renderTime = useSyncExternalStore(
-    subscribeToStaticTime,
-    getClientRenderTime,
-    getServerRenderTime,
-  );
+  const [renderTime, setRenderTime] = useState<number | null>(null);
+
+  useEffect(() => {
+    const now = Date.now();
+    const nextExpiration = sessions.reduce<number | null>((next, session) => {
+      const expiration = session.expiresAt.getTime();
+      if (expiration <= now) return next;
+      return next === null ? expiration : Math.min(next, expiration);
+    }, null);
+
+    // The first asynchronous tick populates client time without introducing a
+    // server/client hydration mismatch. Later ticks occur only at expirations.
+    const delay =
+      renderTime === null
+        ? 0
+        : nextExpiration === null
+          ? null
+          : Math.min(nextExpiration - now + 1, MAX_TIMEOUT_MS);
+    if (delay === null) return;
+
+    const timeout = setTimeout(() => {
+      setRenderTime(Date.now());
+    }, delay);
+
+    return () => clearTimeout(timeout);
+  }, [renderTime, sessions]);
 
   if (sessions.length === 0) {
     return (

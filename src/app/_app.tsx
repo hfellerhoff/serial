@@ -101,8 +101,6 @@ function useCheckoutSuccess() {
     let isSyncing = false;
 
     const sync = async (): Promise<boolean> => {
-      if (isSyncing) return false;
-      isSyncing = true;
       try {
         const result = await orpcRouterClient.subscription.syncAfterCheckout();
 
@@ -130,29 +128,36 @@ function useCheckoutSuccess() {
         }
       } catch {
         // Ignore errors, will retry
-      } finally {
-        isSyncing = false;
       }
       return false;
     };
 
-    const interval = setInterval(() => {
+    const poll = async () => {
+      if (isSyncing || controller.signal.aborted) return;
+
+      isSyncing = true;
       attempts++;
-      void sync().then((planWasUpdated) => {
-        if (planWasUpdated || attempts >= MAX_SYNC_ATTEMPTS) {
-          clearInterval(interval);
-          if (!planWasUpdated) {
-            // Give up gracefully — user will see the upgrade on next load
-            setAwaitingUpgrade(false);
-          }
-        }
-      });
+      const planWasUpdated = await sync();
+      isSyncing = false;
+
+      if (controller.signal.aborted) return;
+      if (planWasUpdated) {
+        clearInterval(interval);
+        return;
+      }
+      if (attempts >= MAX_SYNC_ATTEMPTS) {
+        clearInterval(interval);
+        // Give up gracefully — user will see the upgrade on next load
+        setAwaitingUpgrade(false);
+      }
+    };
+
+    const interval = setInterval(() => {
+      void poll();
     }, SYNC_POLL_INTERVAL_MS);
 
-    // First attempt immediately, then continue polling until the plan changes.
-    void sync().then((planWasUpdated) => {
-      if (planWasUpdated) clearInterval(interval);
-    });
+    // Count only requests that start so slow requests do not consume retries.
+    void poll();
 
     return () => {
       controller.abort();

@@ -54,19 +54,34 @@ export function RefetchItemsButton() {
   const showCheck = isRateLimited && !isMachineActive;
 
   // Tick `now` so the tooltip text updates live and the button re-enables
-  // when the cooldown expires.
+  // when the cooldown expires. Chained timeouts stop at expiry and use fewer
+  // updates for longer cooldowns.
   useEffect(() => {
-    if (nextRefreshAt === null) return;
+    if (nextRefreshAt === null || location.pathname !== "/") return;
 
-    setNow(Date.now());
-    const interval = setInterval(() => {
-      setNow(Date.now());
-    }, 1_000);
+    let timeout: ReturnType<typeof setTimeout> | undefined;
 
-    return () => {
-      clearInterval(interval);
+    const scheduleTick = () => {
+      const remaining = nextRefreshAt - Date.now();
+      if (remaining <= 0) {
+        timeout = setTimeout(() => setNow(Date.now()), 0);
+        return;
+      }
+
+      const delay = remaining <= 2 * 60 * 1_000 ? 1_000 : 20_000;
+      timeout = setTimeout(
+        () => {
+          setNow(Date.now());
+          scheduleTick();
+        },
+        Math.min(delay, remaining),
+      );
     };
-  }, [nextRefreshAt]);
+
+    scheduleTick();
+
+    return () => clearTimeout(timeout);
+  }, [location.pathname, nextRefreshAt]);
 
   const onClick = useCallback(async () => {
     if (isDisabled) return;

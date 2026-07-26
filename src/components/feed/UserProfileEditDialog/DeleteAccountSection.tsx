@@ -41,6 +41,7 @@ function DeleteAccountConfirmationSection({
 }) {
   const router = useRouter();
   const { mutateAsync: deleteAccount, isPending } = useDeleteAccountMutation();
+  const [confirmation, setConfirmation] = useState("");
 
   return (
     <>
@@ -67,7 +68,11 @@ function DeleteAccountConfirmationSection({
           });
         }}
       >
-        <Input name={DELETE_FIELD_NAME} />
+        <Input
+          name={DELETE_FIELD_NAME}
+          value={confirmation}
+          onChange={(event) => setConfirmation(event.target.value)}
+        />
         <div className="grid grid-cols-2 gap-2">
           <Button type="button" onClick={onCancel} variant="outline">
             Cancel

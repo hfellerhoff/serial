@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { CheckIcon, Edit2Icon, Loader, XIcon } from "lucide-react";
-import { useId, useRef, useState } from "react";
+import { useId, useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -75,10 +75,9 @@ export function EditableSavableTextField({
 }: EditableSavableTextFieldProps) {
   const id = useId();
 
-  const formRef = useRef<HTMLFormElement | null>(null);
-
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [inputValue, setInputValue] = useState(initialValue);
 
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -87,12 +86,11 @@ export function EditableSavableTextField({
   const cancelEditing = () => {
     setIsEditing(false);
     setErrors([]);
-    formRef.current?.reset();
+    setInputValue(initialValue);
   };
 
   return (
     <form
-      ref={formRef}
       className="grid gap-2"
       action={async (formValues) => {
         const fieldValue = formValues.get(id);
@@ -114,14 +112,14 @@ export function EditableSavableTextField({
         }
         setErrors([]);
 
-        formRef.current?.reset();
-
         setIsSaving(true);
-        setIsEditing(false);
-
-        await onSave(String(validatedValue));
-
-        setIsSaving(false);
+        try {
+          await onSave(String(validatedValue));
+          setInputValue(validatedValue);
+          setIsEditing(false);
+        } finally {
+          setIsSaving(false);
+        }
       }}
     >
       <Label htmlFor={id}>{label}</Label>
@@ -133,7 +131,8 @@ export function EditableSavableTextField({
             name={id}
             type="text"
             placeholder={placeholder}
-            defaultValue={initialValue}
+            value={inputValue}
+            onChange={(event) => setInputValue(event.target.value)}
             disabled={!isEditing || isSaving}
             className={clsx({
               "border-destructive rounded-b-none": hasErrors,
