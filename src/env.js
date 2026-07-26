@@ -49,7 +49,7 @@ export const env = createEnv({
     BETTER_AUTH_SECRET: z.string(),
     RESEND_API_KEY: z.string().optional(),
     SENDGRID_API_KEY: z.string().optional(),
-    FROM_EMAIL_ADDRESS: z.string().email().optional(),
+    FROM_EMAIL_ADDRESS: z.email().optional(),
     INSTAPAPER_OAUTH_ID: z.string().optional(),
     INSTAPAPER_OAUTH_SECRET: z.string().optional(),
     POLAR_ACCESS_TOKEN: z.string().optional(),
@@ -117,7 +117,7 @@ export const env = createEnv({
         }
         return origins;
       }),
-    SENTRY_DSN_BACKEND: z.string().url().optional(),
+    SENTRY_DSN_BACKEND: z.url().optional(),
     SENTRY_AUTH_TOKEN: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])

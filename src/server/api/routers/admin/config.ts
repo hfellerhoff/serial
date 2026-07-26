@@ -125,7 +125,7 @@ export const setSignupNotificationSetting = adminProcedure
   .input(
     z.object({
       enabled: z.boolean(),
-      email: z.string().email().optional(),
+      email: z.email().optional(),
     }),
   )
   .handler(async ({ input }) => {

@@ -92,7 +92,7 @@ export const listInvitations = adminProcedure.handler(async ({ context }) => {
 
 // Send an invitation email for an existing invitation
 export const sendInvitationEmail = adminProcedure
-  .input(z.object({ invitationId: z.string(), email: z.string().email() }))
+  .input(z.object({ invitationId: z.string(), email: z.email() }))
   .handler(async ({ context, input }) => {
     if (!IS_EMAIL_ENABLED) {
       throw new ORPCError("BAD_REQUEST", {

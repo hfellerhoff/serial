@@ -61,7 +61,7 @@ interface EditableSavableTextFieldProps {
   showHelperTextOnlyWhenEditing?: boolean;
   placeholder: string;
   onSave: (updatedValue: string) => Promise<void>;
-  schema: z.ZodString;
+  schema: z.ZodType<string>;
 }
 
 export function EditableSavableTextField({

@@ -13,7 +13,7 @@ import { user } from "~/server/db/schema";
 export const checkIsLegacyUser = publicProcedure
   .input(
     z.object({
-      email: z.string().email(),
+      email: z.email(),
     }),
   )
   .handler(async ({ context, input }) => {

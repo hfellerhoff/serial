@@ -652,7 +652,7 @@ export const bulkSetActive = protectedProcedure
   });
 
 export const discoverFeeds = protectedProcedure
-  .input(z.object({ url: z.string().url() }))
+  .input(z.object({ url: z.url() }))
   .handler(async ({ input }) => {
     const [youtubeResult, feedscoutResult] = await Promise.allSettled([
       discoverYouTubeFeeds(input.url),
