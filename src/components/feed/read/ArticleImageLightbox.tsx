@@ -22,6 +22,7 @@ export function ArticleImageLightbox({
   return (
     <div data-lightbox style={{ position: "relative" }}>
       <button
+        data-lightbox-trigger
         type="button"
         aria-label="Open image preview"
         style={{ display: "block", cursor: "zoom-in" }}

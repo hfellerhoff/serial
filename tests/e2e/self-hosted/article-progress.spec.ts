@@ -150,4 +150,31 @@ test.describe("article progress tracking", () => {
       await expect(selectedElement).toContainText(text);
     }
   });
+
+  test("opens a selected article image with Space", async ({ page }) => {
+    const { feedItemId, email, password } = await seedArticleData(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+    );
+    testEmail = email;
+
+    await setFeedItemContent(
+      SELF_HOSTED_TURSO_PORT,
+      feedItemId,
+      '<img src="/icon-192x192.png" alt="Keyboard preview">',
+    );
+
+    await signIn({ page, email, password });
+    await page.goto(`/read/${feedItemId}`);
+    await expect(page.getByAltText("Keyboard preview")).toBeVisible();
+
+    await page.keyboard.press("ArrowDown");
+    await expect(page.locator("[data-lightbox]")).toHaveAttribute(
+      "data-article-selected",
+      "true",
+    );
+
+    await page.keyboard.press("Space");
+    await expect(page.getByRole("dialog")).toBeVisible();
+  });
 });

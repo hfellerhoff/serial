@@ -77,6 +77,7 @@ export function UserProfileEditDialog() {
               onSave={async (updatedName) => {
                 await updateName({ name: updatedName });
                 void refetchUser();
+                return "saved";
               }}
               schema={userNameSchema}
             />
@@ -93,11 +94,12 @@ export function UserProfileEditDialog() {
                 });
                 if (error) {
                   toast.error(error.message ?? "Failed to change email");
-                  return;
+                  return "failed";
                 }
                 toast.success(
                   "Verification email sent! Check your new inbox to confirm.",
                 );
+                return "pending";
               }}
               schema={userEmailSchema}
             />

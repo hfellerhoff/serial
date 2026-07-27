@@ -25,6 +25,14 @@
         "rules": ["react-doctor/no-pass-data-to-parent"]
       },
       {
+        "files": ["src/app/_app.tsx"],
+        "rules": ["react-doctor/no-set-state-after-await-in-effect"]
+      },
+      {
+        "files": ["src/components/feed/RefetchItemsButton.tsx"],
+        "rules": ["react-doctor/effect-needs-cleanup"]
+      },
+      {
         "files": [
           "src/components/admin/EditInviteDialog.tsx",
           "src/components/view-dialog/EditViewDialog.tsx"

@@ -60,7 +60,7 @@ interface EditableSavableTextFieldProps {
   helperText?: string;
   showHelperTextOnlyWhenEditing?: boolean;
   placeholder: string;
-  onSave: (updatedValue: string) => Promise<void>;
+  onSave: (updatedValue: string) => Promise<"saved" | "pending" | "failed">;
   schema: z.ZodType<string>;
 }
 
@@ -114,8 +114,10 @@ export function EditableSavableTextField({
 
         setIsSaving(true);
         try {
-          await onSave(String(validatedValue));
-          setInputValue(validatedValue);
+          const result = await onSave(String(validatedValue));
+          if (result === "failed") return;
+
+          setInputValue(result === "saved" ? validatedValue : initialValue);
           setIsEditing(false);
         } finally {
           setIsSaving(false);
