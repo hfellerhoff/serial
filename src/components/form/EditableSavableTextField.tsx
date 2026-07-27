@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { CheckIcon, Edit2Icon, Loader, XIcon } from "lucide-react";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -33,8 +33,10 @@ function EditableSavableTextFieldNotEditingActions({
 
 function EditableSavableTextFieldEditingActions({
   onCancel,
+  isSaving,
 }: {
   onCancel: () => void;
+  isSaving: boolean;
 }) {
   return (
     <>
@@ -44,11 +46,22 @@ function EditableSavableTextFieldEditingActions({
         variant="outline"
         size="icon"
         type="button"
+        disabled={isSaving}
       >
         <XIcon size={16} />
       </Button>
-      <Button className="shrink-0" type="submit" variant="outline" size="icon">
-        <CheckIcon size={16} />
+      <Button
+        className="shrink-0"
+        type="submit"
+        variant="outline"
+        size="icon"
+        disabled={isSaving}
+      >
+        {isSaving ? (
+          <Loader className="animate-spin" size={16} />
+        ) : (
+          <CheckIcon size={16} />
+        )}
       </Button>
     </>
   );
@@ -77,6 +90,7 @@ export function EditableSavableTextField({
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const isSavingRef = useRef(false);
   const [inputValue, setInputValue] = useState(initialValue);
 
   const [errors, setErrors] = useState<string[]>([]);
@@ -84,6 +98,7 @@ export function EditableSavableTextField({
   const hasErrors = !!errors.length;
 
   const cancelEditing = () => {
+    if (isSavingRef.current) return;
     setIsEditing(false);
     setErrors([]);
     setInputValue(initialValue);
@@ -93,6 +108,8 @@ export function EditableSavableTextField({
     <form
       className="grid gap-2"
       action={async (formValues) => {
+        if (isSavingRef.current) return;
+
         const fieldValue = formValues.get(id);
 
         if (fieldValue === initialValue) {
@@ -112,6 +129,7 @@ export function EditableSavableTextField({
         }
         setErrors([]);
 
+        isSavingRef.current = true;
         setIsSaving(true);
         try {
           const result = await onSave(String(validatedValue));
@@ -120,6 +138,7 @@ export function EditableSavableTextField({
           setInputValue(result === "saved" ? validatedValue : initialValue);
           setIsEditing(false);
         } finally {
+          isSavingRef.current = false;
           setIsSaving(false);
         }
       }}
@@ -162,7 +181,10 @@ export function EditableSavableTextField({
           />
         )}
         {isEditing && (
-          <EditableSavableTextFieldEditingActions onCancel={cancelEditing} />
+          <EditableSavableTextFieldEditingActions
+            onCancel={cancelEditing}
+            isSaving={isSaving}
+          />
         )}
       </div>
       {!!helperText && (!showHelperTextOnlyWhenEditing || isEditing) && (

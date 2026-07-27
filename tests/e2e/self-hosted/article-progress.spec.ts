@@ -167,6 +167,11 @@ test.describe("article progress tracking", () => {
     await signIn({ page, email, password });
     await page.goto(`/read/${feedItemId}`);
     await expect(page.getByAltText("Keyboard preview")).toBeVisible();
+    await expect(
+      page.getByRole("button", {
+        name: "Open image preview: Keyboard preview",
+      }),
+    ).toBeVisible();
 
     await page.keyboard.press("ArrowDown");
     await expect(page.locator("[data-lightbox]")).toHaveAttribute(

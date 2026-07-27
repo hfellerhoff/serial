@@ -52,6 +52,7 @@ export const Route = createFileRoute("/_app")({
 
 const MAX_SYNC_ATTEMPTS = 10;
 const SYNC_POLL_INTERVAL_MS = 3_000;
+const CHECKOUT_SYNC_TIMEOUT_MS = 60_000;
 
 function useCheckoutSuccess() {
   const queryClient = useQueryClient();
@@ -143,10 +144,12 @@ function useCheckoutSuccess() {
       if (controller.signal.aborted) return;
       if (planWasUpdated) {
         clearInterval(interval);
+        clearTimeout(overallTimeout);
         return;
       }
       if (attempts >= MAX_SYNC_ATTEMPTS) {
         clearInterval(interval);
+        clearTimeout(overallTimeout);
         // Give up gracefully — user will see the upgrade on next load
         setAwaitingUpgrade(false);
       }
@@ -155,6 +158,11 @@ function useCheckoutSuccess() {
     const interval = setInterval(() => {
       void poll();
     }, SYNC_POLL_INTERVAL_MS);
+    const overallTimeout = setTimeout(() => {
+      controller.abort();
+      clearInterval(interval);
+      setAwaitingUpgrade(false);
+    }, CHECKOUT_SYNC_TIMEOUT_MS);
 
     // Count only requests that start so slow requests do not consume retries.
     void poll();
@@ -162,6 +170,7 @@ function useCheckoutSuccess() {
     return () => {
       controller.abort();
       clearInterval(interval);
+      clearTimeout(overallTimeout);
     };
   }, [awaitingUpgrade, planId, queryClient, openPlanSuccess]);
 

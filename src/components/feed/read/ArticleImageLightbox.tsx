@@ -24,7 +24,7 @@ export function ArticleImageLightbox({
       <button
         data-lightbox-trigger
         type="button"
-        aria-label="Open image preview"
+        aria-label={alt ? `Open image preview: ${alt}` : "Open image preview"}
         style={{ display: "block", cursor: "zoom-in" }}
         onClick={toggle}
       >

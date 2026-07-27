@@ -180,9 +180,20 @@ export function useFlipItems(items: string[]) {
     : new Set(state.rendered.filter((id) => !currentItemIds.has(id)));
   const leavingKey = [...leavingItems].join(ITEM_ID_SEPARATOR);
 
-  // Every timer allocated below is cleared by the returned cleanup.
+  // Timers survive dependency reruns; the separate unmount effect below owns
+  // their final cleanup.
   // oxlint-disable-next-line react-doctor/effect-needs-cleanup
   useLayoutEffect(() => {
+    const removalTimers = removalTimersRef.current;
+    const currentIds = new Set(
+      itemsKey === "" ? [] : itemsKey.split(ITEM_ID_SEPARATOR),
+    );
+    for (const [id, timer] of removalTimers) {
+      if (!currentIds.has(id)) continue;
+      clearTimeout(timer);
+      removalTimers.delete(id);
+    }
+
     const container = containerRef.current;
     if (!container || leavingKey === "") return;
 
@@ -195,8 +206,6 @@ export function useFlipItems(items: string[]) {
     // not cleared when this effect re-runs (e.g. a later removal): each leaving
     // item owns its own clock, so rapid sequential removals don't pile up as
     // never-unmounted ghost nodes.
-    const removalTimers = removalTimersRef.current;
-    const scheduledIds: string[] = [];
     for (const id of leavingIds) {
       if (removalTimers.has(id)) continue;
       const timer = setTimeout(() => {
@@ -207,17 +216,18 @@ export function useFlipItems(items: string[]) {
         }));
       }, REMOVAL_DELAY_MS);
       removalTimers.set(id, timer);
-      scheduledIds.push(id);
     }
+  }, [itemsKey, leavingKey]);
 
+  useLayoutEffect(() => {
+    const removalTimers = removalTimersRef.current;
     return () => {
-      for (const id of scheduledIds) {
-        const timer = removalTimers.get(id);
-        if (timer !== undefined) clearTimeout(timer);
-        removalTimers.delete(id);
+      for (const timer of removalTimers.values()) {
+        clearTimeout(timer);
       }
+      removalTimers.clear();
     };
-  }, [leavingKey]);
+  }, []);
 
   return { renderedItems: state.rendered, containerRef };
 }
