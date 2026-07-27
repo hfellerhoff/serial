@@ -2,7 +2,7 @@
   "$schema": "https://react.doctor/schema/config.json",
   "ignore": {
     "rules": ["react-doctor/js-combine-iterations"],
-    "files": [".output/**"],
+    "files": [".output/**", "playwright-report/**", "test-results/**"],
     "overrides": [
       {
         "files": ["package.json"],

@@ -95,7 +95,7 @@ export function AdminSessionList({ sessions }: AdminSessionListProps) {
     <div className="flex flex-col gap-2">
       {sessions.map((session) => {
         const isExpired =
-          renderTime !== null && session.expiresAt.getTime() < renderTime;
+          renderTime !== null && session.expiresAt.getTime() <= renderTime;
 
         return (
           <div
