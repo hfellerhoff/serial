@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import {
   useCallback,
   useEffect,
@@ -66,6 +66,7 @@ export const Route = createFileRoute("/_app/read/$id")({
 
 function ReadPage() {
   const params = Route.useParams();
+  const router = useRouter();
 
   const [articleStyle] = useFlagState("ARTICLE_STYLE");
 
@@ -136,15 +137,27 @@ function ReadPage() {
   // opened article at the top; saved progress remains available to progress
   // indicators but should not move the reader on entry.
   useLayoutEffect(() => {
+    let active = true;
     const resetScroll = () => {
       getScrollContainer().scrollTo({ top: 0, behavior: "instant" });
     };
 
     resetScroll();
-    const resetAnimationFrame = requestAnimationFrame(resetScroll);
+    const unsubscribe = router.subscribe("onRendered", (event) => {
+      if (!event.pathChanged) return;
 
-    return () => cancelAnimationFrame(resetAnimationFrame);
-  }, [params.id]);
+      // Router scroll restoration also runs on `onRendered`. Defer until all
+      // synchronous subscribers finish so Back/Forward restoration runs first.
+      queueMicrotask(() => {
+        if (active) resetScroll();
+      });
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [params.id, router]);
 
   // Truncation alert
   const { mutate: editFeed } = useEditFeedMutation();

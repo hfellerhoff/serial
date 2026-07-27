@@ -139,6 +139,43 @@ test.describe("article progress tracking", () => {
     );
   });
 
+  test("opens at the top after Back then Forward", async ({ page }) => {
+    const { email, password } = await seedArticleData(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+    );
+    testEmail = email;
+
+    await signIn({ page, email, password });
+    const articleCard = page
+      .locator("article")
+      .filter({ hasText: "Test Article" });
+    await articleCard.getByRole("link").first().click();
+    await expect(page).toHaveURL(/\/read\//);
+    await expect(page.getByText("Paragraph 20:")).toBeVisible();
+
+    const scrollContainer = page.locator('[data-slot="sidebar-inset"]');
+    const previousArticleScroll = await scrollContainer.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+      return element.scrollTop;
+    });
+    expect(previousArticleScroll).toBeGreaterThan(0);
+    await page.waitForTimeout(100);
+
+    await page.goBack();
+    await expect(page).toHaveURL("/");
+    await expect(articleCard).toBeVisible();
+
+    await page.goForward();
+    await expect(page).toHaveURL(/\/read\//);
+    await expect(page.getByText("Paragraph 1:")).toBeVisible();
+    await page.waitForTimeout(100);
+
+    expect(await scrollContainer.evaluate((element) => element.scrollTop)).toBe(
+      0,
+    );
+  });
+
   test("navigates through content inside top-level div wrappers", async ({
     page,
   }) => {
