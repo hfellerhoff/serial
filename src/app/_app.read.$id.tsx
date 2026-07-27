@@ -3,7 +3,13 @@
 import clsx from "clsx";
 
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { useAtomValue, useSetAtom } from "jotai";
 import rehypeParse from "rehype-parse";
 import rehypeSanitize from "rehype-sanitize";
@@ -21,7 +27,6 @@ import { useOpenOriginalShortcut } from "~/lib/hooks/useOpenOriginalShortcut";
 import {
   getClosestVisibleElement,
   getElements,
-  isElementInViewport,
   useArticleNavigation,
 } from "~/lib/hooks/useArticleNavigation";
 import { getScrollContainer } from "~/lib/scroll";
@@ -127,75 +132,19 @@ function ReadPage() {
     },
   });
 
-  // Restore progress on open — wait a frame so layout is complete. Track the
-  // restored value so a later server refresh can replace stale hydrated data.
-  const restoredProgressRef = useRef<number | null>(null);
-  const restoredElementRef = useRef<HTMLElement | null>(null);
-  const isEntryRestorationCancelledRef = useRef(false);
-
-  useEffect(() => {
-    restoredProgressRef.current = null;
-    restoredElementRef.current = null;
-    isEntryRestorationCancelledRef.current = false;
-  }, [params.id]);
-
-  useEffect(() => {
-    const cancelEntryRestoration = () => {
-      isEntryRestorationCancelledRef.current = true;
-    };
-
-    window.addEventListener("wheel", cancelEntryRestoration, { passive: true });
-    window.addEventListener("touchstart", cancelEntryRestoration, {
-      passive: true,
-    });
-    window.addEventListener("pointerdown", cancelEntryRestoration, {
-      passive: true,
-    });
-    window.addEventListener("keydown", cancelEntryRestoration);
-
-    return () => {
-      window.removeEventListener("wheel", cancelEntryRestoration);
-      window.removeEventListener("touchstart", cancelEntryRestoration);
-      window.removeEventListener("pointerdown", cancelEntryRestoration);
-      window.removeEventListener("keydown", cancelEntryRestoration);
-    };
-  }, [params.id]);
-
-  useEffect(() => {
-    if (feedItem == null) return;
-    if (isEntryRestorationCancelledRef.current) return;
-
-    const progress = feedItem.progress ?? 0;
-    const hasVisibleRestoredElement =
-      restoredProgressRef.current === progress &&
-      restoredElementRef.current != null &&
-      isElementInViewport(restoredElementRef.current);
-
-    if (hasVisibleRestoredElement) return;
-
-    if (progress <= 0) {
-      if (restoredProgressRef.current !== null) return;
-
-      restoredProgressRef.current = progress;
+  // The app reuses one scroll container across routes. Always start a newly
+  // opened article at the top; saved progress remains available to progress
+  // indicators but should not move the reader on entry.
+  useLayoutEffect(() => {
+    const resetScroll = () => {
       getScrollContainer().scrollTo({ top: 0, behavior: "instant" });
-      return;
-    }
+    };
 
-    const restoreAnimationFrame = requestAnimationFrame(() => {
-      if (isEntryRestorationCancelledRef.current) return;
+    resetScroll();
+    const resetAnimationFrame = requestAnimationFrame(resetScroll);
 
-      const elements = getElements(articleRef.current);
-      if (elements.length === 0) return;
-
-      const targetIndex = Math.min(progress, elements.length - 1);
-      const targetElement = elements[targetIndex]!;
-      restoredProgressRef.current = progress;
-      restoredElementRef.current = targetElement;
-      scrollToElement(targetElement, true);
-    });
-
-    return () => cancelAnimationFrame(restoreAnimationFrame);
-  }, [params.id, feedItem, scrollToElement]);
+    return () => cancelAnimationFrame(resetAnimationFrame);
+  }, [params.id]);
 
   // Truncation alert
   const { mutate: editFeed } = useEditFeedMutation();

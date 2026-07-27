@@ -20,7 +20,7 @@ test.describe("article progress tracking", () => {
     }
   });
 
-  test("saves and restores article progress", async ({ page }) => {
+  test("saves progress but opens the article at the top", async ({ page }) => {
     const { feedItemId, email, password } = await seedArticleData(
       SELF_HOSTED_TURSO_PORT,
       SELF_HOSTED_APP_PORT,
@@ -79,32 +79,64 @@ test.describe("article progress tracking", () => {
       .poll(() => scrollContainer.evaluate((el) => el.scrollTop))
       .toBe(scrolledTop);
 
-    // Reload the page to test that progress persists across page loads.
+    // Reloading should not move the reader back to the saved position.
     await page.reload({ waitUntil: "load" });
     await expect(
       page.locator("h1").filter({ hasText: "Test Article" }),
     ).toBeVisible({ timeout: 15000 });
 
-    // Wait for article body content to render (paragraphs arrive via SSE
-    // after the full page reload — IDB rehydration + server diff).
+    // Wait for article body content to render after IDB hydration/server sync.
     await expect(
       page.locator('[data-slot="sidebar-inset"] p').first(),
     ).toBeVisible({ timeout: 15000 });
 
-    // Wait for SSE processing to settle so the scroll position is stable.
-    await page.waitForTimeout(2000);
+    // Give router restoration and the server refresh time to settle; neither
+    // should reapply the saved paragraph position.
+    await page.waitForTimeout(1000);
+    expect(await scrollContainer.evaluate((el) => el.scrollTop)).toBe(0);
 
-    // Verify the page scrolled to the saved position
-    const restoredScrollTop = await scrollContainer.evaluate(
-      (el) => el.scrollTop,
-    );
-    expect(restoredScrollTop).toBeGreaterThan(0);
-
-    // Restoration also leaves keyboard selection inactive.
+    // Opening at the top also leaves keyboard selection inactive.
     await expect(selectedElements).toHaveCount(0);
 
     await page.keyboard.press("ArrowDown");
     await expect(selectedElements).toHaveCount(1);
+  });
+
+  test("opens a fresh article at the top after client navigation", async ({
+    page,
+  }) => {
+    const { email, password } = await seedArticleData(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+    );
+    testEmail = email;
+
+    await signIn({ page, email, password });
+    const articleCard = page
+      .locator("article")
+      .filter({ hasText: "Test Article" });
+    await expect(articleCard).toBeVisible();
+
+    const scrollContainer = page.locator('[data-slot="sidebar-inset"]');
+    await scrollContainer.evaluate((element) => {
+      const spacer = document.createElement("div");
+      spacer.style.height = "3000px";
+      spacer.style.flexShrink = "0";
+      element.append(spacer);
+      element.scrollTop = 2000;
+    });
+    expect(await scrollContainer.evaluate((element) => element.scrollTop)).toBe(
+      2000,
+    );
+
+    await articleCard.getByRole("link").first().click();
+    await expect(page).toHaveURL(/\/read\//);
+    await expect(page.getByText("Paragraph 1:")).toBeVisible();
+    await page.waitForTimeout(1000);
+
+    expect(await scrollContainer.evaluate((element) => element.scrollTop)).toBe(
+      0,
+    );
   });
 
   test("navigates through content inside top-level div wrappers", async ({
