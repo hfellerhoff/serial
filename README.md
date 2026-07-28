@@ -1,4 +1,4 @@
-![Preview of different feeds](/public/og-image.png)
+![Preview of different feeds](apps/app/public/og-image.png)
 
 # Serial
 
@@ -18,7 +18,7 @@ Getting up and running with Serial is easy. Here are the steps you need to start
 
 1. Clone the repository locally
 2. Install the Turso CLI: https://github.com/tursodatabase/turso-cli
-3. Copy `.env.example` to `.env`
+3. Copy `apps/app/.env.example` to `apps/app/.env`
 4. Set `PUBLIC_BASE_URL` to `http://localhost:3000`
 5. Navigate to [Better Auth](https://www.better-auth.com/docs/installation#set-environment-variables) and generate an auth secret. Set it as `BETTER_AUTH_SECRET`
 6. Install [pnpm](https://pnpm.io/) if you don't have it already
