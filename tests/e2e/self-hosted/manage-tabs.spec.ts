@@ -433,6 +433,11 @@ test.describe("manage feeds/views/tags tabs", () => {
       await expect(page.getByText("Tag created!")).toBeVisible({
         timeout: 10000,
       });
+      await expect(
+        page
+          .locator("main main")
+          .getByRole("button", { name: tagName, exact: true }),
+      ).toBeVisible({ timeout: 10000 });
     }
 
     await page

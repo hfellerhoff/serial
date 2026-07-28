@@ -17,20 +17,32 @@ async function expectVerticalPosition(
   content: Locator,
   position: number,
 ) {
-  const containerBox = await container.boundingBox();
-  const contentBox = await content.boundingBox();
+  await expect
+    .poll(async () => {
+      const [containerBox, contentBox] = await Promise.all([
+        container.boundingBox(),
+        content.boundingBox(),
+      ]);
+      if (!containerBox || !contentBox) return Number.POSITIVE_INFINITY;
 
-  expect(containerBox).not.toBeNull();
-  expect(contentBox).not.toBeNull();
-  const verticalOffset =
-    contentBox!.y +
-    contentBox!.height / 2 -
-    (containerBox!.y + containerBox!.height * position);
-  expect(Math.abs(verticalOffset)).toBeLessThanOrEqual(2);
-  expect(contentBox!.y).toBeGreaterThanOrEqual(containerBox!.y);
-  expect(contentBox!.y + contentBox!.height).toBeLessThanOrEqual(
-    containerBox!.y + containerBox!.height,
-  );
+      const verticalOffset = Math.abs(
+        contentBox.y +
+          contentBox.height / 2 -
+          (containerBox.y + containerBox.height * position),
+      );
+      const topOverflow = Math.max(containerBox.y - contentBox.y, 0);
+      const bottomOverflow = Math.max(
+        contentBox.y +
+          contentBox.height -
+          (containerBox.y + containerBox.height),
+        0,
+      );
+
+      return Math.max(verticalOffset, topOverflow, bottomOverflow);
+    })
+    // Viewport changes settle asynchronously, and fractional viewport units
+    // and font metrics can differ by a subpixel once rendering is stable.
+    .toBeLessThanOrEqual(3);
 }
 
 test.describe("add feed manually", () => {
