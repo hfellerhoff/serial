@@ -38,7 +38,9 @@ Self hosting Serial is relatively easy. Here are the current platform-specific g
 If your preferred platform doesn't have a guide, follow these rough steps:
 
 1. Fork the `megaflorasoftware/serial` repository to your own GitHub account.
-2. Use a git-based deployment system to deploy when a new commit happens. The provided Dockerfile and Compose files build the app from the monorepo root. For another source-based build system, keep the repository root available for the pnpm workspace and set the app's project/root directory to `apps/app`; if the platform runs commands from the repository root instead, build with `pnpm --filter @serial/app build:artifact` and start with `pnpm start`.
+2. Use a git-based deployment system to deploy when a new commit happens. There are a few ways to do this:
+   - If deploying through Docker, the provided Dockerfile and Compose files build the app from the monorepo root
+   - If building from source, build with `pnpm --filter @serial/app build:artifact` and start with `pnpm start`.
 3. Set up a custom domain (if desired)
 4. Set up your database:
    - If you want to use a local libsql database, use the provided `docker-compose.yaml` configuration. The database requires no additional configuration, but the application variables below are still required.
