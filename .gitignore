@@ -62,6 +62,7 @@ yarn-error.log*
 dist
 dist-sw/
 .output
+**/.content-collections/
 
 .claude
 CLAUDE.md
