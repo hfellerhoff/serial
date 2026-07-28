@@ -44,11 +44,30 @@ jobs:
 
       - name: Check whether the app artifact is affected
         id: check
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "app=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
+          # Turbo's affected calculation only reports package tasks. Root files
+          # that control the image build or deployment must force a deployment.
+          if ! git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+            echo "app=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          while IFS= read -r changed_file; do
+            case "$changed_file" in
+              package.json|pnpm-lock.yaml|pnpm-workspace.yaml|turbo.json|.node-version|.dockerignore|Dockerfile|.github/workflows/deploy-app.yml)
+                echo "app=true" >> "$GITHUB_OUTPUT"
+                exit 0
+                ;;
+            esac
+          done < <(git diff --name-only --no-renames "$BEFORE_SHA" "$GITHUB_SHA")
+
           pnpm exec turbo run build:artifact --affected --dry=json > affected.json
           if jq -e '.tasks[] | select(.taskId == "@serial/app#build:artifact")' affected.json > /dev/null; then
             echo "app=true" >> "$GITHUB_OUTPUT"

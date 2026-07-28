@@ -2,6 +2,7 @@
 
 # dependencies
 node_modules/
+.turbo/
 **/.turbo/
 /.pnp
 .pnp.js
