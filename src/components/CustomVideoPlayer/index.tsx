@@ -102,7 +102,10 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
     articleSelectedElement !== null &&
     videoContainerRef.current !== null &&
     articleSelectedElement.contains(videoContainerRef.current);
-  useVideoShortcuts({ disabled: props.isEmbed && !isSelectedInArticle });
+  useVideoShortcuts({
+    disabled:
+      playerErrorCode !== null || (props.isEmbed && !isSelectedInArticle),
+  });
 
   // --- Progress save/restore ---
   const savedFeedItem = useFeedItemValue(props.feedItemId ?? "");
@@ -188,26 +191,28 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
     <div ref={videoContainerRef} className="relative h-full w-full bg-black">
       {props.videoID && (
         <>
-          <YouTube
-            ref={playerRef}
-            videoId={props.videoID}
-            className="pointer-events-none h-full w-full select-none"
-            iframeClassName="w-full h-full border-none select-none pointer-events-none"
-            opts={{
-              host: "https://www.youtube-nocookie.com",
-              playerVars: {
-                rel: 0,
-                controls: 0,
-                cc_load_policy: 1,
-                disablekb: 0,
-                playsinline: 0,
-              },
-            }}
-            onStateChange={onStateChange}
-            onReady={onPlayerReady}
-            onError={onPlayerError}
-            loading="eager"
-          />
+          {!hasYouTubePlayerError && (
+            <YouTube
+              ref={playerRef}
+              videoId={props.videoID}
+              className="pointer-events-none h-full w-full select-none"
+              iframeClassName="w-full h-full border-none select-none pointer-events-none"
+              opts={{
+                host: "https://www.youtube-nocookie.com",
+                playerVars: {
+                  rel: 0,
+                  controls: 0,
+                  cc_load_policy: 1,
+                  disablekb: 0,
+                  playsinline: 0,
+                },
+              }}
+              onStateChange={onStateChange}
+              onReady={onPlayerReady}
+              onError={onPlayerError}
+              loading="eager"
+            />
+          )}
           <div className="group">
             {!hasYouTubePlayerError && (
               <div
@@ -498,8 +503,6 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
                 errorMessage={playerErrorMessage}
                 isInactive={props.isInactive}
                 onWatchOnYouTube={openOriginalVideoUrl}
-                orientation={props.orientation}
-                videoID={props.videoID}
               />
             )}
           </div>
@@ -517,7 +520,7 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
 
 export function CustomVideoPlayer(props: IResponsiveVideoProps) {
   return (
-    <CustomVideoPlayerProvider>
+    <CustomVideoPlayerProvider key={props.videoID ?? props.videoSrc}>
       <CustomVideoPlayerContent {...props} />
     </CustomVideoPlayerProvider>
   );

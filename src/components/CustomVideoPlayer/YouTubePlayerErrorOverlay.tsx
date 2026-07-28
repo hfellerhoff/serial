@@ -1,49 +1,45 @@
 import clsx from "clsx";
 import { ExternalLinkIcon } from "lucide-react";
+import { Button } from "../ui/button";
 
 type YouTubePlayerErrorOverlayProps = {
   errorMessage: string;
   isInactive: boolean;
   onWatchOnYouTube: () => void;
-  orientation: "vertical" | "horizontal";
-  videoID: string;
 };
 
 export function YouTubePlayerErrorOverlay({
   errorMessage,
   isInactive,
   onWatchOnYouTube,
-  orientation,
-  videoID,
 }: YouTubePlayerErrorOverlayProps) {
   return (
-    <div className="absolute inset-0 z-40 h-full w-full">
-      <div className="absolute inset-0 h-full w-full bg-black">
-        <img
-          className={clsx("h-full w-full", {
-            "object-cover": orientation === "vertical",
-            "object-contain": orientation === "horizontal",
-          })}
-          alt=""
-          src={`https://img.youtube.com/vi/${videoID}/maxresdefault.jpg`}
-        />
-      </div>
-      <button
-        aria-label={errorMessage}
-        onClick={onWatchOnYouTube}
-        className={clsx(
-          "absolute inset-0 inset-y-8 z-20 grid place-items-center",
-          {
-            "cursor-pointer": !isInactive,
-            "cursor-none!": isInactive,
-          },
-        )}
-      >
-        <div className="bg-background flex min-h-20 max-w-[calc(100%-2rem)] flex-wrap items-center justify-center gap-2 rounded-2xl px-4 text-sm font-medium shadow-2xl transition-all group-hover:scale-105 sm:px-6 sm:text-base">
-          <span>Watch on YouTube</span>
-          <ExternalLinkIcon size={18} />
+    <div
+      role="alert"
+      className={clsx(
+        "absolute inset-0 z-40 grid h-full w-full place-items-center bg-black p-6 text-white",
+        {
+          "cursor-none!": isInactive,
+        },
+      )}
+    >
+      <div className="flex flex-col items-center gap-6 text-center">
+        <div>
+          <p className="text-2xl font-semibold sm:text-3xl">
+            Something went wrong
+          </p>
+          <p className="sr-only">{errorMessage}</p>
         </div>
-      </button>
+        <Button
+          onClick={onWatchOnYouTube}
+          variant="outline"
+          size="lg"
+          className="gap-2 border-white bg-white text-black shadow-lg hover:bg-neutral-100 hover:text-black"
+        >
+          <span>View on YouTube</span>
+          <ExternalLinkIcon aria-hidden="true" size={18} />
+        </Button>
+      </div>
     </div>
   );
 }

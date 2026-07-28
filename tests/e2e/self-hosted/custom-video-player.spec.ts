@@ -111,7 +111,7 @@ test.describe("custom video player", () => {
     }
   });
 
-  test("shows a Watch on YouTube CTA when the embedded player errors", async ({
+  test("shows a View on YouTube CTA when the embedded player errors", async ({
     page,
   }) => {
     const { email, password, feedItemId, originalUrl } =
@@ -122,14 +122,15 @@ test.describe("custom video player", () => {
     await signIn({ page, email, password });
     await page.goto(`/watch/${feedItemId}`);
 
-    const watchOnYouTubeButton = page.getByRole("button", {
-      name: "This YouTube video cannot be played in embedded players.",
+    const viewOnYouTubeButton = page.getByRole("button", {
+      name: "View on YouTube",
     });
-    await expect(watchOnYouTubeButton).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText("Watch on YouTube")).toBeVisible();
+    await expect(viewOnYouTubeButton).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText("Something went wrong")).toBeVisible();
+    await expect(page.getByTitle("YouTube video player")).toHaveCount(0);
 
     const popupPromise = page.waitForEvent("popup");
-    await watchOnYouTubeButton.click();
+    await viewOnYouTubeButton.click();
     const popup = await popupPromise;
 
     await expect(popup).toHaveURL(originalUrl);
