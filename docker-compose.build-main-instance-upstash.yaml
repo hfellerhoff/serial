@@ -2,7 +2,7 @@ services:
   server:
     build:
       context: .
-      dockerfile: apps/app/Dockerfile
+      dockerfile: Dockerfile
       args:
         DATABASE_URL: ${DATABASE_URL}
         DATABASE_AUTH_TOKEN: ${DATABASE_AUTH_TOKEN}

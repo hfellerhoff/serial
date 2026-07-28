@@ -8,6 +8,12 @@
     "dev:demo": "pnpm --filter @serial/app dev:demo",
     "build": "turbo run build:artifact",
     "build:artifact": "turbo run build:artifact",
+    "build:atomic": "pnpm --filter @serial/app build:atomic",
+    "build:sw": "pnpm --filter @serial/app build:sw",
+    "schema:generate": "pnpm --filter @serial/app schema:generate",
+    "schema:migrate": "pnpm --filter @serial/app schema:migrate",
+    "schema:update": "pnpm --filter @serial/app schema:update",
+    "start": "pnpm schema:migrate && pnpm --filter @serial/app start",
     "lint": "turbo run lint",
     "lint:fix": "pnpm --recursive --if-present lint:fix",
     "typecheck": "turbo run typecheck",
@@ -27,7 +33,7 @@
     "turbo": "2.10.5"
   },
   "engines": {
-    "node": ">=24 <25"
+    "node": ">=22.12.0"
   },
   "packageManager": "pnpm@10.34.5",
   "simple-git-hooks": {

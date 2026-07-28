@@ -10,6 +10,7 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - "turbo.json"
+      - ".node-version"
       - ".github/scripts/www/**"
       - ".github/workflows/deploy-www.yml"
   workflow_dispatch:
@@ -35,7 +36,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: .node-version
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
@@ -65,7 +66,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: .node-version
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
@@ -100,13 +101,15 @@ jobs:
           BUNNY_STORAGE: ${{ secrets.BUNNY_STORAGE }}
           BUNNY_API_STORAGE: ${{ secrets.BUNNY_API_STORAGE }}
         run: |
-          chmod +x .github/scripts/www/upload-to-bunny.sh
-          find apps/www/dist -type f | xargs -P 20 -I {} .github/scripts/www/upload-to-bunny.sh {}
+          chmod +x .github/scripts/www/*.sh
+          .github/scripts/www/deploy-to-bunny.sh
 
       - name: Purge Bunny Cache
         env:
           BUNNY_API: ${{ secrets.BUNNY_API }}
           BUNNY_PULL_ZONE_ID: ${{ secrets.BUNNY_PULL_ZONE_ID }}
         run: |
-          curl -X POST "https://api.bunny.net/pullzone/$BUNNY_PULL_ZONE_ID/purgeCache" \
+          curl --fail-with-body --show-error --silent \
+            --retry 4 --retry-all-errors --connect-timeout 15 --max-time 120 \
+            -X POST "https://api.bunny.net/pullzone/$BUNNY_PULL_ZONE_ID/purgeCache" \
             -H "AccessKey: $BUNNY_API"

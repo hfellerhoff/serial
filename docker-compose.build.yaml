@@ -29,7 +29,7 @@ services:
   server:
     build:
       context: .
-      dockerfile: apps/app/Dockerfile
+      dockerfile: Dockerfile
       args:
         DATABASE_URL: http://libsql:8080
         BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
