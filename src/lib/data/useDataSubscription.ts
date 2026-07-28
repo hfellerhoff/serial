@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getDefaultStore } from "jotai";
 import { orpcRouterClient } from "../orpc";
 import { getDataSubscriptionClientId } from "./clientChannel";
+import { combineAbortSignals } from "./combineAbortSignals";
 import { loadingActor } from "./loading-machine";
 import { feedItemsStore } from "./store";
 import { shouldAlwaysKeepSSEConnectionAlive } from "./atoms";
@@ -92,7 +93,8 @@ export function useDataSubscription() {
 
         const conn = new AbortController();
         connectionController = conn;
-        const connectionSignal = AbortSignal.any([signal, conn.signal]);
+        const { signal: connectionSignal, cleanup: cleanupConnectionSignal } =
+          combineAbortSignals([signal, conn.signal]);
 
         try {
           isConnectedRef.current = true;
@@ -142,6 +144,8 @@ export function useDataSubscription() {
             retryDelayRef.current * BACKOFF_MULTIPLIER,
             MAX_RETRY_DELAY,
           );
+        } finally {
+          cleanupConnectionSignal();
         }
       }
     }
