@@ -1,14 +1,13 @@
 "use client";
 
-import { createFileRoute } from "@tanstack/react-router";
-import { GlobeIcon, PlayCircleIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ImportIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import type { FeedPlatform } from "~/server/db/schema";
 import { ViewCategoriesInput } from "~/components/view-dialog";
-import { YoutubeIcon } from "~/components/brand-icons";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { useDialogStore } from "~/components/feed/dialogStore";
+import { FeedListItem } from "~/components/feed/FeedListItem";
 import { FeedManagementTabs } from "~/components/feed/FeedManagementTabs";
 import { useFeedManagementShortcuts } from "~/components/feed/useManagementShortcuts";
 import { FeedEmptyState } from "~/components/feed/view-lists/EmptyStates";
@@ -18,6 +17,7 @@ import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { ChipCombobox } from "~/components/ui/chip-combobox";
 import { Input } from "~/components/ui/input";
+import { ItemGroup } from "~/components/ui/item";
 import { Progress } from "~/components/ui/progress";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { Switch } from "~/components/ui/switch";
@@ -53,44 +53,6 @@ import { useShiftSelect } from "~/lib/hooks/useShiftSelect";
 export const Route = createFileRoute("/_app/feeds")({
   component: ManageFeedsPage,
 });
-
-function PlatformIcon({ platform }: { platform: FeedPlatform }) {
-  switch (platform) {
-    case "youtube":
-      return <YoutubeIcon size={16} />;
-    case "peertube":
-      return <PlayCircleIcon size={16} />;
-    case "website":
-    default:
-      return <GlobeIcon size={16} />;
-  }
-}
-
-function FeedImage({
-  imageUrl,
-  name,
-  platform,
-}: {
-  imageUrl: string;
-  name: string;
-  platform: FeedPlatform;
-}) {
-  if (!imageUrl) {
-    return (
-      <div className="bg-muted text-muted-foreground grid size-7 shrink-0 place-items-center rounded">
-        <PlatformIcon platform={platform} />
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={imageUrl}
-      alt={name}
-      className="size-7 shrink-0 rounded object-cover"
-    />
-  );
-}
 
 function ManageFeedsPage() {
   const { feeds } = useFeeds();
@@ -279,10 +241,11 @@ function ManageFeedsPage() {
     if (feedIds.length === 0) return [];
 
     const firstFeedCategories = feedCategoriesMap.get(feedIds[0]!) ?? [];
+    const categorySets = feedIds.map(
+      (feedId) => new Set(feedCategoriesMap.get(feedId) ?? []),
+    );
     return firstFeedCategories.filter((categoryId) =>
-      feedIds.every((feedId) =>
-        feedCategoriesMap.get(feedId)?.includes(categoryId),
-      ),
+      categorySets.every((categorySet) => categorySet.has(categoryId)),
     );
   };
 
@@ -291,8 +254,11 @@ function ManageFeedsPage() {
     if (feedIds.length === 0) return [];
 
     const firstFeedViews = feedViewsMap.get(feedIds[0]!) ?? [];
+    const viewSets = feedIds.map(
+      (feedId) => new Set(feedViewsMap.get(feedId) ?? []),
+    );
     return firstFeedViews.filter((viewId) =>
-      feedIds.every((feedId) => feedViewsMap.get(feedId)?.includes(viewId)),
+      viewSets.every((viewSet) => viewSet.has(viewId)),
     );
   };
 
@@ -403,8 +369,9 @@ function ManageFeedsPage() {
 
     // Categories
     const categoriesToAdd = selectedCategoryIds;
+    const selectedCategoryIdSet = new Set(selectedCategoryIds);
     const categoriesToRemove = sharedCategories.filter(
-      (id) => !selectedCategoryIds.includes(id),
+      (id) => !selectedCategoryIdSet.has(id),
     );
     categoriesToAdd.forEach((categoryId) => {
       promises.push(bulkAssignCategory({ feedIds, categoryId }));
@@ -415,8 +382,9 @@ function ManageFeedsPage() {
 
     // Views
     const viewsToAdd = selectedViewIds;
+    const selectedViewIdSet = new Set(selectedViewIds);
     const viewsToRemove = sharedViews.filter(
-      (id) => !selectedViewIds.includes(id),
+      (id) => !selectedViewIdSet.has(id),
     );
     viewsToAdd.forEach((viewId) => {
       promises.push(bulkAssignView({ feedIds, viewId }));
@@ -445,13 +413,21 @@ function ManageFeedsPage() {
       <div className="mx-auto max-w-3xl p-6">
         <div className="flex items-center justify-between">
           <FeedManagementTabs value="feeds" />
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => launchDialog("add-feed")}
-          >
-            <PlusIcon size={16} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon md:default" asChild>
+              <Link to="/import" aria-label="Bulk Import">
+                <ImportIcon size={16} />
+                <span className="hidden md:block">Bulk Import</span>
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => launchDialog("add-feed")}
+            >
+              <PlusIcon size={16} />
+            </Button>
+          </div>
         </div>
         <FeedEmptyState />
       </div>
@@ -465,14 +441,22 @@ function ManageFeedsPage() {
           <div>
             <FeedManagementTabs value="feeds" />
           </div>
-          <ButtonWithShortcut
-            variant="outline"
-            size="icon"
-            onClick={() => launchDialog("add-feed")}
-            shortcut="a"
-          >
-            <PlusIcon size={16} />
-          </ButtonWithShortcut>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon md:default" asChild>
+              <Link to="/import" aria-label="Bulk Import">
+                <ImportIcon size={16} />
+                <span className="hidden md:block">Bulk Import</span>
+              </Link>
+            </Button>
+            <ButtonWithShortcut
+              variant="outline"
+              size="icon"
+              onClick={() => launchDialog("add-feed")}
+              shortcut="a"
+            >
+              <PlusIcon size={16} />
+            </ButtonWithShortcut>
+          </div>
         </div>
         {(billingEnabled || IS_DEMO_INSTANCE) &&
           maxActiveFeeds > 0 &&
@@ -547,7 +531,7 @@ function ManageFeedsPage() {
       </div>
 
       <div className="mx-auto max-w-3xl px-6">
-        <div className="-mx-3">
+        <ItemGroup className="-mx-3 gap-0">
           {filteredFeeds.map((feed) => {
             const isSelected = selectedFeedIds.has(feed.id);
             const feedCategoryIds = (feedCategoriesMap.get(feed.id) ?? [])
@@ -566,79 +550,79 @@ function ManageFeedsPage() {
               );
 
             return (
-              <button
-                type="button"
+              <FeedListItem
                 key={feed.id}
-                className={`hover:bg-muted/50 flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
-                  !feed.isActive ? "opacity-50" : ""
-                }`}
+                title={feed.name}
+                platform={feed.platform}
+                imageUrl={feed.imageUrl}
+                interactive
+                inactive={!feed.isActive}
                 onClick={(e) => handleFeedSelect(feed.id, e)}
-              >
-                <Checkbox
-                  id={`feed-${feed.id}`}
-                  checked={isSelected}
-                  onCheckedChange={() => handleFeedSelect(feed.id)}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <FeedImage
-                  imageUrl={feed.imageUrl}
-                  name={feed.name}
-                  platform={feed.platform}
-                />
-                <span className="line-clamp-1 flex-1">{feed.name}</span>
-                <div className="flex flex-wrap items-center gap-3">
-                  {feedCategoryIds.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {feedCategoryIds.map((categoryId) => {
-                        const categoryName = categoryNamesMap.get(categoryId);
-                        if (!categoryName) return null;
-                        return (
-                          <Badge key={`cat-${categoryId}`} variant="outline">
-                            {categoryName}
-                          </Badge>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {feedViewIds.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {feedViewIds.map((viewId) => {
-                        const viewName = viewNamesMap.get(viewId);
-                        if (!viewName) return null;
-                        return (
-                          <Badge key={`view-${viewId}`} variant="secondary">
-                            {viewName}
-                          </Badge>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-                <Switch
-                  checked={feed.isActive}
-                  disabled={isTogglingActive}
-                  onCheckedChange={(checked) => {
-                    if (
-                      !checked ||
-                      activeFeeds < maxActiveFeeds ||
-                      maxActiveFeeds < 0
-                    ) {
-                      setFeedActive({ feedId: feed.id, isActive: checked });
-                    } else {
-                      if (IS_DEMO_INSTANCE) {
-                        toast.error(
-                          "Feed limit reached. This is the limit for the demo instance.",
-                        );
+                leading={
+                  <Checkbox
+                    id={`feed-${feed.id}`}
+                    checked={isSelected}
+                    onCheckedChange={() => handleFeedSelect(feed.id)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                }
+                details={
+                  <>
+                    {feedCategoryIds.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {feedCategoryIds.map((categoryId) => {
+                          const categoryName = categoryNamesMap.get(categoryId);
+                          if (!categoryName) return null;
+                          return (
+                            <Badge key={`cat-${categoryId}`} variant="outline">
+                              {categoryName}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {feedViewIds.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {feedViewIds.map((viewId) => {
+                          const viewName = viewNamesMap.get(viewId);
+                          if (!viewName) return null;
+                          return (
+                            <Badge key={`view-${viewId}`} variant="secondary">
+                              {viewName}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                }
+                actions={
+                  <Switch
+                    checked={feed.isActive}
+                    disabled={isTogglingActive}
+                    onCheckedChange={(checked) => {
+                      if (
+                        !checked ||
+                        activeFeeds < maxActiveFeeds ||
+                        maxActiveFeeds < 0
+                      ) {
+                        setFeedActive({ feedId: feed.id, isActive: checked });
                       } else {
-                        toast.error(
-                          "Feed limit reached. Upgrade your plan to activate more feeds.",
-                        );
+                        if (IS_DEMO_INSTANCE) {
+                          toast.error(
+                            "Feed limit reached. This is the limit for the demo instance.",
+                          );
+                        } else {
+                          toast.error(
+                            "Feed limit reached. Upgrade your plan to activate more feeds.",
+                          );
+                        }
                       }
-                    }
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </button>
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                }
+              />
             );
           })}
 
@@ -648,7 +632,7 @@ function ManageFeedsPage() {
             </p>
           )}
           <div ref={bottomRef} />
-        </div>
+        </ItemGroup>
       </div>
 
       {selectedCount > 0 && (

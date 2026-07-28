@@ -7,6 +7,7 @@ import {
   ArchiveIcon,
   BookmarkCheckIcon,
   BookmarkIcon,
+  CopyIcon,
   SendIcon,
 } from "lucide-react";
 import { VIEW_CONTENT_TYPE } from "~/server/db/constants";
@@ -15,6 +16,7 @@ import { Button } from "~/components/ui/button";
 import { visibilityFilterAtom } from "~/lib/data/atoms";
 import { getContentTypeFromItem } from "~/lib/data/feed-items";
 import { useFeedItemsSetWatchLaterValueMutation } from "~/lib/data/feed-items/mutations";
+import { getDataSubscriptionClientId } from "~/lib/data/clientChannel";
 import { useFeeds as useFeedsArray } from "~/lib/data/feeds/store";
 import {
   useSaveToInstapaperMutation,
@@ -120,11 +122,7 @@ function getWatchedDatePrefix(
 }
 
 type ThumbnailType =
-  | "horizontal-video"
-  | "vertical-video"
-  | "article"
-  | "icon"
-  | "none";
+  "horizontal-video" | "vertical-video" | "article" | "icon" | "none";
 
 function getThumbnailType(
   item: {
@@ -324,7 +322,7 @@ function ItemActions({
 }: ItemActionsProps) {
   const { mutateAsync: setWatchLaterValue } =
     useFeedItemsSetWatchLaterValueMutation(contentId);
-  const { toggleRead } = useFeedItemActions(contentId);
+  const { copyUrl, toggleRead } = useFeedItemActions(contentId);
 
   const showInstapaperAction = useShowInstapaperAction(contentId);
   const { mutateAsync: saveToInstapaper, isPending: isSavingToInstapaper } =
@@ -345,6 +343,7 @@ function ItemActions({
       id: item.id,
       feedId: item.feedId,
       isWatchLater: !item.isWatchLater,
+      clientId: getDataSubscriptionClientId(),
     });
   };
 
@@ -382,6 +381,18 @@ function ItemActions({
           />
         </Button>
       )}
+      <Button
+        size="icon"
+        variant="ghost"
+        onClick={() => void copyUrl()}
+        aria-label="Copy item URL"
+        className={clsx("relative overflow-visible", {
+          "h-8 w-8 p-0": isGrid,
+        })}
+      >
+        <CopyIcon size={isGrid ? 14 : 16} />
+        <KeyboardShortcutDisplay shortcut={SHORTCUT_KEYS.COPY_URL} />
+      </Button>
       <Button
         size="icon"
         variant="ghost"

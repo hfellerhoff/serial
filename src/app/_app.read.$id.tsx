@@ -2,8 +2,14 @@
 
 import clsx from "clsx";
 
-import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { useAtomValue, useSetAtom } from "jotai";
 import rehypeParse from "rehype-parse";
 import rehypeSanitize from "rehype-sanitize";
@@ -21,7 +27,6 @@ import { useOpenOriginalShortcut } from "~/lib/hooks/useOpenOriginalShortcut";
 import {
   getClosestVisibleElement,
   getElements,
-  isElementInViewport,
   useArticleNavigation,
 } from "~/lib/hooks/useArticleNavigation";
 import { getScrollContainer } from "~/lib/scroll";
@@ -38,6 +43,7 @@ import { useFeedCategories } from "~/lib/data/feed-categories/store";
 import { useViewFeeds } from "~/lib/data/view-feeds/store";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
+import { ArticleSidebars } from "~/components/feed/read/ArticleSidebars";
 
 const parser = unified()
   .use(rehypeParse, { fragment: true })
@@ -60,6 +66,7 @@ export const Route = createFileRoute("/_app/read/$id")({
 
 function ReadPage() {
   const params = Route.useParams();
+  const router = useRouter();
 
   const [articleStyle] = useFlagState("ARTICLE_STYLE");
 
@@ -81,6 +88,13 @@ function ReadPage() {
   }
 
   const articleRef = useRef<HTMLDivElement>(null);
+  const [articleElement, setArticleElement] = useState<HTMLDivElement | null>(
+    null,
+  );
+  const updateArticleRef = useCallback((element: HTMLDivElement | null) => {
+    articleRef.current = element;
+    setArticleElement(element);
+  }, []);
 
   // Show/hide header and footer bars based on scroll direction
   const setBarsHidden = useSetAtom(barsHiddenAtom);
@@ -119,75 +133,31 @@ function ReadPage() {
     },
   });
 
-  // Restore progress on open — wait a frame so layout is complete. Track the
-  // restored value so a later server refresh can replace stale hydrated data.
-  const restoredProgressRef = useRef<number | null>(null);
-  const restoredElementRef = useRef<HTMLElement | null>(null);
-  const isEntryRestorationCancelledRef = useRef(false);
-
-  useEffect(() => {
-    restoredProgressRef.current = null;
-    restoredElementRef.current = null;
-    isEntryRestorationCancelledRef.current = false;
-  }, [params.id]);
-
-  useEffect(() => {
-    const cancelEntryRestoration = () => {
-      isEntryRestorationCancelledRef.current = true;
+  // The app reuses one scroll container across routes. Always start a newly
+  // opened article at the top; saved progress remains available to progress
+  // indicators but should not move the reader on entry.
+  useLayoutEffect(() => {
+    let active = true;
+    const resetScroll = () => {
+      getScrollContainer().scrollTo({ top: 0, behavior: "instant" });
     };
 
-    window.addEventListener("wheel", cancelEntryRestoration, { passive: true });
-    window.addEventListener("touchstart", cancelEntryRestoration, {
-      passive: true,
+    resetScroll();
+    const unsubscribe = router.subscribe("onRendered", (event) => {
+      if (!event.pathChanged) return;
+
+      // Router scroll restoration also runs on `onRendered`. Defer until all
+      // synchronous subscribers finish so Back/Forward restoration runs first.
+      queueMicrotask(() => {
+        if (active) resetScroll();
+      });
     });
-    window.addEventListener("pointerdown", cancelEntryRestoration, {
-      passive: true,
-    });
-    window.addEventListener("keydown", cancelEntryRestoration);
 
     return () => {
-      window.removeEventListener("wheel", cancelEntryRestoration);
-      window.removeEventListener("touchstart", cancelEntryRestoration);
-      window.removeEventListener("pointerdown", cancelEntryRestoration);
-      window.removeEventListener("keydown", cancelEntryRestoration);
+      active = false;
+      unsubscribe();
     };
-  }, [params.id]);
-
-  useEffect(() => {
-    if (feedItem == null) return;
-    if (isEntryRestorationCancelledRef.current) return;
-
-    const progress = feedItem.progress ?? 0;
-    const hasVisibleRestoredElement =
-      restoredProgressRef.current === progress &&
-      restoredElementRef.current != null &&
-      isElementInViewport(restoredElementRef.current);
-
-    if (hasVisibleRestoredElement) return;
-
-    if (progress <= 0) {
-      if (restoredProgressRef.current !== null) return;
-
-      restoredProgressRef.current = progress;
-      getScrollContainer().scrollTo({ top: 0, behavior: "instant" });
-      return;
-    }
-
-    const restoreAnimationFrame = requestAnimationFrame(() => {
-      if (isEntryRestorationCancelledRef.current) return;
-
-      const elements = getElements(articleRef.current);
-      if (elements.length === 0) return;
-
-      const targetIndex = Math.min(progress, elements.length - 1);
-      const targetElement = elements[targetIndex]!;
-      restoredProgressRef.current = progress;
-      restoredElementRef.current = targetElement;
-      scrollToElement(targetElement, true);
-    });
-
-    return () => cancelAnimationFrame(restoreAnimationFrame);
-  }, [params.id, feedItem, scrollToElement]);
+  }, [params.id, router]);
 
   // Truncation alert
   const { mutate: editFeed } = useEditFeedMutation();
@@ -265,21 +235,30 @@ function ReadPage() {
         )}
         <span className="line-clamp-1 font-sans text-sm">{feed?.name}</span>
       </div>
-      <div
-        ref={articleRef}
-        className={`h-full w-full px-6 sm:pb-6 ${classes.article}`}
-      >
-        <h1 data-serial-header>{feedItem?.title}</h1>
-        <h6 data-serial-header>{feedItem?.author || feed?.name || ""}</h6>
-        {articleStyle === "simplified" ? (
-          <div
-            dangerouslySetInnerHTML={{
-              __html: content,
-            }}
-          />
-        ) : (
-          <ArticleContent content={content} />
-        )}
+      <div key={params.id} className="relative w-full">
+        <ArticleSidebars
+          article={articleElement}
+          contentKey={`${params.id}:${articleStyle}:${zoom}:${content}`}
+          scrollToElement={scrollToElement}
+        />
+        <div
+          ref={updateArticleRef}
+          className={`h-full w-full px-6 sm:pb-6 ${classes.article}`}
+        >
+          <h1 data-serial-header>{feedItem?.title}</h1>
+          <h6 data-serial-header>{feedItem?.author || feed?.name || ""}</h6>
+          {articleStyle === "simplified" ? (
+            // Content is sanitized by the module-level rehype pipeline above.
+            // react-doctor-disable-next-line react-doctor/dangerous-html-sink
+            <div
+              dangerouslySetInnerHTML={{
+                __html: content,
+              }}
+            />
+          ) : (
+            <ArticleContent content={content} />
+          )}
+        </div>
       </div>
       {shouldShowTruncationAlert && (
         <div className="w-full px-6">

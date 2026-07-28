@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { ORPCError } from "@orpc/server";
 import { createElement } from "react";
-import { render } from "@react-email/components";
+import { render } from "react-email";
 import { count, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -15,7 +15,7 @@ import { db } from "~/server/db";
 import { IS_EMAIL_ENABLED, sendEmail } from "~/server/email";
 
 function getInviteUrl(token: string, origin?: string) {
-  const base = origin ?? env.VITE_PUBLIC_BASE_URL;
+  const base = origin ?? env.PUBLIC_BASE_URL;
   return `${base}/auth/sign-up?token=${token}`;
 }
 
@@ -92,7 +92,7 @@ export const listInvitations = adminProcedure.handler(async ({ context }) => {
 
 // Send an invitation email for an existing invitation
 export const sendInvitationEmail = adminProcedure
-  .input(z.object({ invitationId: z.string(), email: z.string().email() }))
+  .input(z.object({ invitationId: z.string(), email: z.email() }))
   .handler(async ({ context, input }) => {
     if (!IS_EMAIL_ENABLED) {
       throw new ORPCError("BAD_REQUEST", {
@@ -141,7 +141,7 @@ export const sendInvitationEmail = adminProcedure
       createElement(InviteUserEmail, {
         inviteUrl,
         inviterName: context.user.name,
-        supportEmail: env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS,
+        supportEmail: env.PUBLIC_SUPPORT_EMAIL_ADDRESS,
       }),
     );
 

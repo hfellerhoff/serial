@@ -19,6 +19,8 @@ import {
   openLocationSchema,
   PLATFORM_DEFAULT_OPEN_LOCATION,
   viewFeeds,
+  views,
+  viewSections,
 } from "~/server/db/schema";
 import { protectedProcedure } from "~/server/orpc/base";
 import { fetchNewFeedDetails } from "~/server/rss/fetchFeeds";
@@ -29,6 +31,7 @@ import {
   isAdminUser,
 } from "~/server/subscriptions/helpers";
 import { getEffectivePlanConfig } from "~/server/subscriptions/plans";
+import { VIEW_LAYOUT_ITEM_TYPE } from "~/server/db/constants";
 
 type BulkImportFromFileSuccess = {
   feedUrl: string;
@@ -41,8 +44,7 @@ type BulkImportFromFileError = {
   error: string;
 };
 export type BulkImportFromFileResult =
-  | BulkImportFromFileError
-  | BulkImportFromFileSuccess;
+  BulkImportFromFileError | BulkImportFromFileSuccess;
 
 export const create = protectedProcedure
   .input(
@@ -192,6 +194,7 @@ export const createFromSubscriptionImport = protectedProcedure
     const BATCH_SIZE = 4;
     const feedChunks = prepareArrayChunks(feedsWithActivation, BATCH_SIZE);
     const allResults: BulkImportFromFileResult[] = [];
+    const userId = context.user.id;
 
     for (const chunk of feedChunks) {
       const promiseResults = await Promise.allSettled(
@@ -204,20 +207,21 @@ export const createFromSubscriptionImport = protectedProcedure
               if (!newFeed?.url) {
                 return {
                   feedUrl: feed.feedUrl,
-                  success: false,
+                  success: false as const,
                   error: "Unsupported feed URL",
                 };
               }
+              const newFeedUrl = newFeed.url;
 
               const existingFeed = await findExistingFeedThatMatches(tx, {
-                feedUrl: newFeed.url,
-                userId: context.user.id,
+                feedUrl: newFeedUrl,
+                userId,
               });
 
               if (existingFeed) {
                 return {
-                  feedUrl: newFeed.url,
-                  success: false,
+                  feedUrl: newFeedUrl,
+                  success: false as const,
                   error: "Feed already exists",
                 };
               }
@@ -225,7 +229,7 @@ export const createFromSubscriptionImport = protectedProcedure
               const newFeeds = await tx
                 .insert(feeds)
                 .values({
-                  userId: context.user.id,
+                  userId,
                   ...newFeed,
                   isActive: feed.shouldBeActive,
                   openLocation:
@@ -237,7 +241,7 @@ export const createFromSubscriptionImport = protectedProcedure
               if (!newFeedRow) {
                 return {
                   feedUrl: newFeed.url,
-                  success: false,
+                  success: false as const,
                   error: "Couldn't find new feed",
                 };
               }
@@ -248,16 +252,17 @@ export const createFromSubscriptionImport = protectedProcedure
                 .where(
                   and(
                     inArray(contentCategories.name, feed.categories),
-                    eq(contentCategories.userId, context.user.id),
+                    eq(contentCategories.userId, userId),
                   ),
                 )
                 .all();
               const matchingCategoryNames = matchingCategories.map(
                 (category) => category.name,
               );
+              const matchingCategoryNameSet = new Set(matchingCategoryNames);
 
               const nonMatchingCategories = feed.categories.filter(
-                (category) => !matchingCategoryNames.includes(category),
+                (category) => !matchingCategoryNameSet.has(category),
               );
 
               const matchingCategoryPromises = matchingCategories.map(
@@ -277,7 +282,7 @@ export const createFromSubscriptionImport = protectedProcedure
                     .insert(contentCategories)
                     .values({
                       name: nonMatchingCategory,
-                      userId: context.user.id,
+                      userId,
                     })
                     .returning();
                   const newContentCategory = newContentCategoryList[0];
@@ -299,15 +304,15 @@ export const createFromSubscriptionImport = protectedProcedure
               return {
                 feedUrl: newFeed.url,
                 feedId: newFeedRow.id,
-                success: true,
+                success: true as const,
               };
             }),
           );
         }),
       );
 
-      const chunkResults: BulkImportFromFileResult[] = promiseResults
-        .map((result, i) => {
+      const chunkResults: BulkImportFromFileResult[] = promiseResults.map(
+        (result, i): BulkImportFromFileResult => {
           if (result.status === "fulfilled") {
             return result.value;
           }
@@ -323,8 +328,8 @@ export const createFromSubscriptionImport = protectedProcedure
                 ? result.reason.message
                 : "Import failed",
           };
-        })
-        .filter(Boolean);
+        },
+      );
 
       allResults.push(...chunkResults);
     }
@@ -335,9 +340,32 @@ export const createFromSubscriptionImport = protectedProcedure
 const deleteFeed = protectedProcedure
   .input(z.number())
   .handler(async ({ context, input }) => {
-    await context.db
-      .delete(feeds)
-      .where(and(eq(feeds.id, input), eq(feeds.userId, context.user.id)));
+    await context.db.transaction(async (tx) => {
+      const deletedFeeds = await tx
+        .delete(feeds)
+        .where(and(eq(feeds.id, input), eq(feeds.userId, context.user.id)))
+        .returning({ id: feeds.id });
+
+      if (deletedFeeds.length === 0) return;
+
+      const userViews = await tx
+        .select({ id: views.id })
+        .from(views)
+        .where(eq(views.userId, context.user.id));
+
+      if (userViews.length > 0) {
+        await tx.delete(viewSections).where(
+          and(
+            eq(viewSections.itemType, VIEW_LAYOUT_ITEM_TYPE.FEED),
+            eq(viewSections.itemId, input),
+            inArray(
+              viewSections.viewId,
+              userViews.map((view) => view.id),
+            ),
+          ),
+        );
+      }
+    });
   });
 export { deleteFeed as delete };
 
@@ -474,9 +502,9 @@ async function discoverYouTubeFeeds(url: string) {
       /<meta property="og:title" content="([^"]+)">/.exec(text);
     const channelName = channelNameMatch?.[1];
 
-    const feedUrls = Array.from(rssFeedUrlMatches)
-      .map((match) => match[1])
-      .filter(Boolean);
+    const feedUrls = Array.from(rssFeedUrlMatches).flatMap((match) =>
+      match[1] ? [match[1]] : [],
+    );
 
     if (feedUrls.length === 0) {
       return null;
@@ -496,14 +524,42 @@ async function discoverYouTubeFeeds(url: string) {
 export const bulkDelete = protectedProcedure
   .input(z.object({ feedIds: z.number().array() }))
   .handler(async ({ context, input }) => {
-    await context.db
-      .delete(feeds)
-      .where(
-        and(
-          inArray(feeds.id, input.feedIds),
-          eq(feeds.userId, context.user.id),
-        ),
-      );
+    if (input.feedIds.length === 0) return;
+
+    await context.db.transaction(async (tx) => {
+      const deletedFeeds = await tx
+        .delete(feeds)
+        .where(
+          and(
+            inArray(feeds.id, input.feedIds),
+            eq(feeds.userId, context.user.id),
+          ),
+        )
+        .returning({ id: feeds.id });
+
+      if (deletedFeeds.length === 0) return;
+
+      const userViews = await tx
+        .select({ id: views.id })
+        .from(views)
+        .where(eq(views.userId, context.user.id));
+
+      if (userViews.length > 0) {
+        await tx.delete(viewSections).where(
+          and(
+            eq(viewSections.itemType, VIEW_LAYOUT_ITEM_TYPE.FEED),
+            inArray(
+              viewSections.itemId,
+              deletedFeeds.map((feed) => feed.id),
+            ),
+            inArray(
+              viewSections.viewId,
+              userViews.map((view) => view.id),
+            ),
+          ),
+        );
+      }
+    });
   });
 
 export const setActive = protectedProcedure
@@ -599,7 +655,7 @@ export const bulkSetActive = protectedProcedure
   });
 
 export const discoverFeeds = protectedProcedure
-  .input(z.object({ url: z.string().url() }))
+  .input(z.object({ url: z.url() }))
   .handler(async ({ input }) => {
     const [youtubeResult, feedscoutResult] = await Promise.allSettled([
       discoverYouTubeFeeds(input.url),

@@ -7,27 +7,27 @@ type ImportDropzoneProps = {
   onSelectFile: () => void;
 };
 
+function preventDragEventDefault(event: DragEvent<HTMLLabelElement>) {
+  event.preventDefault();
+  event.stopPropagation();
+}
+
 export function ImportDropzone({ inputId, onSelectFile }: ImportDropzoneProps) {
   const [isDraggingOverDropzone, setIsDraggingOverDropzone] = useState(false);
-
-  const onDragEvent = (e: DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
 
   return (
     <label
       htmlFor={inputId}
-      onDrag={onDragEvent}
-      onDragStart={onDragEvent}
-      onDragEnter={onDragEvent}
-      onDragEnd={onDragEvent}
+      onDrag={preventDragEventDefault}
+      onDragStart={preventDragEventDefault}
+      onDragEnter={preventDragEventDefault}
+      onDragEnd={preventDragEventDefault}
       onDragOver={(e) => {
-        onDragEvent(e);
+        preventDragEventDefault(e);
         setIsDraggingOverDropzone(true);
       }}
       onDragLeave={(e) => {
-        onDragEvent(e);
+        preventDragEventDefault(e);
         setIsDraggingOverDropzone(false);
       }}
       onDrop={(e) => {

@@ -11,7 +11,7 @@ import { EditableSavableTextField } from "~/components/form/EditableSavableTextF
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
-import { env } from "~/env";
+import { IS_DEMO_INSTANCE } from "~/lib/demo";
 import { authClient } from "~/lib/auth-client";
 import { AUTH_RESET_PASSWORD_URL } from "~/lib/auth/constants";
 import { useUpdateNameMutation } from "~/lib/data/user/useUpdateNameMutation";
@@ -68,7 +68,7 @@ export function UserProfileEditDialog() {
       description="Manage your account and your data"
     >
       <div className="grid gap-6">
-        {env.VITE_PUBLIC_IS_DEMO_INSTANCE !== "true" && (
+        {!IS_DEMO_INSTANCE && (
           <>
             <EditableSavableTextField
               label="Name"
@@ -77,6 +77,7 @@ export function UserProfileEditDialog() {
               onSave={async (updatedName) => {
                 await updateName({ name: updatedName });
                 void refetchUser();
+                return "saved";
               }}
               schema={userNameSchema}
             />
@@ -93,11 +94,12 @@ export function UserProfileEditDialog() {
                 });
                 if (error) {
                   toast.error(error.message ?? "Failed to change email");
-                  return;
+                  return "failed";
                 }
                 toast.success(
                   "Verification email sent! Check your new inbox to confirm.",
                 );
+                return "pending";
               }}
               schema={userEmailSchema}
             />

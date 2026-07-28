@@ -24,7 +24,7 @@ function normalizeIncomingFeedItem(
   return {
     ...incomingItem,
     content: incomingItem.content ?? "",
-  } as ApplicationFeedItem;
+  };
 }
 
 function hasMatchingContentHash(

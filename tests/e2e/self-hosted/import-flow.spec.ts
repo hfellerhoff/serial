@@ -1,14 +1,17 @@
 import path from "node:path";
-import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import { signUp } from "../fixtures/auth";
-import { SELF_HOSTED_TURSO_PORT } from "../fixtures/ports";
+import {
+  SELF_HOSTED_RSS_SERVER_PORT,
+  SELF_HOSTED_TURSO_PORT,
+} from "../fixtures/ports";
 import {
   cleanupUser,
   generateTestEmail,
   verifyUserCleanup,
 } from "../fixtures/seed-db";
+import { readOpmlFixture } from "../fixtures/opml";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,6 +29,137 @@ test.describe("full user lifecycle", () => {
     if (testEmail) {
       await cleanupUser(SELF_HOSTED_TURSO_PORT, testEmail);
     }
+  });
+
+  test("opens the import review when an OPML file is dropped anywhere", async ({
+    page,
+  }) => {
+    testEmail = generateTestEmail();
+    await signUp({
+      page,
+      name: "Drop Import User",
+      email: testEmail,
+      password: "testpassword123",
+    });
+
+    const opmlContent = readOpmlFixture(OPML_PATH, SELF_HOSTED_RSS_SERVER_PORT);
+    const globalDropzone = page.getByTestId("global-import-dropzone");
+    await expect(globalDropzone).toHaveAttribute("data-ready", "true");
+    await expect(globalDropzone).toBeHidden();
+
+    await page.evaluate(() => {
+      const dragEnter = new DragEvent("dragenter", { bubbles: true });
+
+      // Native OS drags may expose only the "Files" type until drop.
+      Object.defineProperty(dragEnter, "dataTransfer", {
+        value: {
+          files: [],
+          items: [],
+          types: ["Files"],
+        },
+      });
+      window.dispatchEvent(dragEnter);
+    });
+
+    await expect(globalDropzone).toBeVisible();
+    await expect(page.getByText("Drop file here")).toBeVisible();
+
+    await page.evaluate((content) => {
+      const transfer = new DataTransfer();
+      transfer.items.add(
+        new File([content], "subscriptions.opml", {
+          type: "application/xml",
+        }),
+      );
+      window.dispatchEvent(
+        new DragEvent("drop", {
+          bubbles: true,
+          dataTransfer: transfer,
+        }),
+      );
+    }, opmlContent);
+
+    await expect(page).toHaveURL("/import");
+    await expect(page.getByText("Feeds To Import")).toBeVisible();
+    const cgpGreyItem = page.getByRole("button", {
+      name: "CGP Grey",
+      exact: true,
+    });
+    const scaryPocketsItem = page.getByRole("button", {
+      name: "Scary Pockets",
+      exact: true,
+    });
+    const importButton = page.getByRole("button", {
+      name: /import \d+ feeds/i,
+    });
+    const importFooter = page.getByTestId("import-footer");
+    const cgpGreyItemContainer = cgpGreyItem.locator("..");
+
+    await expect(importFooter).toHaveClass(/border-border/);
+    await expect(cgpGreyItemContainer).toHaveAttribute("data-size", "xs");
+    await expect(cgpGreyItemContainer).toHaveAttribute(
+      "data-variant",
+      "outline",
+    );
+    const cgpGreyAvatar = cgpGreyItemContainer.locator('[data-slot="avatar"]');
+    await expect(cgpGreyAvatar).toBeVisible();
+    await expect(cgpGreyAvatar).toHaveClass(/\bsize-7\b/);
+    await expect(cgpGreyAvatar).toHaveClass(/\brounded\b/);
+    await expect(
+      cgpGreyItemContainer.getByRole("link", { name: "CGP Grey" }),
+    ).toHaveAttribute("href", /\/cgp-grey$/);
+    await expect(
+      cgpGreyItemContainer.getByRole("link", {
+        name: /\/feed\/cgp-grey$/,
+      }),
+    ).toHaveAttribute("href", /\/feed\/cgp-grey$/);
+    await expect(cgpGreyItem).toHaveAttribute("aria-pressed", "true");
+    await expect(scaryPocketsItem).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.getByRole("button", { name: "Deselect CGP Grey" }),
+    ).toHaveClass(/bg-primary/);
+    await page.getByRole("button", { name: "Deselect CGP Grey" }).hover();
+    await expect(page.getByRole("tooltip")).toHaveText("Deselect feed");
+
+    const [itemBounds, importButtonBounds, footerBounds, contentBounds] =
+      await Promise.all([
+        cgpGreyItemContainer.boundingBox(),
+        importButton.boundingBox(),
+        importFooter.boundingBox(),
+        page.locator('[data-slot="sidebar-inset"]').evaluate((element) => ({
+          x: element.getBoundingClientRect().x,
+          width: element.clientWidth,
+        })),
+      ]);
+    expect(itemBounds).not.toBeNull();
+    expect(importButtonBounds).not.toBeNull();
+    expect(footerBounds).not.toBeNull();
+    expect(contentBounds).not.toBeNull();
+    expect(importButtonBounds?.x).toBeCloseTo(itemBounds?.x ?? 0, 0);
+    expect(importButtonBounds?.width).toBeCloseTo(itemBounds?.width ?? 0, 0);
+    expect(footerBounds?.x).toBeCloseTo(contentBounds?.x ?? 0, 0);
+    expect(footerBounds?.width).toBeCloseTo(contentBounds?.width ?? 0, 0);
+
+    await page.locator('[data-slot="sidebar-inset"]').evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(importFooter).toHaveClass(/border-transparent/);
+
+    await cgpGreyItem.click();
+    await expect(cgpGreyItem).toHaveAttribute("aria-pressed", "false");
+    await expect(scaryPocketsItem).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.getByRole("button", { name: "Select CGP Grey" }),
+    ).not.toHaveClass(/bg-primary/);
+    await expect(importButton).toHaveAccessibleName("Import 3 feeds");
+
+    await page.getByRole("button", { name: "Select CGP Grey" }).click();
+    await expect(cgpGreyItem).toHaveAttribute("aria-pressed", "true");
+    await expect(scaryPocketsItem).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.getByRole("button", { name: "Deselect CGP Grey" }),
+    ).toHaveClass(/bg-primary/);
+    await expect(importButton).toHaveAccessibleName("Import 4 feeds");
   });
 
   test("sign up, import, categorize, read, customize, delete feeds, delete account, verify db clean", async ({
@@ -53,7 +187,9 @@ test.describe("full user lifecycle", () => {
     const fileChooserPromise = page.waitForEvent("filechooser");
     await dropzone.click();
     const fileChooser = await fileChooserPromise;
-    const opmlContent = fs.readFileSync(OPML_PATH);
+    const opmlContent = Buffer.from(
+      readOpmlFixture(OPML_PATH, SELF_HOSTED_RSS_SERVER_PORT),
+    );
     await fileChooser.setFiles({
       name: "subscriptions.opml",
       mimeType: "application/xml",
@@ -194,6 +330,7 @@ test.describe("full user lifecycle", () => {
     await expect(
       mainContent
         .getByRole("button", { name: /Scary Pockets/ })
+        .locator("..")
         .getByText("Music"),
     ).toBeVisible({ timeout: 10000 });
 
@@ -225,7 +362,10 @@ test.describe("full user lifecycle", () => {
     await page.waitForTimeout(1000);
 
     await expect(
-      mainContent.getByRole("button", { name: /Fireship/ }).getByText("Tech"),
+      mainContent
+        .getByRole("button", { name: /Fireship/ })
+        .locator("..")
+        .getByText("Tech"),
     ).toBeVisible({ timeout: 10000 });
 
     // ── 5. Open and Read an Article ─────────────────────────────────

@@ -7,14 +7,14 @@ import {
   Img,
   Preview,
   Text,
-} from "@react-email/components";
+} from "react-email";
 
 interface NewUserNotificationProps {
   userName?: string;
   userEmail?: string;
 }
 
-const baseUrl = `https://serial.tube`;
+const baseUrl = `https://www.serial.tube`;
 
 export default function NewUserNotificationEmail({
   userName,

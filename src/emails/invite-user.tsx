@@ -8,7 +8,7 @@ import {
   Link,
   Preview,
   Text,
-} from "@react-email/components";
+} from "react-email";
 
 interface InviteUserProps {
   inviteUrl: string;
@@ -16,7 +16,7 @@ interface InviteUserProps {
   supportEmail?: string;
 }
 
-const baseUrl = `https://serial.tube`;
+const baseUrl = `https://www.serial.tube`;
 
 export default function InviteUserEmail({
   inviteUrl,

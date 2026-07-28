@@ -198,6 +198,7 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
               playerVars: {
                 rel: 0,
                 controls: 0,
+                cc_load_policy: 1,
                 disablekb: 0,
                 playsinline: 0,
               },
@@ -408,12 +409,9 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
                       </DropdownMenu>
                     )}
                   {(() => {
-                    const isDisabled =
-                      !captionsModuleLoaded || !captionsAvailable;
+                    const isDisabled = !captionsAvailable;
                     const tooltipMessage = isDisabled
-                      ? !captionsModuleLoaded
-                        ? "Play video to load available captions"
-                        : "Captions not available"
+                      ? "Play video to load available captions"
                       : "Toggle captions";
 
                     return (

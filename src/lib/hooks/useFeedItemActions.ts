@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { useRouter } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { orpcRouterClient } from "../orpc";
 import { useFeedItemValue } from "../data/store";
 import {
@@ -14,6 +15,7 @@ import {
 } from "../data/feed-items/mutations";
 import { useFeeds as useFeedsArray } from "../data/feeds/store";
 import { saveHomeScrollPosition } from "~/lib/scroll";
+import { getDataSubscriptionClientId } from "~/lib/data/clientChannel";
 
 export function useFeedItemActions(itemId: string) {
   const router = useRouter();
@@ -30,6 +32,7 @@ export function useFeedItemActions(itemId: string) {
         id: itemId,
         feedId: item.feedId,
         isWatched: true,
+        clientId: getDataSubscriptionClientId(),
       })
       .then((serverValue) =>
         resolveOptimisticWatchedValue(context, serverValue),
@@ -47,6 +50,7 @@ export function useFeedItemActions(itemId: string) {
         id: itemId,
         feedId: item.feedId,
         isWatched: newIsWatched,
+        clientId: getDataSubscriptionClientId(),
       })
       .then((serverValue) =>
         resolveOptimisticWatchedValue(context, serverValue),
@@ -65,6 +69,7 @@ export function useFeedItemActions(itemId: string) {
         id: itemId,
         feedId: item.feedId,
         isWatchLater: !item.isWatchLater,
+        clientId: getDataSubscriptionClientId(),
       })
       .then((serverValue) =>
         resolveOptimisticWatchLaterValue(context, serverValue),
@@ -93,11 +98,25 @@ export function useFeedItemActions(itemId: string) {
     window.open(item.url, "_blank", "noopener noreferrer");
   }, [item]);
 
+  const copyUrl = useCallback(async () => {
+    if (!item?.url) return false;
+
+    try {
+      await navigator.clipboard.writeText(item.url);
+      toast.success("Link copied");
+      return true;
+    } catch {
+      toast.error("Could not copy URL");
+      return false;
+    }
+  }, [item]);
+
   return {
     toggleRead,
     toggleWatchLater,
     markAsRead,
     openItem,
     openOriginal,
+    copyUrl,
   };
 }

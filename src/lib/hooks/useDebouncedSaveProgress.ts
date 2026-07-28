@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useSetProgressMutation } from "~/lib/data/feed-items/mutations";
-import { getShortcutKey, SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
+import { getShortcutKeys, SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { useFeedItemValue } from "~/lib/data/store";
 
 const NAV_KEYS = new Set([
-  getShortcutKey(SHORTCUT_KEYS.ARROW_UP),
-  getShortcutKey(SHORTCUT_KEYS.ARROW_DOWN),
+  ...getShortcutKeys(SHORTCUT_KEYS.ARROW_UP),
+  ...getShortcutKeys(SHORTCUT_KEYS.ARROW_DOWN),
 ]);
 
 const DEBOUNCE_MS = 500;

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { signIn, signUpAsAdmin } from "../fixtures/auth";
+import { signIn, signOut, signUpAsAdmin } from "../fixtures/auth";
 import { SELF_HOSTED_TURSO_PORT } from "../fixtures/ports";
 import { cleanupUser, generateTestEmail } from "../fixtures/seed-db";
 import type { Page } from "@playwright/test";
@@ -24,10 +24,6 @@ async function clearQueryCache(page: Page) {
 }
 
 test.describe("invite flow", () => {
-  // Run serially — both tests share the same DB and listInvitations returns
-  // ALL invitations, so parallel execution causes cross-test interference.
-  test.describe.configure({ mode: "serial" });
-
   let adminEmail: string;
   let invitedEmail: string;
   let invitedEmail2: string;
@@ -52,6 +48,7 @@ test.describe("invite flow", () => {
     invitedEmail = generateTestEmail();
     invitedEmail2 = generateTestEmail();
     const password = "testpassword123";
+    const inviteName = `unlimited-${adminEmail}`;
 
     // ── 1. Seed admin user directly in DB and sign in ────────────────
     await signUpAsAdmin({
@@ -80,6 +77,7 @@ test.describe("invite flow", () => {
     await expect(dialogOrDrawer).toBeVisible({ timeout: 10000 });
 
     // ── 4. Select "Unlimited" usage mode and create the invite link ──
+    await dialogOrDrawer.locator("#invite-name").fill(inviteName);
     await dialogOrDrawer.getByText("Unlimited").click();
 
     const dialogCreateButton = dialogOrDrawer.getByRole("button", {
@@ -106,7 +104,7 @@ test.describe("invite flow", () => {
       await closeButton.first().click();
     }
 
-    await page.goto("/api/auth/sign-out", { waitUntil: "networkidle" });
+    await signOut(page);
 
     // ── 8. First invited user signs up ──────────────────────────────
     await page.goto(invitePath);
@@ -135,19 +133,22 @@ test.describe("invite flow", () => {
     await expect(page).toHaveURL("/", { timeout: 30000 });
 
     // ── 9. Sign out first invited user, sign in as admin ────────────
-    await page.goto("/api/auth/sign-out", { waitUntil: "networkidle" });
+    await signOut(page);
     await signIn({ page, email: adminEmail, password });
 
     // ── 10. Verify use count updated to 1, still active ────────────
     await clearQueryCache(page);
     await page.goto("/admin/invites");
-    await expect(page.getByText("1 use", { exact: false })).toBeVisible({
+    const inviteRow = page
+      .getByTestId("invitation-row")
+      .filter({ hasText: inviteName });
+    await expect(inviteRow.getByText("1 use", { exact: false })).toBeVisible({
       timeout: 10000,
     });
-    await expect(page.getByText("Active").first()).toBeVisible();
+    await expect(inviteRow.getByText("Active", { exact: true })).toBeVisible();
 
     // ── 11. Sign out admin ─────────────────────────────────────────
-    await page.goto("/api/auth/sign-out", { waitUntil: "networkidle" });
+    await signOut(page);
 
     // ── 12. Second invited user signs up with the same link ─────────
     await page.goto(invitePath);
@@ -170,14 +171,16 @@ test.describe("invite flow", () => {
     await expect(page).toHaveURL("/", { timeout: 30000 });
 
     // ── 13. Sign out second user, sign in as admin ──────────────────
-    await page.goto("/api/auth/sign-out", { waitUntil: "networkidle" });
+    await signOut(page);
     await signIn({ page, email: adminEmail, password });
 
     // ── 14. Verify use count updated to 2, still active ────────────
     await clearQueryCache(page);
     await page.goto("/admin/invites");
-    await expect(page.getByText("2 uses")).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText("Active").first()).toBeVisible();
+    await expect(inviteRow.getByText("2 uses")).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(inviteRow.getByText("Active", { exact: true })).toBeVisible();
   });
 
   test("single-use invite link is rejected after one sign-up", async ({
@@ -188,6 +191,7 @@ test.describe("invite flow", () => {
     invitedEmail = generateTestEmail();
     invitedEmail2 = generateTestEmail();
     const password = "testpassword123";
+    const inviteName = `single-use-${adminEmail}`;
 
     // ── 1. Seed admin user directly in DB and sign in ─────────────────
     await signUpAsAdmin({
@@ -216,6 +220,7 @@ test.describe("invite flow", () => {
     await expect(dialogOrDrawer).toBeVisible({ timeout: 10000 });
 
     // ── 4. "One time" is the default usage mode — create the link ───
+    await dialogOrDrawer.locator("#invite-name").fill(inviteName);
     const dialogCreateButton = dialogOrDrawer.getByRole("button", {
       name: /create invite link/i,
     });
@@ -239,11 +244,16 @@ test.describe("invite flow", () => {
       await closeButton.first().click();
     }
 
-    await expect(page.getByText("0 / 1 uses")).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText("Active").first()).toBeVisible();
+    const inviteRow = page
+      .getByTestId("invitation-row")
+      .filter({ hasText: inviteName });
+    await expect(inviteRow.getByText("0 / 1 uses")).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(inviteRow.getByText("Active", { exact: true })).toBeVisible();
 
     // ── 7. Sign out the admin ───────────────────────────────────────
-    await page.goto("/api/auth/sign-out", { waitUntil: "networkidle" });
+    await signOut(page);
 
     // ── 8. First user signs up successfully ─────────────────────────
     await page.goto(invitePath);
@@ -264,17 +274,19 @@ test.describe("invite flow", () => {
     await expect(page).toHaveURL("/", { timeout: 30000 });
 
     // ── 9. Sign out first user, sign in as admin ────────────────────
-    await page.goto("/api/auth/sign-out", { waitUntil: "networkidle" });
+    await signOut(page);
     await signIn({ page, email: adminEmail, password });
 
     // ── 10. Verify use count is 1/1 and status is Exhausted ─────────
     await clearQueryCache(page);
     await page.goto("/admin/invites");
-    await expect(page.getByText("1 / 1 uses")).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText("Used")).toBeVisible();
+    await expect(inviteRow.getByText("1 / 1 uses")).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(inviteRow.getByText("Used", { exact: true })).toBeVisible();
 
     // ── 11. Sign out admin ──────────────────────────────────────────
-    await page.goto("/api/auth/sign-out", { waitUntil: "networkidle" });
+    await signOut(page);
 
     // ── 12. Second user sees disabled sign-up ───────────────────────
     await page.goto(invitePath);

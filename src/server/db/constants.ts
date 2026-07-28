@@ -36,6 +36,7 @@ export const VIEW_LAYOUT = {
   GRID: "grid",
   LARGE_GRID: "large-grid",
 } as const;
+export const DEFAULT_VIEW_LAYOUT = VIEW_LAYOUT.LARGE_LIST;
 export const viewLayoutSchema = z.enum([
   VIEW_LAYOUT.LIST,
   VIEW_LAYOUT.LARGE_LIST,

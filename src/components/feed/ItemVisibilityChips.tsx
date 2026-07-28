@@ -4,13 +4,6 @@ import { useAtom } from "jotai";
 import type { VisibilityFilter } from "~/lib/data/atoms";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { visibilityFilterAtom } from "~/lib/data/atoms";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
 import { KeyboardShortcutDisplay } from "~/components/ButtonWithShortcut";
 import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 
@@ -52,30 +45,5 @@ export function ItemVisibilityChips() {
         })}
       </TabsList>
     </Tabs>
-  );
-}
-
-export function ItemVisibilitySelect() {
-  const [visibilityFilter, setVisibilityFilter] = useAtom(visibilityFilterAtom);
-
-  return (
-    <Select
-      value={visibilityFilter.toString()}
-      onValueChange={(value) => {
-        if (!value) return;
-        setVisibilityFilter(value as VisibilityFilter);
-      }}
-    >
-      <SelectTrigger>
-        <SelectValue placeholder="Visibility" />
-      </SelectTrigger>
-      <SelectContent>
-        {VISIBILITY_FILTER_ORDER.map((filter) => (
-          <SelectItem key={filter} value={filter}>
-            {VISIBILITY_FILTER_LABELS[filter]}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
   );
 }

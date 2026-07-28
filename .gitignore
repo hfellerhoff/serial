@@ -62,8 +62,6 @@ dist
 dist-sw/
 .output
 
-.content-collections
-
 .claude
 CLAUDE.md
 AGENTS.md

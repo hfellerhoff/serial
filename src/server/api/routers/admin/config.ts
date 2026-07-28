@@ -125,7 +125,7 @@ export const setSignupNotificationSetting = adminProcedure
   .input(
     z.object({
       enabled: z.boolean(),
-      email: z.string().email().optional(),
+      email: z.email().optional(),
     }),
   )
   .handler(async ({ input }) => {
@@ -192,6 +192,7 @@ export const setEnabledSigninProviders = adminProcedure
         .all();
 
       const oauthProviderId = env.OAUTH_PROVIDER_ID;
+      const enabledProviderSet = new Set(input.providers);
       for (const admin of adminUsers) {
         const methods: AuthProvider[] = [];
         const rows = adminAccountRows.filter((r) => r.userId === admin.id);
@@ -204,7 +205,9 @@ export const setEnabledSigninProviders = adminProcedure
         ) {
           methods.push("oauth");
         }
-        const hasRemaining = methods.some((m) => input.providers.includes(m));
+        const hasRemaining = methods.some((method) =>
+          enabledProviderSet.has(method),
+        );
         if (!hasRemaining) {
           throw new ORPCError("BAD_REQUEST", {
             message:

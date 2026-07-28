@@ -15,6 +15,8 @@ export const buildConflictUpdateColumns = <
   return columns.reduce(
     (acc, column) => {
       const colName = cls[column]!.name;
+      // The column name comes from Drizzle table metadata and a typed key.
+      // react-doctor-disable-next-line react-doctor/raw-sql-injection-risk
       acc[column] = sql.raw(`excluded.${colName}`);
 
       return acc;

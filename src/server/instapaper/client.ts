@@ -228,34 +228,3 @@ export async function addBookmark(
   }
   return { bookmark_id: data[0].bookmark_id };
 }
-
-export async function verifyCredentials(
-  tokens: InstapaperTokens,
-): Promise<boolean> {
-  const consumerKey = env.INSTAPAPER_OAUTH_ID;
-  const consumerSecret = env.INSTAPAPER_OAUTH_SECRET;
-
-  if (!consumerKey || !consumerSecret) {
-    return false;
-  }
-
-  const url = `${INSTAPAPER_API_BASE}/api/1/account/verify_credentials`;
-
-  const oauthParams = createOAuthParams({
-    consumerKey,
-    token: tokens.oauthToken,
-  });
-
-  const baseString = createSignatureBaseString("POST", url, oauthParams);
-  const signature = createSignature(
-    baseString,
-    consumerSecret,
-    tokens.oauthTokenSecret,
-  );
-
-  oauthParams.oauth_signature = signature;
-
-  const response = await instapaperFetch(url, { oauthParams });
-
-  return response.ok;
-}

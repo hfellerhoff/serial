@@ -12,8 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useDialogStore } from "~/components/feed/dialogStore";
 import { useCreateViewMutation } from "~/lib/data/views/mutations";
 import {
+  DEFAULT_VIEW_LAYOUT,
   VIEW_CONTENT_TYPE,
-  VIEW_LAYOUT,
   VIEW_READ_STATUS,
 } from "~/server/db/constants";
 
@@ -28,7 +28,7 @@ export function AddViewDialog() {
   const [contentType, setContentType] = useState<ViewContentType>(
     VIEW_CONTENT_TYPE.LONGFORM,
   );
-  const [layout, setLayout] = useState<ViewLayout>(VIEW_LAYOUT.LIST);
+  const [layout, setLayout] = useState<ViewLayout>(DEFAULT_VIEW_LAYOUT);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [selectedFeedIds, setSelectedFeedIds] = useState<number[]>([]);
   const [viewSections, setViewSections] = useState<ViewSection[]>([]);
@@ -45,7 +45,7 @@ export function AddViewDialog() {
       setName("");
       setDaysTimeWindow(0);
       setContentType(VIEW_CONTENT_TYPE.LONGFORM);
-      setLayout(VIEW_LAYOUT.LIST);
+      setLayout(DEFAULT_VIEW_LAYOUT);
       setSelectedCategories([]);
       setSelectedFeedIds([]);
       setViewSections([]);

@@ -22,7 +22,7 @@ export default defineTask({
     description: "Background refresh of active feeds for paid users",
   },
   async run() {
-    const backgroundRefreshEnabled = env.BACKGROUND_REFRESH_ENABLED !== "false";
+    const backgroundRefreshEnabled = env.BACKGROUND_REFRESH_ENABLED;
 
     if (!backgroundRefreshEnabled) {
       logMessage(
@@ -130,6 +130,8 @@ export default defineTask({
 
         // Set the user's next refresh cooldown and publish refresh-start
         // immediately so the client enters loading state.
+        // Users are refreshed sequentially to bound database and RSS load.
+        // oxlint-disable-next-line react-doctor/async-await-in-loop
         const eligibility = await checkUserRefreshEligibility(db, userId);
         logMessage(
           `[background-refresh] refresh-start for user ${userId} on "${channel}" — feeds: ${userFeeds?.length ?? 0}, nextRefreshAt: ${eligibility.nextRefreshAt.toISOString()}`,

@@ -84,9 +84,9 @@ export async function fetchNewFeedDetails(
       /<link rel="alternate" type="application\/rss\+xml" title="RSS" href="(https:\/\/www\.youtube\.com\/feeds\/videos\.xml\?channel_id=[^&]{24})">/gm,
     );
 
-    urls = Array.from(rssFeedUrlMatches)
-      .map((id) => id[1])
-      .filter(Boolean);
+    urls = Array.from(rssFeedUrlMatches).flatMap((id) =>
+      id[1] ? [id[1]] : [],
+    );
   }
 
   const feedDetailList = (
@@ -489,6 +489,9 @@ export async function* fetchAndInsertFeedData(
   let fetchedCount = 0;
   const totalFeeds = databaseFeeds.length;
   const fetchedFeedNames: string[] = [];
+  const feedNameById = new Map(
+    databaseFeeds.map((feed) => [feed.id, feed.name]),
+  );
 
   while (feedPromises.length > 0) {
     const result = await Promise.any(Array.from(feedPromises));
@@ -503,7 +506,7 @@ export async function* fetchAndInsertFeedData(
       crossUserCacheCount++;
     } else {
       fetchedCount++;
-      const feedName = databaseFeeds.find((f) => f.id === result.id)?.name;
+      const feedName = feedNameById.get(result.id);
       if (feedName) {
         fetchedFeedNames.push(feedName);
       }

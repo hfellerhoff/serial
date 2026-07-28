@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { eq } from "drizzle-orm";
-import { auth, isServerAuthed } from ".";
+import { auth } from ".";
 import type { ArticleFontFamily } from "~/lib/constants/article-fonts";
 import { IS_EMAIL_ENABLED } from "~/server/email";
 import { FONT_FAMILY_CSS } from "~/lib/constants/article-fonts";
@@ -13,13 +13,6 @@ import { userConfig } from "~/server/db/schema";
 export const fetchIsForgotPasswordEnabled = createServerFn({
   method: "GET",
 }).handler(async () => IS_EMAIL_ENABLED);
-
-export const fetchIsAuthed = createServerFn({ method: "GET" }).handler(
-  async () => {
-    const request = getRequest();
-    return isServerAuthed(request.headers);
-  },
-);
 
 function hslToCssVars(
   prefix: "light" | "dark",

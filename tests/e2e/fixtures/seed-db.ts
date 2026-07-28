@@ -45,6 +45,62 @@ export async function getFeedItemProgress(tursoPort: number, id: string) {
   return feedItem?.progress ?? null;
 }
 
+export async function setFeedItemContent(
+  tursoPort: number,
+  id: string,
+  content: string,
+) {
+  const { db, client } = getDb(tursoPort);
+  await db
+    .update(schema.feedItems)
+    .set({ content })
+    .where(eq(schema.feedItems.id, id));
+  client.close();
+}
+
+export async function setFeedItemAsYouTubeVideo(
+  tursoPort: number,
+  id: string,
+  videoId: string,
+) {
+  const { db, client } = getDb(tursoPort);
+  const feedItem = await db
+    .select({ feedId: schema.feedItems.feedId })
+    .from(schema.feedItems)
+    .where(eq(schema.feedItems.id, id))
+    .get();
+
+  if (!feedItem) {
+    client.close();
+    throw new Error(`No feed item found for ${id}`);
+  }
+
+  await db
+    .update(schema.feeds)
+    .set({ platform: "youtube" })
+    .where(eq(schema.feeds.id, feedItem.feedId));
+  await db
+    .update(schema.feedItems)
+    .set({ contentId: videoId })
+    .where(eq(schema.feedItems.id, id));
+  client.close();
+}
+
+export async function getViewsForUser(tursoPort: number, email: string) {
+  const { db, client } = getDb(tursoPort);
+  const userViews = await db
+    .select({
+      name: schema.views.name,
+      layout: schema.views.layout,
+    })
+    .from(schema.views)
+    .innerJoin(schema.user, eq(schema.views.userId, schema.user.id))
+    .where(eq(schema.user.email, email));
+  client.close();
+
+  return userViews;
+}
+
 function uniqueId() {
   return randomBytes(8).toString("hex");
 }
@@ -156,6 +212,66 @@ export async function seedArticleData(
   client.close();
 
   return { feedItemId, email, password };
+}
+
+export async function seedAddFeedSelectionData(
+  tursoPort: number,
+  email: string,
+) {
+  const { db, client } = getDb(tursoPort);
+  const testUser = await db
+    .select()
+    .from(schema.user)
+    .where(eq(schema.user.email, email))
+    .get();
+  if (!testUser) throw new Error("No user found while seeding feed selections");
+
+  const now = new Date();
+  const tags = await db
+    .insert(schema.contentCategories)
+    .values(
+      ["Zebra", "Alpha", "Priority"].map((name) => ({
+        userId: testUser.id,
+        name,
+        createdAt: now,
+        updatedAt: now,
+      })),
+    )
+    .returning();
+  const priorityTag = tags.find((tag) => tag.name === "Priority");
+  if (!priorityTag) throw new Error("Priority tag insert returned no row");
+
+  const createdViews = await db
+    .insert(schema.views)
+    .values(
+      ["Zebra View", "Alpha View"].map((name, index) => ({
+        userId: testUser.id,
+        name,
+        daysWindow: 0,
+        readStatus: 0,
+        orientation: "horizontal",
+        contentType: "all",
+        layout: "list",
+        placement: index + 1,
+        createdAt: now,
+        updatedAt: now,
+      })),
+    )
+    .returning();
+  const zebraView = createdViews.find((view) => view.name === "Zebra View");
+  if (!zebraView) throw new Error("Zebra view insert returned no row");
+
+  await db.insert(schema.viewSections).values({
+    viewId: zebraView.id,
+    placement: 0,
+    itemType: "tag",
+    itemId: priorityTag.id,
+    layout: null,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  client.close();
 }
 
 /**
@@ -380,8 +496,9 @@ export async function seedMultipleArticleData(
 }
 
 /**
- * Creates a user via the Better Auth sign-up API, then seeds 3 feeds, 2 tags,
- * feed-tag associations, and multiple articles per feed directly in the DB.
+ * Creates a user via the Better Auth sign-up API, then seeds 3 feeds, 3 tags
+ * (including one unassigned tag), feed-tag associations, and multiple articles
+ * per feed directly in the DB.
  *
  * Returns feed IDs, tag IDs, feed item IDs and credentials so the test can
  * log in via the UI and configure view layouts.
@@ -431,7 +548,7 @@ export async function seedViewLayoutData(
   const now = new Date();
   const farFuture = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365);
 
-  // Create 2 content categories (tags)
+  // Create 3 content categories (tags), leaving one unassigned.
   const tags = await db
     .insert(schema.contentCategories)
     .values([
@@ -439,6 +556,12 @@ export async function seedViewLayoutData(
       {
         userId: testUser.id,
         name: "News",
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        userId: testUser.id,
+        name: "Unassigned Tag",
         createdAt: now,
         updatedAt: now,
       },

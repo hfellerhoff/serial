@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom } from "jotai";
-import type { VisibilityFilter } from "~/lib/data/atoms";
 import {
   viewFilterIdAtom,
   viewsAtom,
@@ -73,15 +72,9 @@ function Home() {
     () => views[9] && updateViewFilter(views[9].id),
   );
 
-  useShortcut(SHORTCUT_KEYS.UNREAD, () =>
-    setVisibilityFilter("unread" as VisibilityFilter),
-  );
-  useShortcut(SHORTCUT_KEYS.READ, () =>
-    setVisibilityFilter("read" as VisibilityFilter),
-  );
-  useShortcut(SHORTCUT_KEYS.SAVED, () =>
-    setVisibilityFilter("later" as VisibilityFilter),
-  );
+  useShortcut(SHORTCUT_KEYS.UNREAD, () => setVisibilityFilter("unread"));
+  useShortcut(SHORTCUT_KEYS.READ, () => setVisibilityFilter("read"));
+  useShortcut(SHORTCUT_KEYS.SAVED, () => setVisibilityFilter("later"));
 
   useShortcut(SHORTCUT_KEYS.PREV_VIEW, () => {
     if (views.length === 0) return;

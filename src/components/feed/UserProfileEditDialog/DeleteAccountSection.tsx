@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
+import { BASE_SIGNED_OUT_URL } from "~/lib/constants";
 import { useDeleteAccountMutation } from "~/lib/data/user/useDeleteAccountMutation";
 import { orpc } from "~/lib/orpc";
 
@@ -40,6 +41,7 @@ function DeleteAccountConfirmationSection({
 }) {
   const router = useRouter();
   const { mutateAsync: deleteAccount, isPending } = useDeleteAccountMutation();
+  const [confirmation, setConfirmation] = useState("");
 
   return (
     <>
@@ -49,10 +51,7 @@ function DeleteAccountConfirmationSection({
       </p>
       <form
         className="grid gap-4"
-        onSubmit={async (e) => {
-          e.preventDefault();
-
-          const formValues = new FormData(e.currentTarget);
+        action={async (formValues) => {
           const fieldValue = formValues.get(DELETE_FIELD_NAME);
 
           const { success } = targetValueSchema.safeParse(fieldValue);
@@ -64,12 +63,16 @@ function DeleteAccountConfirmationSection({
           await deleteAccount(undefined);
 
           void router.navigate({
-            to: "/welcome",
+            to: BASE_SIGNED_OUT_URL,
             reloadDocument: true,
           });
         }}
       >
-        <Input name={DELETE_FIELD_NAME} />
+        <Input
+          name={DELETE_FIELD_NAME}
+          value={confirmation}
+          onChange={(event) => setConfirmation(event.target.value)}
+        />
         <div className="grid grid-cols-2 gap-2">
           <Button type="button" onClick={onCancel} variant="outline">
             Cancel

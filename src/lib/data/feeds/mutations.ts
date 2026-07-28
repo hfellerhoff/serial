@@ -1,21 +1,18 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useFetchContentCategories } from "../content-categories/store";
 import { useFetchFeedCategories } from "../feed-categories/store";
 import { useFetchViewFeeds } from "../view-feeds/store";
-import { useFetchViews } from "../views/store";
+import { useFetchViews, useRemoveFeedReferences } from "../views/store";
 import {
   feedItemsStore,
   useFeedItemsDict,
   useFeedItemsOrder,
-  useFetchFeedItems,
   useFetchFeedItemsForFeed,
 } from "../store";
 import {
   useAddFeed,
   useFetchFeeds,
   useRemoveFeed,
-  useSetFeeds,
   useUpdateFeed,
 } from "./store";
 import { useDialogStore } from "~/components/feed/dialogStore";
@@ -58,27 +55,6 @@ export function useCreateFeedMutation() {
   );
 }
 
-export function useCreateFeedsFromSubscriptionImportMutation() {
-  const refetchFeedItems = useFetchFeedItems();
-  const fetchFeedCategories = useFetchFeedCategories();
-  const fetchContentCategories = useFetchContentCategories();
-  const setFeeds = useSetFeeds();
-  const fetchFeeds = useFetchFeeds();
-
-  return useMutation(
-    orpc.feed.createFromSubscriptionImport.mutationOptions({
-      onSuccess: () => {
-        // Reset and refetch feeds
-        setFeeds([]);
-        void fetchFeeds();
-        void refetchFeedItems();
-        void fetchFeedCategories();
-        void fetchContentCategories();
-      },
-    }),
-  );
-}
-
 export function useDeleteFeedMutation() {
   const feedItemsOrder = useFeedItemsOrder();
   const feedItemsDict = useFeedItemsDict();
@@ -87,11 +63,13 @@ export function useDeleteFeedMutation() {
   const setFeedItemsDict = feedItemsStore.useSetFeedItemsDict();
 
   const removeFeed = useRemoveFeed();
+  const removeFeedReferences = useRemoveFeedReferences();
 
   return useMutation(
     orpc.feed.delete.mutationOptions({
       onSuccess: (_, feedId) => {
         removeFeed(feedId);
+        removeFeedReferences([feedId]);
 
         const [updatedFeedItemsOrder, removedFeedItems] = feedItemsOrder.reduce(
           ([partialKeptItems, partialRemovedItems], feedItemContentId) => {
@@ -152,10 +130,13 @@ export function useBulkDeleteFeedsMutation() {
 
   const fetchFeeds = useFetchFeeds();
   const fetchFeedCategories = useFetchFeedCategories();
+  const removeFeedReferences = useRemoveFeedReferences();
 
   return useMutation(
     orpc.feed.bulkDelete.mutationOptions({
       onSuccess: (_, { feedIds }) => {
+        removeFeedReferences(feedIds);
+
         // Remove feed items belonging to deleted feeds
         const feedIdSet = new Set(feedIds);
         const [updatedFeedItemsOrder, removedFeedItemIds] =

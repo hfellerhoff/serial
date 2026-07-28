@@ -43,7 +43,7 @@ export const YOUTUBE_PLAYBACK_SPEEDS = [
 export const YOUTUBE_FASTEST_SPEED =
   YOUTUBE_PLAYBACK_SPEEDS[YOUTUBE_PLAYBACK_SPEEDS.length - 1]!.value;
 
-export const YOUTUBE_VIDEO_TYPES = ["video", "live"] as const;
+const YOUTUBE_VIDEO_TYPES = ["video", "live"] as const;
 export type YouTubeVideoType = (typeof YOUTUBE_VIDEO_TYPES)[number];
 
 export const YOUTUBE_CAPTION_SIZES = [

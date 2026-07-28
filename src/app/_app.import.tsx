@@ -5,31 +5,28 @@ import { useSetAtom } from "jotai";
 import {
   AlertTriangleIcon,
   CheckIcon,
-  ExternalLinkIcon,
-  GlobeIcon,
   Loader2Icon,
   MinusIcon,
   PauseIcon,
-  PlayCircleIcon,
+  PlusIcon,
   XIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ImportDropzone } from "../components/feed/import/ImportDropzone";
 import { getInitialFeedDataFromFileInputElement } from "../components/feed/import/utils/getInitialFeedDataFromFileInputElement";
 import type { CardRadioOption } from "~/components/ui/card-radio-group";
-import type { FeedPlatform } from "~/server/db/schema";
 import type {
   ImportFeedDataFromFilesError,
   ImportFeedDataItem,
 } from "../components/feed/import/utils/shared";
-import { YoutubeIcon } from "~/components/brand-icons";
 import { useDialogStore } from "~/components/feed/dialogStore";
+import { FeedAvatar, FeedListItem } from "~/components/feed/FeedListItem";
 import { ImportLoading } from "~/components/ImportLoading";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { CardRadioGroup } from "~/components/ui/card-radio-group";
-import { Checkbox } from "~/components/ui/checkbox";
+import { ItemGroup } from "~/components/ui/item";
 import {
   Tooltip,
   TooltipContent,
@@ -38,6 +35,7 @@ import {
 import { getGuidesUrl } from "~/lib/constants";
 import { shouldAlwaysKeepSSEConnectionAlive } from "~/lib/data/atoms";
 import { useFeeds } from "~/lib/data/feeds";
+import { useImportDropStore } from "~/lib/data/import-drop";
 import { useImportResults, useLoadingMode } from "~/lib/data/loading-machine";
 import { feedItemsStore } from "~/lib/data/store";
 import { dataSubscriptionActions } from "~/lib/data/useDataSubscription";
@@ -65,23 +63,21 @@ function ImportedFeedStatus({
   );
 }
 
-function PlatformIcon({ platform }: { platform: FeedPlatform }) {
-  switch (platform) {
-    case "youtube":
-      return <YoutubeIcon size={16} />;
-    case "peertube":
-      return <PlayCircleIcon size={16} />;
-    case "website":
-    default:
-      return <GlobeIcon size={16} />;
-  }
-}
-
 export const Route = createFileRoute("/_app/import")({
   component: EditFeedsPage,
 });
 
 type ImportMode = "tags" | "views" | "ignore";
+
+function getFeedWebsiteUrl(feed: ImportFeedDataItem) {
+  if (feed.websiteUrl) return feed.websiteUrl;
+
+  try {
+    return new URL(feed.feedUrl).origin;
+  } catch {
+    return feed.feedUrl;
+  }
+}
 
 const IMPORT_MODE_OPTIONS: Array<CardRadioOption<ImportMode>> = [
   {
@@ -106,6 +102,7 @@ const IMPORT_MODE_OPTIONS: Array<CardRadioOption<ImportMode>> = [
 
 function EditFeedsPage() {
   const inputElementRef = useRef<HTMLInputElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const [feedsFoundFromFile, setFeedsFoundFromFile] = useState<
     ImportFeedDataItem[] | null
@@ -113,16 +110,35 @@ function EditFeedsPage() {
   const [hasStartedImport, setHasStartedImport] = useState(false);
   const [isImportComplete, setIsImportComplete] = useState(false);
   const [isImportPending, setIsImportPending] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(false);
   const [importMode, setImportMode] = useState<ImportMode>("views");
 
   const [fileInputErrorList, setFileInputErrorList] =
     useState<ImportFeedDataFromFilesError | null>(null);
+  const pendingDropResult = useImportDropStore((state) => state.pendingResult);
+  const clearPendingDropResult = useImportDropStore(
+    (state) => state.clearPendingResult,
+  );
 
   // Signal to Playwright tests that React has hydrated and the onChange handler
   // is attached to the file input, so file-chooser interactions are reliable.
   useEffect(() => {
     inputElementRef.current?.setAttribute("data-ready", "true");
   }, []);
+
+  useEffect(() => {
+    if (!bottomRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsAtBottom(entry?.isIntersecting ?? false);
+      },
+      { threshold: 0 },
+    );
+
+    observer.observe(bottomRef.current);
+    return () => observer.disconnect();
+  }, [feedsFoundFromFile]);
 
   const channelImportCount = feedsFoundFromFile?.filter(
     (feed) => feed.shouldImport,
@@ -139,6 +155,39 @@ function EditFeedsPage() {
   const setShouldAlwaysKeepSSEConnectionAlive = useSetAtom(
     shouldAlwaysKeepSSEConnectionAlive,
   );
+
+  const applyFileResult = (
+    feedResult:
+      | ImportFeedDataFromFilesError
+      | { success: true; data: ImportFeedDataItem[] },
+  ) => {
+    if (feedResult.success) {
+      // Mark already-added feeds as shouldImport: false
+      const feedsWithImportStatus = feedResult.data.map((feed) => ({
+        ...feed,
+        shouldImport: !feeds.some(
+          (existingFeed) => existingFeed.url === feed.feedUrl,
+        ),
+      }));
+      setFeedsFoundFromFile(feedsWithImportStatus);
+      setFileInputErrorList(null);
+    } else {
+      setFeedsFoundFromFile(null);
+      setFileInputErrorList(feedResult);
+    }
+  };
+  const applyPendingDropResult = useEffectEvent(applyFileResult);
+
+  useEffect(() => {
+    if (!pendingDropResult) return;
+
+    const frame = requestAnimationFrame(() => {
+      applyPendingDropResult(pendingDropResult);
+      clearPendingDropResult();
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [pendingDropResult, clearPendingDropResult]);
 
   // Keep SSE open during import so visibility changes don't disconnect the
   // streaming import. Reset when the import loader is hidden.
@@ -192,19 +241,7 @@ function EditFeedsPage() {
     );
     inputElementRef.current.value = "";
 
-    if (feedResult.success) {
-      // Mark already-added feeds as shouldImport: false
-      const feedsWithImportStatus = feedResult.data.map((feed) => ({
-        ...feed,
-        shouldImport: !feeds.some(
-          (existingFeed) => existingFeed.url === feed.feedUrl,
-        ),
-      }));
-      setFeedsFoundFromFile(feedsWithImportStatus);
-      setFileInputErrorList(null);
-    } else {
-      setFileInputErrorList(feedResult);
-    }
+    applyFileResult(feedResult);
   };
 
   const onFeedImport = async () => {
@@ -270,271 +307,316 @@ function EditFeedsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
-      <h2 className="font-sans text-lg">Import Feeds</h2>
-      {!isPostImportScreen && (
-        <>
-          <p className="mt-2">Serial supports importing:</p>
-          <ul className="mb-6 list-disc pl-4">
-            <li>
-              <code className="bg-muted text-foreground rounded px-1 py-0.5">
-                subscriptions.csv
-              </code>{" "}
-              files from{" "}
-              <a
-                href={getGuidesUrl("/how-to-export-youtube-subscriptions")}
-                className="underline"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                a Google Takeout export
-              </a>
-            </li>
-            <li>
-              <code className="bg-muted text-foreground rounded px-1 py-0.5">
-                *.opml
-              </code>{" "}
-              files from another RSS reader&apos;s export
-            </li>
-          </ul>
-          <ImportDropzone
-            inputId="import-file-input"
-            onSelectFile={onSelectFiles}
-          />
-        </>
-      )}
-      {isPostImportScreen && (
-        <>
-          <p className="mt-2 mb-4">
-            Import finished! Your list has been added.
-          </p>
-          <div className="flex gap-2">
-            <Link to="/">
-              <Button>Back to home</Button>
-            </Link>
-            <Button variant="outline" onClick={onReset}>
-              Import more
-            </Button>
-          </div>
-        </>
-      )}
-      <input
-        id="import-file-input"
-        ref={inputElementRef}
-        type="file"
-        accept="text"
-        className="sr-only"
-        multiple
-        onChange={onSelectFiles}
-      />
-      {!!fileInputErrorList?.errors?.length && (
-        <div className="text-destructive mt-2">
-          {fileInputErrorList.errors.map((error) => (
-            <div key={error}>{error}</div>
-          ))}
-        </div>
-      )}
-      {!!feedsFoundFromFile && (
-        <>
-          {!isPostImportScreen &&
-            feedsFoundFromFile.some((f) => f.categories.length > 0) && (
-              <div className="mt-12 grid gap-3">
-                <h3 className="font-semibold">Sections</h3>
-                <CardRadioGroup
-                  value={importMode}
-                  onValueChange={setImportMode}
-                  options={IMPORT_MODE_OPTIONS}
-                  orientation="vertical"
-                />
-              </div>
-            )}
-          <div className="mt-12">
-            {!isPostImportScreen && (
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold">Feeds To Import</h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (channelImportCount === 0) {
-                      setFeedsFoundFromFile((prevChannels) => {
-                        if (!prevChannels) return prevChannels;
-                        return prevChannels.map((channel) => {
-                          // Don't enable import for already-added feeds
-                          const isAlreadyAdded = feeds.some(
-                            (feed) => feed.url === channel.feedUrl,
-                          );
-                          if (!isAlreadyAdded) {
-                            channel.shouldImport = true;
-                          }
-                          return channel;
-                        });
-                      });
-                    } else {
-                      setFeedsFoundFromFile((prevChannels) => {
-                        if (!prevChannels) return prevChannels;
-                        return prevChannels.map((channel) => {
-                          channel.shouldImport = false;
-                          return channel;
-                        });
-                      });
-                    }
-                  }}
+    <div>
+      <div className="mx-auto max-w-2xl p-6">
+        <h2 className="font-sans text-lg">Import Feeds</h2>
+        {!isPostImportScreen && (
+          <>
+            <p className="mt-2">Serial supports importing:</p>
+            <ul className="mb-6 list-disc pl-4">
+              <li>
+                <code className="bg-muted text-foreground rounded px-1 py-0.5">
+                  subscriptions.csv
+                </code>{" "}
+                files from{" "}
+                <a
+                  href={getGuidesUrl("/how-to-export-youtube-subscriptions")}
+                  className="underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
-                  {channelImportCount === 0 ? "Select All" : "Deselect All"}
-                </Button>
-              </div>
-            )}
-            <div className="mt-4">
-              {[...feedsFoundFromFile]
-                .sort((a, b) => {
-                  if (!a.title && !b.title) return 0;
-                  if (!a.title) return -1;
-                  if (!b.title) return -1;
-                  return a.title.localeCompare(b.title);
-                })
-                .map((channel, i) => {
-                  const displayTitle = channel.title ?? channel.feedUrl;
-                  // Check if feed already exists in the feeds store
-                  const isAlreadyAdded = feeds.some(
-                    (feed) => feed.url === channel.feedUrl,
-                  );
-                  // Check if feed was imported by looking in the feeds store
-                  const wasImported = isPostImportScreen && isAlreadyAdded;
+                  a Google Takeout export
+                </a>
+              </li>
+              <li>
+                <code className="bg-muted text-foreground rounded px-1 py-0.5">
+                  *.opml
+                </code>{" "}
+                files from another RSS reader&apos;s export
+              </li>
+            </ul>
+            <ImportDropzone
+              inputId="import-file-input"
+              onSelectFile={onSelectFiles}
+            />
+          </>
+        )}
+        {isPostImportScreen && (
+          <>
+            <p className="mt-2 mb-4">
+              Import finished! Your list has been added.
+            </p>
+            <div className="flex gap-2">
+              <Link to="/">
+                <Button>Back to home</Button>
+              </Link>
+              <Button variant="outline" onClick={onReset}>
+                Import more
+              </Button>
+            </div>
+          </>
+        )}
+        <input
+          id="import-file-input"
+          ref={inputElementRef}
+          type="file"
+          accept="text"
+          aria-label="Import feed files"
+          className="sr-only"
+          multiple
+          onChange={onSelectFiles}
+        />
+        {!!fileInputErrorList?.errors?.length && (
+          <div className="text-destructive mt-2">
+            {fileInputErrorList.errors.map((error) => (
+              <div key={error}>{error}</div>
+            ))}
+          </div>
+        )}
+        {!!feedsFoundFromFile && (
+          <>
+            {!isPostImportScreen &&
+              feedsFoundFromFile.some((f) => f.categories.length > 0) && (
+                <div className="mt-12 grid gap-3">
+                  <h3 className="font-semibold">Sections</h3>
+                  <CardRadioGroup
+                    value={importMode}
+                    onValueChange={setImportMode}
+                    options={IMPORT_MODE_OPTIONS}
+                    orientation="vertical"
+                  />
+                </div>
+              )}
+            <div className="mt-12">
+              {!isPostImportScreen && (
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">Feeds To Import</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (channelImportCount === 0) {
+                        setFeedsFoundFromFile((prevChannels) => {
+                          if (!prevChannels) return prevChannels;
+                          return prevChannels.map((channel) => {
+                            // Don't enable import for already-added feeds
+                            const isAlreadyAdded = feeds.some(
+                              (feed) => feed.url === channel.feedUrl,
+                            );
+                            if (!isAlreadyAdded) {
+                              channel.shouldImport = true;
+                            }
+                            return channel;
+                          });
+                        });
+                      } else {
+                        setFeedsFoundFromFile((prevChannels) => {
+                          if (!prevChannels) return prevChannels;
+                          return prevChannels.map((channel) => {
+                            channel.shouldImport = false;
+                            return channel;
+                          });
+                        });
+                      }
+                    }}
+                  >
+                    {channelImportCount === 0 ? "Select All" : "Deselect All"}
+                  </Button>
+                </div>
+              )}
+              <ItemGroup className="mt-4">
+                {[...feedsFoundFromFile]
+                  .sort((a, b) => {
+                    if (!a.title && !b.title) return 0;
+                    if (!a.title) return -1;
+                    if (!b.title) return -1;
+                    return a.title.localeCompare(b.title);
+                  })
+                  .map((channel) => {
+                    const displayTitle = channel.title ?? channel.feedUrl;
+                    // Check if feed already exists in the feeds store
+                    const isAlreadyAdded = feeds.some(
+                      (feed) => feed.url === channel.feedUrl,
+                    );
+                    // Check if feed was imported by looking in the feeds store
+                    const wasImported = isPostImportScreen && isAlreadyAdded;
+                    const websiteUrl = getFeedWebsiteUrl(channel);
+                    const setShouldImport = (shouldImport: boolean) => {
+                      if (isAlreadyAdded || isPostImportScreen) return;
 
-                  return (
-                    <div
-                      key={displayTitle}
-                      className="border-muted/50 flex items-center justify-between border-0 border-t border-solid py-4"
-                    >
-                      {!isPostImportScreen && isAlreadyAdded ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="bg-background border-foreground/30 text-foreground/50 mr-3 grid size-7 place-items-center rounded border border-dashed">
-                              <AlertTriangleIcon size={16} />
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>Feed already exists</TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        <span className="bg-background border-foreground/30 text-foreground/50 mr-3 grid size-7 place-items-center rounded border border-solid">
-                          <PlatformIcon platform={channel.platform} />
-                        </span>
-                      )}
-                      <label
-                        className="line-clamp-1 flex-1"
-                        htmlFor={`channel ${displayTitle}`}
-                      >
-                        {displayTitle}
-                      </label>
+                      setFeedsFoundFromFile((prevChannels) => {
+                        if (!prevChannels) return prevChannels;
 
-                      {!isPostImportScreen && (
-                        <span className="space-x-1 px-2">
-                          {channel.categories.map((category) => (
-                            <Badge key={category} variant="outline">
-                              {category}
-                            </Badge>
-                          ))}
-                        </span>
-                      )}
-                      <div className="flex items-center justify-between gap-3">
-                        {channel.websiteUrl && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <a
-                                href={channel.websiteUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-muted-foreground hover:text-foreground ml-1 shrink-0 transition-colors"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <ExternalLinkIcon size={16} />
-                              </a>
-                            </TooltipTrigger>
-                            <TooltipContent>Open original</TooltipContent>
-                          </Tooltip>
-                        )}
-                        <div className="flex items-center justify-between gap-2">
-                          {!isPostImportScreen && (
-                            <Checkbox
-                              id={`channel ${displayTitle}`}
-                              checked={channel.shouldImport}
-                              onCheckedChange={(value) => {
-                                setFeedsFoundFromFile((prevChannels) => {
-                                  if (!prevChannels?.[i]) {
-                                    return prevChannels;
-                                  }
+                        return prevChannels.map((previousChannel) =>
+                          previousChannel.feedUrl === channel.feedUrl
+                            ? { ...previousChannel, shouldImport }
+                            : previousChannel,
+                        );
+                      });
+                    };
 
-                                  prevChannels[i] = {
-                                    ...prevChannels[i],
-                                    shouldImport: value.valueOf() as boolean,
-                                  };
-                                  return [...prevChannels];
-                                });
-                              }}
-                              disabled={isAlreadyAdded}
+                    return (
+                      <FeedListItem
+                        key={channel.feedUrl}
+                        title={displayTitle}
+                        titleHref={websiteUrl}
+                        description={
+                          <a
+                            href={channel.feedUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="pointer-events-auto relative z-10"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            {channel.feedUrl}
+                          </a>
+                        }
+                        platform={channel.platform}
+                        variant="outline"
+                        size="xs"
+                        interactive={!isPostImportScreen && !isAlreadyAdded}
+                        disabled={isAlreadyAdded}
+                        selected={!isPostImportScreen && channel.shouldImport}
+                        onClick={() => setShouldImport(!channel.shouldImport)}
+                        media={
+                          !isPostImportScreen && isAlreadyAdded ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="pointer-events-auto inline-flex">
+                                  <FeedAvatar
+                                    title={displayTitle}
+                                    platform={channel.platform}
+                                    fallback={
+                                      <AlertTriangleIcon
+                                        size={14}
+                                        aria-label="Feed already exists"
+                                      />
+                                    }
+                                  />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Feed already exists
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <FeedAvatar
+                              title={displayTitle}
+                              platform={channel.platform}
                             />
-                          )}
-                          {isPostImportScreen &&
-                            wasImported &&
-                            channel.shouldImport && (
-                              <ImportedFeedStatus
-                                feedUrl={channel.feedUrl}
-                                feeds={feeds}
-                              />
+                          )
+                        }
+                        details={
+                          <>
+                            {!isPostImportScreen &&
+                              channel.categories.map((category) => (
+                                <Badge key={category} variant="outline">
+                                  {category}
+                                </Badge>
+                              ))}
+                          </>
+                        }
+                        actions={
+                          <>
+                            {!isPostImportScreen && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant={
+                                      channel.shouldImport ? "default" : "ghost"
+                                    }
+                                    size="icon"
+                                    className="size-7"
+                                    aria-label={`${channel.shouldImport ? "Deselect" : "Select"} ${displayTitle}`}
+                                    disabled={isAlreadyAdded}
+                                    onClick={() =>
+                                      setShouldImport(!channel.shouldImport)
+                                    }
+                                  >
+                                    {channel.shouldImport ? (
+                                      <CheckIcon size={16} />
+                                    ) : (
+                                      <PlusIcon size={16} />
+                                    )}
+                                  </Button>
+                                </TooltipTrigger>
+                                {!isAlreadyAdded && (
+                                  <TooltipContent>
+                                    {channel.shouldImport
+                                      ? "Deselect"
+                                      : "Select"}{" "}
+                                    feed
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
                             )}
-                          {isPostImportScreen &&
-                            channel.shouldImport &&
-                            failedImportUrls.has(channel.feedUrl) && (
+                            {isPostImportScreen &&
+                              wasImported &&
+                              channel.shouldImport && (
+                                <ImportedFeedStatus
+                                  feedUrl={channel.feedUrl}
+                                  feeds={feeds}
+                                />
+                              )}
+                            {isPostImportScreen &&
+                              channel.shouldImport &&
+                              failedImportUrls.has(channel.feedUrl) && (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <XIcon size={20} />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    Failed to import
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            {isPostImportScreen && !channel.shouldImport && (
                               <Tooltip>
                                 <TooltipTrigger>
-                                  <XIcon size={20} />
+                                  <MinusIcon size={20} />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  Failed to import
+                                  This feed was excluded from the import.
                                 </TooltipContent>
                               </Tooltip>
                             )}
-                          {isPostImportScreen && !channel.shouldImport && (
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <MinusIcon size={20} />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                This feed was excluded from the import.
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                          </>
+                        }
+                      />
+                    );
+                  })}
+              </ItemGroup>
+              <div ref={bottomRef} />
             </div>
+          </>
+        )}
+      </div>
+      {!!feedsFoundFromFile && !isPostImportScreen && (
+        <div
+          data-testid="import-footer"
+          className={`bg-background sticky bottom-0 z-10 border-t transition-[border-color] ${
+            isAtBottom ? "border-transparent" : "border-border"
+          }`}
+        >
+          <div className="mx-auto max-w-2xl px-6 py-4">
+            <Button
+              className="w-full gap-2"
+              size="lg"
+              onClick={onFeedImport}
+              disabled={channelImportCount === 0 || isImportPending}
+            >
+              {isImportPending && !hasStartedImport ? (
+                <>
+                  Importing...
+                  <Loader2Icon size={16} className="animate-spin" />
+                </>
+              ) : (
+                <>Import {channelImportCount} feeds</>
+              )}
+            </Button>
           </div>
-          {!isPostImportScreen && (
-            <div className="fixed inset-x-0 bottom-0">
-              <div className="mx-auto box-border max-w-2xl p-6">
-                <Button
-                  className="w-full gap-2"
-                  size="lg"
-                  onClick={onFeedImport}
-                  disabled={channelImportCount === 0 || isImportPending}
-                >
-                  {isImportPending && !hasStartedImport ? (
-                    <>
-                      Importing...
-                      <Loader2Icon size={16} className="animate-spin" />
-                    </>
-                  ) : (
-                    <>Import {channelImportCount} feeds</>
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-          <div className="h-12" />
-        </>
+        </div>
       )}
     </div>
   );

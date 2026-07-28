@@ -227,25 +227,3 @@ export const useFilteredFeedItemsOrder = () => {
     visibilityFilter,
   ]);
 };
-
-export function useDoesFeedItemMatchAllFilters(item: ApplicationFeedItem) {
-  const visibilityFilter = useAtomValue(visibilityFilterAtom);
-  const categoryFilter = useAtomValue(categoryFilterAtom);
-  const feedCategories = useFeedCategories();
-  const feedFilter = useAtomValue(feedFilterAtom);
-  const viewFilter = useAtomValue(viewFilterAtom);
-  const { customViews, customViewCategoryIds, customViewFeedIds } =
-    useCustomViewsData();
-
-  return doesFeedItemPassFilters({
-    item,
-    visibilityFilter,
-    categoryFilter,
-    feedCategories,
-    feedFilter,
-    viewFilter,
-    customViewCategoryIds,
-    customViews,
-    customViewFeedIds,
-  });
-}

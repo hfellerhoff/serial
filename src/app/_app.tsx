@@ -1,11 +1,17 @@
 import "~/styles/globals.css";
 
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useLocation,
+} from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckIcon } from "lucide-react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { AppDialogs } from "../components/feed/AppDialogs";
 import { Header } from "../components/feed/Header";
+import { GlobalImportDropzone } from "../components/feed/import/GlobalImportDropzone";
 import type React from "react";
 import FeedLoading from "~/components/loading";
 import { AppLeftSidebar, AppRightSidebar } from "~/components/app-sidebar";
@@ -22,14 +28,13 @@ import { usePlanSuccessStore } from "~/lib/data/plan-success";
 import { useSubscription } from "~/lib/data/subscription";
 import { useAltKeyHeld } from "~/lib/hooks/useAltKeyHeld";
 import { authMiddleware } from "~/server/auth";
-import { getMostRecentRelease } from "~/lib/markdown/loaders";
 import { orpc, orpcRouterClient } from "~/lib/orpc";
 import { PLANS } from "~/server/subscriptions/plans";
 import {
   getPlanFeatures,
   PLAN_ICONS,
 } from "~/components/feed/subscription-dialog";
-import { env } from "~/env";
+import { getPublicConfigKey } from "~/lib/public-config";
 
 export const Route = createFileRoute("/_app")({
   component: RootLayout,
@@ -37,20 +42,17 @@ export const Route = createFileRoute("/_app")({
     middleware: [authMiddleware],
   },
   beforeLoad: () => {
-    if (env.VITE_PUBLIC_IS_MAINTENANCE_MODE === "true") {
+    if (getPublicConfigKey("PUBLIC_IS_MAINTENANCE_MODE")) {
       throw redirect({
         to: "/maintenance",
       });
     }
   },
-  loader: () => {
-    const mostRecentRelease = getMostRecentRelease();
-    return { mostRecentRelease };
-  },
 });
 
 const MAX_SYNC_ATTEMPTS = 10;
 const SYNC_POLL_INTERVAL_MS = 3_000;
+const CHECKOUT_SYNC_TIMEOUT_MS = 60_000;
 
 function useCheckoutSuccess() {
   const queryClient = useQueryClient();
@@ -100,8 +102,6 @@ function useCheckoutSuccess() {
     let isSyncing = false;
 
     const sync = async (): Promise<boolean> => {
-      if (isSyncing) return false;
-      isSyncing = true;
       try {
         const result = await orpcRouterClient.subscription.syncAfterCheckout();
 
@@ -129,37 +129,48 @@ function useCheckoutSuccess() {
         }
       } catch {
         // Ignore errors, will retry
-      } finally {
-        isSyncing = false;
       }
       return false;
     };
 
-    // First attempt immediately, then poll with interval
-    void sync().then((done) => {
-      if (done || controller.signal.aborted) return;
+    const poll = async () => {
+      if (isSyncing || controller.signal.aborted) return;
 
-      const interval = setInterval(() => {
-        if (controller.signal.aborted) {
-          clearInterval(interval);
-          return;
-        }
+      isSyncing = true;
+      attempts++;
+      const planWasUpdated = await sync();
+      isSyncing = false;
 
-        attempts++;
-        void sync().then((done) => {
-          if (done || attempts >= MAX_SYNC_ATTEMPTS) {
-            clearInterval(interval);
-            if (!done) {
-              // Give up gracefully — user will see the upgrade on next load
-              setAwaitingUpgrade(false);
-            }
-          }
-        });
-      }, SYNC_POLL_INTERVAL_MS);
-    });
+      if (controller.signal.aborted) return;
+      if (planWasUpdated) {
+        clearInterval(interval);
+        clearTimeout(overallTimeout);
+        return;
+      }
+      if (attempts >= MAX_SYNC_ATTEMPTS) {
+        clearInterval(interval);
+        clearTimeout(overallTimeout);
+        // Give up gracefully — user will see the upgrade on next load
+        setAwaitingUpgrade(false);
+      }
+    };
+
+    const interval = setInterval(() => {
+      void poll();
+    }, SYNC_POLL_INTERVAL_MS);
+    const overallTimeout = setTimeout(() => {
+      controller.abort();
+      clearInterval(interval);
+      setAwaitingUpgrade(false);
+    }, CHECKOUT_SYNC_TIMEOUT_MS);
+
+    // Count only requests that start so slow requests do not consume retries.
+    void poll();
 
     return () => {
       controller.abort();
+      clearInterval(interval);
+      clearTimeout(overallTimeout);
     };
   }, [awaitingUpgrade, planId, queryClient, openPlanSuccess]);
 
@@ -230,9 +241,9 @@ function CheckoutSuccessDialog({
 }
 
 function RootLayout() {
-  const { mostRecentRelease } = Route.useLoaderData();
   useAltKeyHeld();
   usePortalReturn();
+  const { pathname } = useLocation();
   const { awaitingUpgrade, billingEnabled } = useCheckoutSuccess();
   const showPlanSuccess = usePlanSuccessStore((s) => s.showDialog);
   const closePlanSuccess = usePlanSuccessStore((s) => s.closeDialog);
@@ -245,35 +256,45 @@ function RootLayout() {
     // <ApplyColorTheme>
     <Suspense fallback={<FeedLoading />}>
       <InitialClientQueries>
-        <ImpersonationBanner />
-        <SidebarProvider
-          style={
-            {
-              "--sidebar-width": "calc(var(--spacing) * 72)",
-              "--header-height": "calc(var(--spacing) * 12)",
-            } as React.CSSProperties
-          }
-        >
-          <AppLeftSidebar />
-          <SidebarInset>
-            <DemoBanner />
-            <Header />
-            <main className="flex flex-col">
-              <div className="h-full w-full pb-6">
-                <Outlet />
-              </div>
-              <AppDialogs />
-              {billingEnabled && (
-                <CheckoutSuccessDialog
-                  open={showPlanSuccess}
-                  onOpenChange={closePlanSuccess}
-                />
-              )}
-            </main>
-            <ReleaseNotifier mostRecentRelease={mostRecentRelease} />
-          </SidebarInset>
-          <AppRightSidebar />
-        </SidebarProvider>
+        <GlobalImportDropzone />
+        <div className="flex h-svh flex-col overflow-hidden">
+          <ImpersonationBanner />
+          <DemoBanner />
+          <SidebarProvider
+            className="h-auto min-h-0 flex-1"
+            style={
+              {
+                "--sidebar-width": "calc(var(--spacing) * 72)",
+                "--header-height": "calc(var(--spacing) * 12)",
+              } as React.CSSProperties
+            }
+          >
+            <AppLeftSidebar />
+            <SidebarInset
+              style={
+                pathname.startsWith("/watch/")
+                  ? { scrollbarGutter: "auto" }
+                  : undefined
+              }
+            >
+              <Header />
+              <main className="flex flex-col">
+                <div className="h-full w-full pb-6">
+                  <Outlet />
+                </div>
+                <AppDialogs />
+                {billingEnabled && (
+                  <CheckoutSuccessDialog
+                    open={showPlanSuccess}
+                    onOpenChange={closePlanSuccess}
+                  />
+                )}
+              </main>
+              <ReleaseNotifier />
+            </SidebarInset>
+            <AppRightSidebar />
+          </SidebarProvider>
+        </div>
       </InitialClientQueries>
     </Suspense>
     // </ApplyColorTheme>

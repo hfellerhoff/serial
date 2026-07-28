@@ -2,7 +2,7 @@ import { expect } from "@playwright/test";
 import { createClient } from "@libsql/client";
 import { createId } from "@paralleldrive/cuid2";
 import { hashPassword } from "better-auth/crypto";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 interface SignUpOptions {
   page: Page;
@@ -22,6 +22,18 @@ interface SeedAdminOptions {
   name: string;
   email: string;
   password: string;
+}
+
+async function waitForReactHydration(locator: Locator) {
+  await expect
+    .poll(
+      () =>
+        locator.evaluate((element) =>
+          Object.keys(element).some((key) => key.startsWith("__reactProps$")),
+        ),
+      { timeout: 10000 },
+    )
+    .toBe(true);
 }
 
 /**
@@ -65,14 +77,16 @@ export async function signUp({ page, name, email, password }: SignUpOptions) {
     ).toBeVisible({ timeout: 10000 });
   }
 
-  await page.locator("#first-name").pressSequentially(name, { delay: 50 });
-  await page.locator("#email").pressSequentially(email, { delay: 50 });
-  await page.locator("#password").pressSequentially(password, { delay: 50 });
-  await page
-    .locator("#password_confirmation")
-    .pressSequentially(password, { delay: 50 });
+  const createAccountButton = page.getByRole("button", {
+    name: /create an account/i,
+  });
+  await waitForReactHydration(createAccountButton);
+  await page.locator("#first-name").fill(name);
+  await page.locator("#email").fill(email);
+  await page.locator("#password").fill(password);
+  await page.locator("#password_confirmation").fill(password);
 
-  await page.getByRole("button", { name: /create an account/i }).click();
+  await createAccountButton.click();
   await expect(page).toHaveURL("/", { timeout: 30000 });
 }
 
@@ -143,6 +157,23 @@ export async function signUpAsAdmin({
 }
 
 /**
+ * Signs out the current user. Better Auth's sign-out endpoint is POST-only,
+ * so navigating to /api/auth/sign-out with page.goto does NOT clear the
+ * session — this helper issues a real POST through the page's cookie jar.
+ */
+export async function signOut(page: Page) {
+  const result = await page.evaluate(async () => {
+    const response = await fetch("/api/auth/sign-out", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    return { ok: response.ok, status: response.status };
+  });
+  expect(result.ok, `sign-out failed with status ${result.status}`).toBe(true);
+}
+
+/**
  * Signs in an existing user, handling the case where the page may land on
  * sign-up instead of sign-in (e.g. if no users exist yet and the app
  * redirects to the first-user sign-up flow).
@@ -161,12 +192,13 @@ export async function signIn({ page, email, password }: SignInOptions) {
   }
 
   await expect(page.locator("#email")).toBeVisible({ timeout: 10000 });
-  await page.waitForTimeout(1000);
-  await page.locator("#email").pressSequentially(email, { delay: 50 });
-  await page.locator("#password").pressSequentially(password, { delay: 50 });
+  const loginButton = page.getByRole("button", { name: /login/i });
+  await waitForReactHydration(loginButton);
+  await page.locator("#email").fill(email);
+  await page.locator("#password").fill(password);
 
   await Promise.all([
     page.waitForURL("/", { timeout: 30000 }),
-    page.getByRole("button", { name: /login/i }).click(),
+    loginButton.click(),
   ]);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useAtomValue } from "jotai";
 import type { ClientManifestEntry } from "~/server/api/routers/initialRouter";
 import {
@@ -24,6 +24,11 @@ const validatingCombos = new Set<string>();
  *
  * Cached content is shown immediately; updates/deletions/new items stream
  * in transparently without any loading UI.
+ *
+ * The manifest is stored in a ref so that optimistic item removals (e.g.
+ * marking an item as read) do NOT re-trigger validation — only view/filter
+ * changes do. Individual mutations broadcast their confirmed state back
+ * through the SSE channel directly.
  */
 export function useValidateViewItems() {
   const viewFilter = useAtomValue(viewFilterAtom);
@@ -31,9 +36,17 @@ export function useValidateViewItems() {
   const feedFilter = useAtomValue(feedFilterAtom);
   const categoryFilter = useAtomValue(categoryFilterAtom);
   const filteredItemIds = useFilteredFeedItemsOrder();
-  const manifestItemIdsKey = filteredItemIds
-    .slice(0, ITEMS_PER_PAGE)
-    .join("\0");
+
+  // Keep the latest filtered ids in a ref so building the manifest never makes
+  // them an effect dependency. Re-running validation on every item-list change
+  // is what we explicitly want to avoid: a validation diff replaces the view
+  // scope with just its first page (`replacesScope`), so re-validating after
+  // pagination would drop the paginated items. Only view/filter changes should
+  // trigger validation.
+  const filteredItemIdsRef = useRef(filteredItemIds);
+  useEffect(() => {
+    filteredItemIdsRef.current = filteredItemIds;
+  }, [filteredItemIds]);
 
   useEffect(() => {
     // Feed / category selections use separate endpoints — skip here
@@ -50,8 +63,7 @@ export function useValidateViewItems() {
     // visibility. Keep the manifest scoped to that same client-side page;
     // otherwise cached read/later items outside the first page look deleted.
     const state = feedItemsStore.getState();
-    const manifestItemIds =
-      manifestItemIdsKey.length > 0 ? manifestItemIdsKey.split("\0") : [];
+    const manifestItemIds = filteredItemIdsRef.current.slice(0, ITEMS_PER_PAGE);
     const manifest: ClientManifestEntry[] = [];
     for (const id of manifestItemIds) {
       const item = state.feedItemsDict[id];
@@ -76,11 +88,5 @@ export function useValidateViewItems() {
       .finally(() => {
         validatingCombos.delete(key);
       });
-  }, [
-    viewFilter,
-    visibilityFilter,
-    feedFilter,
-    categoryFilter,
-    manifestItemIdsKey,
-  ]);
+  }, [viewFilter, visibilityFilter, feedFilter, categoryFilter]);
 }

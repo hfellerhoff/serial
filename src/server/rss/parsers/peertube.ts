@@ -115,14 +115,14 @@ export async function fetchPeerTubeFeedData(
       id: feed.id,
       title: data.title,
       url: data.link,
-      items: data.items
-        .map((item) => {
-          const idParts = item.guid.split("/");
-          const id = idParts[idParts.length - 1];
+      items: data.items.flatMap((item) => {
+        const idParts = item.guid.split("/");
+        const id = idParts[idParts.length - 1];
 
-          if (!id) return null;
+        if (!id) return [];
 
-          return {
+        return [
+          {
             id,
             title: item.title,
             publishedDate: item.isoDate,
@@ -131,9 +131,9 @@ export async function fetchPeerTubeFeedData(
             thumbnail: item["media:thumbnail"].$.url,
             content: item["media:description"],
             contentSnippet: item["media:description"],
-          } satisfies RSSContent;
-        })
-        .filter(Boolean),
+          } satisfies RSSContent,
+        ];
+      }),
       fetchMetadata,
     };
   } catch (e) {

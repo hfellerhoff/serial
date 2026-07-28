@@ -57,7 +57,6 @@ export default tseslint.config(
       ".output/",
       "dist/",
       "dist-sw/",
-      ".content-collections/",
       "public/sw.js",
       "public/workbox-*.js",
       "playwright-report/",

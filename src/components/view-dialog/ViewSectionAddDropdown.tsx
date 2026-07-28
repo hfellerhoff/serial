@@ -50,8 +50,9 @@ export function ViewSectionAddDropdown({
   // All feeds in the view: explicitly selected + feeds that have selected categories
   const feedIdsInView = useMemo(() => {
     const ids = new Set(selectedFeedIds);
+    const selectedCategorySet = new Set(selectedCategories);
     for (const fc of feedCategories) {
-      if (selectedCategories.includes(fc.categoryId)) {
+      if (selectedCategorySet.has(fc.categoryId)) {
         ids.add(fc.feedId);
       }
     }
@@ -74,32 +75,23 @@ export function ViewSectionAddDropdown({
     [feeds, feedIdsInView, existingIds],
   );
 
-  // All tags in the view: explicitly selected + tags that feeds in the view have
-  const tagIdsInView = useMemo(() => {
-    const ids = new Set(selectedCategories);
-    for (const fc of feedCategories) {
-      if (feedIdsInView.has(fc.feedId)) {
-        ids.add(fc.categoryId);
-      }
-    }
-    return ids;
-  }, [selectedCategories, feedIdsInView, feedCategories]);
-
+  // Any tag can define a subsection, even when it is not part of the view's
+  // content filters.
   const tagOptions = useMemo(
     () =>
-      contentCategories
-        .filter(
-          (c) =>
-            tagIdsInView.has(c.id) &&
-            !existingIds.has(`${VIEW_LAYOUT_ITEM_TYPE.TAG}:${c.id}`),
-        )
-        .map((c) => ({
-          id: c.id,
-          label: `#${c.name}`,
-          rawLabel: c.name,
-          itemType: VIEW_LAYOUT_ITEM_TYPE.TAG,
-        })),
-    [contentCategories, tagIdsInView, existingIds],
+      contentCategories.flatMap((c) =>
+        existingIds.has(`${VIEW_LAYOUT_ITEM_TYPE.TAG}:${c.id}`)
+          ? []
+          : [
+              {
+                id: c.id,
+                label: `#${c.name}`,
+                rawLabel: c.name,
+                itemType: VIEW_LAYOUT_ITEM_TYPE.TAG,
+              },
+            ],
+      ),
+    [contentCategories, existingIds],
   );
 
   const allOptions = useMemo(

@@ -16,7 +16,21 @@ export type ViewsStore = {
   add: (view: ApplicationView) => void;
   update: (id: number, view: Partial<ApplicationView>) => void;
   remove: (id: number) => void;
+  removeFeedReferences: (feedIds: number[]) => void;
 };
+
+export function removeFeedReferencesFromViews(
+  views: ApplicationView[],
+  feedIds: ReadonlySet<number>,
+): ApplicationView[] {
+  return views.map((view) => ({
+    ...view,
+    feedIds: view.feedIds.filter((feedId) => !feedIds.has(feedId)),
+    viewSections: view.viewSections.filter(
+      (section) => section.itemType !== "feed" || !feedIds.has(section.itemId),
+    ),
+  }));
+}
 
 const vanillaViewsStore = createStore<ViewsStore>()(
   persist(
@@ -106,6 +120,19 @@ const vanillaViewsStore = createStore<ViewsStore>()(
           viewsDict: rest,
         });
       },
+
+      removeFeedReferences: (feedIds) => {
+        const updatedViews = removeFeedReferencesFromViews(
+          get().views,
+          new Set(feedIds),
+        );
+        const viewsDict: Record<number, ApplicationView> = {};
+        updatedViews.forEach((view) => {
+          viewsDict[view.id] = view;
+        });
+
+        set({ views: updatedViews, viewsDict });
+      },
     }),
     {
       name: "serial-views-store",
@@ -136,5 +163,5 @@ export const {
   useFetchStatus: useViewsFetchStatus,
   useFetch: useFetchViews,
   useSet: useSetViews,
-  useReset: useResetViews,
+  useRemoveFeedReferences,
 } = viewsStore;

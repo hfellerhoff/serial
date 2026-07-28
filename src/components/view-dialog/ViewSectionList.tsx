@@ -214,6 +214,7 @@ function SortableViewSectionItem({
       </div>
       <button
         type="button"
+        aria-label={`Remove ${displayName}`}
         className="text-muted-foreground hover:text-foreground rounded-sm p-1"
         onClick={() => onRemove(item.id)}
       >
@@ -260,28 +261,30 @@ export function ViewSectionList({
 
   return (
     <div className="grid gap-4">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-        modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-      >
-        <SortableContext
-          items={sortableIds}
-          strategy={verticalListSortingStrategy}
+      {items.length > 0 && (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
         >
-          <div className="grid gap-2">
-            {items.map((item) => (
-              <SortableViewSectionItem
-                key={item.id}
-                item={item}
-                onRemove={onRemove}
-                onLayoutChange={onLayoutChange}
-              />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+          <SortableContext
+            items={sortableIds}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="grid gap-2">
+              {items.map((item) => (
+                <SortableViewSectionItem
+                  key={item.id}
+                  item={item}
+                  onRemove={onRemove}
+                  onLayoutChange={onLayoutChange}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
 
       {/* Uncategorized - fixed, non-draggable */}
       <div

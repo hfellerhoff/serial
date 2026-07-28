@@ -95,34 +95,6 @@ export async function fetchNebulaFeedDetails(
   return null;
 }
 
-export async function getNebulaFeedIfMatches(
-  rssString: string,
-  url: string,
-): Promise<NewFeedDetails | null> {
-  if (!url.includes("nebula.app") && !url.includes("nebula.tv")) {
-    return null;
-  }
-
-  try {
-    const rssData = await parser.parseString(rssString);
-    const { data: nebulaData, success: nebulaSuccess } =
-      nebulaSchema.safeParse(rssData);
-
-    if (nebulaSuccess) {
-      return {
-        name: nebulaData.title,
-        url: url,
-        platform: "nebula",
-      };
-    }
-  } catch (e) {
-    captureException(e, { context: "nebula-feed-parse", url });
-    logError("Error parsing Nebula feed:", e);
-  }
-
-  return null;
-}
-
 export async function fetchNebulaFeedData(
   feed: DatabaseFeed,
   cached?: ConditionalHeaders,
@@ -154,23 +126,21 @@ export async function fetchNebulaFeedData(
       id: feed.id,
       title: data.title,
       url: data.link,
-      items: data.items
-        .map((item) => {
-          const idParts = item.guid.split("/");
-          const id = idParts[idParts.length - 1] || item.guid;
+      items: data.items.map((item) => {
+        const idParts = item.guid.split("/");
+        const id = idParts[idParts.length - 1] || item.guid;
 
-          return {
-            id,
-            title: item.title,
-            publishedDate: item.isoDate,
-            url: item.link,
-            author: item["dc:creator"] ?? item.creator ?? data.title,
-            thumbnail: extractThumbnailFromContent(item.content),
-            content: item.contentSnippet,
-            contentSnippet: item.contentSnippet,
-          } satisfies RSSContent;
-        })
-        .filter(Boolean),
+        return {
+          id,
+          title: item.title,
+          publishedDate: item.isoDate,
+          url: item.link,
+          author: item["dc:creator"] ?? item.creator ?? data.title,
+          thumbnail: extractThumbnailFromContent(item.content),
+          content: item.contentSnippet,
+          contentSnippet: item.contentSnippet,
+        } satisfies RSSContent;
+      }),
       fetchMetadata,
     };
   } catch (e) {

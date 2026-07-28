@@ -1,2 +1,11 @@
 minimumReleaseAge: 10080
 trustPolicy: no-downgrade
+trustPolicyExclude:
+  - semver
+  - "chokidar@4.0.3"
+  - style-to-object
+overrides:
+  "@types/react": 19.2.17
+  "@types/react-dom": 19.2.3
+  rolldown: "~1.1.4"
+  "workbox-build>rollup": "~2.79.2"

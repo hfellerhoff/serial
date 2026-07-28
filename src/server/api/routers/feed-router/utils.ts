@@ -116,8 +116,7 @@ export type InsertFeedWithCategoriesError = {
 };
 
 export type InsertFeedWithCategoriesResult =
-  | InsertFeedWithCategoriesSuccess
-  | InsertFeedWithCategoriesError;
+  InsertFeedWithCategoriesSuccess | InsertFeedWithCategoriesError;
 
 /**
  * Insert a feed with its categories, handling both existing and new categories.

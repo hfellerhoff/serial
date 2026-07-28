@@ -1,4 +1,4 @@
-import { render } from "@react-email/components";
+import { render } from "react-email";
 import { betterAuth } from "better-auth";
 import { admin, emailOTP, genericOAuth } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -46,6 +46,12 @@ import { captureException, logError, logMessage } from "~/server/logger";
 import { env } from "~/env";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
 
+const SIGNED_IN_REDIRECT_AUTH_PATHS = [
+  "/auth",
+  "/auth/sign-in",
+  "/auth/sign-up",
+];
+
 export const authMiddleware = createMiddleware().server(
   async ({ pathname, next }) => {
     const headers = getRequestHeaders() as Headers;
@@ -64,6 +70,14 @@ export const authMiddleware = createMiddleware().server(
       } else if (pathname.startsWith("/auth/")) {
         throw redirect({ to: "/" });
       }
+    }
+
+    // Signed-in users have no business on the sign-in/sign-up pages —
+    // send them into the app instead of showing them an auth form.
+    const isSignedInOnAuthEntryPage =
+      !!session && SIGNED_IN_REDIRECT_AUTH_PATHS.includes(pathname);
+    if (isSignedInOnAuthEntryPage) {
+      throw redirect({ to: "/" });
     }
 
     if (!session) {
@@ -190,7 +204,7 @@ function buildGenericOAuthPlugin() {
           tokenUrl: env.OAUTH_TOKEN_URL,
           userInfoUrl: env.OAUTH_USER_INFO_URL,
           scopes: env.OAUTH_SCOPES?.split(" ") ?? undefined,
-          pkce: env.OAUTH_PKCE === "true",
+          pkce: env.OAUTH_PKCE,
           redirectURI: env.OAUTH_REDIRECT_URI,
         },
       ],
@@ -199,10 +213,21 @@ function buildGenericOAuthPlugin() {
 }
 
 export const auth = betterAuth({
+  baseURL: env.PUBLIC_BASE_URL,
   database: drizzleAdapter(db, {
     provider: "sqlite",
   }),
   trustedOrigins: Array.from(TRUSTED_ORIGINS_SET),
+  ...(env.COOKIE_DOMAIN
+    ? {
+        advanced: {
+          crossSubDomainCookies: {
+            enabled: true,
+            domain: env.COOKIE_DOMAIN,
+          },
+        },
+      }
+    : {}),
   emailAndPassword: {
     enabled: true,
     maxPasswordLength: 64,
@@ -211,7 +236,7 @@ export const auth = betterAuth({
         const html = await render(
           <ResetPasswordEmail
             resetUrl={data.url}
-            supportEmail={env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS}
+            supportEmail={env.PUBLIC_SUPPORT_EMAIL_ADDRESS}
           />,
         );
 
@@ -244,7 +269,7 @@ export const auth = betterAuth({
         const html = await render(
           <VerifyEmailChangeEmail
             verificationUrl={url}
-            supportEmail={env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS}
+            supportEmail={env.PUBLIC_SUPPORT_EMAIL_ADDRESS}
           />,
         );
 
@@ -279,7 +304,7 @@ export const auth = betterAuth({
                   const html = await render(
                     <VerifyEmailEmail
                       otp={otp}
-                      supportEmail={env.VITE_PUBLIC_SUPPORT_EMAIL_ADDRESS}
+                      supportEmail={env.PUBLIC_SUPPORT_EMAIL_ADDRESS}
                     />,
                   );
                   await sendEmail({
@@ -555,17 +580,3 @@ export const auth = betterAuth({
   /** if no database is provided, the user data will be stored in memory.
    * Make sure to provide a database to persist user data **/
 });
-
-export async function getServerAuth(headers: Headers) {
-  return await auth.api.getSession({
-    headers,
-  });
-}
-
-export async function isServerAuthed(headers: Headers) {
-  const authResult = await auth.api.getSession({
-    headers,
-  });
-
-  return !!authResult?.session.id && !!authResult.user.id;
-}

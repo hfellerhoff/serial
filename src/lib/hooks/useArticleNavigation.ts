@@ -6,7 +6,7 @@ import { useShortcut } from "./useShortcut";
 import type { KeyboardEvent, RefObject } from "react";
 import {
   getShortcutAllowRepeat,
-  getShortcutKey,
+  getShortcutKeys,
   SHORTCUT_KEYS,
 } from "~/lib/constants/shortcuts";
 import { getScrollContainer } from "~/lib/scroll";
@@ -15,19 +15,88 @@ export const articleSelectedElementAtom = atom<HTMLElement | null>(null);
 
 const SCROLL_DURATION_MS = 300;
 const TARGET_VIEWPORT_POSITION = 1 / 3;
-const SELECTABLE =
-  ":scope > p, :scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6, :scope > blockquote, :scope > img, :scope > figure, :scope > div, li";
+const SELECTABLE_TAGS = new Set([
+  "P",
+  "H1",
+  "H2",
+  "H3",
+  "H4",
+  "H5",
+  "H6",
+  "BLOCKQUOTE",
+  "IMG",
+  "FIGURE",
+  "LI",
+]);
+const INTERACTIVE_ROLES = new Set([
+  "button",
+  "checkbox",
+  "link",
+  "radio",
+  "switch",
+]);
+const TEXT_BLOCK_SELECTOR = "p, h1, h2, h3, h4, h5, h6, blockquote, figure, li";
+
+function hasNavigableContent(element: HTMLElement): boolean {
+  return !!(
+    element.textContent?.trim() ||
+    element.tagName === "IMG" ||
+    element.tagName === "FIGURE" ||
+    element.querySelector("img, iframe, video")
+  );
+}
+
+function isAtomicDiv(element: HTMLElement): boolean {
+  const role = element.getAttribute("role");
+  const isInteractive = role ? INTERACTIVE_ROLES.has(role) : false;
+  const isMediaOnly =
+    !!element.querySelector("iframe, video") &&
+    !element.querySelector(TEXT_BLOCK_SELECTOR);
+
+  return (
+    element.hasAttribute("data-lightbox") ||
+    element.hasAttribute("data-article-video-embed") ||
+    isInteractive ||
+    isMediaOnly
+  );
+}
+
+function getNavigableDescendants(container: HTMLElement): HTMLElement[] {
+  const elements: HTMLElement[] = [];
+
+  for (const child of container.children) {
+    if (!(child instanceof HTMLElement)) continue;
+    if (child.hasAttribute("data-serial-header")) continue;
+
+    if (SELECTABLE_TAGS.has(child.tagName)) {
+      if (hasNavigableContent(child)) elements.push(child);
+      continue;
+    }
+
+    if (child.tagName === "DIV") {
+      if (isAtomicDiv(child)) {
+        if (hasNavigableContent(child)) elements.push(child);
+        continue;
+      }
+
+      const descendants = getNavigableDescendants(child);
+      if (descendants.length > 0) {
+        elements.push(...descendants);
+      } else if (hasNavigableContent(child)) {
+        elements.push(child);
+      }
+      continue;
+    }
+
+    elements.push(...getNavigableDescendants(child));
+  }
+
+  return elements;
+}
 
 export function getElements(container: HTMLElement | null): HTMLElement[] {
   if (!container) return [];
-  return Array.from(container.querySelectorAll<HTMLElement>(SELECTABLE)).filter(
-    (el) =>
-      !el.hasAttribute("data-serial-header") &&
-      (el.textContent?.trim() ||
-        el.tagName === "IMG" ||
-        el.tagName === "FIGURE" ||
-        el.querySelector("img")),
-  );
+  return getNavigableDescendants(container);
 }
 
 export function isElementInViewport(element: Element): boolean {
@@ -67,8 +136,7 @@ export function useArticleNavigation(
 ) {
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const lastNavTimeRef = useRef<number>(0);
-  const prevSelectedRef = useRef<HTMLElement | null>(null);
-  // Suppress focusin handler during programmatic focus from arrow key navigation
+  const lastInputModalityRef = useRef<"keyboard" | "pointer">("keyboard");
   const suppressFocusInRef = useRef(false);
   const setArticleSelectedElement = useSetAtom(articleSelectedElementAtom);
 
@@ -108,10 +176,8 @@ export function useArticleNavigation(
         el.focus({ preventScroll: true });
         suppressFocusInRef.current = false;
 
-        prevSelectedRef.current = el;
         setArticleSelectedElement(el);
       } else {
-        prevSelectedRef.current = null;
         setArticleSelectedElement(null);
       }
     },
@@ -248,9 +314,9 @@ export function useArticleNavigation(
       const lightbox = selectedEl.hasAttribute("data-lightbox")
         ? selectedEl
         : selectedEl.querySelector<HTMLElement>("[data-lightbox]");
-      if (lightbox) {
-        lightbox.click();
-      }
+      lightbox
+        ?.querySelector<HTMLButtonElement>("[data-lightbox-trigger]")
+        ?.click();
     },
     [containerRef, selectedIndex],
   );
@@ -259,51 +325,70 @@ export function useArticleNavigation(
     const container = containerRef.current;
     if (!container) return;
 
-    const handleFocusIn = (e: FocusEvent) => {
-      if (suppressFocusInRef.current) return;
+    const handlePointerDown = () => {
+      lastInputModalityRef.current = "pointer";
+    };
+    const handleKeyDown = () => {
+      lastInputModalityRef.current = "keyboard";
+    };
+    const handleFocusIn = (event: FocusEvent) => {
+      if (
+        suppressFocusInRef.current ||
+        lastInputModalityRef.current !== "keyboard"
+      ) {
+        return;
+      }
 
-      const target = e.target;
+      const target = event.target;
       if (!(target instanceof HTMLElement)) return;
 
       const elements = getElements(container);
-      // Find the closest (most specific) selectable element containing the target
       let parentIndex = -1;
-      for (let i = 0; i < elements.length; i++) {
-        if (elements[i]!.contains(target) && elements[i] !== target) {
-          parentIndex = i;
+      for (let index = 0; index < elements.length; index += 1) {
+        const element = elements[index]!;
+        if (element !== target && element.contains(target)) {
+          parentIndex = index;
         }
       }
       if (parentIndex === -1 || parentIndex === selectedIndex) return;
 
-      // Clear all previous selections
-      container.querySelectorAll("[data-article-selected]").forEach((el) => {
-        el.removeAttribute("data-article-selected");
-        el.removeAttribute("tabindex");
-      });
-      const el = elements[parentIndex]!;
-      el.setAttribute("data-article-selected", "true");
-      if (el.tagName === "LI" && container) {
-        const elLeft = el.getBoundingClientRect().left;
+      container
+        .querySelectorAll("[data-article-selected]")
+        .forEach((element) => {
+          element.removeAttribute("data-article-selected");
+          element.removeAttribute("tabindex");
+        });
+      const parent = elements[parentIndex]!;
+      parent.setAttribute("data-article-selected", "true");
+      if (parent.tagName === "LI") {
+        const parentLeft = parent.getBoundingClientRect().left;
         const containerLeft = container.getBoundingClientRect().left;
-        const offset = elLeft - containerLeft - 20;
-        el.style.setProperty("--selection-offset", `${offset}px`);
+        parent.style.setProperty(
+          "--selection-offset",
+          `${parentLeft - containerLeft - 20}px`,
+        );
       }
-      el.setAttribute("tabindex", "-1");
-      prevSelectedRef.current = el;
+      parent.setAttribute("tabindex", "-1");
       setSelectedIndex(parentIndex);
-      setArticleSelectedElement(el);
-      scrollToElement(el);
+      setArticleSelectedElement(parent);
+      scrollToElement(parent);
     };
 
+    window.addEventListener("pointerdown", handlePointerDown, true);
+    window.addEventListener("keydown", handleKeyDown, true);
     container.addEventListener("focusin", handleFocusIn);
-    return () => container.removeEventListener("focusin", handleFocusIn);
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown, true);
+      window.removeEventListener("keydown", handleKeyDown, true);
+      container.removeEventListener("focusin", handleFocusIn);
+    };
   }, [containerRef, selectedIndex, setArticleSelectedElement, scrollToElement]);
 
-  useShortcut(getShortcutKey(SHORTCUT_KEYS.ARROW_DOWN), handleArrowDown, {
+  useShortcut(getShortcutKeys(SHORTCUT_KEYS.ARROW_DOWN), handleArrowDown, {
     allowRepeat: getShortcutAllowRepeat(SHORTCUT_KEYS.ARROW_DOWN),
   });
 
-  useShortcut(getShortcutKey(SHORTCUT_KEYS.ARROW_UP), handleArrowUp, {
+  useShortcut(getShortcutKeys(SHORTCUT_KEYS.ARROW_UP), handleArrowUp, {
     allowRepeat: getShortcutAllowRepeat(SHORTCUT_KEYS.ARROW_UP),
   });
 

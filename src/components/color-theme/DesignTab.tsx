@@ -96,7 +96,7 @@ function useDebouncedCssValue(options: {
   };
 }
 
-export function EditColorsForm() {
+function EditColorsForm() {
   const { data } = authClient.useSession();
 
   const { mutate: saveThemeHSLToDatabase } = useMutation(
@@ -227,7 +227,7 @@ export function EditColorsForm() {
   );
 }
 
-export function ColorModeToggleGroup() {
+function ColorModeToggleGroup() {
   const { theme, setTheme } = useTheme();
 
   return (

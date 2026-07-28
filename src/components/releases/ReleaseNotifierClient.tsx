@@ -1,11 +1,14 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { Link } from "@tanstack/react-router";
 import { Button } from "../ui/button";
+import { getReleaseUrl } from "~/lib/constants";
 
 const RELEASE_SLUG_KEY = "last-viewed-release";
 
 export function ReleaseNotifierClient({ slug }: { slug: string | undefined }) {
+  // This synchronizes a server-provided release slug with browser storage on
+  // mount; there is no user event that can own the notification.
+  // react-doctor-disable-next-line react-doctor/no-effect-event-handler
   useEffect(() => {
     if (!slug) return;
 
@@ -18,8 +21,11 @@ export function ReleaseNotifierClient({ slug }: { slug: string | undefined }) {
         "There have been improvements to Serial since your last visit! Check out the release notes.",
         {
           action: (
-            // @ts-expect-error this is fine
-            <Link to={`/releases/${slug}`} preload="viewport">
+            <a
+              href={getReleaseUrl(slug)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <Button
                 size="sm"
                 onClick={() => {
@@ -28,7 +34,7 @@ export function ReleaseNotifierClient({ slug }: { slug: string | undefined }) {
               >
                 View
               </Button>
-            </Link>
+            </a>
           ),
           cancel: (
             <Button

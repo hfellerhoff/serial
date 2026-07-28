@@ -1,0 +1,64 @@
+{
+  "$schema": "https://react.doctor/schema/config.json",
+  "ignore": {
+    "rules": ["react-doctor/js-combine-iterations"],
+    "files": [".output/**", "playwright-report/**", "test-results/**"],
+    "overrides": [
+      {
+        "files": ["package.json"],
+        "rules": ["deslop/unused-dependency"]
+      },
+      {
+        "files": [
+          "server/tasks/**",
+          "src/server/api/server.ts",
+          "src/server/subscriptions/fetchProducts.ts"
+        ],
+        "rules": ["deslop/unused-file"]
+      },
+      {
+        "files": [".github/workflows/pull-request.yml"],
+        "rules": ["react-doctor/plugin-update-trust-risk"]
+      },
+      {
+        "files": ["src/lib/hooks/useItemWindow.ts"],
+        "rules": ["react-doctor/no-pass-data-to-parent"]
+      },
+      {
+        "files": ["src/app/_app.tsx"],
+        "rules": ["react-doctor/no-set-state-after-await-in-effect"]
+      },
+      {
+        "files": ["src/components/feed/RefetchItemsButton.tsx"],
+        "rules": ["react-doctor/effect-needs-cleanup"]
+      },
+      {
+        "files": [
+          "src/components/admin/EditInviteDialog.tsx",
+          "src/components/view-dialog/EditViewDialog.tsx"
+        ],
+        "rules": ["react-doctor/prefer-useReducer"]
+      },
+      {
+        "files": [
+          "src/components/admin/UserFeedCountChart.tsx",
+          "src/components/admin/UserRetentionChart.tsx",
+          "src/components/admin/UserSigninsChart.tsx",
+          "src/components/admin/UserSignupsChart.tsx",
+          "src/components/debug/FeedRefreshTimeframesChart.tsx"
+        ],
+        "rules": ["react-doctor/prefer-dynamic-import"]
+      },
+      {
+        "files": [
+          "src/app/_app.feeds.tsx",
+          "src/app/_app.import.tsx",
+          "src/app/_app.tags.tsx",
+          "src/app/_app.views.tsx",
+          "src/components/feed/SidebarFeeds.tsx"
+        ],
+        "rules": ["react-doctor/no-giant-component"]
+      }
+    ]
+  }
+}

@@ -348,6 +348,7 @@ export function ChipCombobox({
               {option.label}
               <button
                 type="button"
+                aria-label={`Remove ${option.label}`}
                 className="hover:bg-muted rounded-sm p-0.5"
                 onClick={() => onRemove(option.id)}
               >

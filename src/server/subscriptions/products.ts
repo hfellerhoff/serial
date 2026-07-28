@@ -54,6 +54,8 @@ export async function fetchProducts(): Promise<PlanProduct[]> {
 
       if (planProductIds.monthly) {
         try {
+          // Product requests stay sequential to respect provider rate limits.
+          // oxlint-disable-next-line react-doctor/async-await-in-loop
           const product = await polarClient.products.get({
             id: planProductIds.monthly,
           });

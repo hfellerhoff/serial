@@ -121,5 +121,4 @@ export const {
   useFeedCategories,
   useFetchStatus: useFeedCategoriesFetchStatus,
   useFetch: useFetchFeedCategories,
-  useReset: useResetFeedCategories,
 } = feedCategoriesStore;

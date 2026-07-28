@@ -6,15 +6,14 @@ import {
 } from "@tanstack/react-router";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
-import { env } from "~/env";
 import { BASE_SIGNED_OUT_URL, IS_MAIN_INSTANCE } from "~/lib/constants";
+import { getPublicConfigKey } from "~/lib/public-config";
 import { authMiddleware } from "~/server/auth";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
   beforeLoad: () => {
-    console.log(env.VITE_PUBLIC_IS_MAINTENANCE_MODE);
-    if (env.VITE_PUBLIC_IS_MAINTENANCE_MODE === "true") {
+    if (getPublicConfigKey("PUBLIC_IS_MAINTENANCE_MODE")) {
       throw redirect({
         to: "/maintenance",
       });

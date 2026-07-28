@@ -33,13 +33,15 @@ test.describe("undo mark visible as read", () => {
     await expect(page.locator("article").first()).toBeVisible({
       timeout: 30000,
     });
-
     // Verify the first article is visible
     const firstArticle = page
       .locator("article")
       .filter({ hasText: "Test Article 1" })
       .first();
     await expect(firstArticle).toBeVisible();
+    const firstItemId = await firstArticle.getAttribute("data-item-id");
+    if (!firstItemId) throw new Error("Expected a feed item id");
+    const flipItem = page.locator(`[data-flip-id="${firstItemId}"]`);
 
     // Click "Mark all as read" button
     const markReadButton = page.getByRole("button", {
@@ -57,6 +59,9 @@ test.describe("undo mark visible as read", () => {
 
     // Verify the article is back in the unread list
     await expect(firstArticle).toBeVisible({ timeout: 10000 });
+    await expect(flipItem).toHaveCSS("position", "static");
+    await expect(flipItem).toHaveCSS("opacity", "1");
+    await expect(flipItem).toHaveCSS("pointer-events", "auto");
   });
 
   test("pressing z restores unread items", async ({ page }) => {

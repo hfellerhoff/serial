@@ -128,5 +128,4 @@ export const {
   useContentCategories,
   useFetchStatus: useContentCategoriesFetchStatus,
   useFetch: useFetchContentCategories,
-  useReset: useResetContentCategories,
 } = contentCategoriesStore;
