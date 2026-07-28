@@ -5,7 +5,7 @@ set -euo pipefail
 remote_path="${1:?usage: delete-from-bunny.sh REMOTE_PATH}"
 curl_bin="${CURL_BIN:-curl}"
 
-for name in BUNNY_STORAGE_HOSTNAME BUNNY_STORAGE BUNNY_API_STORAGE; do
+for name in WWW_BUNNY_STORAGE_ZONE_ENDPOINT WWW_BUNNY_STORAGE_ZONE_NAME WWW_BUNNY_STORAGE_ZONE_PASSWORD; do
   if [[ -z "${!name:-}" ]]; then
     echo "Missing required environment variable: $name" >&2
     exit 1
@@ -29,8 +29,8 @@ if ! http_status="$(
     --retry 4 --retry-all-errors --connect-timeout 15 --max-time 120 \
     --output /dev/null --write-out "%{http_code}" \
     -X DELETE \
-    -H "AccessKey: $BUNNY_API_STORAGE" \
-    "https://$BUNNY_STORAGE_HOSTNAME/$BUNNY_STORAGE/$encoded_path"
+    -H "AccessKey: $WWW_BUNNY_STORAGE_ZONE_PASSWORD" \
+    "https://$WWW_BUNNY_STORAGE_ZONE_ENDPOINT/$WWW_BUNNY_STORAGE_ZONE_NAME/$encoded_path"
 )"; then
   echo "Failed to delete $remote_path from Bunny Storage" >&2
   exit 1

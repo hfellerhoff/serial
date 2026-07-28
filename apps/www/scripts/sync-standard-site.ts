@@ -16,10 +16,10 @@ import {
 import type { StandardSiteRecord } from "../src/lib/standard-site/records";
 
 const syncEnvSchema = z.object({
-  STANDARD_SITE_PDS_URL: z.url(),
-  STANDARD_SITE_IDENTIFIER: z.string().min(1),
-  STANDARD_SITE_APP_PASSWORD: z.string().min(1),
-  PUBLIC_STANDARD_SITE_PUBLICATION_URI: z.string().min(1),
+  WWW_STANDARD_SITE_PDS_URL: z.url(),
+  WWW_STANDARD_SITE_IDENTIFIER: z.string().min(1),
+  WWW_STANDARD_SITE_APP_PASSWORD: z.string().min(1),
+  WWW_STANDARD_SITE_PUBLICATION_URI: z.string().min(1),
 });
 
 const syncEnv = syncEnvSchema.parse(process.env);
@@ -37,7 +37,7 @@ const RELEASES_DIR = new URL("../src/content/releases/", import.meta.url);
 
 const isDryRun = process.argv.includes("--dry-run");
 const allowLargeDelete = process.argv.includes("--allow-large-delete");
-const publicationUri = syncEnv.PUBLIC_STANDARD_SITE_PUBLICATION_URI;
+const publicationUri = syncEnv.WWW_STANDARD_SITE_PUBLICATION_URI;
 const publication = parsePublicationUri(publicationUri);
 const publicationIcon = {
   mimeType: "image/png",
@@ -105,10 +105,10 @@ async function listRecords(agent: AtpAgent, repo: string, collection: string) {
 
 async function syncStandardSite() {
   const documents = await loadDocuments();
-  const agent = new AtpAgent({ service: syncEnv.STANDARD_SITE_PDS_URL });
+  const agent = new AtpAgent({ service: syncEnv.WWW_STANDARD_SITE_PDS_URL });
   await agent.login({
-    identifier: syncEnv.STANDARD_SITE_IDENTIFIER,
-    password: syncEnv.STANDARD_SITE_APP_PASSWORD,
+    identifier: syncEnv.WWW_STANDARD_SITE_IDENTIFIER,
+    password: syncEnv.WWW_STANDARD_SITE_APP_PASSWORD,
   });
 
   if (agent.did !== publication.did) {

@@ -36,16 +36,16 @@ jobs:
       - name: Check Standard.Site configuration
         id: configuration
         env:
-          STANDARD_SITE_PDS_URL: ${{ vars.STANDARD_SITE_PDS_URL }}
-          STANDARD_SITE_IDENTIFIER: ${{ vars.STANDARD_SITE_IDENTIFIER }}
-          STANDARD_SITE_APP_PASSWORD: ${{ secrets.STANDARD_SITE_APP_PASSWORD }}
-          PUBLIC_STANDARD_SITE_PUBLICATION_URI: ${{ vars.PUBLIC_STANDARD_SITE_PUBLICATION_URI }}
-          STANDARD_SITE_SYNC_ENABLED: ${{ vars.STANDARD_SITE_SYNC_ENABLED }}
+          WWW_STANDARD_SITE_PDS_URL: ${{ vars.WWW_STANDARD_SITE_PDS_URL }}
+          WWW_STANDARD_SITE_IDENTIFIER: ${{ vars.WWW_STANDARD_SITE_IDENTIFIER }}
+          WWW_STANDARD_SITE_APP_PASSWORD: ${{ secrets.WWW_STANDARD_SITE_APP_PASSWORD }}
+          WWW_STANDARD_SITE_PUBLICATION_URI: ${{ vars.WWW_STANDARD_SITE_PUBLICATION_URI }}
+          WWW_STANDARD_SITE_SYNC_ENABLED: ${{ vars.WWW_STANDARD_SITE_SYNC_ENABLED }}
         run: |
-          if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" && "$STANDARD_SITE_SYNC_ENABLED" != "true" ]]; then
+          if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" && "$WWW_STANDARD_SITE_SYNC_ENABLED" != "true" ]]; then
             echo "enabled=false" >> "$GITHUB_OUTPUT"
             echo "Automatic Standard.Site sync is not enabled; skipping sync."
-          elif [[ -n "$STANDARD_SITE_PDS_URL" && -n "$STANDARD_SITE_IDENTIFIER" && -n "$STANDARD_SITE_APP_PASSWORD" && -n "$PUBLIC_STANDARD_SITE_PUBLICATION_URI" ]]; then
+          elif [[ -n "$WWW_STANDARD_SITE_PDS_URL" && -n "$WWW_STANDARD_SITE_IDENTIFIER" && -n "$WWW_STANDARD_SITE_APP_PASSWORD" && -n "$WWW_STANDARD_SITE_PUBLICATION_URI" ]]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
@@ -71,7 +71,7 @@ jobs:
         if: steps.configuration.outputs.enabled == 'true'
         run: pnpm --filter @serial/www standard-site:sync ${{ inputs.dry_run && '--dry-run' || '' }} ${{ inputs.allow_large_delete && '--allow-large-delete' || '' }}
         env:
-          STANDARD_SITE_PDS_URL: ${{ vars.STANDARD_SITE_PDS_URL }}
-          STANDARD_SITE_IDENTIFIER: ${{ vars.STANDARD_SITE_IDENTIFIER }}
-          STANDARD_SITE_APP_PASSWORD: ${{ secrets.STANDARD_SITE_APP_PASSWORD }}
-          PUBLIC_STANDARD_SITE_PUBLICATION_URI: ${{ vars.PUBLIC_STANDARD_SITE_PUBLICATION_URI }}
+          WWW_STANDARD_SITE_PDS_URL: ${{ vars.WWW_STANDARD_SITE_PDS_URL }}
+          WWW_STANDARD_SITE_IDENTIFIER: ${{ vars.WWW_STANDARD_SITE_IDENTIFIER }}
+          WWW_STANDARD_SITE_APP_PASSWORD: ${{ secrets.WWW_STANDARD_SITE_APP_PASSWORD }}
+          WWW_STANDARD_SITE_PUBLICATION_URI: ${{ vars.WWW_STANDARD_SITE_PUBLICATION_URI }}

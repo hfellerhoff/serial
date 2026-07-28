@@ -31,8 +31,8 @@ const {
   publishDate,
 } = Astro.props;
 
-const umamiWebsiteId = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID;
-const umamiSrc = import.meta.env.PUBLIC_UMAMI_SRC;
+const umamiWebsiteId = import.meta.env.WWW_UMAMI_WEBSITE_ID;
+const umamiSrc = import.meta.env.WWW_UMAMI_SRC;
 
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
 const ogImageUrl = new URL(ogImage, Astro.site).toString();

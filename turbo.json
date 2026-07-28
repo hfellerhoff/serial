@@ -6,15 +6,18 @@
       "outputs": [".output/**", "dist/**"],
       "env": [
         "BACKGROUND_REFRESH_ENABLED",
-        "PUBLIC_APP_URL",
         "PUBLIC_BASE_URL",
         "PUBLIC_IS_MAIN_INSTANCE",
         "PUBLIC_IS_MAINTENANCE_MODE",
         "PUBLIC_SENTRY_DSN_WEB",
-        "PUBLIC_STANDARD_SITE_PUBLICATION_URI",
         "PUBLIC_SUPPORT_EMAIL_ADDRESS",
         "PUBLIC_UMAMI_SRC",
-        "PUBLIC_UMAMI_WEBSITE_ID"
+        "PUBLIC_UMAMI_WEBSITE_ID",
+        "WWW_APP_URL",
+        "WWW_STANDARD_SITE_PUBLICATION_URI",
+        "WWW_SUPPORT_EMAIL_ADDRESS",
+        "WWW_UMAMI_SRC",
+        "WWW_UMAMI_WEBSITE_ID"
       ],
       "passThroughEnv": [
         "BETTER_AUTH_SECRET",

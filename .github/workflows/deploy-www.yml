@@ -67,11 +67,11 @@ jobs:
 
       - run: pnpm --filter @serial/www build:artifact
         env:
-          PUBLIC_APP_URL: ${{ vars.PUBLIC_APP_URL }}
-          PUBLIC_SUPPORT_EMAIL_ADDRESS: ${{ vars.PUBLIC_SUPPORT_EMAIL_ADDRESS }}
-          PUBLIC_STANDARD_SITE_PUBLICATION_URI: ${{ vars.PUBLIC_STANDARD_SITE_PUBLICATION_URI }}
-          PUBLIC_UMAMI_WEBSITE_ID: ${{ vars.PUBLIC_UMAMI_WEBSITE_ID }}
-          PUBLIC_UMAMI_SRC: ${{ vars.PUBLIC_UMAMI_SRC }}
+          WWW_APP_URL: ${{ vars.WWW_APP_URL }}
+          WWW_SUPPORT_EMAIL_ADDRESS: ${{ vars.WWW_SUPPORT_EMAIL_ADDRESS }}
+          WWW_STANDARD_SITE_PUBLICATION_URI: ${{ vars.WWW_STANDARD_SITE_PUBLICATION_URI }}
+          WWW_UMAMI_WEBSITE_ID: ${{ vars.WWW_UMAMI_WEBSITE_ID }}
+          WWW_UMAMI_SRC: ${{ vars.WWW_UMAMI_SRC }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -91,19 +91,19 @@ jobs:
 
       - name: Upload to Bunny Storage
         env:
-          BUNNY_STORAGE_HOSTNAME: ${{ secrets.BUNNY_STORAGE_HOSTNAME }}
-          BUNNY_STORAGE: ${{ secrets.BUNNY_STORAGE }}
-          BUNNY_API_STORAGE: ${{ secrets.BUNNY_API_STORAGE }}
+          WWW_BUNNY_STORAGE_ZONE_ENDPOINT: ${{ secrets.WWW_BUNNY_STORAGE_ZONE_ENDPOINT }}
+          WWW_BUNNY_STORAGE_ZONE_NAME: ${{ secrets.WWW_BUNNY_STORAGE_ZONE_NAME }}
+          WWW_BUNNY_STORAGE_ZONE_PASSWORD: ${{ secrets.WWW_BUNNY_STORAGE_ZONE_PASSWORD }}
         run: |
           chmod +x .github/scripts/www/*.sh
           .github/scripts/www/deploy-to-bunny.sh
 
       - name: Purge Bunny Cache
         env:
-          BUNNY_API: ${{ secrets.BUNNY_API }}
-          BUNNY_PULL_ZONE_ID: ${{ secrets.BUNNY_PULL_ZONE_ID }}
+          WWW_BUNNY_API_KEY: ${{ secrets.WWW_BUNNY_API_KEY }}
+          WWW_BUNNY_PULL_ZONE_ID: ${{ secrets.WWW_BUNNY_PULL_ZONE_ID }}
         run: |
           curl --fail-with-body --show-error --silent \
             --retry 4 --retry-all-errors --connect-timeout 15 --max-time 120 \
-            -X POST "https://api.bunny.net/pullzone/$BUNNY_PULL_ZONE_ID/purgeCache" \
-            -H "AccessKey: $BUNNY_API"
+            -X POST "https://api.bunny.net/pullzone/$WWW_BUNNY_PULL_ZONE_ID/purgeCache" \
+            -H "AccessKey: $WWW_BUNNY_API_KEY"

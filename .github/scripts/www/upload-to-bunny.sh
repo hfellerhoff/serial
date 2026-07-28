@@ -6,7 +6,7 @@ file="${1:?usage: upload-to-bunny.sh FILE [REMOTE_PATH]}"
 remote_path="${2:-}"
 curl_bin="${CURL_BIN:-curl}"
 
-for name in BUNNY_STORAGE_HOSTNAME BUNNY_STORAGE BUNNY_API_STORAGE; do
+for name in WWW_BUNNY_STORAGE_ZONE_ENDPOINT WWW_BUNNY_STORAGE_ZONE_NAME WWW_BUNNY_STORAGE_ZONE_PASSWORD; do
   if [[ -z "${!name:-}" ]]; then
     echo "Missing required environment variable: $name" >&2
     exit 1
@@ -46,8 +46,8 @@ encoded_path="$(python3 -c 'import urllib.parse, sys; print(urllib.parse.quote(s
 "$curl_bin" --fail-with-body --show-error --silent \
   --retry 4 --retry-all-errors --connect-timeout 15 --max-time 120 \
   -X PUT \
-  -H "AccessKey: $BUNNY_API_STORAGE" \
+  -H "AccessKey: $WWW_BUNNY_STORAGE_ZONE_PASSWORD" \
   -H "Content-Type: application/octet-stream" \
   --data-binary "@$file" \
-  "https://$BUNNY_STORAGE_HOSTNAME/$BUNNY_STORAGE/$encoded_path"
+  "https://$WWW_BUNNY_STORAGE_ZONE_ENDPOINT/$WWW_BUNNY_STORAGE_ZONE_NAME/$encoded_path"
 echo "✓ uploaded $remote_path"

@@ -58,11 +58,11 @@ jobs:
           DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'ci-not-a-real-secret' }}
           PUBLIC_BASE_URL: http://localhost:3000
-          PUBLIC_APP_URL: ${{ vars.PUBLIC_APP_URL }}
-          PUBLIC_SUPPORT_EMAIL_ADDRESS: ${{ vars.PUBLIC_SUPPORT_EMAIL_ADDRESS }}
-          PUBLIC_STANDARD_SITE_PUBLICATION_URI: ${{ vars.PUBLIC_STANDARD_SITE_PUBLICATION_URI }}
-          PUBLIC_UMAMI_WEBSITE_ID: ${{ vars.PUBLIC_UMAMI_WEBSITE_ID }}
-          PUBLIC_UMAMI_SRC: ${{ vars.PUBLIC_UMAMI_SRC }}
+          WWW_APP_URL: ${{ vars.WWW_APP_URL }}
+          WWW_SUPPORT_EMAIL_ADDRESS: ${{ vars.WWW_SUPPORT_EMAIL_ADDRESS }}
+          WWW_STANDARD_SITE_PUBLICATION_URI: ${{ vars.WWW_STANDARD_SITE_PUBLICATION_URI }}
+          WWW_UMAMI_WEBSITE_ID: ${{ vars.WWW_UMAMI_WEBSITE_ID }}
+          WWW_UMAMI_SRC: ${{ vars.WWW_UMAMI_SRC }}
 
       - name: Check formatting
         run: pnpm format

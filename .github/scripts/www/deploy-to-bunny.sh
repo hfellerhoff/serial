@@ -6,10 +6,10 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/../../.." && pwd)"
 dist_dir="$repo_root/apps/www/dist"
 manifest_name=".serial-www-deploy-manifest-v1"
-upload_concurrency="${BUNNY_UPLOAD_CONCURRENCY:-20}"
+upload_concurrency="${WWW_BUNNY_UPLOAD_CONCURRENCY:-20}"
 curl_bin="${CURL_BIN:-curl}"
 
-for name in BUNNY_STORAGE_HOSTNAME BUNNY_STORAGE BUNNY_API_STORAGE; do
+for name in WWW_BUNNY_STORAGE_ZONE_ENDPOINT WWW_BUNNY_STORAGE_ZONE_NAME WWW_BUNNY_STORAGE_ZONE_PASSWORD; do
   if [[ -z "${!name:-}" ]]; then
     echo "Missing required environment variable: $name" >&2
     exit 1
@@ -21,7 +21,7 @@ if [[ ! -d "$dist_dir" ]]; then
   exit 1
 fi
 if [[ ! "$upload_concurrency" =~ ^[1-9][0-9]*$ ]]; then
-  echo "BUNNY_UPLOAD_CONCURRENCY must be a positive integer" >&2
+  echo "WWW_BUNNY_UPLOAD_CONCURRENCY must be a positive integer" >&2
   exit 1
 fi
 
@@ -42,12 +42,12 @@ while IFS= read -r -d '' file; do
 done < <(find "$dist_dir" -type f -print0)
 LC_ALL=C sort -o "$current_manifest" "$current_manifest"
 
-manifest_url="https://$BUNNY_STORAGE_HOSTNAME/$BUNNY_STORAGE/$manifest_name"
+manifest_url="https://$WWW_BUNNY_STORAGE_ZONE_ENDPOINT/$WWW_BUNNY_STORAGE_ZONE_NAME/$manifest_name"
 if ! manifest_status="$(
   "$curl_bin" --show-error --silent \
     --retry 4 --retry-all-errors --connect-timeout 15 --max-time 120 \
     --output "$previous_manifest" --write-out "%{http_code}" \
-    -H "AccessKey: $BUNNY_API_STORAGE" \
+    -H "AccessKey: $WWW_BUNNY_STORAGE_ZONE_PASSWORD" \
     "$manifest_url"
 )"; then
   echo "Failed to download the previous Bunny deployment manifest" >&2
