@@ -46,6 +46,8 @@ jobs:
         id: check
         env:
           BEFORE_SHA: ${{ github.event.before }}
+          TURBO_SCM_BASE: ${{ github.event.before }}
+          TURBO_SCM_HEAD: ${{ github.sha }}
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "app=true" >> "$GITHUB_OUTPUT"
