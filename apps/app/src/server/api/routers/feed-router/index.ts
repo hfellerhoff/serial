@@ -492,6 +492,11 @@ async function discoverYouTubeFeeds(url: string) {
 
   try {
     const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch YouTube channel page: ${response.status} ${response.statusText}`,
+      );
+    }
     const text = await response.text();
 
     const rssFeedUrlMatches = text.matchAll(

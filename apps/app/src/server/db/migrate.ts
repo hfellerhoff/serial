@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import { config } from "dotenv";
 import { sql } from "drizzle-orm";
+import { z } from "zod";
 
 // Load .env.local for local dev/build. In production the platform provides env
 // vars directly; during e2e tests dotenv-cli injects them from .env.test.* files.
@@ -17,11 +18,17 @@ const POST_MIGRATIONS_FOLDER = "src/server/db/post-migrations";
 const MIGRATIONS_TABLE = "__drizzle_migrations";
 const CONNECT_TIMEOUT_MS = 30_000;
 
-interface JournalEntry {
-  idx: number;
-  tag: string;
-  when: number;
-}
+const journalSchema = z.object({
+  entries: z.array(
+    z.object({
+      idx: z.number(),
+      tag: z.string(),
+      when: z.number(),
+    }),
+  ),
+});
+
+type JournalEntry = z.infer<typeof journalSchema>["entries"][number];
 
 type PostMigrationFile = {
   name: string;
@@ -36,7 +43,13 @@ function readJournal(): JournalEntry[] {
     );
   }
   const raw = fs.readFileSync(journalPath, "utf-8");
-  const entries = (JSON.parse(raw) as { entries: JournalEntry[] }).entries;
+  const journal = journalSchema.safeParse(JSON.parse(raw));
+  if (!journal.success) {
+    throw new Error(`Invalid migration journal at ${journalPath}`, {
+      cause: journal.error,
+    });
+  }
+  const { entries } = journal.data;
 
   for (const entry of entries) {
     const migrationPath = `${MIGRATIONS_FOLDER}/${entry.tag}.sql`;

@@ -78,6 +78,11 @@ export async function fetchNewFeedDetails(
     (url.includes("youtube.com/@") || url.includes("youtube.com/channel/"))
   ) {
     const feed = await fetch(url);
+    if (!feed.ok) {
+      throw new Error(
+        `Failed to fetch YouTube channel page: ${feed.status} ${feed.statusText}`,
+      );
+    }
     const text = await feed.text();
 
     const rssFeedUrlMatches = text.matchAll(

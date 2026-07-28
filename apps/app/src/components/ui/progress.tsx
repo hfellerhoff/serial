@@ -21,7 +21,7 @@ const Progress = ({
     {...props}
   >
     <ProgressPrimitive.Indicator
-      className="bg-muted-foreground h-full w-full flex-1 transition-all"
+      className="bg-muted-foreground h-full w-full flex-1 transition-transform"
       style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
     />
   </ProgressPrimitive.Root>

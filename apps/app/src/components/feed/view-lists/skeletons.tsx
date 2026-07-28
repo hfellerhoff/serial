@@ -60,7 +60,7 @@ function LargeGridItemSkeleton() {
 
 export function StandardListSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-3xl transition-all md:pt-2">
+    <div className="mx-auto w-full max-w-3xl md:pt-2">
       {Array.from({ length: 8 }).map((_, i) => (
         <ListItemSkeleton key={i} />
       ))}
@@ -70,7 +70,7 @@ export function StandardListSkeleton() {
 
 export function LargeListSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-3xl transition-all md:pt-2">
+    <div className="mx-auto w-full max-w-3xl md:pt-2">
       {Array.from({ length: 6 }).map((_, i) => (
         <LargeListItemSkeleton key={i} />
       ))}

@@ -75,6 +75,11 @@ export async function fetchNebulaFeedDetails(
   try {
     const rssUrl = convertNebulaUrlToRssUrl(url);
     const response = await fetch(rssUrl);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch Nebula feed: ${response.status} ${response.statusText}`,
+      );
+    }
     const text = await response.text();
     const rssData = await parser.parseString(text);
 
