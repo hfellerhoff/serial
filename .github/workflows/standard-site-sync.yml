@@ -40,8 +40,12 @@ jobs:
           STANDARD_SITE_IDENTIFIER: ${{ vars.STANDARD_SITE_IDENTIFIER }}
           STANDARD_SITE_APP_PASSWORD: ${{ secrets.STANDARD_SITE_APP_PASSWORD }}
           PUBLIC_STANDARD_SITE_PUBLICATION_URI: ${{ vars.PUBLIC_STANDARD_SITE_PUBLICATION_URI }}
+          STANDARD_SITE_SYNC_ENABLED: ${{ vars.STANDARD_SITE_SYNC_ENABLED }}
         run: |
-          if [[ -n "$STANDARD_SITE_PDS_URL" && -n "$STANDARD_SITE_IDENTIFIER" && -n "$STANDARD_SITE_APP_PASSWORD" && -n "$PUBLIC_STANDARD_SITE_PUBLICATION_URI" ]]; then
+          if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" && "$STANDARD_SITE_SYNC_ENABLED" != "true" ]]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Automatic Standard.Site sync is not enabled; skipping sync."
+          elif [[ -n "$STANDARD_SITE_PDS_URL" && -n "$STANDARD_SITE_IDENTIFIER" && -n "$STANDARD_SITE_APP_PASSWORD" && -n "$PUBLIC_STANDARD_SITE_PUBLICATION_URI" ]]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"

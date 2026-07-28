@@ -67,6 +67,9 @@ jobs:
       - name: Check formatting
         run: pnpm format
 
+      - name: Test deployment change detection
+        run: .github/scripts/test-check-deployable-affected.sh
+
   e2e:
     needs: changes
     if: needs.changes.outputs.app == 'true'

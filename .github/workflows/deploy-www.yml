@@ -11,6 +11,7 @@ on:
       - "pnpm-workspace.yaml"
       - "turbo.json"
       - ".node-version"
+      - ".github/scripts/check-deployable-affected.sh"
       - ".github/scripts/www/**"
       - ".github/workflows/deploy-www.yml"
   workflow_dispatch:
@@ -24,6 +25,7 @@ concurrency:
 
 jobs:
   affected:
+    if: github.repository == 'megaflorasoftware/serial'
     runs-on: ubuntu-latest
     outputs:
       www: ${{ steps.check.outputs.www }}
@@ -45,36 +47,7 @@ jobs:
         id: check
         env:
           BEFORE_SHA: ${{ github.event.before }}
-          TURBO_SCM_BASE: ${{ github.event.before }}
-          TURBO_SCM_HEAD: ${{ github.sha }}
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "www=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # Turbo's affected calculation only reports package tasks. Root files
-          # that control the site build or deployment must force a deployment.
-          if ! git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
-            echo "www=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          while IFS= read -r changed_file; do
-            case "$changed_file" in
-              package.json|pnpm-lock.yaml|pnpm-workspace.yaml|turbo.json|.node-version|.github/workflows/deploy-www.yml|.github/scripts/www/*)
-                echo "www=true" >> "$GITHUB_OUTPUT"
-                exit 0
-                ;;
-            esac
-          done < <(git diff --name-only --no-renames "$BEFORE_SHA" "$GITHUB_SHA")
-
-          pnpm exec turbo run build:artifact --affected --dry=json > affected.json
-          if jq -e '.tasks[] | select(.taskId == "@serial/www#build:artifact")' affected.json > /dev/null; then
-            echo "www=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "www=false" >> "$GITHUB_OUTPUT"
-          fi
+        run: .github/scripts/check-deployable-affected.sh www
 
   build:
     needs: affected

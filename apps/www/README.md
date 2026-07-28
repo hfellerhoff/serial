@@ -23,7 +23,7 @@ The site is fully static, so the landing page checks for a session client-side: 
 
 ## Deployment
 
-Pushes to `main` run `.github/workflows/deploy-www.yml`, which builds the site, reconciles `apps/www/dist/` with Bunny Storage, and purges the Bunny pull-zone cache. Required repo secrets: `BUNNY_STORAGE_HOSTNAME`, `BUNNY_STORAGE`, `BUNNY_API_STORAGE`, `BUNNY_API`, `BUNNY_PULL_ZONE_ID`; repo variables: `PUBLIC_SUPPORT_EMAIL_ADDRESS`, `PUBLIC_STANDARD_SITE_PUBLICATION_URI`. The canonical host is `www.serial.tube` — redirect the apex domain to it at the DNS/CDN level.
+Pushes to `main` run `.github/workflows/deploy-www.yml`, which builds the site, reconciles `apps/www/dist/` with Bunny Storage, and purges the Bunny pull-zone cache. Required repo secrets: `BUNNY_STORAGE_HOSTNAME`, `BUNNY_STORAGE`, `BUNNY_API_STORAGE`, `BUNNY_API`, `BUNNY_PULL_ZONE_ID`; repo variables: `PUBLIC_APP_URL`, `PUBLIC_SUPPORT_EMAIL_ADDRESS`, `PUBLIC_STANDARD_SITE_PUBLICATION_URI`, `PUBLIC_UMAMI_WEBSITE_ID`, `PUBLIC_UMAMI_SRC`. The canonical host is `www.serial.tube` — redirect the apex domain to it at the DNS/CDN level.
 
 ## Development
 
@@ -37,4 +37,4 @@ Environment variables are documented in `.env.example`.
 
 ## Standard.Site sync
 
-`pnpm standard-site:sync` publishes guides and release notes as `site.standard.document` records to an AT Protocol PDS, reading the markdown in `src/content` directly. Use `--dry-run` to preview and `--allow-large-delete` to override the delete guard. Requires the `STANDARD_SITE_*` variables from `.env.example`.
+`pnpm --filter @serial/www standard-site:sync` publishes guides and release notes as `site.standard.document` records to an AT Protocol PDS, reading the markdown in `src/content` directly. Use `--dry-run` to preview and `--allow-large-delete` to override the delete guard. Requires the `STANDARD_SITE_*` variables from `.env.example`. The GitHub workflow always supports manual runs when credentials are configured; automatic push-triggered syncs also require the repository variable `STANDARD_SITE_SYNC_ENABLED=true`.

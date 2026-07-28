@@ -4,7 +4,7 @@
 
 1. Fork the `megaflorasoftware/serial` repository to your own GitHub account.
 2. Login to [Vercel](https://vercel.com/) and follow the onboarding to link your GitHub account.
-3. Import the `serial` repository. Before deploying, edit the project's **Root Directory** and select `apps/app`, then hit deploy. Your initial deployment will fail until the required environment variables are configured—that's okay.
+3. Import the `serial` repository. Before deploying, edit the project's **Root Directory** and select `apps/app`. Enable **Include source files outside of the Root Directory in the Build Step** so Vercel can access the workspace lockfile and configuration, then hit deploy. Your initial deployment will fail until the required environment variables are configured—that's okay.
 4. Within your project, navigate to `Settings > Domains`. You have a few options for project domains:
    1. You can copy the provided domain as is
    2. You can update the provided domain with a new name
@@ -22,6 +22,6 @@
 
 ## Upgrading an existing Vercel deployment
 
-If the project was created before Serial moved to a monorepo, open `Settings > Build and Deployment`, set **Root Directory** to `apps/app`, save the change, and redeploy. Vercel will detect the surrounding pnpm workspace and install the app's workspace dependencies. Serial requires Node.js 22.12 or newer.
+If the project was created before Serial moved to a monorepo, open `Settings > Build and Deployment`, set **Root Directory** to `apps/app`, and enable **Include source files outside of the Root Directory in the Build Step**. Save the changes and redeploy. Vercel will detect the surrounding pnpm workspace and install the app's workspace dependencies. Serial requires Node.js 22.12 or newer.
 
 If you'd like to support additional features, [see this section](https://github.com/megaflorasoftware/serial#enabling-additional-features)!

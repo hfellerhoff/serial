@@ -5,7 +5,7 @@ export const IS_MAIN_INSTANCE = getPublicConfigKey("PUBLIC_IS_MAIN_INSTANCE");
 
 export const BASE_SIGNED_OUT_URL = "/auth/sign-in";
 
-/** The public marketing website (serial-www repo). */
+/** The public marketing website. */
 export const MAIN_SITE_URL = "https://www.serial.tube";
 
 export function getGuidesUrl(path = "") {
