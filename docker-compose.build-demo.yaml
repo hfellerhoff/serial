@@ -29,6 +29,7 @@ services:
   server:
     build:
       context: .
+      dockerfile: apps/app/Dockerfile
       target: final-demo
       args:
         DATABASE_URL: http://libsql:8080
