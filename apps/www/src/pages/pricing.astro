@@ -1,0 +1,149 @@
+---
+import FooterCTA from "../components/FooterCTA.astro";
+import Icon from "../components/Icon.astro";
+import PageHeader from "../components/PageHeader.astro";
+import Site from "../layouts/Site.astro";
+import {
+  FREE_PLAN,
+  getMonthlyFromAnnual,
+  PLAN_PRICES,
+  PRO_PLAN,
+  STANDARD_FEATURES,
+  STANDARD_PLANS,
+} from "../lib/plans";
+import { SELF_HOSTING_URL, SUPPORT_EMAIL_ADDRESS } from "../lib/site";
+---
+
+<Site title="Pricing | Serial">
+  <div class="py-4 md:py-8">
+    <PageHeader
+      icon="coins"
+      title="Pricing"
+      description="This pricing is for the main, hosted instance of Serial. Prices are based on the number of active feeds you have."
+    />
+    <section class="relative mx-auto max-w-7xl px-6">
+      <div class="flex flex-col gap-6 lg:flex-row">
+        <div class="card flex-2 p-6">
+          <div class="flex items-center gap-2">
+            <Icon name="sprout" size={20} />
+            <h3 class="text-xl font-bold">{FREE_PLAN.name}</h3>
+          </div>
+          <ul class="space-y-2">
+            {
+              FREE_PLAN.features.map((feature) => (
+                <li class="flex items-center gap-2">
+                  <Icon name="check" size={16} />
+                  {feature}
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+
+        <div class="card flex-3 p-6">
+          <div class="flex items-center gap-2">
+            <Icon name="tree-deciduous" size={20} />
+            <h3 class="text-xl font-bold">Standard</h3>
+          </div>
+          <ul class="space-y-2">
+            {
+              STANDARD_FEATURES.map((feature) => (
+                <li class="flex items-center gap-2">
+                  <Icon name="check" size={16} />
+                  {feature}
+                </li>
+              ))
+            }
+          </ul>
+          <div class="space-y-4">
+            {
+              STANDARD_PLANS.map((plan) => (
+                <div class="rounded border p-3">
+                  <div class="flex items-center justify-between">
+                    <span class="font-bold">{plan.quotaName}</span>
+                    <span class="text-md font-bold">
+                      ${PLAN_PRICES[plan.id].monthly}/mo ·{" "}
+                      <span
+                        tabindex="0"
+                        class="cursor-default underline decoration-dotted underline-offset-4"
+                        data-tooltip={`$${getMonthlyFromAnnual(PLAN_PRICES[plan.id].annual)}/mo`}
+                      >
+                        ${PLAN_PRICES[plan.id].annual}/yr
+                      </span>
+                    </span>
+                  </div>
+                  <p class="text-muted-foreground text-sm">
+                    Up to {plan.maxActiveFeeds.toLocaleString("en-US")} active
+                    feeds
+                  </p>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+
+        <div class="card flex-2 p-6">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <Icon name="trees" size={20} />
+              <h3 class="text-xl font-bold">{PRO_PLAN.name}</h3>
+            </div>
+            <div class="text-md font-bold lg:text-lg">
+              ${PLAN_PRICES.pro.monthly}/mo ·{" "}
+              <span
+                tabindex="0"
+                class="cursor-default underline decoration-dotted underline-offset-4"
+                data-tooltip={`$${getMonthlyFromAnnual(PLAN_PRICES.pro.annual)}/mo`}
+              >
+                ${PLAN_PRICES.pro.annual}/yr
+              </span>
+            </div>
+          </div>
+          <ul class="space-y-2">
+            {
+              PRO_PLAN.features.map((feature) => (
+                <li class="flex items-center gap-2">
+                  <Icon name="check" size={16} />
+                  {feature}
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-xl space-y-6 px-6 py-12 text-xl text-pretty md:py-24">
+      <p>
+        If the cost of Serial is too much for you, anyone can run an instance
+        of Serial for themselves. You won&apos;t need to pay us anything, but
+        you will need to have a dedicated computer to run it on, which can be
+        as cheap as $5-6 a month.
+      </p>
+      <p>
+        This can be a great option for users who are very privacy-conscious, or
+        for those looking to provide Serial as a service for their friends or
+        family.
+      </p>
+      <p>
+        <a class="underline" href={SELF_HOSTING_URL}>
+          Here is the step-by-step guide
+        </a>{" "}
+        on how to host your own Serial instance.
+      </p>
+      {
+        SUPPORT_EMAIL_ADDRESS && (
+          <p class="italic">
+            If Serial is cost-prohibitive and self-hosting is not feasible for
+            you, don&apos;t hesitate to{" "}
+            <a href={`mailto:${SUPPORT_EMAIL_ADDRESS}`} class="underline">
+              get in touch
+            </a>{" "}
+            – we&apos;d be happy to work something out.
+          </p>
+        )
+      }
+    </section>
+    <FooterCTA />
+  </div>
+</Site>

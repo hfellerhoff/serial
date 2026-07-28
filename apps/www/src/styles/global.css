@@ -1,0 +1,281 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+  Theme variables ported from the Serial app (src/styles/globals.css) so the
+  website matches the app's look. Colors derive from a base hue/sat/lightness.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+
+  :root {
+    --radius: 0.5rem;
+
+    --light-hue: 60;
+    --light-sat: 10%;
+    --light-lgt: 100%;
+
+    --dark-hue: 60;
+    --dark-sat: 10%;
+    --dark-lgt: 15%;
+  }
+
+  :root {
+    --bg-hue: var(--light-hue);
+    --bg-sat: var(--light-sat);
+    --bg-lgt: var(--light-lgt);
+
+    --fg-hue: calc(var(--bg-hue) - 40);
+    --fg-sat: calc(var(--bg-sat) + 5%);
+    --fg-lgt: calc(var(--bg-lgt) - 85%);
+
+    --pr-hue: calc(var(--bg-hue) + 8);
+    --pr-sat: calc(var(--bg-sat) + 5%);
+    --pr-lgt: var(--bg-lgt);
+
+    --sc-hue: calc(var(--bg-hue) + 8);
+    --sc-sat: calc(var(--bg-sat) * 0.9);
+    --sc-lgt: calc(var(--bg-lgt) - 7.5%);
+
+    --mf-hue: calc(var(--bg-hue) - 8);
+    --mf-sat: calc(var(--bg-sat) - 10%);
+    --mf-lgt: calc(var(--bg-lgt) - 50%);
+
+    --rg-lgt: calc(var(--bg-lgt) - 70%);
+
+    --ds-hue: 0;
+    --ds-sat: 60%;
+    --ds-lgt: 30%;
+
+    --background: var(--bg-hue) var(--bg-sat) var(--bg-lgt);
+    --foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --card: var(--bg-hue) var(--bg-sat) var(--bg-lgt);
+    --card-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --primary: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --primary-foreground: var(--pr-hue) var(--pr-sat) var(--pr-lgt);
+    --secondary: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --secondary-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --muted: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --muted-foreground: var(--mf-hue) var(--mf-sat) var(--mf-lgt);
+    --accent: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --accent-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --destructive: var(--ds-hue) var(--ds-sat) var(--ds-lgt);
+    --destructive-foreground: var(--bg-hue) var(--bg-sat) var(--bg-lgt);
+    --border: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --input: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --ring: var(--mf-hue) var(--mf-sat) var(--rg-lgt);
+  }
+
+  .dark {
+    --bg-hue: var(--dark-hue);
+    --bg-sat: var(--dark-sat);
+    --bg-lgt: var(--dark-lgt);
+
+    --fg-hue: calc(var(--bg-hue) + 40);
+    --fg-sat: calc(var(--bg-sat) - 5%);
+    --fg-lgt: calc(var(--bg-lgt) + 85%);
+
+    --pr-hue: calc(var(--bg-hue) - 8);
+    --pr-sat: calc(var(--bg-sat) - 5%);
+    --pr-lgt: var(--bg-lgt);
+
+    --sc-hue: calc(var(--bg-hue) - 8);
+    --sc-sat: calc(var(--bg-sat) - 10%);
+    --sc-lgt: max(calc(var(--bg-lgt) * 1.5), calc(var(--bg-lgt) + 10%));
+
+    --mf-hue: calc(var(--bg-hue) + 8);
+    --mf-sat: calc(var(--bg-sat) - 10%);
+    --mf-lgt: calc(var(--bg-lgt) + 50%);
+
+    --rg-lgt: calc(var(--bg-lgt) + 70%);
+
+    --destructive-foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+  }
+
+  :root {
+    --font-sans: "Outfit Variable", sans-serif;
+  }
+
+  * {
+    @apply border-border font-sans;
+  }
+
+  body,
+  html {
+    @apply bg-background text-foreground;
+  }
+}
+
+@theme inline {
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+/* Button styles ported from the app's shadcn button variants. */
+@layer components {
+  .btn {
+    @apply inline-flex h-9 cursor-pointer items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium whitespace-nowrap text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden;
+  }
+
+  .btn-outline {
+    @apply bg-background text-foreground shadow-xs hover:bg-accent hover:text-accent-foreground border border-input;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80;
+  }
+
+  .btn-link {
+    @apply bg-transparent text-primary shadow-none underline-offset-4 hover:bg-transparent hover:underline;
+  }
+
+  .btn-lg {
+    @apply h-10 rounded-md px-8;
+  }
+
+  .card {
+    @apply bg-card text-card-foreground flex flex-col gap-6 rounded-xl border shadow-sm;
+  }
+
+  /* CSS-only stand-in for the app's shadcn tooltip. */
+  [data-tooltip] {
+    @apply relative;
+  }
+
+  [data-tooltip]::after {
+    content: attr(data-tooltip);
+    @apply bg-primary text-primary-foreground pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 w-max -translate-x-1/2 rounded-md px-3 py-1.5 text-xs font-medium opacity-0 shadow-md transition-opacity;
+  }
+
+  [data-tooltip]:hover::after,
+  [data-tooltip]:focus-visible::after {
+    @apply opacity-100;
+  }
+}
+
+/* Markdown article styles for guides and release notes, ported from the app. */
+@layer base {
+  .guides {
+    color: var(--foreground);
+    @apply mx-auto max-w-2xl;
+  }
+
+  .guides h1 {
+    @apply font-sans text-3xl leading-relaxed font-bold md:text-4xl;
+  }
+
+  .guides h2 {
+    @apply font-sans text-2xl leading-relaxed font-bold md:text-3xl;
+  }
+
+  .guides h3 {
+    @apply font-sans text-xl leading-relaxed font-bold md:text-2xl;
+  }
+
+  .guides h4 {
+    @apply font-sans text-lg leading-relaxed font-bold md:text-xl;
+  }
+
+  .guides h5 {
+    @apply font-sans text-lg leading-relaxed font-bold;
+  }
+
+  .guides h6 {
+    @apply font-sans text-lg leading-relaxed font-bold;
+  }
+
+  .guides a {
+    @apply text-foreground underline;
+  }
+
+  .guides h1 a,
+  .guides h2 a,
+  .guides h3 a,
+  .guides h4 a,
+  .guides h5 a,
+  .guides h6 a {
+    @apply pointer-events-none no-underline;
+  }
+
+  .guides hr {
+    @apply my-12;
+  }
+
+  .guides ul {
+    @apply text-foreground my-1 list-disc pl-5 text-lg;
+  }
+
+  .guides ol {
+    @apply text-foreground my-1 list-decimal pl-5 text-lg;
+  }
+
+  .guides p {
+    @apply text-foreground text-lg;
+  }
+
+  .guides var {
+    @apply border-muted-foreground/50 rounded-full border border-dashed px-1.5 py-0.5 text-sm font-semibold not-italic;
+  }
+
+  .guides kbd {
+    @apply bg-muted border-muted-foreground/20 rounded border border-b-2 border-solid px-1.5 py-0.5 text-sm;
+  }
+
+  .guides code {
+    @apply bg-muted rounded px-px py-px text-base;
+  }
+
+  .guides img {
+    @apply rounded shadow-md;
+  }
+
+  .article-flow {
+    --article-flow-space: 1.5rem;
+  }
+
+  .article-flow > * + * {
+    margin-block-start: var(--article-flow-space);
+  }
+
+  .article-flow > * + :is(h1, h2, h3, h4, h5, h6) {
+    margin-block-start: calc(var(--article-flow-space) * 1.5);
+  }
+
+  .article-flow
+    > :is(h1, h2, h3, h4, h5, h6)
+    + :is(p, ul, ol) {
+    margin-block-start: calc(var(--article-flow-space) / 2);
+  }
+}

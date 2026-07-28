@@ -1,0 +1,16 @@
+---
+import { getMostRecentRelease } from "../lib/content";
+
+const mostRecentRelease = await getMostRecentRelease();
+---
+
+{
+  mostRecentRelease && (
+    <a
+      href={`/releases/${mostRecentRelease.id}`}
+      class="bg-foreground text-background hover:text-background z-10 flex h-12 items-center justify-center text-center hover:underline"
+    >
+      New Release: {mostRecentRelease.data.title} →
+    </a>
+  )
+}

@@ -1,0 +1,35 @@
+---
+import dayjs from "dayjs";
+
+interface Props {
+  items: Array<{
+    href: string;
+    title: string;
+    description?: string;
+    publishDate: string;
+  }>;
+}
+
+const { items } = Astro.props;
+---
+
+<div class="mx-auto max-w-3xl px-6">
+  <ul class="mt-8 list-none space-y-8 p-0">
+    {!items.length && <p class="text-xl">Nothing to see here. Check back soon!</p>}
+    {
+      items.map((item) => (
+        <li>
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+            <a href={item.href} class="text-xl font-bold underline">
+              {item.title}
+            </a>
+            <p class="text-muted-foreground text-lg font-semibold">
+              {dayjs(item.publishDate).format("MMMM DD, YYYY")}
+            </p>
+          </div>
+          {item.description && <p class="mt-2 text-lg">{item.description}</p>}
+        </li>
+      ))
+    }
+  </ul>
+</div>

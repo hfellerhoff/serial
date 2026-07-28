@@ -1,0 +1,21 @@
+---
+import ContentList from "../../components/ContentList.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import Site from "../../layouts/Site.astro";
+import { getAllReleases } from "../../lib/content";
+
+const releases = await getAllReleases();
+const items = releases.map((release) => ({
+  href: `/releases/${release.id}`,
+  title: release.data.title,
+  description: release.data.description,
+  publishDate: release.data.publish_date,
+}));
+---
+
+<Site title="Releases | Serial">
+  <div class="pt-8 pb-12 md:pt-12 md:pb-24">
+    <PageHeader icon="container" title="Releases" />
+    <ContentList items={items} />
+  </div>
+</Site>

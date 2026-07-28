@@ -1,0 +1,127 @@
+---
+import "@fontsource-variable/outfit";
+import "../styles/global.css";
+
+import { ClientRouter } from "astro:transitions";
+import Nav from "../components/Nav.astro";
+import ReleaseBanner from "../components/ReleaseBanner.astro";
+import {
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  STANDARD_SITE_PUBLICATION_URI,
+} from "../lib/site";
+import { getConfiguredPublicationUri } from "../lib/standard-site";
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** at:// URI of the matching site.standard.document record, if any. */
+  documentUri?: string;
+  ogImage?: string;
+  ogType?: string;
+  publishDate?: string;
+}
+
+const {
+  title = SITE_NAME,
+  description = SITE_DESCRIPTION,
+  documentUri,
+  ogImage = "/og-image.png",
+  ogType = "website",
+  publishDate,
+} = Astro.props;
+
+const umamiWebsiteId = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID;
+const umamiSrc = import.meta.env.PUBLIC_UMAMI_SRC;
+
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
+const ogImageUrl = new URL(ogImage, Astro.site).toString();
+const publicationUri = getConfiguredPublicationUri(
+  STANDARD_SITE_PUBLICATION_URI,
+);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="application-name" content={SITE_NAME} />
+    <meta
+      name="keywords"
+      content="video, rss, newsletter, content, youtube, podcast"
+    />
+    <meta name="author" content="Henry Fellerhoff" />
+    <meta name="theme-color" content="hsl(20 14.3% 4.1%)" />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:alt" content={title} />
+    {
+      ogImage !== "/og-image.png" && (
+        <>
+          <meta property="og:image:width" content="1200" />
+          <meta property="og:image:height" content="630" />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={title} />
+          <meta name="twitter:description" content={description} />
+          <meta name="twitter:image" content={ogImageUrl} />
+        </>
+      )
+    }
+    {
+      publishDate && (
+        <meta property="article:published_time" content={publishDate} />
+      )
+    }
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    {
+      publicationUri && (
+        <link rel="site.standard.publication" href={publicationUri} />
+      )
+    }
+    {documentUri && <link rel="site.standard.document" href={documentUri} />}
+    {
+      umamiSrc && umamiWebsiteId && (
+        <script
+          is:inline
+          async
+          defer
+          data-website-id={umamiWebsiteId}
+          src={umamiSrc}
+        />
+      )
+    }
+    <ClientRouter />
+    <script is:inline>
+      // Match the app's dark mode by following the system preference. The
+      // class must be re-applied after client-router swaps replace <html>
+      // attributes.
+      (() => {
+        const media = window.matchMedia("(prefers-color-scheme: dark)");
+        const applyTheme = () => {
+          document.documentElement.classList.toggle("dark", media.matches);
+        };
+        applyTheme();
+        media.addEventListener("change", applyTheme);
+        document.addEventListener("astro:after-swap", applyTheme);
+      })();
+    </script>
+  </head>
+  <body>
+    <main class="bg-background text-pretty">
+      <ReleaseBanner />
+      <Nav />
+      <slot />
+    </main>
+  </body>
+</html>

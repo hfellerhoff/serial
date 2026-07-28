@@ -1,0 +1,53 @@
+---
+import Icon from "./Icon.astro";
+
+// A lightweight stand-in for the app's appearance editor: swatches that
+// retint this page live by changing the base theme hue variables.
+const THEME_SWATCHES = [
+  { name: "Default", hue: 60, saturation: 10 },
+  { name: "Sky", hue: 220, saturation: 30 },
+  { name: "Forest", hue: 140, saturation: 25 },
+  { name: "Rose", hue: 340, saturation: 30 },
+  { name: "Amber", hue: 40, saturation: 45 },
+];
+---
+
+<div class="inline-flex items-center gap-2" data-theme-demo>
+  <span
+    class="text-muted-foreground inline-flex items-center gap-1.5 text-sm font-medium"
+  >
+    <Icon name="palette" size={16} /> Try it:
+  </span>
+  {
+    THEME_SWATCHES.map((swatch) => (
+      <button
+        type="button"
+        data-hue={swatch.hue}
+        data-saturation={swatch.saturation}
+        title={swatch.name}
+        aria-label={`Preview the ${swatch.name} theme`}
+        class="border-muted-foreground/40 size-6 cursor-pointer rounded-full border transition-transform hover:scale-110"
+        style={`background: hsl(${swatch.hue} ${Math.max(swatch.saturation, 25)}% 70%)`}
+      />
+    ))
+  }
+</div>
+
+<script>
+  // Re-bind after every client-router navigation, not just the initial load.
+  function bindThemeDemo() {
+    const root = document.documentElement;
+    const container = document.querySelector("[data-theme-demo]");
+    container?.querySelectorAll("button").forEach((button) => {
+      button.addEventListener("click", () => {
+        const { hue, saturation } = button.dataset;
+        for (const mode of ["light", "dark"]) {
+          root.style.setProperty(`--${mode}-hue`, hue ?? "60");
+          root.style.setProperty(`--${mode}-sat`, `${saturation ?? 10}%`);
+        }
+      });
+    });
+  }
+
+  document.addEventListener("astro:page-load", bindThemeDemo);
+</script>

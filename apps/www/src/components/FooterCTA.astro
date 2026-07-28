@@ -1,0 +1,52 @@
+---
+import {
+    APP_URL,
+    DEMO_URL,
+    SELF_HOSTING_URL,
+    SUPPORT_EMAIL_ADDRESS,
+} from "../lib/site";
+import Icon from "./Icon.astro";
+---
+
+<div
+    class="border-foreground mx-auto max-w-4xl border-4 border-x-0 border-dashed px-6 py-16 md:border-x-4"
+>
+    <section
+        class="relative mx-auto max-w-xl text-center text-2xl text-pretty md:py-16 md:text-3xl"
+    >
+        <p>Ready to take back control of your content?</p>
+        <div class="mt-6 flex items-center justify-center gap-2">
+            <a href={APP_URL} class="btn btn-lg text-base">Get Started</a>
+            <a
+                href={DEMO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-outline btn-lg gap-2 text-base"
+            >
+                Try Demo <Icon name="external-link" size={16} />
+            </a>
+        </div>
+        <div class="mt-2">
+            <a
+                href={SELF_HOSTING_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-link btn-lg gap-2 text-base"
+            >
+                Host your own instance <Icon name="arrow-right" size={16} />
+            </a>
+        </div>
+    </section>
+</div>
+{
+    SUPPORT_EMAIL_ADDRESS && (
+        <section class="space-y-2 px-6 py-8 text-center md:py-16">
+            <p class="text-lg">
+                Have a question? Reach us at{" "}
+                <a href={`mailto:${SUPPORT_EMAIL_ADDRESS}`} class="underline">
+                    {SUPPORT_EMAIL_ADDRESS}
+                </a>
+            </p>
+        </section>
+    )
+}

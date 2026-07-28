@@ -1,0 +1,102 @@
+---
+import { render } from "astro:content";
+import dayjs from "dayjs";
+import FooterCTA from "../../components/FooterCTA.astro";
+import Icon from "../../components/Icon.astro";
+import Site from "../../layouts/Site.astro";
+import { getAllGuides } from "../../lib/content";
+import { STANDARD_SITE_PUBLICATION_URI } from "../../lib/site";
+import {
+  buildDocumentUri,
+  buildGuideDocumentSource,
+  getConfiguredPublicationUri,
+} from "../../lib/standard-site";
+
+export async function getStaticPaths() {
+  const guides = await getAllGuides();
+  return guides.map((guide) => ({
+    params: { slug: guide.id },
+    props: { guide },
+  }));
+}
+
+const GUIDE_ICONS: Record<string, string> = {
+  youtube: "youtube",
+  rss: "rss",
+  "book-open": "book-open",
+  "pen-line": "pen-line",
+};
+
+const { guide } = Astro.props;
+const { Content } = await render(guide);
+
+const iconName = guide.data.icon ? GUIDE_ICONS[guide.data.icon] : undefined;
+const description =
+  guide.data.description ?? `Guide for ${guide.data.title}`;
+
+const publicationUri = getConfiguredPublicationUri(
+  STANDARD_SITE_PUBLICATION_URI,
+);
+const documentUri = publicationUri
+  ? buildDocumentUri(
+      publicationUri,
+      buildGuideDocumentSource({
+        slug: guide.id,
+        title: guide.data.title,
+        content: guide.body ?? "",
+        publish_date: guide.data.publish_date,
+        description: guide.data.description,
+        updated_at: guide.data.updated_at,
+      }),
+    )
+  : undefined;
+---
+
+<Site
+  title={`${guide.data.title} | Serial`}
+  description={description}
+  ogImage={`/og/guides/${guide.id}.png`}
+  ogType="article"
+  publishDate={guide.data.publish_date}
+  documentUri={documentUri}
+>
+  <div class="pt-8 pb-12 md:pt-12 md:pb-24">
+    <article class="mx-auto max-w-3xl px-6 text-xl text-pretty">
+      <div class="mx-auto mt-20 mb-12 max-w-2xl text-center text-balance">
+        {
+          iconName && (
+            <div class="bg-muted mb-6 inline-flex items-center justify-center rounded-xl p-4">
+              <Icon name={iconName} size={32} class="text-muted-foreground" />
+            </div>
+          )
+        }
+        <h1 class="text-3xl leading-tight font-bold md:text-4xl">
+          {guide.data.title}
+        </h1>
+        {
+          guide.data.description && (
+            <p class="mt-3 text-lg">{guide.data.description}</p>
+          )
+        }
+        <p class="text-muted-foreground mt-2 text-lg">
+          {dayjs(guide.data.publish_date).format("MMMM DD, YYYY")}
+          {
+            guide.data.updated_at && (
+              <span class="ml-2">
+                ·
+                <span class="ml-2">
+                  Updated {dayjs(guide.data.updated_at).format("MMMM DD, YYYY")}
+                </span>
+              </span>
+            )
+          }
+        </p>
+      </div>
+      <div class="guides article-flow">
+        <Content />
+      </div>
+    </article>
+    <div class="mt-12 lg:mt-16"></div>
+    <FooterCTA />
+  </div>
+</Site>

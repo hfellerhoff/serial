@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "publish_date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+    },
+    "public": {
+      "type": "boolean"
+    },
+    "og_screenshot": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "collection": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "collection"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "slug": {
+              "type": "string"
+            },
+            "collection": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "slug",
+            "collection"
+          ]
+        }
+      ]
+    },
+    "$schema": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "publish_date",
+    "public"
+  ]
+}

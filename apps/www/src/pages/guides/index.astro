@@ -1,0 +1,25 @@
+---
+import ContentList from "../../components/ContentList.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import Site from "../../layouts/Site.astro";
+import { getAllGuides } from "../../lib/content";
+
+const guides = await getAllGuides();
+const items = guides.map((guide) => ({
+  href: `/guides/${guide.id}`,
+  title: guide.data.title,
+  description: guide.data.description,
+  publishDate: guide.data.publish_date,
+}));
+---
+
+<Site title="Guides | Serial">
+  <div class="pt-8 pb-12 md:pt-12 md:pb-24">
+    <PageHeader
+      icon="book"
+      title="Guides"
+      description="Walkthroughs for both the main Serial instance and self-hosted Serial instances."
+    />
+    <ContentList items={items} />
+  </div>
+</Site>
