@@ -1,0 +1,53 @@
+---
+import { APP_URL, GITHUB_URL } from "../lib/site";
+import Icon from "./Icon.astro";
+---
+
+<header class="border-muted mx-auto max-w-4xl px-4 pt-4 lg:px-0 lg:pt-8">
+    <nav class="flex items-center gap-1">
+        <div class="flex flex-1 justify-start">
+            <a
+                href="/"
+                class="hover:bg-muted flex items-center justify-center gap-2 rounded px-2 py-1 text-xl font-bold transition-all"
+            >
+                <img
+                    src="/favicon-32x32.png"
+                    class="mx-auto size-5 rounded"
+                    alt="Serial logo"
+                />
+                Serial
+            </a>
+        </div>
+        <div class="flex flex-none items-center gap-1">
+            <a
+                href="/pricing"
+                class="text-md text-muted-foreground hover:bg-muted block rounded px-2 py-1 font-semibold transition-all"
+            >
+                Pricing
+            </a>
+            <a
+                href="/releases"
+                class="text-md text-muted-foreground hover:bg-muted block rounded px-2 py-1 font-semibold transition-all"
+            >
+                Releases
+            </a>
+            <a
+                href="/guides"
+                class="text-md text-muted-foreground hover:bg-muted block rounded px-2 py-1 font-semibold transition-all"
+            >
+                Guides
+            </a>
+        </div>
+        <div class="hidden flex-1 items-center justify-end gap-2 md:flex">
+            <a
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-outline gap-1.5"
+            >
+                <Icon name="star" size={16} /> Star
+            </a>
+            <a href={APP_URL} class="btn">Get Started</a>
+        </div>
+    </nav>
+</header>

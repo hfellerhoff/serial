@@ -1,0 +1,22 @@
+---
+// Served by Bunny for any missing path (Storage zone "Custom 404 File Path"
+// must point at /404.html). A static file can't send a real 302, so it
+// redirects client-side and leaves a link as a fallback.
+---
+
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex" />
+        <meta http-equiv="refresh" content="0; url=/" />
+        <title>Page not found — Serial</title>
+        <script>
+            window.location.replace("/");
+        </script>
+    </head>
+    <body>
+        <p>Page not found. <a href="/">Go to the homepage</a>.</p>
+    </body>
+</html>

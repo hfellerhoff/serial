@@ -1,3 +1,9 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+disallowWorkspaceCycles: true
+
 minimumReleaseAge: 10080
 trustPolicy: no-downgrade
 trustPolicyExclude:

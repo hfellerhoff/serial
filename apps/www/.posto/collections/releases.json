@@ -1,0 +1,17 @@
+{
+  "entryName": "{fields.title}",
+  "sort": {
+    "by": "fields.publish_date",
+    "direction": "desc"
+  },
+  "fields": {
+    "filename": {
+      "template": "{fields.publish_date}.md",
+      "editBehavior": "controlled"
+    },
+    "description": {
+      "editBehavior": "manual",
+      "rows": 3
+    }
+  }
+}

@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.affected.outputs.app }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Detect affected deployables
+        id: affected
+        run: |
+          pnpm exec turbo run build:artifact --affected --dry=json > affected.json
+          if jq -e '.tasks[] | select(.taskId == "@serial/app#build:artifact")' affected.json > /dev/null; then
+            echo "app=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "app=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  checks:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build, typecheck, lint, and test affected packages
+        run: pnpm exec turbo run build:artifact typecheck lint test:unit --affected
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'ci-not-a-real-secret' }}
+          PUBLIC_BASE_URL: http://localhost:3000
+          WWW_APP_URL: ${{ vars.WWW_APP_URL }}
+          WWW_SUPPORT_EMAIL_ADDRESS: ${{ vars.WWW_SUPPORT_EMAIL_ADDRESS }}
+          WWW_STANDARD_SITE_PUBLICATION_URI: ${{ vars.WWW_STANDARD_SITE_PUBLICATION_URI }}
+          WWW_UMAMI_WEBSITE_ID: ${{ vars.WWW_UMAMI_WEBSITE_ID }}
+          WWW_UMAMI_SRC: ${{ vars.WWW_UMAMI_SRC }}
+
+      - name: Check formatting
+        run: pnpm format
+
+      - name: Test deployment change detection
+        run: .github/scripts/test-check-deployable-affected.sh
+
+  e2e:
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @serial/app exec playwright install --with-deps chromium
+
+      - name: Install Turso CLI
+        run: |
+          curl -sSfL https://get.tur.so/install.sh | bash
+          echo "$HOME/.turso" >> "$GITHUB_PATH"
+
+      - name: Run app E2E tests
+        run: pnpm --filter @serial/app test:e2e
+
+  gate:
+    if: always()
+    needs: [changes, checks, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required jobs
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          CHECKS_RESULT: ${{ needs.checks.result }}
+          E2E_RESULT: ${{ needs.e2e.result }}
+        run: |
+          test "$CHANGES_RESULT" = "success"
+          test "$CHECKS_RESULT" = "success"
+          test "$E2E_RESULT" = "success" -o "$E2E_RESULT" = "skipped"

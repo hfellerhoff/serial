@@ -1,0 +1,25 @@
+---
+import Icon from "./Icon.astro";
+
+interface Props {
+  icon: string;
+  title: string;
+  description?: string;
+}
+
+const { icon, title, description } = Astro.props;
+---
+
+<div class="relative overflow-clip pb-4 md:pb-8">
+  <section class="mx-auto flex max-w-2xl flex-col items-center px-6 pt-8 text-center">
+    <Icon name={icon} size={36} />
+    <h1 class="mt-4 text-3xl font-bold text-balance md:mt-4 md:text-4xl">
+      {title}
+    </h1>
+    {
+      description && (
+        <p class="mt-3 mb-6 text-lg text-pretty md:text-xl">{description}</p>
+      )
+    }
+  </section>
+</div>

@@ -1,7 +1,9 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules/
+.turbo/
+**/.turbo/
 /.pnp
 .pnp.js
 
@@ -61,6 +63,7 @@ yarn-error.log*
 dist
 dist-sw/
 .output
+**/.content-collections/
 
 .claude
 CLAUDE.md

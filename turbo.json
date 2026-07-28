@@ -1,0 +1,82 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build:artifact": {
+      "dependsOn": ["^build:artifact"],
+      "outputs": [".output/**", "dist/**"],
+      "env": [
+        "BACKGROUND_REFRESH_ENABLED",
+        "PUBLIC_BASE_URL",
+        "PUBLIC_IS_MAIN_INSTANCE",
+        "PUBLIC_IS_MAINTENANCE_MODE",
+        "PUBLIC_SENTRY_DSN_WEB",
+        "PUBLIC_SUPPORT_EMAIL_ADDRESS",
+        "PUBLIC_UMAMI_SRC",
+        "PUBLIC_UMAMI_WEBSITE_ID",
+        "WWW_APP_URL",
+        "WWW_STANDARD_SITE_PUBLICATION_URI",
+        "WWW_SUPPORT_EMAIL_ADDRESS",
+        "WWW_UMAMI_SRC",
+        "WWW_UMAMI_WEBSITE_ID"
+      ],
+      "passThroughEnv": [
+        "BETTER_AUTH_SECRET",
+        "COOKIE_DOMAIN",
+        "DATABASE_AUTH_TOKEN",
+        "DATABASE_URL",
+        "FROM_EMAIL_ADDRESS",
+        "INSTAPAPER_OAUTH_ID",
+        "INSTAPAPER_OAUTH_SECRET",
+        "KV_STORE",
+        "LOG_LEVEL",
+        "OAUTH_AUTHORIZATION_URL",
+        "OAUTH_CLIENT_ID",
+        "OAUTH_CLIENT_SECRET",
+        "OAUTH_DISCOVERY_URL",
+        "OAUTH_PKCE",
+        "OAUTH_PROVIDER_ID",
+        "OAUTH_PROVIDER_NAME",
+        "OAUTH_REDIRECT_URI",
+        "OAUTH_SCOPES",
+        "OAUTH_TOKEN_URL",
+        "OAUTH_USER_INFO_URL",
+        "POLAR_ACCESS_TOKEN",
+        "POLAR_ENVIRONMENT",
+        "POLAR_PRO_ANNUAL_PRODUCT_ID",
+        "POLAR_PRO_MONTHLY_PRODUCT_ID",
+        "POLAR_STANDARD_LARGE_QUOTA_ANNUAL_PRODUCT_ID",
+        "POLAR_STANDARD_LARGE_QUOTA_MONTHLY_PRODUCT_ID",
+        "POLAR_STANDARD_MEDIUM_QUOTA_ANNUAL_PRODUCT_ID",
+        "POLAR_STANDARD_MEDIUM_QUOTA_MONTHLY_PRODUCT_ID",
+        "POLAR_STANDARD_SMALL_QUOTA_ANNUAL_PRODUCT_ID",
+        "POLAR_STANDARD_SMALL_QUOTA_MONTHLY_PRODUCT_ID",
+        "POLAR_WEBHOOK_SECRET",
+        "REDIS_URL",
+        "RESEND_API_KEY",
+        "SENDGRID_API_KEY",
+        "SENTRY_AUTH_TOKEN",
+        "SENTRY_DSN_BACKEND",
+        "SKIP_ENV_VALIDATION",
+        "TRUSTED_ORIGINS",
+        "UPSTASH_REDIS_REST_TOKEN",
+        "UPSTASH_REDIS_REST_URL"
+      ]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "outputs": []
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "outputs": []
+    },
+    "test:unit": {
+      "dependsOn": ["^build:artifact"],
+      "outputs": ["coverage/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

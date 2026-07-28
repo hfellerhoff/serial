@@ -1,0 +1,109 @@
+name: Deploy Website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/www/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "turbo.json"
+      - ".node-version"
+      - ".github/scripts/check-deployable-affected.sh"
+      - ".github/scripts/www/**"
+      - ".github/workflows/deploy-www.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-www-main
+  cancel-in-progress: false
+
+jobs:
+  affected:
+    if: github.repository == 'megaflorasoftware/serial'
+    runs-on: ubuntu-latest
+    outputs:
+      www: ${{ steps.check.outputs.www }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Check whether the website artifact is affected
+        id: check
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: .github/scripts/check-deployable-affected.sh www
+
+  build:
+    needs: affected
+    if: needs.affected.outputs.www == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @serial/www build:artifact
+        env:
+          WWW_APP_URL: ${{ vars.WWW_APP_URL }}
+          WWW_SUPPORT_EMAIL_ADDRESS: ${{ vars.WWW_SUPPORT_EMAIL_ADDRESS }}
+          WWW_STANDARD_SITE_PUBLICATION_URI: ${{ vars.WWW_STANDARD_SITE_PUBLICATION_URI }}
+          WWW_UMAMI_WEBSITE_ID: ${{ vars.WWW_UMAMI_WEBSITE_ID }}
+          WWW_UMAMI_SRC: ${{ vars.WWW_UMAMI_SRC }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: www-dist
+          path: apps/www/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: www-dist
+          path: apps/www/dist
+
+      - name: Upload to Bunny Storage
+        env:
+          WWW_BUNNY_STORAGE_ZONE_ENDPOINT: ${{ secrets.WWW_BUNNY_STORAGE_ZONE_ENDPOINT }}
+          WWW_BUNNY_STORAGE_ZONE_NAME: ${{ secrets.WWW_BUNNY_STORAGE_ZONE_NAME }}
+          WWW_BUNNY_STORAGE_ZONE_PASSWORD: ${{ secrets.WWW_BUNNY_STORAGE_ZONE_PASSWORD }}
+        run: |
+          chmod +x .github/scripts/www/*.sh
+          .github/scripts/www/deploy-to-bunny.sh
+
+      - name: Purge Bunny Cache
+        env:
+          WWW_BUNNY_API_KEY: ${{ secrets.WWW_BUNNY_API_KEY }}
+          WWW_BUNNY_PULL_ZONE_ID: ${{ secrets.WWW_BUNNY_PULL_ZONE_ID }}
+        run: |
+          curl --fail-with-body --show-error --silent \
+            --retry 4 --retry-all-errors --connect-timeout 15 --max-time 120 \
+            -X POST "https://api.bunny.net/pullzone/$WWW_BUNNY_PULL_ZONE_ID/purgeCache" \
+            -H "AccessKey: $WWW_BUNNY_API_KEY"

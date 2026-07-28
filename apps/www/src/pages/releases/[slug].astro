@@ -1,0 +1,79 @@
+---
+import { render } from "astro:content";
+import dayjs from "dayjs";
+import FooterCTA from "../../components/FooterCTA.astro";
+import Icon from "../../components/Icon.astro";
+import Site from "../../layouts/Site.astro";
+import { getAllReleases } from "../../lib/content";
+import { STANDARD_SITE_PUBLICATION_URI } from "../../lib/site";
+import {
+  buildDocumentUri,
+  buildReleaseDocumentSource,
+  getConfiguredPublicationUri,
+} from "../../lib/standard-site";
+
+export async function getStaticPaths() {
+  const releases = await getAllReleases();
+  return releases.map((release) => ({
+    params: { slug: release.id },
+    props: { release },
+  }));
+}
+
+const { release } = Astro.props;
+const { Content } = await render(release);
+
+const description =
+  release.data.description ?? `Release notes for ${release.data.title}`;
+
+const publicationUri = getConfiguredPublicationUri(
+  STANDARD_SITE_PUBLICATION_URI,
+);
+const documentUri = publicationUri
+  ? buildDocumentUri(
+      publicationUri,
+      buildReleaseDocumentSource({
+        slug: release.id,
+        title: release.data.title,
+        content: release.body ?? "",
+        publish_date: release.data.publish_date,
+        description: release.data.description,
+      }),
+    )
+  : undefined;
+---
+
+<Site
+  title={`${release.data.title} | Serial`}
+  description={description}
+  ogImage={`/og/releases/${release.id}.png`}
+  ogType="article"
+  publishDate={release.data.publish_date}
+  documentUri={documentUri}
+>
+  <div class="pt-8 pb-12 md:pt-12 md:pb-24">
+    <article class="mx-auto max-w-3xl px-6 text-xl text-pretty">
+      <div class="mx-auto mt-20 mb-12 max-w-2xl text-center text-balance">
+        <div class="bg-muted mb-6 inline-flex items-center justify-center rounded-xl p-4">
+          <Icon name="notebook-text" size={32} class="text-muted-foreground" />
+        </div>
+        <h1 class="text-3xl leading-tight font-bold md:text-4xl">
+          {release.data.title}
+        </h1>
+        {
+          release.data.description && (
+            <p class="mt-3 text-lg">{release.data.description}</p>
+          )
+        }
+        <p class="text-muted-foreground mt-2 text-lg">
+          {dayjs(release.data.publish_date).format("MMMM DD, YYYY")}
+        </p>
+      </div>
+      <div class="guides article-flow">
+        <Content />
+      </div>
+    </article>
+    <div class="mt-12 lg:mt-16"></div>
+    <FooterCTA />
+  </div>
+</Site>

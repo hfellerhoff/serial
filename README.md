@@ -1,4 +1,4 @@
-![Preview of different feeds](/public/og-image.png)
+![Preview of different feeds](apps/app/public/og-image.png)
 
 # Serial
 
@@ -18,12 +18,13 @@ Getting up and running with Serial is easy. Here are the steps you need to start
 
 1. Clone the repository locally
 2. Install the Turso CLI: https://github.com/tursodatabase/turso-cli
-3. Copy `.env.example` to `.env`
+3. Copy `apps/app/.env.example` to `apps/app/.env`
 4. Set `PUBLIC_BASE_URL` to `http://localhost:3000`
 5. Navigate to [Better Auth](https://www.better-auth.com/docs/installation#set-environment-variables) and generate an auth secret. Set it as `BETTER_AUTH_SECRET`
-6. Install [pnpm](https://pnpm.io/) if you don't have it already
-7. Run `pnpm i` to install packages
-8. Run `pnpm dev` to create, migrate, and run your database for the first time, then boot up the development server.
+6. Install Node.js 22.12 or newer.
+7. Install [pnpm](https://pnpm.io/) if you don't have it already.
+8. Run `pnpm i` to install packages.
+9. Run `pnpm dev` to create, migrate, and run your database for the first time, then boot up the development server.
 
 If you'd like to support additional features in development, [see below!](#enabling-additional-features)
 
@@ -37,7 +38,9 @@ Self hosting Serial is relatively easy. Here are the current platform-specific g
 If your preferred platform doesn't have a guide, follow these rough steps:
 
 1. Fork the `megaflorasoftware/serial` repository to your own GitHub account.
-2. Use a git-based deployment system to deploy when a new commit happens. This will make it easy to keep your deployment up to date.
+2. Use a git-based deployment system to deploy when a new commit happens. There are a few ways to do this:
+   - If deploying through Docker, the provided Dockerfile and Compose files build the app from the monorepo root
+   - If building from source, build with `pnpm --filter @serial/app build:artifact` and start with `pnpm start`.
 3. Set up a custom domain (if desired)
 4. Set up your database:
    - If you want to use a local libsql database, use the provided `docker-compose.yaml` configuration. The database requires no additional configuration, but the application variables below are still required.

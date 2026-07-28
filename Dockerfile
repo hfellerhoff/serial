@@ -2,48 +2,61 @@
 
 ARG NODE_VERSION=24.7.0
 ARG PNPM_VERSION=10.34.5
+ARG TURBO_VERSION=2.10.5
 
 ################################################################################
 # Use node image for base image for all stages.
 FROM node:${NODE_VERSION}-alpine AS base
 
+ARG PNPM_VERSION
+ARG TURBO_VERSION
+
 # Set working directory for all build stages.
 WORKDIR /usr/src/app
 
-# Install pnpm.
+# Install the workspace package manager and task runner.
 RUN --mount=type=cache,target=/root/.npm \
-    npm install -g pnpm@${PNPM_VERSION}
+    npm install -g pnpm@${PNPM_VERSION} turbo@${TURBO_VERSION} && \
+    pnpm --version && \
+    turbo --version
 
 ################################################################################
-# Create a stage for building the application.
-# This runs on the native build platform ($BUILDPLATFORM) so that the expensive
-# Vite/Rolldown bundling step avoids QEMU emulation overhead. The output is
-# platform-agnostic JavaScript, so it can be copied into any target platform.
+# Prune the workspace to the app and its dependencies. This runs on the native
+# build platform so workspace graph preparation avoids QEMU emulation.
+################################################################################
+FROM --platform=$BUILDPLATFORM base AS prepare
+
+COPY . .
+RUN turbo prune @serial/app --docker
+
+################################################################################
+# Install the pruned workspace and build the application. This also runs on the
+# native build platform because the output is platform-agnostic JavaScript.
 ################################################################################
 FROM --platform=$BUILDPLATFORM base AS build-base
 
 # Download all dependencies (including devDependencies) needed for building.
-RUN --mount=type=bind,source=package.json,target=package.json \
-    --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \
-    --mount=type=bind,source=pnpm-workspace.yaml,target=pnpm-workspace.yaml \
-    --mount=type=cache,target=/root/.local/share/pnpm/store \
+COPY --from=prepare /usr/src/app/out/json/ ./
+COPY --from=prepare /usr/src/app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 
-# Copy the rest of the source files into the image.
-COPY . .
+# Copy the pruned source after installing dependencies so source-only changes do
+# not invalidate the dependency layer.
+COPY --from=prepare /usr/src/app/out/full/ ./
 
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 # Demo mode is an image-level capability because it includes a destructive
 # scheduled task. Only the demo Compose file selects this build stage.
 FROM build-base AS build-demo
-RUN pnpm exec vite build --mode demo && \
-    cp instrument.server.mjs .output/server && \
-    pnpm run build:sw
+RUN pnpm --filter @serial/app exec vite build --mode demo && \
+    cp apps/app/instrument.server.mjs apps/app/.output/server && \
+    pnpm --filter @serial/app run build:sw
 
 # Run the standard build (without migrations - those run at container startup).
 FROM build-base AS build
-RUN pnpm run build:atomic
+RUN pnpm --filter @serial/app run build:artifact
 
 ################################################################################
 # Create a new stage to run the application with minimal runtime dependencies
@@ -51,10 +64,9 @@ RUN pnpm run build:atomic
 ################################################################################
 FROM base AS final-base
 
-# Copy package.json, pnpm-lock.yaml, and pnpm-workspace.yaml so that package
-# manager commands can be used. pnpm-workspace.yaml holds the overrides config,
-# which must be present or --frozen-lockfile fails with a config mismatch.
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Copy only the app's pruned workspace manifests and lockfile.
+COPY --from=prepare /usr/src/app/out/json/ ./
+COPY --from=prepare /usr/src/app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 
 # Install dependencies for the target platform.
 # --ignore-scripts skips native compilation which is
@@ -62,9 +74,11 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --ignore-scripts
 
+WORKDIR /usr/src/app/apps/app
+
 # Copy migration files and source needed for running migrations
-COPY --from=build-base /usr/src/app/src/server/db ./src/server/db
-COPY --from=build-base /usr/src/app/src/env.js ./src/env.js
+COPY --from=build-base /usr/src/app/apps/app/src/server/db ./src/server/db
+COPY --from=build-base /usr/src/app/apps/app/src/env.js ./src/env.js
 
 # Expose the port that the application listens on.
 EXPOSE 3000
@@ -73,8 +87,8 @@ EXPOSE 3000
 CMD ["sh", "-c", "node --experimental-specifier-resolution=node --loader ts-node/esm src/server/db/migrate.js 2>/dev/null || node --import=tsx src/server/db/migrate.ts && node .output/server/index.mjs"]
 
 FROM final-base AS final-demo
-COPY --from=build-demo /usr/src/app/.output ./.output
+COPY --from=build-demo /usr/src/app/apps/app/.output ./.output
 
 # Keep the standard image as the default Dockerfile target.
 FROM final-base AS final
-COPY --from=build /usr/src/app/.output ./.output
+COPY --from=build /usr/src/app/apps/app/.output ./.output

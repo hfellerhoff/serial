@@ -24,6 +24,16 @@
 **/compose.y*ml
 **/Dockerfile*
 **/node_modules
+**/.output
+**/.turbo
+**/coverage
+**/dist-sw
+**/playwright-report
+**/test-results
+**/*.db
+**/*.db-*
+**/*.db-shm
+**/*.db-wal
 **/npm-debug.log
 **/obj
 **/secrets.dev.yaml
