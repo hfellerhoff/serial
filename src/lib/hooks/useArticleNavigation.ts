@@ -314,9 +314,9 @@ export function useArticleNavigation(
       const lightbox = selectedEl.hasAttribute("data-lightbox")
         ? selectedEl
         : selectedEl.querySelector<HTMLElement>("[data-lightbox]");
-      if (lightbox) {
-        lightbox.click();
-      }
+      lightbox
+        ?.querySelector<HTMLButtonElement>("[data-lightbox-trigger]")
+        ?.click();
     },
     [containerRef, selectedIndex],
   );

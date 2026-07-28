@@ -31,7 +31,7 @@ import type {
 } from "~/server/api/routers/initialRouter";
 import type { PublishedChunk } from "~/server/api/publisher";
 import type { IncomingFeedItem } from "./feed-items/mergeFeedItem";
-import { getQueryClient } from "~/lib/query-provider";
+import { getQueryClient } from "~/lib/query-client";
 import { orpc } from "~/lib/orpc";
 
 export { getFeedItemScopeKey } from "./scopeMembership";
@@ -1884,21 +1884,22 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
 
         for (let i = 0; i < payloads.length; i++) {
           const payload = payloads[i]!;
+          const { chunk } = payload;
           const isBatchable =
             payload.source === "initial" &&
-            (payload.chunk.type === "feed-items" ||
-              payload.chunk.type === "view-diff" ||
-              payload.chunk.type === "feed-status");
+            (chunk.type === "feed-items" ||
+              chunk.type === "view-diff" ||
+              chunk.type === "feed-status");
 
           if (isBatchable) {
-            if (payload.chunk.type === "view-diff") {
+            if (chunk.type === "view-diff") {
               pendingInitialViewDiffs.push(payload as InitialViewDiffPayload);
-            } else if (payload.chunk.type === "feed-items") {
+            } else if (chunk.type === "feed-items") {
               pendingInitialFeedItems.push(payload as InitialFeedItemPayload);
-            } else if (payload.chunk.type === "feed-status") {
+            } else if (chunk.type === "feed-status") {
               pendingInitialFeedStatuses.push({
-                feedId: payload.chunk.feedId,
-                status: payload.chunk.status,
+                feedId: chunk.feedId,
+                status: chunk.status,
               });
             }
           } else {
@@ -1995,11 +1996,9 @@ export const {
   useFeedStatusDict,
   useFetchFeedItemsLastFetchedAt,
   useHasInitialData,
-  useFetchFeedItems,
   useFetchFeedItemsForFeed,
   useFetchNewData,
   useRevalidateView,
-  useCurrentViewId,
   useViewFeedIds,
   useViewPaginationState,
   useFetchMoreItems,
@@ -2007,7 +2006,6 @@ export const {
   useCategoryPaginationState,
   useFetchMoreItemsForFeed,
   useFetchMoreItemsForCategory,
-  useReset: useResetFeedItems,
 } = feedItemsStore;
 
 export const useFeedItemValue = (id: string) => {

@@ -241,10 +241,11 @@ function ManageFeedsPage() {
     if (feedIds.length === 0) return [];
 
     const firstFeedCategories = feedCategoriesMap.get(feedIds[0]!) ?? [];
+    const categorySets = feedIds.map(
+      (feedId) => new Set(feedCategoriesMap.get(feedId) ?? []),
+    );
     return firstFeedCategories.filter((categoryId) =>
-      feedIds.every((feedId) =>
-        feedCategoriesMap.get(feedId)?.includes(categoryId),
-      ),
+      categorySets.every((categorySet) => categorySet.has(categoryId)),
     );
   };
 
@@ -253,8 +254,11 @@ function ManageFeedsPage() {
     if (feedIds.length === 0) return [];
 
     const firstFeedViews = feedViewsMap.get(feedIds[0]!) ?? [];
+    const viewSets = feedIds.map(
+      (feedId) => new Set(feedViewsMap.get(feedId) ?? []),
+    );
     return firstFeedViews.filter((viewId) =>
-      feedIds.every((feedId) => feedViewsMap.get(feedId)?.includes(viewId)),
+      viewSets.every((viewSet) => viewSet.has(viewId)),
     );
   };
 
@@ -365,8 +369,9 @@ function ManageFeedsPage() {
 
     // Categories
     const categoriesToAdd = selectedCategoryIds;
+    const selectedCategoryIdSet = new Set(selectedCategoryIds);
     const categoriesToRemove = sharedCategories.filter(
-      (id) => !selectedCategoryIds.includes(id),
+      (id) => !selectedCategoryIdSet.has(id),
     );
     categoriesToAdd.forEach((categoryId) => {
       promises.push(bulkAssignCategory({ feedIds, categoryId }));
@@ -377,8 +382,9 @@ function ManageFeedsPage() {
 
     // Views
     const viewsToAdd = selectedViewIds;
+    const selectedViewIdSet = new Set(selectedViewIds);
     const viewsToRemove = sharedViews.filter(
-      (id) => !selectedViewIds.includes(id),
+      (id) => !selectedViewIdSet.has(id),
     );
     viewsToAdd.forEach((viewId) => {
       promises.push(bulkAssignView({ feedIds, viewId }));

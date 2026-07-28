@@ -71,6 +71,10 @@ export function useViewSections(
 
     const assignedItemIds = new Set<string>();
     const feedIdsInFeedSections = new Set<number>();
+    const feedNameById = new Map(feeds.map((feed) => [feed.id, feed.name]));
+    const categoryNameById = new Map(
+      contentCategories.map((category) => [category.id, category.name]),
+    );
 
     for (const li of currentView.viewSections) {
       if (li.itemType === VIEW_LAYOUT_ITEM_TYPE.FEED) {
@@ -111,11 +115,8 @@ export function useViewSections(
 
       const resolvedName =
         li.itemType === VIEW_LAYOUT_ITEM_TYPE.FEED
-          ? (feeds.find((f) => f.id === li.itemId)?.name ?? "")
-          : (() => {
-              const tag = contentCategories.find((c) => c.id === li.itemId);
-              return tag ? tag.name : "";
-            })();
+          ? (feedNameById.get(li.itemId) ?? "")
+          : (categoryNameById.get(li.itemId) ?? "");
 
       const layout = (li.layout ?? baseLayout) as ViewLayout;
 

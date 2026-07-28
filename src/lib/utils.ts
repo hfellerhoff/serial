@@ -1,15 +1,11 @@
 import { clsx } from "clsx";
 import dayjs from "dayjs";
-import { toast } from "sonner";
 import { twMerge } from "tailwind-merge";
 import type { ClassValue } from "clsx";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-
-// Just for debugging
-export const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 const ONE_MINUTE_MS = 1000 * 60;
 const ONE_HOUR_MS = ONE_MINUTE_MS * 60;
@@ -50,12 +46,4 @@ export function timeAgo(date: string | Date) {
 
   const years = now.diff(then, "year");
   return `${years} ${pluralize(years, "year", "years")} ago`;
-}
-
-export function handleErrors(error: unknown) {
-  // @ts-expect-error deal with this later
-
-  JSON.parse(error.message).forEach((err) => {
-    toast.error(err.message);
-  });
 }

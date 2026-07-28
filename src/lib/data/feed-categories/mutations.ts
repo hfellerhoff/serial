@@ -2,30 +2,6 @@ import { useMutation } from "@tanstack/react-query";
 import { useFetchFeedCategories } from "./store";
 import { orpc } from "~/lib/orpc";
 
-export function useAssignFeedCategoryMutation() {
-  const fetchFeedCategories = useFetchFeedCategories();
-
-  return useMutation(
-    orpc.feedCategories.assignToFeed.mutationOptions({
-      onSuccess: async () => {
-        await fetchFeedCategories();
-      },
-    }),
-  );
-}
-
-export function useRemoveFeedCategoryMutation() {
-  const fetchFeedCategories = useFetchFeedCategories();
-
-  return useMutation(
-    orpc.feedCategories.removeFromFeed.mutationOptions({
-      onSuccess: async () => {
-        await fetchFeedCategories();
-      },
-    }),
-  );
-}
-
 export function useBulkAssignFeedCategoryMutation() {
   const fetchFeedCategories = useFetchFeedCategories();
 

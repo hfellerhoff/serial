@@ -2,7 +2,7 @@
 
 // Individual skeleton items
 
-export function ListItemSkeleton() {
+function ListItemSkeleton() {
   return (
     <div className="flex w-full items-center gap-2 px-6 pt-4 pb-4 md:mx-4 md:h-20 md:px-2 md:py-0">
       <div className="grid w-16 place-items-center">
@@ -16,7 +16,7 @@ export function ListItemSkeleton() {
   );
 }
 
-export function LargeListItemSkeleton() {
+function LargeListItemSkeleton() {
   return (
     <div className="flex w-full flex-col gap-4 px-6 pt-4 pb-1 md:mx-4 md:flex-row md:items-center md:px-2 md:py-2 md:pb-2">
       <div className="grid w-44 place-items-center">
@@ -31,7 +31,7 @@ export function LargeListItemSkeleton() {
   );
 }
 
-export function GridItemSkeleton() {
+function GridItemSkeleton() {
   return (
     <div className="flex w-full flex-col rounded p-2">
       <div className="bg-muted aspect-video w-full animate-pulse rounded" />
@@ -43,7 +43,7 @@ export function GridItemSkeleton() {
   );
 }
 
-export function LargeGridItemSkeleton() {
+function LargeGridItemSkeleton() {
   return (
     <div className="flex w-full flex-col rounded p-2">
       <div className="bg-muted aspect-video w-full animate-pulse rounded" />

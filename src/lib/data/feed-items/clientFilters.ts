@@ -83,10 +83,12 @@ export function doesFeedItemPassFilters({
     return false;
   }
 
-  const feedIdsInCategory = feedCategories
-    .filter((category) => category.categoryId === categoryFilter)
-    .map((category) => category.feedId);
-  if (categoryFilter >= 0 && !feedIdsInCategory.includes(item.feedId)) {
+  const feedIdsInCategory = new Set(
+    feedCategories
+      .filter((category) => category.categoryId === categoryFilter)
+      .map((category) => category.feedId),
+  );
+  if (categoryFilter >= 0 && !feedIdsInCategory.has(item.feedId)) {
     return false;
   }
 
@@ -94,8 +96,9 @@ export function doesFeedItemPassFilters({
     return false;
   }
 
+  const viewCategoryIds = new Set(viewFilter?.categoryIds ?? []);
   const feedsForViewByCategory = feedCategories
-    .filter((category) => viewFilter?.categoryIds.includes(category.categoryId))
+    .filter((category) => viewCategoryIds.has(category.categoryId))
     .map((category) => category.feedId);
 
   const directlyAssignedFeedIds = viewFilter?.feedIds ?? [];

@@ -232,19 +232,20 @@ function computeFeedsForView(
   feedCategoriesMap?: Map<number, number[]>,
   customViewFeedIds?: Set<number>,
 ): number[] {
-  const feedIds: number[] = [];
+  const feedIds = new Set<number>();
 
   const categoryMap =
     feedCategoriesMap ?? buildFeedCategoriesMap(allFeedCategories);
 
   // For non-inbox views, start with directly assigned feeds
   if (view.id !== INBOX_VIEW_ID) {
-    feedIds.push(...view.feedIds);
+    for (const feedId of view.feedIds) feedIds.add(feedId);
   }
+  const viewCategoryIdSet = new Set(view.categoryIds);
 
   for (const feed of allFeeds) {
     // Skip if already included via direct assignment
-    if (feedIds.includes(feed.id)) continue;
+    if (feedIds.has(feed.id)) continue;
 
     // Check if feed's content type is compatible with the view
     const isCompatible = isFeedCompatibleWithContentType(
@@ -281,37 +282,35 @@ function computeFeedsForView(
       // Feed belongs to Uncategorized if it wouldn't appear in any custom view
       // OR if it has no categories at all
       if (!wouldAppearInCustomView) {
-        feedIds.push(feed.id);
+        feedIds.add(feed.id);
         continue;
       }
 
       // Also check if feed's categories overlap with Uncategorized view's categoryIds
       if (
-        feedCategoryIds.some((categoryId) =>
-          view.categoryIds.includes(categoryId),
-        )
+        feedCategoryIds.some((categoryId) => viewCategoryIdSet.has(categoryId))
       ) {
-        feedIds.push(feed.id);
+        feedIds.add(feed.id);
         continue;
       }
     } else {
       // Empty categoryIds and feedIds means "all categories" (no category filter)
       if (view.categoryIds.length === 0 && view.feedIds.length === 0) {
-        feedIds.push(feed.id);
+        feedIds.add(feed.id);
       } else if (view.categoryIds.length > 0) {
         // For views with specific categories, check if any of the feed's categories are in the view
         const categoryMatch = feedCategoryIds.some((categoryId) =>
-          view.categoryIds.includes(categoryId),
+          viewCategoryIdSet.has(categoryId),
         );
 
         if (categoryMatch) {
-          feedIds.push(feed.id);
+          feedIds.add(feed.id);
         }
       }
     }
   }
 
-  return feedIds;
+  return Array.from(feedIds);
 }
 
 interface FetchContentForViewParams {
@@ -399,17 +398,12 @@ async function* fetchContentForViews(
 
   while (pendingPromises.size > 0) {
     const result = await Promise.any(pendingPromises.values());
+    const { chunk } = result;
 
-    if (
-      result.chunk.type === "feed-items" &&
-      result.chunk.viewId !== undefined
-    ) {
-      pendingPromises.delete(result.chunk.viewId);
-    } else if (
-      result.chunk.type === "error" &&
-      result.chunk.viewId !== undefined
-    ) {
-      pendingPromises.delete(result.chunk.viewId);
+    if (chunk.type === "feed-items" && chunk.viewId !== undefined) {
+      pendingPromises.delete(chunk.viewId);
+    } else if (chunk.type === "error" && chunk.viewId !== undefined) {
+      pendingPromises.delete(chunk.viewId);
     }
     yield result;
   }
@@ -1252,6 +1246,8 @@ async function publishViewFeedsChunks(
       customViewFeedIds,
     );
 
+    // Preserve view publication order for the client-side reducer.
+    // oxlint-disable-next-line react-doctor/async-await-in-loop
     await publisher.publish(channel, {
       source,
       chunk: {
@@ -1624,8 +1620,9 @@ export const requestImportedData = protectedProcedure
 
     // Step 5: Run fetch and insert for fresh RSS items - ONLY for newly imported feeds
     // Filter feedsList to only include the newly imported feeds
+    const newFeedIdSet = new Set(newFeedIds);
     const newFeedsToFetch = feedsList.filter((feed) =>
-      newFeedIds.includes(feed.id),
+      newFeedIdSet.has(feed.id),
     );
 
     for await (const feedResult of fetchAndInsertFeedData(
@@ -1954,6 +1951,7 @@ export const streamingImport = protectedProcedure
         .filter((feed): feed is (typeof successfulFeeds)[number] => !!feed);
 
       const viewOrder: string[] = [];
+      const viewOrderSet = new Set<string>();
       const sectionOrderByViewName = new Map<
         string,
         NormalizedImportCategoryPathItem[]
@@ -1964,8 +1962,9 @@ export const streamingImport = protectedProcedure
           const viewName = categoryPath[0]?.name;
           if (!viewName) continue;
 
-          if (!viewOrder.includes(viewName)) {
+          if (!viewOrderSet.has(viewName)) {
             viewOrder.push(viewName);
+            viewOrderSet.add(viewName);
           }
 
           if (categoryPath.length <= 1) continue;
@@ -2351,6 +2350,8 @@ function buildSectionPlacementExpression(viewId: number): SQL<number> {
     Symbol.for("drizzle:Name")
   ];
   const colName = (feedItems.feedId as unknown as { name: string }).name;
+  // Both identifiers come from static Drizzle schema metadata, not input.
+  // react-doctor-disable-next-line react-doctor/raw-sql-injection-risk
   const feedIdRef = sql.raw(`"${tableName}"."${colName}"`);
 
   return sql<number>`COALESCE(
@@ -2586,6 +2587,8 @@ export const requestItemsByFeed = protectedProcedure
         GET_BY_VIEW_CHUNK_SIZE,
       );
       for (const [chunkIndex, chunk] of chunks.entries()) {
+        // Chunks must arrive in order so replacement precedes append chunks.
+        // oxlint-disable-next-line react-doctor/async-await-in-loop
         await publisher.publish(channel, {
           source: "feed",
           chunk: {
@@ -2737,6 +2740,8 @@ export const requestItemsByCategoryId = protectedProcedure
         GET_BY_VIEW_CHUNK_SIZE,
       );
       for (const [chunkIndex, chunk] of chunks.entries()) {
+        // Chunks must arrive in order so replacement precedes append chunks.
+        // oxlint-disable-next-line react-doctor/async-await-in-loop
         await publisher.publish(channel, {
           source: "category",
           chunk: {

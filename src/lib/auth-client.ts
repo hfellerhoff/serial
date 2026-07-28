@@ -22,5 +22,4 @@ export const authClient = createAuthClient({
       : getPublicConfigKey("PUBLIC_BASE_URL"),
 });
 
-export const { signIn, signOut, signUp, useSession, resetPassword } =
-  authClient;
+export const { signIn, signOut, signUp, useSession } = authClient;

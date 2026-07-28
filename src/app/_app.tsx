@@ -52,6 +52,7 @@ export const Route = createFileRoute("/_app")({
 
 const MAX_SYNC_ATTEMPTS = 10;
 const SYNC_POLL_INTERVAL_MS = 3_000;
+const CHECKOUT_SYNC_TIMEOUT_MS = 60_000;
 
 function useCheckoutSuccess() {
   const queryClient = useQueryClient();
@@ -101,8 +102,6 @@ function useCheckoutSuccess() {
     let isSyncing = false;
 
     const sync = async (): Promise<boolean> => {
-      if (isSyncing) return false;
-      isSyncing = true;
       try {
         const result = await orpcRouterClient.subscription.syncAfterCheckout();
 
@@ -130,37 +129,48 @@ function useCheckoutSuccess() {
         }
       } catch {
         // Ignore errors, will retry
-      } finally {
-        isSyncing = false;
       }
       return false;
     };
 
-    // First attempt immediately, then poll with interval
-    void sync().then((done) => {
-      if (done || controller.signal.aborted) return;
+    const poll = async () => {
+      if (isSyncing || controller.signal.aborted) return;
 
-      const interval = setInterval(() => {
-        if (controller.signal.aborted) {
-          clearInterval(interval);
-          return;
-        }
+      isSyncing = true;
+      attempts++;
+      const planWasUpdated = await sync();
+      isSyncing = false;
 
-        attempts++;
-        void sync().then((done) => {
-          if (done || attempts >= MAX_SYNC_ATTEMPTS) {
-            clearInterval(interval);
-            if (!done) {
-              // Give up gracefully — user will see the upgrade on next load
-              setAwaitingUpgrade(false);
-            }
-          }
-        });
-      }, SYNC_POLL_INTERVAL_MS);
-    });
+      if (controller.signal.aborted) return;
+      if (planWasUpdated) {
+        clearInterval(interval);
+        clearTimeout(overallTimeout);
+        return;
+      }
+      if (attempts >= MAX_SYNC_ATTEMPTS) {
+        clearInterval(interval);
+        clearTimeout(overallTimeout);
+        // Give up gracefully — user will see the upgrade on next load
+        setAwaitingUpgrade(false);
+      }
+    };
+
+    const interval = setInterval(() => {
+      void poll();
+    }, SYNC_POLL_INTERVAL_MS);
+    const overallTimeout = setTimeout(() => {
+      controller.abort();
+      clearInterval(interval);
+      setAwaitingUpgrade(false);
+    }, CHECKOUT_SYNC_TIMEOUT_MS);
+
+    // Count only requests that start so slow requests do not consume retries.
+    void poll();
 
     return () => {
       controller.abort();
+      clearInterval(interval);
+      clearTimeout(overallTimeout);
     };
   }, [awaitingUpgrade, planId, queryClient, openPlanSuccess]);
 

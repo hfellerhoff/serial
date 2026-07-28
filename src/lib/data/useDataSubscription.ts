@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getDefaultStore } from "jotai";
 import { orpcRouterClient } from "../orpc";
 import { getDataSubscriptionClientId } from "./clientChannel";
+import { combineAbortSignals } from "./combineAbortSignals";
 import { loadingActor } from "./loading-machine";
 import { feedItemsStore } from "./store";
 import { shouldAlwaysKeepSSEConnectionAlive } from "./atoms";
@@ -19,12 +20,36 @@ const INITIAL_RETRY_DELAY = 1000; // 1 second
 const MAX_RETRY_DELAY = 30000; // 30 seconds
 const BACKOFF_MULTIPLIER = 2;
 
+function waitForAbortableDelay(delay: number, signal: AbortSignal) {
+  return new Promise<void>((resolve) => {
+    const finish = () => {
+      clearTimeout(timeoutId);
+      signal.removeEventListener("abort", finish);
+      resolve();
+    };
+    const timeoutId = setTimeout(finish, delay);
+    signal.addEventListener("abort", finish, { once: true });
+  });
+}
+
+function waitForVisibilityChange(signal: AbortSignal) {
+  return new Promise<void>((resolve) => {
+    const finish = () => {
+      document.removeEventListener("visibilitychange", finish);
+      signal.removeEventListener("abort", finish);
+      resolve();
+    };
+    document.addEventListener("visibilitychange", finish, { once: true });
+    signal.addEventListener("abort", finish, { once: true });
+  });
+}
+
 /**
  * Hook that manages the subscription to the user's data channel.
  * Handles connection lifecycle, auto-reconnection, and exposes request methods.
  */
 export function useDataSubscription() {
-  const clientIdRef = useRef(getDataSubscriptionClientId());
+  const [clientId] = useState(() => getDataSubscriptionClientId());
   const abortControllerRef = useRef<AbortController | null>(null);
   const retryDelayRef = useRef(INITIAL_RETRY_DELAY);
   const isConnectedRef = useRef(false);
@@ -41,8 +66,12 @@ export function useDataSubscription() {
     feedItemsStore.getState().processChunks(chunks);
   }, []);
 
+  // Cleanup aborts the stream and removes both direct subscriptions. The
+  // subscription loop also combines its connection signal with this abort.
+  // oxlint-disable-next-line react-doctor/effect-needs-cleanup
   useEffect(() => {
     const controller = new AbortController();
+    const { signal } = controller;
     abortControllerRef.current = controller;
 
     // Per-connection controller — aborted on visibility change to force
@@ -51,42 +80,31 @@ export function useDataSubscription() {
     let visibilityReconnect = false;
     let paused = false;
 
-    async function subscribe() {
-      while (!controller.signal.aborted) {
+    async function runSubscriptionLoop() {
+      while (!signal.aborted) {
         // Wait while the page is hidden — no point holding an SSE
         // connection open when the tab isn't visible.
-        if (paused) {
-          await new Promise<void>((resolve) => {
-            const check = () => {
-              if (!paused || controller.signal.aborted) {
-                document.removeEventListener("visibilitychange", check);
-                resolve();
-              }
-            };
-            document.addEventListener("visibilitychange", check);
-            // In case the flag was already flipped before we started listening
-            check();
-          });
-          if (controller.signal.aborted) break;
+        while (paused && !signal.aborted) {
+          // Visibility changes must be consumed in order.
+          // oxlint-disable-next-line react-doctor/async-await-in-loop
+          await waitForVisibilityChange(signal);
+          if (signal.aborted) break;
         }
 
         const conn = new AbortController();
         connectionController = conn;
-
-        // Cascade main abort → connection abort so unmount kills the
-        // active connection immediately.
-        const forwardAbort = () => conn.abort();
-        controller.signal.addEventListener("abort", forwardAbort, {
-          once: true,
-        });
+        const { signal: connectionSignal, cleanup: cleanupConnectionSignal } =
+          combineAbortSignals([signal, conn.signal]);
 
         try {
           isConnectedRef.current = true;
           retryDelayRef.current = INITIAL_RETRY_DELAY;
 
+          // Each reconnect depends on the prior connection closing.
+          // oxlint-disable-next-line react-doctor/async-await-in-loop
           const iterator = await orpcRouterClient.initial.subscribe(
-            { clientId: clientIdRef.current },
-            { signal: conn.signal },
+            { clientId },
+            { signal: connectionSignal },
           );
 
           // After reconnecting due to page refocus, re-request data so
@@ -95,7 +113,7 @@ export function useDataSubscription() {
           if (visibilityReconnect) {
             visibilityReconnect = false;
             void orpcRouterClient.initial.requestInitialData({
-              clientId: clientIdRef.current,
+              clientId,
             });
           }
 
@@ -119,9 +137,7 @@ export function useDataSubscription() {
           console.error("Subscription error, retrying...", error);
 
           // Wait with exponential backoff before retrying
-          await new Promise((resolve) =>
-            setTimeout(resolve, retryDelayRef.current),
-          );
+          await waitForAbortableDelay(retryDelayRef.current, controller.signal);
 
           // Increase retry delay for next attempt
           retryDelayRef.current = Math.min(
@@ -129,7 +145,7 @@ export function useDataSubscription() {
             MAX_RETRY_DELAY,
           );
         } finally {
-          controller.signal.removeEventListener("abort", forwardAbort);
+          cleanupConnectionSignal();
         }
       }
     }
@@ -181,7 +197,7 @@ export function useDataSubscription() {
       },
     );
 
-    subscribe();
+    void runSubscriptionLoop();
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -199,21 +215,24 @@ export function useDataSubscription() {
         chunkBufferRef.current = [];
       }
     };
-  }, [flushBuffer]);
+  }, [clientId, flushBuffer]);
 
   // Request methods that trigger data fetching via the publisher
   const requestInitialData = useCallback(() => {
     return orpcRouterClient.initial.requestInitialData({
-      clientId: clientIdRef.current,
+      clientId,
     });
-  }, []);
+  }, [clientId]);
 
-  const requestFullTextForItems = useCallback((itemIds: string[]) => {
-    return orpcRouterClient.initial.requestFullTextForItems({
-      itemIds,
-      clientId: clientIdRef.current,
-    });
-  }, []);
+  const requestFullTextForItems = useCallback(
+    (itemIds: string[]) => {
+      return orpcRouterClient.initial.requestFullTextForItems({
+        itemIds,
+        clientId,
+      });
+    },
+    [clientId],
+  );
 
   const requestItemsByVisibility = useCallback(
     (
@@ -229,10 +248,10 @@ export function useDataSubscription() {
         cursor,
         limit,
         clientItems,
-        clientId: clientIdRef.current,
+        clientId,
       });
     },
-    [],
+    [clientId],
   );
 
   const requestItemsByFeed = useCallback(
@@ -247,10 +266,10 @@ export function useDataSubscription() {
         visibilityFilter,
         cursor,
         limit,
-        clientId: clientIdRef.current,
+        clientId,
       });
     },
-    [],
+    [clientId],
   );
 
   const requestItemsByCategoryId = useCallback(
@@ -265,10 +284,10 @@ export function useDataSubscription() {
         visibilityFilter,
         cursor,
         limit,
-        clientId: clientIdRef.current,
+        clientId,
       });
     },
-    [],
+    [clientId],
   );
 
   return {

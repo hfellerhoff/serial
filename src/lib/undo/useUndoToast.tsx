@@ -26,11 +26,3 @@ export function showUndoToast(action: UndoAction) {
 
   undoStore.getState().setActiveUndo(action, toastId);
 }
-
-export function clearUndoToast() {
-  const state = undoStore.getState();
-  if (state.activeToastId !== null) {
-    toast.dismiss(state.activeToastId);
-  }
-  state.clearActiveUndo();
-}

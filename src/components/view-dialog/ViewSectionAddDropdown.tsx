@@ -50,8 +50,9 @@ export function ViewSectionAddDropdown({
   // All feeds in the view: explicitly selected + feeds that have selected categories
   const feedIdsInView = useMemo(() => {
     const ids = new Set(selectedFeedIds);
+    const selectedCategorySet = new Set(selectedCategories);
     for (const fc of feedCategories) {
-      if (selectedCategories.includes(fc.categoryId)) {
+      if (selectedCategorySet.has(fc.categoryId)) {
         ids.add(fc.feedId);
       }
     }

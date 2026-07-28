@@ -580,17 +580,3 @@ export const auth = betterAuth({
   /** if no database is provided, the user data will be stored in memory.
    * Make sure to provide a database to persist user data **/
 });
-
-export async function getServerAuth(headers: Headers) {
-  return await auth.api.getSession({
-    headers,
-  });
-}
-
-export async function isServerAuthed(headers: Headers) {
-  const authResult = await auth.api.getSession({
-    headers,
-  });
-
-  return !!authResult?.session.id && !!authResult.user.id;
-}

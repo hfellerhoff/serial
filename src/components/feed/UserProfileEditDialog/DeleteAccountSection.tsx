@@ -41,6 +41,7 @@ function DeleteAccountConfirmationSection({
 }) {
   const router = useRouter();
   const { mutateAsync: deleteAccount, isPending } = useDeleteAccountMutation();
+  const [confirmation, setConfirmation] = useState("");
 
   return (
     <>
@@ -50,10 +51,7 @@ function DeleteAccountConfirmationSection({
       </p>
       <form
         className="grid gap-4"
-        onSubmit={async (e) => {
-          e.preventDefault();
-
-          const formValues = new FormData(e.currentTarget);
+        action={async (formValues) => {
           const fieldValue = formValues.get(DELETE_FIELD_NAME);
 
           const { success } = targetValueSchema.safeParse(fieldValue);
@@ -70,7 +68,11 @@ function DeleteAccountConfirmationSection({
           });
         }}
       >
-        <Input name={DELETE_FIELD_NAME} />
+        <Input
+          name={DELETE_FIELD_NAME}
+          value={confirmation}
+          onChange={(event) => setConfirmation(event.target.value)}
+        />
         <div className="grid grid-cols-2 gap-2">
           <Button type="button" onClick={onCancel} variant="outline">
             Cancel

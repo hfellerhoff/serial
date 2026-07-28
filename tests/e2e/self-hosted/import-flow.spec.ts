@@ -118,9 +118,7 @@ test.describe("full user lifecycle", () => {
     await expect(
       page.getByRole("button", { name: "Deselect CGP Grey" }),
     ).toHaveClass(/bg-primary/);
-    await page
-      .getByRole("button", { name: "Deselect CGP Grey" })
-      .hover({ force: true });
+    await page.getByRole("button", { name: "Deselect CGP Grey" }).hover();
     await expect(page.getByRole("tooltip")).toHaveText("Deselect feed");
 
     const [itemBounds, importButtonBounds, footerBounds, contentBounds] =

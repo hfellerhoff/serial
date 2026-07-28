@@ -153,6 +153,7 @@ export function ControlledResponsiveDialog({
           <DialogHeader className={cn("shrink-0", headerClassName)}>
             {onBack && (
               <button
+                type="button"
                 onClick={onBack}
                 className="text-muted-foreground hover:text-foreground mb-4 flex w-fit items-center gap-1 text-sm transition-colors"
               >
@@ -191,6 +192,7 @@ export function ControlledResponsiveDialog({
         <DrawerHeader className="shrink-0 text-left">
           {onBack && (
             <button
+              type="button"
               onClick={onBack}
               className="text-muted-foreground hover:text-foreground mb-2 flex w-fit items-center gap-1 text-sm transition-colors"
             >

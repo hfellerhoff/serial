@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useSelector } from "@xstate/react";
 import { loadingActor } from "~/lib/data/loading-machine";
 
@@ -70,6 +70,20 @@ function pinLeavingNode(node: HTMLElement, containerRect: DOMRect) {
   node.style.zIndex = "0";
 }
 
+function restoreFlipNode(node: HTMLElement) {
+  node.style.position = "";
+  node.style.top = "";
+  node.style.left = "";
+  node.style.width = "";
+  node.style.height = "";
+  node.style.margin = "";
+  node.style.pointerEvents = "";
+  node.style.zIndex = "";
+  node.style.transition = "";
+  node.style.opacity = "";
+  node.style.transform = "";
+}
+
 /**
  * Drives a FLIP (First, Last, Invert, Play) animation for the surviving items
  * and a fade-out for the leaving ones, all using composited `transform` /
@@ -81,7 +95,8 @@ function pinLeavingNode(node: HTMLElement, containerRect: DOMRect) {
 function playFlip(
   container: HTMLElement,
   leavingItems: ReadonlySet<string>,
-): void {
+  onAnimationFrame: (frameId: number) => void,
+): number {
   const nodes = getDirectFlipNodes(container);
   const survivors: HTMLElement[] = [];
   const leaving: HTMLElement[] = [];
@@ -122,7 +137,8 @@ function playFlip(
   }
 
   // Play: next frame, release everything to its natural position / hidden.
-  requestAnimationFrame(() => {
+  const frameId = requestAnimationFrame(() => {
+    onAnimationFrame(frameId);
     for (const node of survivors) {
       if (!node.style.transform) continue;
       node.style.transition = `transform ${FLIP_DURATION_MS}ms ${FLIP_EASING}`;
@@ -134,6 +150,7 @@ function playFlip(
       node.style.transform = "scale(0.98)";
     }
   });
+  return frameId;
 }
 
 /**
@@ -157,6 +174,7 @@ export function useFlipItems(items: string[]) {
   const removalTimersRef = useRef(
     new Map<string, ReturnType<typeof setTimeout>>(),
   );
+  const animationFramesRef = useRef(new Set<number>());
 
   const itemsKey = items.join(ITEM_ID_SEPARATOR);
   const [state, setState] = useState({ key: itemsKey, rendered: items });
@@ -180,20 +198,51 @@ export function useFlipItems(items: string[]) {
     : new Set(state.rendered.filter((id) => !currentItemIds.has(id)));
   const leavingKey = [...leavingItems].join(ITEM_ID_SEPARATOR);
 
+  // Timers survive dependency reruns; the separate unmount effect below owns
+  // their final cleanup.
+  // oxlint-disable-next-line react-doctor/effect-needs-cleanup
   useLayoutEffect(() => {
+    const removalTimers = removalTimersRef.current;
+    let restoredAnItem = false;
+    const currentIds = new Set(
+      itemsKey === "" ? [] : itemsKey.split(ITEM_ID_SEPARATOR),
+    );
+    for (const [id, timer] of removalTimers) {
+      if (!currentIds.has(id)) continue;
+      clearTimeout(timer);
+      removalTimers.delete(id);
+      restoredAnItem = true;
+    }
+
     const container = containerRef.current;
+    if (restoredAnItem) {
+      const animationFrames = animationFramesRef.current;
+      for (const frameId of animationFrames) {
+        cancelAnimationFrame(frameId);
+      }
+      animationFrames.clear();
+      if (container) {
+        for (const node of getDirectFlipNodes(container)) {
+          restoreFlipNode(node);
+        }
+      }
+    }
+
     if (!container || leavingKey === "") return;
 
     const leavingIds: ReadonlySet<string> = new Set(
       leavingKey.split(ITEM_ID_SEPARATOR),
     );
-    playFlip(container, leavingIds);
+    const animationFrames = animationFramesRef.current;
+    const frameId = playFlip(container, leavingIds, (completedFrameId) => {
+      animationFrames.delete(completedFrameId);
+    });
+    animationFrames.add(frameId);
 
     // Schedule each leaving id's unmount exactly once. Timers are intentionally
     // not cleared when this effect re-runs (e.g. a later removal): each leaving
     // item owns its own clock, so rapid sequential removals don't pile up as
     // never-unmounted ghost nodes.
-    const removalTimers = removalTimersRef.current;
     for (const id of leavingIds) {
       if (removalTimers.has(id)) continue;
       const timer = setTimeout(() => {
@@ -205,13 +254,20 @@ export function useFlipItems(items: string[]) {
       }, REMOVAL_DELAY_MS);
       removalTimers.set(id, timer);
     }
-  }, [leavingKey]);
+  }, [itemsKey, leavingKey]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const removalTimers = removalTimersRef.current;
+    const animationFrames = animationFramesRef.current;
     return () => {
-      for (const timer of removalTimers.values()) clearTimeout(timer);
+      for (const timer of removalTimers.values()) {
+        clearTimeout(timer);
+      }
       removalTimers.clear();
+      for (const frameId of animationFrames) {
+        cancelAnimationFrame(frameId);
+      }
+      animationFrames.clear();
     };
   }, []);
 

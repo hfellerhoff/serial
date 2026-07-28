@@ -8,7 +8,7 @@ function getDate() {
 }
 
 export function ClientDatetime() {
-  const [dateString, setDateString] = useState(getDate());
+  const [dateString, setDateString] = useState(() => getDate());
 
   useEffect(() => {
     const interval = setInterval(() => {

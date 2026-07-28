@@ -2,7 +2,10 @@
 
 import dayjs from "dayjs";
 import { MonitorIcon, SmartphoneIcon, UserIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Badge } from "~/components/ui/badge";
+
+const MAX_TIMEOUT_MS = 2_147_483_647;
 
 interface Session {
   id: string;
@@ -53,6 +56,33 @@ function getDeviceName(userAgent?: string | null) {
 }
 
 export function AdminSessionList({ sessions }: AdminSessionListProps) {
+  const [renderTime, setRenderTime] = useState<number | null>(null);
+
+  useEffect(() => {
+    const now = Date.now();
+    const nextExpiration = sessions.reduce<number | null>((next, session) => {
+      const expiration = session.expiresAt.getTime();
+      if (expiration <= now) return next;
+      return next === null ? expiration : Math.min(next, expiration);
+    }, null);
+
+    // The first asynchronous tick populates client time without introducing a
+    // server/client hydration mismatch. Later ticks occur only at expirations.
+    const delay =
+      renderTime === null
+        ? 0
+        : nextExpiration === null
+          ? null
+          : Math.min(nextExpiration - now + 1, MAX_TIMEOUT_MS);
+    if (delay === null) return;
+
+    const timeout = setTimeout(() => {
+      setRenderTime(Date.now());
+    }, delay);
+
+    return () => clearTimeout(timeout);
+  }, [renderTime, sessions]);
+
   if (sessions.length === 0) {
     return (
       <p className="text-muted-foreground py-4 text-center text-sm">
@@ -64,7 +94,8 @@ export function AdminSessionList({ sessions }: AdminSessionListProps) {
   return (
     <div className="flex flex-col gap-2">
       {sessions.map((session) => {
-        const isExpired = new Date(session.expiresAt) < new Date();
+        const isExpired =
+          renderTime !== null && session.expiresAt.getTime() <= renderTime;
 
         return (
           <div

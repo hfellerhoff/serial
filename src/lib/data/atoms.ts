@@ -9,9 +9,6 @@ import { viewsStore } from "./views/store";
 import { feedsStore } from "./feeds/store";
 import type { ApplicationView } from "~/server/db/schema";
 
-export const feedItemsOrderAtom = atom<string[]>([]);
-
-export const hasSetInitialViewAtom = atom(false);
 export const viewsAtom = atom<ApplicationView[]>([]);
 
 const ALL_TIME_DATE_FILTER = 0;

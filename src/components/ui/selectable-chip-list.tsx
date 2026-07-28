@@ -7,7 +7,7 @@ import {
   PlusIcon,
 } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
-import { badgeVariants } from "./badge";
+import { badgeVariants } from "./component-variants";
 import { Button } from "./button";
 import {
   Command,

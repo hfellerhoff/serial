@@ -33,8 +33,10 @@ function EditableSavableTextFieldNotEditingActions({
 
 function EditableSavableTextFieldEditingActions({
   onCancel,
+  isSaving,
 }: {
   onCancel: () => void;
+  isSaving: boolean;
 }) {
   return (
     <>
@@ -44,11 +46,22 @@ function EditableSavableTextFieldEditingActions({
         variant="outline"
         size="icon"
         type="button"
+        disabled={isSaving}
       >
         <XIcon size={16} />
       </Button>
-      <Button className="shrink-0" type="submit" variant="outline" size="icon">
-        <CheckIcon size={16} />
+      <Button
+        className="shrink-0"
+        type="submit"
+        variant="outline"
+        size="icon"
+        disabled={isSaving}
+      >
+        {isSaving ? (
+          <Loader className="animate-spin" size={16} />
+        ) : (
+          <CheckIcon size={16} />
+        )}
       </Button>
     </>
   );
@@ -60,8 +73,8 @@ interface EditableSavableTextFieldProps {
   helperText?: string;
   showHelperTextOnlyWhenEditing?: boolean;
   placeholder: string;
-  onSave: (updatedValue: string) => Promise<void>;
-  schema: z.ZodString;
+  onSave: (updatedValue: string) => Promise<"saved" | "pending" | "failed">;
+  schema: z.ZodType<string>;
 }
 
 export function EditableSavableTextField({
@@ -75,29 +88,28 @@ export function EditableSavableTextField({
 }: EditableSavableTextFieldProps) {
   const id = useId();
 
-  const formRef = useRef<HTMLFormElement | null>(null);
-
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const isSavingRef = useRef(false);
+  const [inputValue, setInputValue] = useState(initialValue);
 
   const [errors, setErrors] = useState<string[]>([]);
 
   const hasErrors = !!errors.length;
 
   const cancelEditing = () => {
+    if (isSavingRef.current) return;
     setIsEditing(false);
     setErrors([]);
-    formRef.current?.reset();
+    setInputValue(initialValue);
   };
 
   return (
     <form
-      ref={formRef}
       className="grid gap-2"
-      onSubmit={async (e) => {
-        e.preventDefault();
+      action={async (formValues) => {
+        if (isSavingRef.current) return;
 
-        const formValues = new FormData(e.currentTarget);
         const fieldValue = formValues.get(id);
 
         if (fieldValue === initialValue) {
@@ -117,14 +129,18 @@ export function EditableSavableTextField({
         }
         setErrors([]);
 
-        e.currentTarget.reset();
-
+        isSavingRef.current = true;
         setIsSaving(true);
-        setIsEditing(false);
+        try {
+          const result = await onSave(String(validatedValue));
+          if (result === "failed") return;
 
-        await onSave(String(validatedValue));
-
-        setIsSaving(false);
+          setInputValue(result === "saved" ? validatedValue : initialValue);
+          setIsEditing(false);
+        } finally {
+          isSavingRef.current = false;
+          setIsSaving(false);
+        }
       }}
     >
       <Label htmlFor={id}>{label}</Label>
@@ -136,7 +152,8 @@ export function EditableSavableTextField({
             name={id}
             type="text"
             placeholder={placeholder}
-            defaultValue={initialValue}
+            value={inputValue}
+            onChange={(event) => setInputValue(event.target.value)}
             disabled={!isEditing || isSaving}
             className={clsx({
               "border-destructive rounded-b-none": hasErrors,
@@ -164,7 +181,10 @@ export function EditableSavableTextField({
           />
         )}
         {isEditing && (
-          <EditableSavableTextFieldEditingActions onCancel={cancelEditing} />
+          <EditableSavableTextFieldEditingActions
+            onCancel={cancelEditing}
+            isSaving={isSaving}
+          />
         )}
       </div>
       {!!helperText && (!showHelperTextOnlyWhenEditing || isEditing) && (
