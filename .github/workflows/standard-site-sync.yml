@@ -1,0 +1,73 @@
+name: Standard.Site Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/www/src/content/guides/**"
+      - "apps/www/src/content/releases/**"
+      - "apps/www/src/lib/standard-site/**"
+      - "apps/www/scripts/sync-standard-site.ts"
+      - ".github/workflows/standard-site-sync.yml"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Only print the planned changes
+        required: false
+        default: false
+        type: boolean
+      allow_large_delete:
+        description: Allow deleting more than five publication documents
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: standard-site-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Standard.Site configuration
+        id: configuration
+        env:
+          STANDARD_SITE_PDS_URL: ${{ vars.STANDARD_SITE_PDS_URL }}
+          STANDARD_SITE_IDENTIFIER: ${{ vars.STANDARD_SITE_IDENTIFIER }}
+          STANDARD_SITE_APP_PASSWORD: ${{ secrets.STANDARD_SITE_APP_PASSWORD }}
+          PUBLIC_STANDARD_SITE_PUBLICATION_URI: ${{ vars.PUBLIC_STANDARD_SITE_PUBLICATION_URI }}
+        run: |
+          if [[ -n "$STANDARD_SITE_PDS_URL" && -n "$STANDARD_SITE_IDENTIFIER" && -n "$STANDARD_SITE_APP_PASSWORD" && -n "$PUBLIC_STANDARD_SITE_PUBLICATION_URI" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Standard.Site credentials are not configured; skipping sync."
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.configuration.outputs.enabled == 'true'
+
+      - uses: pnpm/action-setup@v4
+        if: steps.configuration.outputs.enabled == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.configuration.outputs.enabled == 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - if: steps.configuration.outputs.enabled == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync Standard.Site records
+        if: steps.configuration.outputs.enabled == 'true'
+        run: pnpm --filter @serial/www standard-site:sync ${{ inputs.dry_run && '--dry-run' || '' }} ${{ inputs.allow_large_delete && '--allow-large-delete' || '' }}
+        env:
+          STANDARD_SITE_PDS_URL: ${{ vars.STANDARD_SITE_PDS_URL }}
+          STANDARD_SITE_IDENTIFIER: ${{ vars.STANDARD_SITE_IDENTIFIER }}
+          STANDARD_SITE_APP_PASSWORD: ${{ secrets.STANDARD_SITE_APP_PASSWORD }}
+          PUBLIC_STANDARD_SITE_PUBLICATION_URI: ${{ vars.PUBLIC_STANDARD_SITE_PUBLICATION_URI }}

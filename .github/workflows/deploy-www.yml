@@ -1,0 +1,112 @@
+name: Deploy Website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/www/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "turbo.json"
+      - ".github/scripts/www/**"
+      - ".github/workflows/deploy-www.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-www-main
+  cancel-in-progress: false
+
+jobs:
+  affected:
+    runs-on: ubuntu-latest
+    outputs:
+      www: ${{ steps.check.outputs.www }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Check whether the website artifact is affected
+        id: check
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "www=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          pnpm exec turbo run build:artifact --affected --dry=json > affected.json
+          if jq -e '.tasks[] | select(.taskId == "@serial/www#build:artifact")' affected.json > /dev/null; then
+            echo "www=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "www=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: affected
+    if: needs.affected.outputs.www == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @serial/www build:artifact
+        env:
+          PUBLIC_APP_URL: ${{ vars.PUBLIC_APP_URL }}
+          PUBLIC_SUPPORT_EMAIL_ADDRESS: ${{ vars.PUBLIC_SUPPORT_EMAIL_ADDRESS }}
+          PUBLIC_STANDARD_SITE_PUBLICATION_URI: ${{ vars.PUBLIC_STANDARD_SITE_PUBLICATION_URI }}
+          PUBLIC_UMAMI_WEBSITE_ID: ${{ vars.PUBLIC_UMAMI_WEBSITE_ID }}
+          PUBLIC_UMAMI_SRC: ${{ vars.PUBLIC_UMAMI_SRC }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: www-dist
+          path: apps/www/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: www-dist
+          path: apps/www/dist
+
+      - name: Upload to Bunny Storage
+        env:
+          BUNNY_STORAGE_HOSTNAME: ${{ secrets.BUNNY_STORAGE_HOSTNAME }}
+          BUNNY_STORAGE: ${{ secrets.BUNNY_STORAGE }}
+          BUNNY_API_STORAGE: ${{ secrets.BUNNY_API_STORAGE }}
+        run: |
+          chmod +x .github/scripts/www/upload-to-bunny.sh
+          find apps/www/dist -type f | xargs -P 20 -I {} .github/scripts/www/upload-to-bunny.sh {}
+
+      - name: Purge Bunny Cache
+        env:
+          BUNNY_API: ${{ secrets.BUNNY_API }}
+          BUNNY_PULL_ZONE_ID: ${{ secrets.BUNNY_PULL_ZONE_ID }}
+        run: |
+          curl -X POST "https://api.bunny.net/pullzone/$BUNNY_PULL_ZONE_ID/purgeCache" \
+            -H "AccessKey: $BUNNY_API"
