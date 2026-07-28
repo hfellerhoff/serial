@@ -8,6 +8,7 @@ import {
   CaptionsOffIcon,
   FullscreenIcon,
   LanguagesIcon,
+  Loader2Icon,
   MaximizeIcon,
   MinimizeIcon,
   PlayIcon,
@@ -73,6 +74,7 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
     toggleVideoPlayback,
     manualPlayerState,
     playerErrorCode,
+    isPlayerLoading,
     playbackSpeed,
     changeVideoPlaybackSpeed,
     videoDuration,
@@ -186,6 +188,11 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
     videoType === "live" && videoProgress < videoDuration;
   const shouldShowTimestamps =
     shouldShowVideoTimestamps || shouldShowLiveTimestamps;
+  const shouldShowVideoThumbnail =
+    manualPlayerState !== YOUTUBE_PLAYER_STATES.PLAYING &&
+    manualPlayerState !== YOUTUBE_PLAYER_STATES.HELD &&
+    !isSeeking;
+  const shouldShowLoadingSpinner = shouldShowVideoThumbnail && isPlayerLoading;
 
   return (
     <div ref={videoContainerRef} className="relative h-full w-full bg-black">
@@ -217,10 +224,7 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
             {!hasYouTubePlayerError && (
               <div
                 className={clsx("transition-all", {
-                  "opacity-0":
-                    manualPlayerState === YOUTUBE_PLAYER_STATES.PLAYING ||
-                    manualPlayerState === YOUTUBE_PLAYER_STATES.HELD ||
-                    isSeeking,
+                  "opacity-0": !shouldShowVideoThumbnail,
                 })}
               >
                 <div className="absolute inset-0 h-full w-full bg-black">
@@ -234,6 +238,9 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
                   />
                 </div>
                 <button
+                  aria-label={
+                    shouldShowLoadingSpinner ? "Video loading" : "Play video"
+                  }
                   onClick={toggleVideoPlayback}
                   className={clsx(
                     "absolute inset-0 inset-y-8 z-20 grid place-items-center",
@@ -244,7 +251,15 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
                   )}
                 >
                   <div className="bg-background grid size-20 place-items-center rounded-2xl shadow-2xl transition-all group-hover:scale-105">
-                    <PlayIcon size={32} />
+                    {shouldShowLoadingSpinner ? (
+                      <Loader2Icon
+                        aria-hidden="true"
+                        className="animate-spin"
+                        size={32}
+                      />
+                    ) : (
+                      <PlayIcon aria-hidden="true" size={32} />
+                    )}
                   </div>
                 </button>
               </div>

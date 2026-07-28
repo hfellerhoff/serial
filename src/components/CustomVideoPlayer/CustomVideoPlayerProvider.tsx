@@ -33,6 +33,7 @@ type CustomVideoPlayerContext = {
   manualPlayerState: number;
   playerState: number;
   playerErrorCode: number | null;
+  isPlayerLoading: boolean;
   playbackSpeed: number;
   changeVideoPlaybackSpeed: (speed: number) => void;
   videoDuration: number;
@@ -67,6 +68,7 @@ export function CustomVideoPlayerProvider({ children }: PropsWithChildren) {
   );
   const [manualPlayerState, setManualPlayerState] = useState(playerState);
   const [playerErrorCode, setPlayerErrorCode] = useState<number | null>(null);
+  const [isPlayerLoading, setIsPlayerLoading] = useState(true);
 
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [videoProgress, setVideoProgress] = useState(0);
@@ -233,6 +235,7 @@ export function CustomVideoPlayerProvider({ children }: PropsWithChildren) {
   const onPlayerReady = useCallback(
     (event: YouTubeEvent) => {
       setPlayerErrorCode(null);
+      setIsPlayerLoading(false);
       captionPlayerRef.current = event.target;
       event.target.addEventListener("onApiChange", () =>
         handleApiChange(event.target),
@@ -246,6 +249,7 @@ export function CustomVideoPlayerProvider({ children }: PropsWithChildren) {
     const errorCode = Number(event.data);
 
     setPlayerErrorCode(Number.isNaN(errorCode) ? -1 : errorCode);
+    setIsPlayerLoading(false);
     setManualPlayerState(YOUTUBE_PLAYER_STATES.PAUSED);
     console.warn("YouTube player error", {
       code: event.data,
@@ -403,6 +407,7 @@ export function CustomVideoPlayerProvider({ children }: PropsWithChildren) {
       setVideoDuration(event.target.getDuration());
       setVideoProgress(event.target.getCurrentTime());
       setPlayerState(event.data);
+      setIsPlayerLoading(event.data === YOUTUBE_PLAYER_STATES.BUFFERING);
 
       if (manualPlayerState === YOUTUBE_PLAYER_STATES.HELD) {
         return;
@@ -441,6 +446,7 @@ export function CustomVideoPlayerProvider({ children }: PropsWithChildren) {
         manualPlayerState,
         playerState,
         playerErrorCode,
+        isPlayerLoading,
         playbackSpeed,
         changeVideoPlaybackSpeed,
         videoDuration,

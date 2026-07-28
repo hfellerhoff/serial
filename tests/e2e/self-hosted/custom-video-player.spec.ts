@@ -7,7 +7,23 @@ import {
 import { cleanupUser, seedYouTubeVideoData } from "../fixtures/seed-db";
 import type { Page } from "@playwright/test";
 
-async function mockYouTubePlayerError(page: Page, errorCode: number) {
+async function mockYouTubePlayer(
+  page: Page,
+  {
+    errorCode,
+    readyDelayMs = 0,
+  }: {
+    errorCode?: number;
+    readyDelayMs?: number;
+  } = {},
+) {
+  const errorCallback =
+    errorCode === undefined
+      ? ""
+      : `setTimeout(() => {
+          options.events.onError({ data: ${errorCode}, target: this });
+        }, 0);`;
+
   await page.route(/\/\/www\.youtube\.com\/iframe_api/, async (route) => {
     await route.fulfill({
       contentType: "application/javascript",
@@ -25,10 +41,8 @@ async function mockYouTubePlayerError(page: Page, errorCode: number) {
 
               setTimeout(() => {
                 options.events.onReady({ target: this });
-                setTimeout(() => {
-                  options.events.onError({ data: ${errorCode}, target: this });
-                }, 0);
-              }, 0);
+                ${errorCallback}
+              }, ${readyDelayMs});
             }
 
             addEventListener(eventName, listener) {
@@ -118,7 +132,7 @@ test.describe("custom video player", () => {
       await seedYouTubeVideoData(SELF_HOSTED_TURSO_PORT, SELF_HOSTED_APP_PORT);
     testEmail = email;
 
-    await mockYouTubePlayerError(page, 150);
+    await mockYouTubePlayer(page, { errorCode: 150 });
     await signIn({ page, email, password });
     await page.goto(`/watch/${feedItemId}`);
 
@@ -134,5 +148,28 @@ test.describe("custom video player", () => {
     const popup = await popupPromise;
 
     await expect(popup).toHaveURL(originalUrl);
+  });
+
+  test("shows a spinner while the thumbnail and embed are loading", async ({
+    page,
+  }) => {
+    const { email, password, feedItemId } = await seedYouTubeVideoData(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+    );
+    testEmail = email;
+
+    await mockYouTubePlayer(page, { readyDelayMs: 2000 });
+    await signIn({ page, email, password });
+    await page.goto(`/watch/${feedItemId}`);
+
+    const loadingButton = page.getByRole("button", {
+      name: "Video loading",
+    });
+    await expect(loadingButton).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("button", { name: "Play video" })).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(loadingButton).toHaveCount(0);
   });
 });
