@@ -1,0 +1,52 @@
+name: Deploy Website Edge Script
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/www-edge-script/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "turbo.json"
+      - ".node-version"
+      - ".github/workflows/deploy-www-edge-script.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-www-edge-script-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.repository == 'megaflorasoftware/serial'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @serial/www-edge-script typecheck
+
+      - run: pnpm --filter @serial/www-edge-script lint
+
+      - run: pnpm --filter @serial/www-edge-script test:unit
+
+      - run: pnpm --filter @serial/www-edge-script build:artifact
+
+      - name: Publish the script to Bunny
+        uses: BunnyWay/actions/deploy-script@cfed0ba7842c85686d0dc3a83d8d971991a752f6 # deploy-script@0.5.0
+        with:
+          script_id: ${{ secrets.WWW_BUNNY_EDGE_SCRIPT_ID }}
+          deploy_key: ${{ secrets.WWW_BUNNY_EDGE_SCRIPT_DEPLOY_KEY }}
+          file: apps/www-edge-script/dist/index.js

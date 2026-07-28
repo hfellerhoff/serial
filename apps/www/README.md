@@ -19,7 +19,7 @@ Guides live in `src/content/guides` and release notes in `src/content/releases`,
 
 ## Signed-in redirect
 
-The site is fully static, so the landing page checks for a session client-side: a script on `/` calls `WWW_APP_URL/api/auth/get-session` with credentials and redirects signed-in visitors to the app. This requires the website origin (`https://www.serial.tube`) to be listed in the app's `TRUSTED_ORIGINS` env var so the CORS request is allowed.
+The site is fully static. Bunny middleware in `apps/www-edge-script` checks for the shared Better Auth session cookie on requests to `https://www.serial.tube/` and redirects likely signed-in visitors to the app before cached HTML is served. The edge script only acts on the `www` hostname and does not require CORS access to the app.
 
 ## Deployment
 
