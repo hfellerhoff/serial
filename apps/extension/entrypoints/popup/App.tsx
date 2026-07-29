@@ -28,6 +28,7 @@ import type {
   AuthMessageResponse,
   ExtensionAuthSession,
 } from "../../lib/auth";
+import { ExtensionHeader } from "./ExtensionHeader";
 
 async function sendAuthMessage(message: AuthMessage) {
   const response = (await browser.runtime.sendMessage(
@@ -359,15 +360,10 @@ function App() {
   if (session) {
     return (
       <main className="flex h-full flex-col p-5">
-        <header className="flex items-center gap-3">
-          <img className="size-10 rounded-lg" src="/icon/128.png" alt="" />
-          <div className="min-w-0">
-            <div className="font-semibold">Serial</div>
-            <div className="text-muted-foreground truncate text-xs">
-              {displayHost(session.instance)}
-            </div>
-          </div>
-        </header>
+        <ExtensionHeader
+          title="Serial"
+          description={displayHost(session.instance)}
+        />
         <div className="flex flex-1 items-center justify-center">
           <div className="text-muted-foreground flex items-center gap-2 text-sm">
             <Check className="size-4" />
@@ -418,15 +414,10 @@ function App() {
 
   return (
     <main className="flex h-full flex-col gap-5 p-5">
-      <header className="flex items-center gap-3">
-        <img className="size-12 rounded-xl" src="/icon/128.png" alt="" />
-        <div>
-          <h1 className="text-lg font-semibold">Sign in to Serial</h1>
-          <p className="text-muted-foreground text-sm">
-            Continue in your browser with your Serial account.
-          </p>
-        </div>
-      </header>
+      <ExtensionHeader
+        title="Sign in to Serial"
+        description="Continue in your browser with your Serial account."
+      />
 
       <div className="grid gap-2">
         <Label>Serial instance</Label>

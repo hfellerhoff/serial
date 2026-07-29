@@ -12,7 +12,14 @@ body,
 }
 
 body {
+  background: transparent;
   margin: 0;
+  overflow: hidden;
+}
+
+#root {
+  background: hsl(var(--background));
+  border-radius: var(--radius);
   overflow: hidden;
 }
 
