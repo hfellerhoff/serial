@@ -15,9 +15,32 @@ import type {
 } from "../lib/auth";
 
 const TOKEN_EXPIRY_BUFFER_MS = 30_000;
+const INSTANCE_REQUEST_TIMEOUT_MS = 10_000;
 const SERIAL_THEME_CLAIM = "https://serial.tube/theme";
 
 class InvalidSessionError extends Error {}
+
+async function fetchFromInstance(
+  input: string | URL | Request,
+  init?: RequestInit,
+) {
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: AbortSignal.timeout(INSTANCE_REQUEST_TIMEOUT_MS),
+    });
+  } catch (error) {
+    if (
+      error instanceof DOMException &&
+      (error.name === "TimeoutError" || error.name === "AbortError")
+    ) {
+      throw new Error("The Serial instance did not respond in time", {
+        cause: error,
+      });
+    }
+    throw error;
+  }
+}
 
 function randomUrlSafeString(size = 32) {
   const bytes = crypto.getRandomValues(new Uint8Array(size));
@@ -59,11 +82,14 @@ async function prepareInstance(
   instance: string,
   redirectUri: string,
 ): Promise<AuthEndpoints> {
-  const response = await fetch(`${instance}/api/extension-auth/prepare`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ redirectUri }),
-  });
+  const response = await fetchFromInstance(
+    `${instance}/api/extension-auth/prepare`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ redirectUri }),
+    },
+  );
   const payload = (await response.json()) as AuthEndpoints & { error?: string };
   if (!response.ok) {
     throw new Error(
@@ -77,7 +103,7 @@ async function requestToken(
   endpoint: string,
   parameters: Record<string, string>,
 ) {
-  const response = await fetch(endpoint, {
+  const response = await fetchFromInstance(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams(parameters),
@@ -113,7 +139,7 @@ function revokeToken(
   token: string,
   tokenType: "access_token" | "refresh_token",
 ) {
-  return fetch(endpoints.revocationEndpoint, {
+  return fetchFromInstance(endpoints.revocationEndpoint, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -125,7 +151,7 @@ function revokeToken(
 }
 
 async function fetchUser(endpoint: string, accessToken: string) {
-  const response = await fetch(endpoint, {
+  const response = await fetchFromInstance(endpoint, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!response.ok) {
@@ -303,12 +329,13 @@ async function signOut() {
   if (session) {
     // The extension is a leaf of the Serial session. Revoke its own tokens,
     // but never call the instance end-session endpoint or clear its cookies.
-    // Local sign-out still succeeds when the instance is offline.
+    // Remove local credentials first so revocation remains best effort when
+    // the instance is offline or slow.
+    await storeSession(null);
     await Promise.allSettled([
       revokeToken(session.endpoints, session.accessToken, "access_token"),
       revokeToken(session.endpoints, session.refreshToken, "refresh_token"),
     ]);
-    await storeSession(null);
   }
   return null;
 }

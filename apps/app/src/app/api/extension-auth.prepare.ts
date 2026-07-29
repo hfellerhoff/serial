@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { RateLimitResult } from "~/server/rate-limit";
 import {
+  ensureExtensionOAuthClient,
   SERIAL_EXTENSION_AUTH_SCOPES,
   SERIAL_EXTENSION_CLIENT_ID,
 } from "~/server/auth/extension";
@@ -12,7 +13,7 @@ import {
 } from "~/server/auth/extension-origin";
 import { db } from "~/server/db";
 import { user } from "~/server/db/schema";
-import { logError } from "~/server/logger";
+import { logError, logMessage } from "~/server/logger";
 import { checkIpRateLimit } from "~/server/rate-limit";
 
 const MAX_PREPARE_BODY_BYTES = 1_024;
@@ -159,6 +160,26 @@ export const Route = createFileRoute("/api/extension-auth/prepare")({
             request,
             { error: "This extension redirect URL is not registered" },
             400,
+            limitHeaders,
+          );
+        }
+
+        try {
+          const provisioning = await ensureExtensionOAuthClient();
+          if (provisioning !== "unchanged") {
+            logMessage(
+              `[extension-auth] Extension OAuth client ${provisioning} during lazy provisioning`,
+            );
+          }
+        } catch (error) {
+          logError(
+            "[extension-auth] Unable to provision the extension OAuth client:",
+            error,
+          );
+          return jsonResponse(
+            request,
+            { error: "Extension authentication is temporarily unavailable" },
+            503,
             limitHeaders,
           );
         }

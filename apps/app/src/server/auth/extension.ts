@@ -15,6 +15,18 @@ export const SERIAL_EXTENSION_AUTH_SCOPES = [
   "offline_access",
 ] as const;
 
+const EXTENSION_CLIENT_PROVISIONING = {
+  attempts: 2,
+  retryDelayMs: 100,
+  timeoutMs: 2_000,
+} as const;
+
+type ExtensionClientProvisioningResult = "created" | "unchanged" | "updated";
+
+let extensionClientIsProvisioned = false;
+let extensionClientProvisioning: Promise<ExtensionClientProvisioningResult> | null =
+  null;
+
 function managedExtensionOAuthClientValues() {
   return {
     name: "Serial browser extension",
@@ -66,6 +78,78 @@ export async function provisionExtensionOAuthClient() {
     })
     .where(eq(oauthClient.clientId, SERIAL_EXTENSION_CLIENT_ID));
   return "updated" as const;
+}
+
+function waitForProvisioningRetry() {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, EXTENSION_CLIENT_PROVISIONING.retryDelayMs);
+  });
+}
+
+function provisioningAttempt() {
+  if (extensionClientProvisioning) return extensionClientProvisioning;
+
+  const attempt = provisionExtensionOAuthClient().then((result) => {
+    extensionClientIsProvisioned = true;
+    return result;
+  });
+  extensionClientProvisioning = attempt;
+  void attempt
+    .finally(() => {
+      if (extensionClientProvisioning === attempt) {
+        extensionClientProvisioning = null;
+      }
+    })
+    .catch(() => undefined);
+  return attempt;
+}
+
+function provisionWithDeadline(
+  attempt: Promise<ExtensionClientProvisioningResult>,
+) {
+  return new Promise<ExtensionClientProvisioningResult>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      if (extensionClientProvisioning === attempt) {
+        extensionClientProvisioning = null;
+      }
+      reject(new Error("Extension OAuth client provisioning timed out"));
+    }, EXTENSION_CLIENT_PROVISIONING.timeoutMs);
+
+    void attempt.then(
+      (result) => {
+        clearTimeout(timeout);
+        resolve(result);
+      },
+      (error: unknown) => {
+        clearTimeout(timeout);
+        reject(error);
+      },
+    );
+  });
+}
+
+export async function ensureExtensionOAuthClient() {
+  if (extensionClientIsProvisioned) return "unchanged" as const;
+
+  let lastError: unknown;
+  for (
+    let attemptNumber = 1;
+    attemptNumber <= EXTENSION_CLIENT_PROVISIONING.attempts;
+    attemptNumber += 1
+  ) {
+    try {
+      return await provisionWithDeadline(provisioningAttempt());
+    } catch (error) {
+      lastError = error;
+      if (attemptNumber < EXTENSION_CLIENT_PROVISIONING.attempts) {
+        await waitForProvisioningRetry();
+      }
+    }
+  }
+
+  throw new Error("Unable to provision the extension OAuth client", {
+    cause: lastError,
+  });
 }
 
 export async function revokeExtensionTokensForSession(sessionId: string) {

@@ -14,7 +14,11 @@ describe("extension authentication base URL", () => {
   it("normalizes the canonical URL and removes trailing slashes", () => {
     expect(config).toEqual({
       allowedHosts: ["serial.example.com", "alias.example.com"],
-      protocol: "https",
+      allowedOrigins: [
+        "https://serial.example.com",
+        "https://alias.example.com",
+      ],
+      protocol: "auto",
       fallback: "https://serial.example.com",
     });
     expect(
@@ -73,5 +77,42 @@ describe("extension authentication base URL", () => {
         localConfig,
       ),
     ).toBe("http://127.0.0.1:3000/api/auth");
+  });
+
+  it("preserves each trusted origin's protocol", () => {
+    const mixedConfig = createAuthBaseUrlConfig(
+      "http://localhost:3000/",
+      new Set(["https://serial-tunnel.example.com"]),
+    );
+
+    expect(
+      getAuthIssuer(
+        new Request(
+          "https://serial-tunnel.example.com/api/extension-auth/prepare",
+        ),
+        mixedConfig,
+      ),
+    ).toBe("https://serial-tunnel.example.com/api/auth");
+    expect(
+      getAuthIssuer(
+        new Request("http://localhost:3000/api/extension-auth/prepare"),
+        mixedConfig,
+      ),
+    ).toBe("http://localhost:3000/api/auth");
+  });
+
+  it("uses the allowlisted protocol with forwarded hosts", () => {
+    const mixedConfig = createAuthBaseUrlConfig(
+      "http://localhost:3000/",
+      new Set(["https://serial-tunnel.example.com"]),
+    );
+    expect(
+      getAuthIssuer(
+        new Request("http://internal:3000/api/extension-auth/prepare", {
+          headers: { "X-Forwarded-Host": "serial-tunnel.example.com" },
+        }),
+        mixedConfig,
+      ),
+    ).toBe("https://serial-tunnel.example.com/api/auth");
   });
 });

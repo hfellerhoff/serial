@@ -31,11 +31,21 @@ export default defineConfig({
     permissions: ["identity", "storage", "activeTab", "scripting"],
     optional_permissions:
       manifestVersion === 2
-        ? ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"]
+        ? [
+            "https://*/*",
+            "http://localhost/*",
+            "http://127.0.0.1/*",
+            "http://[::1]/*",
+          ]
         : undefined,
     optional_host_permissions:
       manifestVersion === 3
-        ? ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"]
+        ? [
+            "https://*/*",
+            "http://localhost/*",
+            "http://127.0.0.1/*",
+            "http://[::1]/*",
+          ]
         : undefined,
     browser_specific_settings: {
       gecko: {

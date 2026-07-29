@@ -35,6 +35,7 @@ describe("normalizeInstanceUrl", () => {
     expect(normalizeInstanceUrl("http://127.0.0.1:3000")).toBe(
       "http://127.0.0.1:3000",
     );
+    expect(normalizeInstanceUrl("http://[::1]:3000")).toBe("http://[::1]:3000");
   });
 
   it("defaults schemeless local instances to HTTP", () => {
@@ -44,6 +45,7 @@ describe("normalizeInstanceUrl", () => {
     expect(normalizeInstanceUrl("127.0.0.1:3005")).toBe(
       "http://127.0.0.1:3005",
     );
+    expect(normalizeInstanceUrl("[::1]:3005")).toBe("http://[::1]:3005");
   });
 
   it("rejects insecure remote instances", () => {
@@ -73,6 +75,7 @@ describe("originPermission", () => {
     expect(originPermission("http://127.0.0.1:3005")).toBe(
       "http://127.0.0.1/*",
     );
+    expect(originPermission("http://[::1]:3005")).toBe("http://[::1]/*");
   });
 });
 

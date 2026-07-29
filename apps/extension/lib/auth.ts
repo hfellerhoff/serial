@@ -80,9 +80,9 @@ export function normalizeInstanceUrl(value: string): string {
 
   const hasScheme = /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed);
   const schemelessUrl = hasScheme ? null : new URL(`http://${trimmed}`);
-  const isSchemelessLocal =
-    schemelessUrl?.hostname === "localhost" ||
-    schemelessUrl?.hostname === "127.0.0.1";
+  const isSchemelessLocal = schemelessUrl
+    ? isLoopbackHostname(schemelessUrl.hostname)
+    : false;
   const withScheme = hasScheme
     ? trimmed
     : `${isSchemelessLocal ? "http" : "https"}://${trimmed}`;
@@ -92,12 +92,24 @@ export function normalizeInstanceUrl(value: string): string {
     throw new Error("Instance addresses cannot contain credentials");
   }
 
-  const isLocal = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+  const isLocal = isLoopbackHostname(url.hostname);
   if (url.protocol !== "https:" && !(isLocal && url.protocol === "http:")) {
     throw new Error("Serial instances must use HTTPS");
   }
 
   return url.origin;
+}
+
+function isLoopbackHostname(hostname: string) {
+  const unwrappedHostname = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  if (
+    unwrappedHostname === "localhost" ||
+    unwrappedHostname === "127.0.0.1" ||
+    unwrappedHostname === "::1"
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export function originPermission(instance: string) {

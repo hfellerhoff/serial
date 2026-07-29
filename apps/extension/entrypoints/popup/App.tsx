@@ -171,7 +171,7 @@ type InstanceChooserProps = {
   detectedInstance: string | null;
   instance: string;
   lastInstance: string | null;
-  onSelect: (instance: string) => Promise<void>;
+  onSelect: (instance: string) => void;
 };
 
 function InstanceChooser({
@@ -198,14 +198,14 @@ function InstanceChooser({
   const [manualInstance, setManualInstance] = useState(instance);
   const [instanceError, setInstanceError] = useState<string | null>(null);
 
-  async function handleDone() {
+  function handleDone() {
     try {
       const nextInstance =
         selectionMode === "manual"
           ? normalizeInstanceUrl(manualInstance)
           : selectedInstance;
       setInstanceError(null);
-      await onSelect(nextInstance);
+      onSelect(nextInstance);
     } catch (manualError) {
       setInstanceError(
         manualError instanceof Error
@@ -390,16 +390,18 @@ function App() {
     setError(null);
     try {
       const normalized = normalizeInstanceUrl(targetInstance);
-      await browser.storage.local.set({
-        [SELECTED_INSTANCE_STORAGE_KEY]: normalized,
-      });
       const permission = originPermission(normalized);
-      const alreadyGranted = await browser.permissions.contains({
+      // Creating this promise must be the first asynchronous browser call in
+      // the click stack. Firefox drops the user-action state after an await.
+      const permissionRequest = browser.permissions.request({
         origins: [permission],
       });
-      const granted =
-        alreadyGranted ||
-        (await browser.permissions.request({ origins: [permission] }));
+      const [, granted] = await Promise.all([
+        browser.storage.local.set({
+          [SELECTED_INSTANCE_STORAGE_KEY]: normalized,
+        }),
+        permissionRequest,
+      ]);
       if (!granted) {
         throw new Error(
           `Serial needs permission to connect to ${displayHost(normalized)}`,
@@ -503,13 +505,10 @@ function App() {
         detectedInstance={detectedInstance}
         instance={instance}
         lastInstance={lastInstance}
-        onSelect={async (nextInstance) => {
-          await browser.storage.local.set({
-            [SELECTED_INSTANCE_STORAGE_KEY]: nextInstance,
-          });
+        onSelect={(nextInstance) => {
           setInstance(nextInstance);
           setChoosingInstance(false);
-          await handleSignIn(nextInstance);
+          void handleSignIn(nextInstance);
         }}
       />
     );
