@@ -3,7 +3,10 @@
 
 # Using the browser extension with self-hosted Serial
 
-The browser extension works with the hosted Serial app and with most self-hosted instances that have a normal HTTPS address. Standard deployments on services such as Coolify and Vercel should not require additional extension configuration.
+The browser extension works with the hosted Serial app and with self-hosted
+instances that have a normal HTTPS address. Deployments whose application
+runtime sees the original public HTTPS URL do not require additional proxy
+configuration.
 
 ## Supported environments
 
@@ -60,7 +63,7 @@ The proxy must preserve or set:
 
 - `Host` or `X-Forwarded-Host` to the public host.
 - `X-Forwarded-Proto` to the public protocol, normally `https`.
-- A trustworthy client IP header if the deployment relies on rate limiting.
+- `X-Forwarded-For` with a trustworthy client IP chain if the deployment relies on rate limiting.
 
 Set `TRUSTED_PROXY_HOPS` to the number of trusted proxies between the browser
 and Serial. Its secure default is `0`, which ignores all forwarded headers. A
@@ -70,9 +73,10 @@ single reverse proxy normally uses:
 TRUSTED_PROXY_HOPS=1
 ```
 
-When proxy trust is enabled, Serial rejects extension preparation unless both
-`X-Forwarded-Host` and `X-Forwarded-Proto` are present and valid. The trusted
-proxy must replace client-supplied values rather than pass them through.
+When proxy trust is enabled and either forwarded origin header is present,
+Serial requires both `X-Forwarded-Host` and `X-Forwarded-Proto` to be valid.
+The trusted proxy must replace client-supplied values rather than pass them
+through.
 
 Incorrect forwarded host or protocol values can cause Serial and the extension to calculate different OAuth issuers. When that happens, the extension rejects the authentication response.
 

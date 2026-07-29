@@ -1,5 +1,9 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { getAllowedExtensionRedirectUris } from "./extension-origin";
+import {
+  SERIAL_EXTENSION_AUTH_SCOPES,
+  SERIAL_EXTENSION_CLIENT_ID,
+} from "./extension-config";
 import { extensionOAuthClientNeedsUpdate } from "~/lib/extension-auth";
 import { db } from "~/server/db";
 import {
@@ -8,12 +12,7 @@ import {
   oauthRefreshToken,
 } from "~/server/db/schema";
 
-export const SERIAL_EXTENSION_CLIENT_ID = "serial-browser-extension";
-export const SERIAL_EXTENSION_AUTH_SCOPES = [
-  "openid",
-  "profile",
-  "offline_access",
-] as const;
+export { SERIAL_EXTENSION_AUTH_SCOPES, SERIAL_EXTENSION_CLIENT_ID };
 
 const EXTENSION_CLIENT_PROVISIONING = {
   attempts: 2,
@@ -87,6 +86,9 @@ function waitForProvisioningRetry() {
 }
 
 function provisioningAttempt() {
+  if (extensionClientIsProvisioned) {
+    return Promise.resolve("unchanged" as const);
+  }
   if (extensionClientProvisioning) return extensionClientProvisioning;
 
   const attempt = provisionExtensionOAuthClient().then((result) => {
@@ -109,9 +111,6 @@ function provisionWithDeadline(
 ) {
   return new Promise<ExtensionClientProvisioningResult>((resolve, reject) => {
     const timeout = setTimeout(() => {
-      if (extensionClientProvisioning === attempt) {
-        extensionClientProvisioning = null;
-      }
       reject(new Error("Extension OAuth client provisioning timed out"));
     }, EXTENSION_CLIENT_PROVISIONING.timeoutMs);
 

@@ -1,11 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SERIAL_INSTANCE,
+  EXTENSION_AUTH_SESSION_VERSION,
   getThemeCssVariables,
   normalizeInstanceUrl,
   originPermission,
+  parseAuthEndpoints,
   parseSerialTheme,
+  parseStoredAuthSession,
+  parseTokenResponse,
+  readAuthJsonResponse,
   resolveInitialInstance,
+  SERIAL_EXTENSION_AUTH_SCOPES,
+  SERIAL_EXTENSION_CLIENT_ID,
   validateAuthEndpoints,
 } from "./auth";
 
@@ -86,8 +93,8 @@ describe("validateAuthEndpoints", () => {
   const issuer = `${instance}/api/auth`;
   const endpoints = {
     issuer,
-    clientId: "serial-browser-extension",
-    scopes: ["openid", "profile"],
+    clientId: SERIAL_EXTENSION_CLIENT_ID,
+    scopes: SERIAL_EXTENSION_AUTH_SCOPES,
     authorizationEndpoint: `${issuer}/oauth2/authorize`,
     tokenEndpoint: `${issuer}/oauth2/token`,
     revocationEndpoint: `${issuer}/oauth2/revoke`,
@@ -114,6 +121,112 @@ describe("validateAuthEndpoints", () => {
     expect(() =>
       validateAuthEndpoints(instance, "https://example.com/wrong", endpoints),
     ).toThrow("unexpected authentication endpoints");
+  });
+
+  it("rejects a substituted client ID or incomplete scopes", () => {
+    expect(() =>
+      validateAuthEndpoints(instance, redirectUri, {
+        ...endpoints,
+        clientId: "attacker-client",
+      }),
+    ).toThrow("unexpected OAuth client contract");
+    expect(() =>
+      validateAuthEndpoints(instance, redirectUri, {
+        ...endpoints,
+        scopes: ["openid", "profile"],
+      }),
+    ).toThrow("unexpected OAuth client contract");
+  });
+
+  it("rejects malformed preparation payload fields at runtime", () => {
+    expect(() =>
+      parseAuthEndpoints(instance, redirectUri, {
+        ...endpoints,
+        scopes: "openid profile offline_access",
+      }),
+    ).toThrow("invalid authentication data");
+  });
+});
+
+describe("authentication response validation", () => {
+  it("accepts valid token data with a positive expiration", () => {
+    expect(
+      parseTokenResponse({
+        access_token: "access-token",
+        refresh_token: "refresh-token",
+        expires_in: 300,
+      }),
+    ).toEqual({
+      access_token: "access-token",
+      refresh_token: "refresh-token",
+      expires_in: 300,
+    });
+  });
+
+  it("rejects invalid token types and expiration values", () => {
+    for (const payload of [
+      { access_token: 123, expires_in: 300 },
+      { access_token: "access-token", refresh_token: 123 },
+      { access_token: "access-token", expires_in: 0 },
+      { access_token: "access-token", expires_in: 0.5 },
+      { access_token: "access-token", expires_in: Number.NaN },
+    ]) {
+      expect(() => parseTokenResponse(payload)).toThrow(
+        "invalid token response",
+      );
+    }
+  });
+
+  it("reports non-JSON reverse-proxy responses as compatibility errors", async () => {
+    const response = new Response("<html>Bad gateway</html>", { status: 502 });
+    await expect(readAuthJsonResponse(response)).rejects.toThrow(
+      "non-JSON response (502)",
+    );
+  });
+});
+
+describe("stored session validation", () => {
+  const instance = "https://serial.example.com";
+  const issuer = `${instance}/api/auth`;
+  const storedSession = {
+    version: EXTENSION_AUTH_SESSION_VERSION,
+    instance,
+    accessToken: "access-token",
+    refreshToken: "refresh-token",
+    expiresAt: 1_800_000_000_000,
+    endpoints: {
+      issuer,
+      clientId: SERIAL_EXTENSION_CLIENT_ID,
+      scopes: SERIAL_EXTENSION_AUTH_SCOPES,
+      authorizationEndpoint: `${issuer}/oauth2/authorize`,
+      tokenEndpoint: `${issuer}/oauth2/token`,
+      revocationEndpoint: `${issuer}/oauth2/revoke`,
+      userInfoEndpoint: `${issuer}/oauth2/userinfo`,
+      redirectUri: "https://extension.chromiumapp.org/serial-auth",
+    },
+    user: { id: "user-1", name: "Reader" },
+  };
+
+  it("accepts a versioned session with endpoints pinned to its instance", () => {
+    expect(parseStoredAuthSession(storedSession)).toEqual(storedSession);
+  });
+
+  it("rejects unversioned, malformed, or cross-origin sessions", () => {
+    expect(
+      parseStoredAuthSession({ ...storedSession, version: undefined }),
+    ).toBeNull();
+    expect(
+      parseStoredAuthSession({ ...storedSession, expiresAt: "tomorrow" }),
+    ).toBeNull();
+    expect(
+      parseStoredAuthSession({
+        ...storedSession,
+        endpoints: {
+          ...storedSession.endpoints,
+          tokenEndpoint: "https://attacker.example.com/oauth2/token",
+        },
+      }),
+    ).toBeNull();
   });
 });
 

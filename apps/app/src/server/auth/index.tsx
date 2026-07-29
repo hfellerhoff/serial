@@ -233,16 +233,17 @@ export const auth = betterAuth({
       ...(extensionOrigin ? [extensionOrigin] : []),
     ];
   },
-  ...(env.COOKIE_DOMAIN
-    ? {
-        advanced: {
+  advanced: {
+    trustedProxyHeaders: env.TRUSTED_PROXY_HOPS > 0,
+    ...(env.COOKIE_DOMAIN
+      ? {
           crossSubDomainCookies: {
             enabled: true,
             domain: env.COOKIE_DOMAIN,
           },
-        },
-      }
-    : {}),
+        }
+      : {}),
+  },
   emailAndPassword: {
     enabled: true,
     maxPasswordLength: 64,

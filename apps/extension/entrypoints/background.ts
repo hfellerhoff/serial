@@ -1,11 +1,17 @@
 import {
   AUTH_REDIRECT_PATH,
   AUTH_STORAGE_KEY,
+  EXTENSION_AUTH_SESSION_VERSION,
+  getAuthErrorDetails,
   LAST_INSTANCE_STORAGE_KEY,
-  parseSerialTheme,
+  parseAuthEndpoints,
+  parseSerialUser,
+  parseStoredAuthSession,
+  parseTokenResponse,
+  readAuthJsonResponse,
   SELECTED_INSTANCE_STORAGE_KEY,
-  validateAuthEndpoints,
 } from "../lib/auth";
+import { createRefreshSessionSingleFlight } from "../lib/auth-session";
 import type {
   AuthEndpoints,
   AuthMessage,
@@ -16,8 +22,6 @@ import type {
 
 const TOKEN_EXPIRY_BUFFER_MS = 30_000;
 const INSTANCE_REQUEST_TIMEOUT_MS = 10_000;
-const SERIAL_THEME_CLAIM = "https://serial.tube/theme";
-
 class InvalidSessionError extends Error {}
 
 async function fetchFromInstance(
@@ -63,7 +67,12 @@ async function sha256UrlSafe(value: string) {
 
 async function readStoredSession() {
   const stored = await browser.storage.local.get(AUTH_STORAGE_KEY);
-  return (stored[AUTH_STORAGE_KEY] as ExtensionAuthSession | undefined) ?? null;
+  const storedValue = stored[AUTH_STORAGE_KEY];
+  const session = parseStoredAuthSession(storedValue);
+  if (storedValue !== undefined && !session) {
+    await browser.storage.local.remove(AUTH_STORAGE_KEY);
+  }
+  return session;
 }
 
 async function storeSession(session: ExtensionAuthSession | null) {
@@ -90,13 +99,16 @@ async function prepareInstance(
       body: JSON.stringify({ redirectUri }),
     },
   );
-  const payload = (await response.json()) as AuthEndpoints & { error?: string };
+  const payload: unknown = await readAuthJsonResponse(response);
   if (!response.ok) {
+    const error = getAuthErrorDetails(payload);
     throw new Error(
-      payload.error ?? "This is not a compatible Serial instance",
+      error.message ??
+        error.error ??
+        "This is not a compatible Serial instance",
     );
   }
-  return validateAuthEndpoints(instance, redirectUri, payload);
+  return parseAuthEndpoints(instance, redirectUri, payload);
 }
 
 async function requestToken(
@@ -108,30 +120,22 @@ async function requestToken(
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams(parameters),
   });
-  const payload = (await response.json()) as {
-    access_token?: string;
-    refresh_token?: string;
-    id_token?: string;
-    expires_in?: number;
-    error?: string;
-    error_description?: string;
-    code?: string;
-    message?: string;
-  };
-  if (!response.ok || !payload.access_token) {
+  const payload = await readAuthJsonResponse(response);
+  if (!response.ok) {
+    const details = getAuthErrorDetails(payload);
     const ErrorType =
-      payload.error === "invalid_grant" || payload.error === "invalid_token"
+      details.error === "invalid_grant" || details.error === "invalid_token"
         ? InvalidSessionError
         : Error;
     throw new ErrorType(
-      payload.error_description ??
-        payload.message ??
-        payload.error ??
-        payload.code ??
+      details.errorDescription ??
+        details.message ??
+        details.error ??
+        details.code ??
         `Serial sign-in failed (${response.status})`,
     );
   }
-  return payload;
+  return parseTokenResponse(payload);
 }
 
 function revokeToken(
@@ -160,21 +164,7 @@ async function fetchUser(endpoint: string, accessToken: string) {
     }
     throw new Error("The Serial session is no longer active");
   }
-  const payload = (await response.json()) as {
-    sub?: string;
-    name?: string;
-    picture?: string;
-    [SERIAL_THEME_CLAIM]?: unknown;
-  };
-  if (!payload.sub) {
-    throw new Error("Serial did not return an account identifier");
-  }
-  return {
-    id: payload.sub,
-    name: payload.name,
-    picture: payload.picture,
-    theme: parseSerialTheme(payload[SERIAL_THEME_CLAIM]),
-  } satisfies SerialUser;
+  return parseSerialUser(await readAuthJsonResponse(response));
 }
 
 async function refreshSession(session: ExtensionAuthSession) {
@@ -189,7 +179,7 @@ async function refreshSession(session: ExtensionAuthSession) {
 
   const refreshed: ExtensionAuthSession = {
     ...session,
-    accessToken: token.access_token!,
+    accessToken: token.access_token,
     refreshToken: token.refresh_token,
     idToken: token.id_token ?? session.idToken,
     expiresAt: Date.now() + (token.expires_in ?? 300) * 1000,
@@ -209,17 +199,12 @@ async function refreshSession(session: ExtensionAuthSession) {
   return refreshed;
 }
 
-async function refreshOrKeepSession(session: ExtensionAuthSession) {
-  try {
-    return await refreshSession(session);
-  } catch (error) {
-    if (error instanceof InvalidSessionError) {
-      await storeSession(null);
-      return null;
-    }
-    return session;
-  }
-}
+const refreshOrKeepSession = createRefreshSessionSingleFlight({
+  refresh: refreshSession,
+  readStoredSession,
+  clearStoredSession: () => storeSession(null),
+  isInvalidSessionError: (error) => error instanceof InvalidSessionError,
+});
 
 async function getActiveSession() {
   const session = await readStoredSession();
@@ -295,25 +280,26 @@ async function signIn(instance: string, interactive = true) {
   });
   if (!token.refresh_token) {
     await Promise.allSettled([
-      revokeToken(endpoints, token.access_token!, "access_token"),
+      revokeToken(endpoints, token.access_token, "access_token"),
     ]);
     throw new Error("Serial did not return a persistent extension session");
   }
 
   let user: SerialUser;
   try {
-    user = await fetchUser(endpoints.userInfoEndpoint, token.access_token!);
+    user = await fetchUser(endpoints.userInfoEndpoint, token.access_token);
   } catch (error) {
     await Promise.allSettled([
-      revokeToken(endpoints, token.access_token!, "access_token"),
+      revokeToken(endpoints, token.access_token, "access_token"),
       revokeToken(endpoints, token.refresh_token, "refresh_token"),
     ]);
     throw error;
   }
 
   const session: ExtensionAuthSession = {
+    version: EXTENSION_AUTH_SESSION_VERSION,
     instance,
-    accessToken: token.access_token!,
+    accessToken: token.access_token,
     refreshToken: token.refresh_token,
     idToken: token.id_token,
     expiresAt: Date.now() + (token.expires_in ?? 300) * 1000,

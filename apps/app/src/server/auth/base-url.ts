@@ -41,6 +41,25 @@ function normalizeForwardedProtocol(value: string | null) {
   return value === "http" || value === "https" ? value : null;
 }
 
+function getForwardedOrigin(request: Request) {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProtocol = request.headers.get("x-forwarded-proto");
+  const hasForwardedOrigin =
+    forwardedHost !== null || forwardedProtocol !== null;
+
+  if (!hasForwardedOrigin) return null;
+
+  const protocol = normalizeForwardedProtocol(forwardedProtocol);
+  const host = normalizeHost(forwardedHost, `${protocol ?? "https"}:`);
+  if (!protocol || !host) {
+    throw new Error(
+      "Trusted proxy requests must include valid X-Forwarded-Host and X-Forwarded-Proto headers",
+    );
+  }
+
+  return { host, protocol };
+}
+
 /**
  * Mirrors Better Auth's dynamic base URL host selection for the extension
  * preparation endpoint, which lives outside Better Auth's route handler.
@@ -48,30 +67,41 @@ function normalizeForwardedProtocol(value: string | null) {
 export function resolveAuthBaseOrigin(
   request: Request,
   config: AuthBaseUrlConfig,
+  trustProxyHeaders = false,
 ) {
-  const candidate =
-    request.headers.get("x-forwarded-host") ??
-    request.headers.get("host") ??
-    new URL(request.url).host;
-  const allowedOrigins = config.allowedOrigins.filter((origin) => {
-    const allowedUrl = new URL(origin);
-    return (
-      normalizeHost(candidate, allowedUrl.protocol) ===
-      allowedUrl.host.toLowerCase()
-    );
-  });
-  if (allowedOrigins.length === 0) return config.fallback;
+  const requestUrl = new URL(request.url);
+  const forwardedOrigin = trustProxyHeaders
+    ? getForwardedOrigin(request)
+    : null;
+  const protocol =
+    forwardedOrigin?.protocol ?? requestUrl.protocol.slice(0, -1);
+  const candidateHost =
+    forwardedOrigin?.host ??
+    normalizeHost(request.headers.get("host"), `${protocol}:`) ??
+    requestUrl.host.toLowerCase();
 
-  const host = new URL(allowedOrigins[0]!).host;
-  const requestProtocol =
-    normalizeForwardedProtocol(request.headers.get("x-forwarded-proto")) ??
-    new URL(request.url).protocol.replace(":", "");
-  const requestedOrigin = `${requestProtocol}://${host}`;
-  return allowedOrigins.includes(requestedOrigin)
-    ? requestedOrigin
-    : allowedOrigins[0]!;
+  const isAllowedHost = config.allowedHosts.some(
+    (allowedHost) => allowedHost.toLowerCase() === candidateHost,
+  );
+  if (!isAllowedHost) {
+    throw new Error(
+      `Authentication request host ${candidateHost} is not configured as trusted`,
+    );
+  }
+
+  const requestedOrigin = `${protocol}://${candidateHost}`;
+  if (!config.allowedOrigins.includes(requestedOrigin)) {
+    throw new Error(
+      `Authentication request origin ${requestedOrigin} is not configured as trusted`,
+    );
+  }
+  return requestedOrigin;
 }
 
-export function getAuthIssuer(request: Request, config: AuthBaseUrlConfig) {
-  return `${resolveAuthBaseOrigin(request, config)}/api/auth`;
+export function getAuthIssuer(
+  request: Request,
+  config: AuthBaseUrlConfig,
+  trustProxyHeaders = false,
+) {
+  return `${resolveAuthBaseOrigin(request, config, trustProxyHeaders)}/api/auth`;
 }

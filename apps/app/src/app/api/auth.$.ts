@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { env } from "~/env";
 import { auth } from "~/server/auth";
-import { isTrustedCorsOrigin } from "~/server/auth/constants";
+import { resolveAuthBaseOrigin } from "~/server/auth/base-url";
+import {
+  AUTH_BASE_URL_CONFIG,
+  isTrustedCorsOrigin,
+} from "~/server/auth/constants";
 import { getTrustedExtensionAuthOrigin } from "~/server/auth/extension-origin";
 
 /**
@@ -33,6 +38,21 @@ function withCorsHeaders(response: Response, request: Request): Response {
 }
 
 async function handleAuthRequest(request: Request) {
+  try {
+    resolveAuthBaseOrigin(
+      request,
+      AUTH_BASE_URL_CONFIG,
+      env.TRUSTED_PROXY_HOPS > 0,
+    );
+  } catch {
+    return withCorsHeaders(
+      Response.json(
+        { error: "The instance proxy sent invalid authentication headers" },
+        { status: 400 },
+      ),
+      request,
+    );
+  }
   const response = await auth.handler(request);
   return withCorsHeaders(response, request);
 }

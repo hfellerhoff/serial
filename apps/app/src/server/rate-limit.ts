@@ -11,6 +11,7 @@ type RateLimitOptions = {
   windowSeconds: number;
   now?: number;
   store?: Pick<KVStore, "increment">;
+  trustedProxyHops?: number;
 };
 
 export type RateLimitResult = {
@@ -25,28 +26,28 @@ function validIp(value: string | null) {
   return candidate && isIP(candidate) ? candidate : null;
 }
 
-/**
- * Proxy IP headers must be replaced by the deployment's trusted proxy. The
- * right-most forwarded address is preferred because append-only proxies make
- * it harder for a direct client to select an arbitrary identity.
- */
-export function getRequestIp(request: Request): string | null {
-  for (const header of ["cf-connecting-ip", "x-real-ip"]) {
-    const candidate = validIp(request.headers.get(header));
-    if (candidate) return candidate;
-  }
+/** Resolve the client at the configured hop in a fully valid proxy chain. */
+export function getRequestIp(
+  request: Request,
+  trustedProxyHops = env.TRUSTED_PROXY_HOPS,
+): string | null {
+  if (trustedProxyHops < 1) return null;
 
   const forwarded = request.headers.get("x-forwarded-for")?.split(",") ?? [];
-  for (let index = forwarded.length - 1; index >= 0; index -= 1) {
-    const candidate = validIp(forwarded[index] ?? null);
-    if (candidate) return candidate;
+  const forwardedAddresses = forwarded.map((value) => validIp(value));
+  const hasMalformedAddress = forwardedAddresses.some(
+    (address) => address === null,
+  );
+  if (hasMalformedAddress || forwardedAddresses.length < trustedProxyHops) {
+    return null;
   }
 
-  return null;
+  return (
+    forwardedAddresses[forwardedAddresses.length - trustedProxyHops] ?? null
+  );
 }
 
-function rateLimitIdentity(request: Request) {
-  const ip = getRequestIp(request) ?? "unknown";
+function rateLimitIdentity(ip: string) {
   return createHmac("sha256", env.BETTER_AUTH_SECRET)
     .update(ip)
     .digest("hex")
@@ -64,7 +65,19 @@ export async function checkIpRateLimit(
     1,
     Math.ceil(((window + 1) * windowMilliseconds - now) / 1000),
   );
-  const key = `${options.namespace}:${window}:${rateLimitIdentity(request)}`;
+  const ip = getRequestIp(
+    request,
+    options.trustedProxyHops ?? env.TRUSTED_PROXY_HOPS,
+  );
+  if (!ip) {
+    return {
+      allowed: true,
+      limit: options.limit,
+      remaining: options.limit,
+      retryAfter,
+    };
+  }
+  const key = `${options.namespace}:${window}:${rateLimitIdentity(ip)}`;
 
   try {
     const store = options.store ?? (await getKV());
@@ -76,8 +89,8 @@ export async function checkIpRateLimit(
       retryAfter,
     };
   } catch (error) {
-    // Authentication should remain available during a KV outage. The endpoint
-    // is read-only, so failing open does not reintroduce database writes.
+    // Authentication should remain available during a KV outage. Preparation
+    // can provision the OAuth client, but its writes are idempotent.
     logError("[rate-limit] Unable to check IP rate limit:", error);
     return {
       allowed: true,

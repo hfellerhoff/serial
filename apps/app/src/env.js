@@ -122,6 +122,7 @@ export const env = createEnv({
         }
         return origins;
       }),
+    TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
     SENTRY_DSN_BACKEND: z.url().optional(),
     SENTRY_AUTH_TOKEN: z.string().optional(),
     NODE_ENV: z
@@ -184,6 +185,7 @@ export const env = createEnv({
     OAUTH_REDIRECT_URI: process.env.OAUTH_REDIRECT_URI,
     SERIAL_EXTENSION_REDIRECT_URIS: process.env.SERIAL_EXTENSION_REDIRECT_URIS,
     TRUSTED_ORIGINS: process.env.TRUSTED_ORIGINS,
+    TRUSTED_PROXY_HOPS: process.env.TRUSTED_PROXY_HOPS,
     SENTRY_DSN_BACKEND: process.env.SENTRY_DSN_BACKEND,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
     COOKIE_DOMAIN: process.env.COOKIE_DOMAIN,

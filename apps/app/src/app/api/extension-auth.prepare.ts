@@ -1,12 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { RateLimitResult } from "~/server/rate-limit";
-import {
-  ensureExtensionOAuthClient,
-  SERIAL_EXTENSION_AUTH_SCOPES,
-  SERIAL_EXTENSION_CLIENT_ID,
-} from "~/server/auth/extension";
+import { env } from "~/env";
+import { ensureExtensionOAuthClient } from "~/server/auth/extension";
 import { getAuthIssuer } from "~/server/auth/base-url";
 import { AUTH_BASE_URL_CONFIG } from "~/server/auth/constants";
+import { createExtensionAuthEndpoints } from "~/server/auth/extension-endpoints";
 import {
   getAllowedExtensionRedirectUris,
   getExtensionPrepareOrigin,
@@ -107,6 +105,25 @@ export const Route = createFileRoute("/api/extension-auth/prepare")({
             request,
             { error: "Extension authentication request origin is not allowed" },
             403,
+          );
+        }
+
+        let issuer: string;
+        try {
+          issuer = getAuthIssuer(
+            request,
+            AUTH_BASE_URL_CONFIG,
+            env.TRUSTED_PROXY_HOPS > 0,
+          );
+        } catch (error) {
+          logError(
+            "[extension-auth] Rejected ambiguous authentication origin:",
+            error,
+          );
+          return jsonResponse(
+            request,
+            { error: "The instance proxy sent invalid authentication headers" },
+            400,
           );
         }
 
@@ -214,19 +231,9 @@ export const Route = createFileRoute("/api/extension-auth/prepare")({
           );
         }
 
-        const issuer = getAuthIssuer(request, AUTH_BASE_URL_CONFIG);
         return jsonResponse(
           request,
-          {
-            issuer,
-            clientId: SERIAL_EXTENSION_CLIENT_ID,
-            scopes: SERIAL_EXTENSION_AUTH_SCOPES,
-            authorizationEndpoint: `${issuer}/oauth2/authorize`,
-            tokenEndpoint: `${issuer}/oauth2/token`,
-            revocationEndpoint: `${issuer}/oauth2/revoke`,
-            userInfoEndpoint: `${issuer}/oauth2/userinfo`,
-            redirectUri,
-          },
+          createExtensionAuthEndpoints(issuer, redirectUri),
           200,
           limitHeaders,
         );

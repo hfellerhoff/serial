@@ -20,22 +20,27 @@ function counterStore() {
 }
 
 describe("getRequestIp", () => {
-  it("uses trusted proxy headers and validates their values", () => {
-    expect(getRequestIp(request({ "cf-connecting-ip": "203.0.113.4" }))).toBe(
-      "203.0.113.4",
-    );
+  it("ignores forwarded addresses unless proxy trust is enabled", () => {
     expect(
-      getRequestIp(
-        request({
-          "cf-connecting-ip": "invalid",
-          "x-forwarded-for": "198.51.100.2, 203.0.113.5",
-        }),
-      ),
-    ).toBe("203.0.113.5");
+      getRequestIp(request({ "x-forwarded-for": "203.0.113.4" }), 0),
+    ).toBeNull();
   });
 
-  it("returns null without a valid address", () => {
-    expect(getRequestIp(request({ "x-forwarded-for": "invalid" }))).toBeNull();
+  it("selects the configured trusted hop from a valid chain", () => {
+    const proxiedRequest = request({
+      "x-forwarded-for": "198.51.100.2, 203.0.113.5",
+    });
+    expect(getRequestIp(proxiedRequest, 1)).toBe("203.0.113.5");
+    expect(getRequestIp(proxiedRequest, 2)).toBe("198.51.100.2");
+  });
+
+  it("rejects incomplete or malformed forwarded chains", () => {
+    expect(
+      getRequestIp(request({ "x-forwarded-for": "invalid, 203.0.113.5" }), 1),
+    ).toBeNull();
+    expect(
+      getRequestIp(request({ "x-forwarded-for": "203.0.113.5" }), 2),
+    ).toBeNull();
   });
 });
 
@@ -48,8 +53,9 @@ describe("checkIpRateLimit", () => {
       windowSeconds: 60,
       now: 30_000,
       store,
+      trustedProxyHops: 1,
     };
-    const clientRequest = request({ "x-real-ip": "203.0.113.4" });
+    const clientRequest = request({ "x-forwarded-for": "203.0.113.4" });
 
     await expect(
       checkIpRateLimit(clientRequest, options),
@@ -70,13 +76,36 @@ describe("checkIpRateLimit", () => {
       windowSeconds: 60,
       now: 30_000,
       store,
+      trustedProxyHops: 1,
     };
 
     await expect(
-      checkIpRateLimit(request({ "x-real-ip": "203.0.113.4" }), options),
+      checkIpRateLimit(request({ "x-forwarded-for": "203.0.113.4" }), options),
     ).resolves.toMatchObject({ allowed: true });
     await expect(
-      checkIpRateLimit(request({ "x-real-ip": "203.0.113.5" }), options),
+      checkIpRateLimit(request({ "x-forwarded-for": "203.0.113.5" }), options),
     ).resolves.toMatchObject({ allowed: true });
+  });
+
+  it("fails open without a trustworthy client address", async () => {
+    let incrementCalls = 0;
+    const store = {
+      increment() {
+        incrementCalls += 1;
+        return Promise.resolve(1);
+      },
+    } satisfies Pick<KVStore, "increment">;
+
+    await expect(
+      checkIpRateLimit(request({ "x-forwarded-for": "203.0.113.4" }), {
+        namespace: "test",
+        limit: 1,
+        windowSeconds: 60,
+        now: 30_000,
+        store,
+        trustedProxyHops: 0,
+      }),
+    ).resolves.toMatchObject({ allowed: true, remaining: 1 });
+    expect(incrementCalls).toBe(0);
   });
 });
