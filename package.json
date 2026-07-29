@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "turbo run dev --filter=@serial/app",
-    "dev:demo": "pnpm --filter @serial/app dev:demo",
+    "dev:demo": "node apps/extension/scripts/dev-demo.mjs",
+    "dev:extension": "pnpm --filter @serial/extension dev",
     "build": "turbo run build:artifact",
     "build:artifact": "turbo run build:artifact",
     "build:atomic": "pnpm --filter @serial/app build:atomic",
