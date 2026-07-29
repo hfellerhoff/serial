@@ -2,6 +2,7 @@ import {
   AUTH_REDIRECT_PATH,
   AUTH_STORAGE_KEY,
   LAST_INSTANCE_STORAGE_KEY,
+  SELECTED_INSTANCE_STORAGE_KEY,
 } from "../lib/auth";
 import type {
   AuthEndpoints,
@@ -47,6 +48,7 @@ async function storeSession(session: ExtensionAuthSession | null) {
   await browser.storage.local.set({
     [AUTH_STORAGE_KEY]: session,
     [LAST_INSTANCE_STORAGE_KEY]: session.instance,
+    [SELECTED_INSTANCE_STORAGE_KEY]: session.instance,
   });
 }
 

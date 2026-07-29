@@ -1,6 +1,7 @@
 export const DEFAULT_SERIAL_INSTANCE = "https://app.serial.tube";
 export const AUTH_STORAGE_KEY = "serial.auth.session";
 export const LAST_INSTANCE_STORAGE_KEY = "serial.auth.last-instance";
+export const SELECTED_INSTANCE_STORAGE_KEY = "serial.auth.selected-instance";
 export const AUTH_REDIRECT_PATH = "serial-auth";
 
 export type SerialUser = {

@@ -15,12 +15,13 @@ import {
   TabsList,
   TabsTrigger,
 } from "@serial/ui";
-import { Check, Info, Loader2, Server } from "lucide-react";
+import { Check, Info, Loader2, LogIn, LogOut, Server } from "lucide-react";
 import {
   DEFAULT_SERIAL_INSTANCE,
   LAST_INSTANCE_STORAGE_KEY,
   normalizeInstanceUrl,
   originPermission,
+  SELECTED_INSTANCE_STORAGE_KEY,
 } from "../../lib/auth";
 import type {
   AuthMessage,
@@ -115,7 +116,7 @@ type InstanceChooserProps = {
   instance: string;
   lastInstance: string | null;
   onCancel: () => void;
-  onSelect: (instance: string) => void;
+  onSelect: (instance: string) => Promise<void>;
 };
 
 function InstanceChooser({
@@ -125,12 +126,6 @@ function InstanceChooser({
   onCancel,
   onSelect,
 }: InstanceChooserProps) {
-  const [selectionMode, setSelectionMode] = useState<"automatic" | "manual">(
-    "automatic",
-  );
-  const [selectedInstance, setSelectedInstance] = useState(instance);
-  const [manualInstance, setManualInstance] = useState(instance);
-  const [instanceError, setInstanceError] = useState<string | null>(null);
   const automaticCandidates = [
     detectedInstance,
     lastInstance,
@@ -139,15 +134,24 @@ function InstanceChooser({
     (value, index, values): value is string =>
       Boolean(value) && values.indexOf(value) === index,
   );
+  const initialSelectionMode = automaticCandidates.includes(instance)
+    ? "automatic"
+    : "manual";
+  const [selectionMode, setSelectionMode] = useState<"automatic" | "manual">(
+    initialSelectionMode,
+  );
+  const [selectedInstance, setSelectedInstance] = useState(instance);
+  const [manualInstance, setManualInstance] = useState(instance);
+  const [instanceError, setInstanceError] = useState<string | null>(null);
 
-  function handleDone() {
+  async function handleDone() {
     try {
       const nextInstance =
         selectionMode === "manual"
           ? normalizeInstanceUrl(manualInstance)
           : selectedInstance;
       setInstanceError(null);
-      onSelect(nextInstance);
+      await onSelect(nextInstance);
     } catch (manualError) {
       setInstanceError(
         manualError instanceof Error
@@ -208,7 +212,7 @@ function InstanceChooser({
                 setInstanceError(null);
               }}
               onKeyDown={(event) => {
-                if (event.key === "Enter") handleDone();
+                if (event.key === "Enter") void handleDone();
               }}
             />
           </div>
@@ -225,7 +229,7 @@ function InstanceChooser({
         <Button type="button" variant="outline" onClick={onCancel}>
           Back
         </Button>
-        <Button type="button" onClick={handleDone}>
+        <Button type="button" onClick={() => void handleDone()}>
           Done
         </Button>
       </div>
@@ -249,11 +253,18 @@ function App() {
         const [authResponse, detected, stored] = await Promise.all([
           sendAuthMessage({ type: "auth.get-session" }),
           detectSerialInstance(),
-          browser.storage.local.get(LAST_INSTANCE_STORAGE_KEY),
+          browser.storage.local.get([
+            LAST_INSTANCE_STORAGE_KEY,
+            SELECTED_INSTANCE_STORAGE_KEY,
+          ]),
         ]);
         const previous =
           typeof stored[LAST_INSTANCE_STORAGE_KEY] === "string"
             ? (stored[LAST_INSTANCE_STORAGE_KEY] as string)
+            : null;
+        const selected =
+          typeof stored[SELECTED_INSTANCE_STORAGE_KEY] === "string"
+            ? (stored[SELECTED_INSTANCE_STORAGE_KEY] as string)
             : null;
 
         if (authResponse.ok) setSession(authResponse.session);
@@ -262,7 +273,7 @@ function App() {
         setInstance(
           authResponse.ok && authResponse.session
             ? authResponse.session.instance
-            : (detected ?? previous ?? DEFAULT_SERIAL_INSTANCE),
+            : (selected ?? detected ?? previous ?? DEFAULT_SERIAL_INSTANCE),
         );
         if (!authResponse.ok) setError(authResponse.error);
       } catch (loadError) {
@@ -282,6 +293,9 @@ function App() {
     setError(null);
     try {
       const normalized = normalizeInstanceUrl(instance);
+      await browser.storage.local.set({
+        [SELECTED_INSTANCE_STORAGE_KEY]: normalized,
+      });
       const permission = originPermission(normalized);
       const alreadyGranted = await browser.permissions.contains({
         origins: [permission],
@@ -368,11 +382,17 @@ function App() {
         )}
         <Button
           variant="outline"
+          size="icon md:default"
+          className="w-full"
           disabled={action !== null}
           onClick={() => void handleSignOut()}
         >
-          {action === "sign-out" && <Loader2 className="size-4 animate-spin" />}
-          Sign out of extension
+          {action === "sign-out" ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <LogOut className="size-4" />
+          )}
+          <span className="pl-1.5 md:pl-0">Sign out of extension</span>
         </Button>
       </main>
     );
@@ -385,7 +405,10 @@ function App() {
         instance={instance}
         lastInstance={lastInstance}
         onCancel={() => setChoosingInstance(false)}
-        onSelect={(nextInstance) => {
+        onSelect={async (nextInstance) => {
+          await browser.storage.local.set({
+            [SELECTED_INSTANCE_STORAGE_KEY]: nextInstance,
+          });
           setInstance(nextInstance);
           setChoosingInstance(false);
         }}
@@ -434,12 +457,17 @@ function App() {
       )}
 
       <Button
+        size="icon md:default"
         className="mt-auto w-full"
         disabled={action !== null}
         onClick={() => void handleSignIn()}
       >
-        {action === "sign-in" && <Loader2 className="size-4 animate-spin" />}
-        Continue with Serial
+        {action === "sign-in" ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <LogIn className="size-4" />
+        )}
+        <span className="pl-1.5 md:pl-0">Continue with Serial</span>
       </Button>
     </main>
   );
