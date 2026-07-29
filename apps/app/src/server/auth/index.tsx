@@ -1,6 +1,6 @@
 import { render } from "react-email";
 import { betterAuth } from "better-auth";
-import { admin, emailOTP, genericOAuth } from "better-auth/plugins";
+import { admin, emailOTP, genericOAuth, jwt } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { APIError, createAuthMiddleware } from "better-auth/api";
@@ -9,6 +9,7 @@ import { getRequestHeaders } from "@tanstack/react-start/server";
 import { redirect } from "@tanstack/react-router";
 import { asc, count, eq } from "drizzle-orm";
 import { checkout, polar, portal, webhooks } from "@polar-sh/better-auth";
+import { oauthProvider } from "@better-auth/oauth-provider";
 import { createElement } from "react";
 import { db } from "../db";
 import { appConfig, session, user } from "../db/schema";
@@ -45,6 +46,11 @@ import { setOtpCooldown } from "~/server/otp";
 import { captureException, logError, logMessage } from "~/server/logger";
 import { env } from "~/env";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
+import {
+  revokeExtensionTokensForSession,
+  SERIAL_EXTENSION_AUTH_SCOPES,
+  SERIAL_EXTENSION_CLIENT_ID,
+} from "~/server/auth/extension";
 
 const SIGNED_IN_REDIRECT_AUTH_PATHS = [
   "/auth",
@@ -290,6 +296,20 @@ export const auth = betterAuth({
   },
   plugins: [
     admin(),
+    jwt(),
+    oauthProvider({
+      loginPage: "/auth/sign-in",
+      consentPage: "/auth/extension-consent",
+      scopes: [...SERIAL_EXTENSION_AUTH_SCOPES],
+      cachedTrustedClients: new Set([SERIAL_EXTENSION_CLIENT_ID]),
+      accessTokenExpiresIn: 5 * 60,
+      refreshTokenExpiresIn: 30 * 24 * 60 * 60,
+      allowDynamicClientRegistration: false,
+      allowUnauthenticatedClientRegistration: false,
+      silenceWarnings: {
+        oauthAuthServerConfig: true,
+      },
+    }),
     tanstackStartCookies(),
     ...buildPolarPlugin(),
     ...buildGenericOAuthPlugin(),
@@ -560,6 +580,13 @@ export const auth = betterAuth({
   },
 
   databaseHooks: {
+    session: {
+      delete: {
+        async before(session) {
+          await revokeExtensionTokensForSession(session.id);
+        },
+      },
+    },
     user: {
       update: {
         async after(user) {

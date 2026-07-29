@@ -18,6 +18,7 @@ import { Route as AuthVerifyEmailRouteImport } from './app/auth.verify-email'
 import { Route as AuthSignUpRouteImport } from './app/auth.sign-up'
 import { Route as AuthSignInRouteImport } from './app/auth.sign-in'
 import { Route as AuthResetRouteImport } from './app/auth.reset'
+import { Route as AuthExtensionConsentRouteImport } from './app/auth.extension-consent'
 import { Route as ApiHealthRouteImport } from './app/api/health'
 import { Route as AppViewsRouteImport } from './app/_app.views'
 import { Route as AppTagsRouteImport } from './app/_app.tags'
@@ -26,6 +27,7 @@ import { Route as AppFeedsRouteImport } from './app/_app.feeds'
 import { Route as AppDebugRouteImport } from './app/_app.debug'
 import { Route as AppAdminIndexRouteImport } from './app/_app.admin.index'
 import { Route as ApiRpcSplatRouteImport } from './app/api/rpc.$'
+import { Route as ApiExtensionAuthPrepareRouteImport } from './app/api/extension-auth.prepare'
 import { Route as ApiDemoProvisionRouteImport } from './app/api.demo.provision'
 import { Route as ApiAuthSplatRouteImport } from './app/api/auth.$'
 import { Route as AppWatchIdRouteImport } from './app/_app.watch.$id'
@@ -36,6 +38,7 @@ import { Route as AppAdminSettingsRouteImport } from './app/_app.admin.settings'
 import { Route as AppAdminInvitesRouteImport } from './app/_app.admin.invites'
 import { Route as AppAdminInfoRouteImport } from './app/_app.admin.info'
 import { Route as AppAdminUserIdRouteImport } from './app/_app.admin.user.$id'
+import { Route as DotwellKnownOauthAuthorizationServerApiAuthRouteImport } from './app/[.]well-known.oauth-authorization-server.api.auth'
 
 const SitemapRoute = SitemapRouteImport.update({
   id: '/sitemap',
@@ -81,6 +84,11 @@ const AuthResetRoute = AuthResetRouteImport.update({
   path: '/reset',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthExtensionConsentRoute = AuthExtensionConsentRouteImport.update({
+  id: '/extension-consent',
+  path: '/extension-consent',
+  getParentRoute: () => AuthRoute,
+} as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
@@ -119,6 +127,11 @@ const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
 const ApiRpcSplatRoute = ApiRpcSplatRouteImport.update({
   id: '/api/rpc/$',
   path: '/api/rpc/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiExtensionAuthPrepareRoute = ApiExtensionAuthPrepareRouteImport.update({
+  id: '/api/extension-auth/prepare',
+  path: '/api/extension-auth/prepare',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiDemoProvisionRoute = ApiDemoProvisionRouteImport.update({
@@ -171,6 +184,12 @@ const AppAdminUserIdRoute = AppAdminUserIdRouteImport.update({
   path: '/admin/user/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const DotwellKnownOauthAuthorizationServerApiAuthRoute =
+  DotwellKnownOauthAuthorizationServerApiAuthRouteImport.update({
+    id: '/.well-known/oauth-authorization-server/api/auth',
+    path: '/.well-known/oauth-authorization-server/api/auth',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -183,6 +202,7 @@ export interface FileRoutesByFullPath {
   '/tags': typeof AppTagsRoute
   '/views': typeof AppViewsRoute
   '/api/health': typeof ApiHealthRoute
+  '/auth/extension-consent': typeof AuthExtensionConsentRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
@@ -196,8 +216,10 @@ export interface FileRoutesByFullPath {
   '/watch/$id': typeof AppWatchIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/demo/provision': typeof ApiDemoProvisionRoute
+  '/api/extension-auth/prepare': typeof ApiExtensionAuthPrepareRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/admin/': typeof AppAdminIndexRoute
+  '/.well-known/oauth-authorization-server/api/auth': typeof DotwellKnownOauthAuthorizationServerApiAuthRoute
   '/admin/user/$id': typeof AppAdminUserIdRoute
 }
 export interface FileRoutesByTo {
@@ -210,6 +232,7 @@ export interface FileRoutesByTo {
   '/tags': typeof AppTagsRoute
   '/views': typeof AppViewsRoute
   '/api/health': typeof ApiHealthRoute
+  '/auth/extension-consent': typeof AuthExtensionConsentRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
@@ -224,8 +247,10 @@ export interface FileRoutesByTo {
   '/watch/$id': typeof AppWatchIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/demo/provision': typeof ApiDemoProvisionRoute
+  '/api/extension-auth/prepare': typeof ApiExtensionAuthPrepareRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/admin': typeof AppAdminIndexRoute
+  '/.well-known/oauth-authorization-server/api/auth': typeof DotwellKnownOauthAuthorizationServerApiAuthRoute
   '/admin/user/$id': typeof AppAdminUserIdRoute
 }
 export interface FileRoutesById {
@@ -240,6 +265,7 @@ export interface FileRoutesById {
   '/_app/tags': typeof AppTagsRoute
   '/_app/views': typeof AppViewsRoute
   '/api/health': typeof ApiHealthRoute
+  '/auth/extension-consent': typeof AuthExtensionConsentRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
@@ -254,8 +280,10 @@ export interface FileRoutesById {
   '/_app/watch/$id': typeof AppWatchIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/demo/provision': typeof ApiDemoProvisionRoute
+  '/api/extension-auth/prepare': typeof ApiExtensionAuthPrepareRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/_app/admin/': typeof AppAdminIndexRoute
+  '/.well-known/oauth-authorization-server/api/auth': typeof DotwellKnownOauthAuthorizationServerApiAuthRoute
   '/_app/admin/user/$id': typeof AppAdminUserIdRoute
 }
 export interface FileRouteTypes {
@@ -271,6 +299,7 @@ export interface FileRouteTypes {
     | '/tags'
     | '/views'
     | '/api/health'
+    | '/auth/extension-consent'
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
@@ -284,8 +313,10 @@ export interface FileRouteTypes {
     | '/watch/$id'
     | '/api/auth/$'
     | '/api/demo/provision'
+    | '/api/extension-auth/prepare'
     | '/api/rpc/$'
     | '/admin/'
+    | '/.well-known/oauth-authorization-server/api/auth'
     | '/admin/user/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -298,6 +329,7 @@ export interface FileRouteTypes {
     | '/tags'
     | '/views'
     | '/api/health'
+    | '/auth/extension-consent'
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
@@ -312,8 +344,10 @@ export interface FileRouteTypes {
     | '/watch/$id'
     | '/api/auth/$'
     | '/api/demo/provision'
+    | '/api/extension-auth/prepare'
     | '/api/rpc/$'
     | '/admin'
+    | '/.well-known/oauth-authorization-server/api/auth'
     | '/admin/user/$id'
   id:
     | '__root__'
@@ -327,6 +361,7 @@ export interface FileRouteTypes {
     | '/_app/tags'
     | '/_app/views'
     | '/api/health'
+    | '/auth/extension-consent'
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
@@ -341,8 +376,10 @@ export interface FileRouteTypes {
     | '/_app/watch/$id'
     | '/api/auth/$'
     | '/api/demo/provision'
+    | '/api/extension-auth/prepare'
     | '/api/rpc/$'
     | '/_app/admin/'
+    | '/.well-known/oauth-authorization-server/api/auth'
     | '/_app/admin/user/$id'
   fileRoutesById: FileRoutesById
 }
@@ -354,7 +391,9 @@ export interface RootRouteChildren {
   ApiHealthRoute: typeof ApiHealthRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiDemoProvisionRoute: typeof ApiDemoProvisionRoute
+  ApiExtensionAuthPrepareRoute: typeof ApiExtensionAuthPrepareRoute
   ApiRpcSplatRoute: typeof ApiRpcSplatRoute
+  DotwellKnownOauthAuthorizationServerApiAuthRoute: typeof DotwellKnownOauthAuthorizationServerApiAuthRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -422,6 +461,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthResetRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/auth/extension-consent': {
+      id: '/auth/extension-consent'
+      path: '/extension-consent'
+      fullPath: '/auth/extension-consent'
+      preLoaderRoute: typeof AuthExtensionConsentRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/api/health': {
       id: '/api/health'
       path: '/api/health'
@@ -476,6 +522,13 @@ declare module '@tanstack/react-router' {
       path: '/api/rpc/$'
       fullPath: '/api/rpc/$'
       preLoaderRoute: typeof ApiRpcSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/extension-auth/prepare': {
+      id: '/api/extension-auth/prepare'
+      path: '/api/extension-auth/prepare'
+      fullPath: '/api/extension-auth/prepare'
+      preLoaderRoute: typeof ApiExtensionAuthPrepareRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/demo/provision': {
@@ -548,6 +601,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminUserIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/.well-known/oauth-authorization-server/api/auth': {
+      id: '/.well-known/oauth-authorization-server/api/auth'
+      path: '/.well-known/oauth-authorization-server/api/auth'
+      fullPath: '/.well-known/oauth-authorization-server/api/auth'
+      preLoaderRoute: typeof DotwellKnownOauthAuthorizationServerApiAuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -590,6 +650,7 @@ const AppRouteChildren: AppRouteChildren = {
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface AuthRouteChildren {
+  AuthExtensionConsentRoute: typeof AuthExtensionConsentRoute
   AuthResetRoute: typeof AuthResetRoute
   AuthSignInRoute: typeof AuthSignInRoute
   AuthSignUpRoute: typeof AuthSignUpRoute
@@ -597,6 +658,7 @@ interface AuthRouteChildren {
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
+  AuthExtensionConsentRoute: AuthExtensionConsentRoute,
   AuthResetRoute: AuthResetRoute,
   AuthSignInRoute: AuthSignInRoute,
   AuthSignUpRoute: AuthSignUpRoute,
@@ -613,7 +675,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHealthRoute: ApiHealthRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiDemoProvisionRoute: ApiDemoProvisionRoute,
+  ApiExtensionAuthPrepareRoute: ApiExtensionAuthPrepareRoute,
   ApiRpcSplatRoute: ApiRpcSplatRoute,
+  DotwellKnownOauthAuthorizationServerApiAuthRoute:
+    DotwellKnownOauthAuthorizationServerApiAuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

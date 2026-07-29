@@ -97,6 +97,17 @@ export const env = createEnv({
     OAUTH_SCOPES: z.string().optional(),
     OAUTH_PKCE: z.stringbool().optional(),
     OAUTH_REDIRECT_URI: z.string().optional(),
+    SERIAL_EXTENSION_REDIRECT_URIS: z
+      .string()
+      .optional()
+      .transform((value) =>
+        value
+          ? value
+              .split(",")
+              .map((uri) => uri.trim())
+              .filter(Boolean)
+          : [],
+      ),
     TRUSTED_ORIGINS: z
       .string()
       .optional()
@@ -177,6 +188,7 @@ export const env = createEnv({
     OAUTH_SCOPES: process.env.OAUTH_SCOPES,
     OAUTH_PKCE: process.env.OAUTH_PKCE,
     OAUTH_REDIRECT_URI: process.env.OAUTH_REDIRECT_URI,
+    SERIAL_EXTENSION_REDIRECT_URIS: process.env.SERIAL_EXTENSION_REDIRECT_URIS,
     TRUSTED_ORIGINS: process.env.TRUSTED_ORIGINS,
     SENTRY_DSN_BACKEND: process.env.SENTRY_DSN_BACKEND,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,

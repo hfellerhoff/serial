@@ -5,6 +5,7 @@ import {
   genericOAuthClient,
 } from "better-auth/client/plugins";
 import { polarClient } from "@polar-sh/better-auth/client";
+import { oauthProviderClient } from "@better-auth/oauth-provider/client";
 import { getPublicConfigKey } from "~/lib/public-config";
 
 const plugins = [
@@ -12,6 +13,7 @@ const plugins = [
   polarClient(),
   emailOTPClient(),
   genericOAuthClient(),
+  oauthProviderClient(),
 ];
 
 export const authClient = createAuthClient({
