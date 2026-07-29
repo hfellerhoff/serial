@@ -4,9 +4,16 @@
   color-scheme: light dark;
 }
 
-body {
+html,
+body,
+#root {
   width: 380px;
-  min-height: 300px;
+  height: 380px;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
 }
 
 @media (prefers-color-scheme: dark) {

@@ -1,8 +1,4 @@
 import { GlobeIcon, PlayCircleIcon } from "lucide-react";
-import type * as React from "react";
-import type { FeedPlatform } from "~/server/db/schema";
-import { YoutubeIcon } from "~/components/brand-icons";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import {
   Item,
   ItemActions,
@@ -10,7 +6,11 @@ import {
   ItemDescription,
   ItemMedia,
   ItemTitle,
-} from "~/components/ui/item";
+} from "@serial/ui";
+import type * as React from "react";
+import type { FeedPlatform } from "~/server/db/schema";
+import { YoutubeIcon } from "~/components/brand-icons";
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { cn } from "~/lib/utils";
 
 function PlatformIcon({ platform }: { platform: FeedPlatform }) {

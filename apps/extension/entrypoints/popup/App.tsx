@@ -3,12 +3,12 @@ import {
   Alert,
   AlertDescription,
   Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
   Input,
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
   Label,
   Tabs,
   TabsContent,
@@ -62,17 +62,186 @@ function displayHost(instance: string) {
   return new URL(instance).host;
 }
 
+const INSTANCE_DESCRIPTIONS = {
+  detected: "Current tab",
+  lastUsed: "Last used",
+  serialDefault: "Serial default",
+} as const;
+
+type InstanceChoiceItemProps = {
+  candidate: string;
+  detectedInstance: string | null;
+  lastInstance: string | null;
+  selectedInstance: string;
+  onSelect: (instance: string) => void;
+};
+
+function InstanceChoiceItem({
+  candidate,
+  detectedInstance,
+  lastInstance,
+  selectedInstance,
+  onSelect,
+}: InstanceChoiceItemProps) {
+  const isSelected = candidate === selectedInstance;
+  let description: string = INSTANCE_DESCRIPTIONS.serialDefault;
+  if (candidate === lastInstance) description = INSTANCE_DESCRIPTIONS.lastUsed;
+  if (candidate === detectedInstance)
+    description = INSTANCE_DESCRIPTIONS.detected;
+
+  return (
+    <Item
+      render={<button type="button" />}
+      variant={isSelected ? "muted" : "outline"}
+      size="xs"
+      className="hover:bg-muted/50 cursor-pointer flex-nowrap text-left"
+      aria-pressed={isSelected}
+      onClick={() => onSelect(candidate)}
+    >
+      <ItemMedia variant="icon">
+        <Server className="size-4" />
+      </ItemMedia>
+      <ItemContent className="min-w-0">
+        <ItemTitle>{displayHost(candidate)}</ItemTitle>
+        <ItemDescription>{description}</ItemDescription>
+      </ItemContent>
+      {isSelected && <Check className="size-4 shrink-0" />}
+    </Item>
+  );
+}
+
+type InstanceChooserProps = {
+  detectedInstance: string | null;
+  instance: string;
+  lastInstance: string | null;
+  onCancel: () => void;
+  onSelect: (instance: string) => void;
+};
+
+function InstanceChooser({
+  detectedInstance,
+  instance,
+  lastInstance,
+  onCancel,
+  onSelect,
+}: InstanceChooserProps) {
+  const [selectionMode, setSelectionMode] = useState<"automatic" | "manual">(
+    "automatic",
+  );
+  const [selectedInstance, setSelectedInstance] = useState(instance);
+  const [manualInstance, setManualInstance] = useState(instance);
+  const [instanceError, setInstanceError] = useState<string | null>(null);
+  const automaticCandidates = [
+    detectedInstance,
+    lastInstance,
+    DEFAULT_SERIAL_INSTANCE,
+  ].filter(
+    (value, index, values): value is string =>
+      Boolean(value) && values.indexOf(value) === index,
+  );
+
+  function handleDone() {
+    try {
+      const nextInstance =
+        selectionMode === "manual"
+          ? normalizeInstanceUrl(manualInstance)
+          : selectedInstance;
+      setInstanceError(null);
+      onSelect(nextInstance);
+    } catch (manualError) {
+      setInstanceError(
+        manualError instanceof Error
+          ? manualError.message
+          : "Enter a valid Serial instance",
+      );
+    }
+  }
+
+  return (
+    <main className="flex h-full flex-col gap-4 overflow-y-auto p-5">
+      <header>
+        <h1 className="text-lg font-semibold">Choose your Serial instance</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Use a detected Serial site or enter another instance.
+        </p>
+      </header>
+
+      <Tabs
+        value={selectionMode}
+        onValueChange={(value) => {
+          setSelectionMode(value as "automatic" | "manual");
+          setInstanceError(null);
+        }}
+        className="min-h-0"
+      >
+        <TabsList className="w-full">
+          <TabsTrigger value="automatic">Automatic</TabsTrigger>
+          <TabsTrigger value="manual">Manual</TabsTrigger>
+        </TabsList>
+        <TabsContent value="automatic" className="mt-3 grid gap-2">
+          <p className="text-muted-foreground text-xs">
+            {detectedInstance
+              ? `Detected ${displayHost(detectedInstance)} in the current tab.`
+              : "No Serial instance was detected in the current tab."}
+          </p>
+          {automaticCandidates.map((candidate) => (
+            <InstanceChoiceItem
+              key={candidate}
+              candidate={candidate}
+              detectedInstance={detectedInstance}
+              lastInstance={lastInstance}
+              selectedInstance={selectedInstance}
+              onSelect={setSelectedInstance}
+            />
+          ))}
+        </TabsContent>
+        <TabsContent value="manual" className="mt-3 grid gap-3">
+          <div className="grid gap-2">
+            <Label htmlFor="manual-instance">Server address</Label>
+            <Input
+              id="manual-instance"
+              type="url"
+              placeholder="serial.example.com"
+              value={manualInstance}
+              onChange={(event) => {
+                setManualInstance(event.target.value);
+                setInstanceError(null);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleDone();
+              }}
+            />
+          </div>
+          {instanceError && (
+            <Alert variant="destructive">
+              <Info />
+              <AlertDescription>{instanceError}</AlertDescription>
+            </Alert>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      <div className="mt-auto grid grid-cols-2 gap-2">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Back
+        </Button>
+        <Button type="button" onClick={handleDone}>
+          Done
+        </Button>
+      </div>
+    </main>
+  );
+}
+
 function App() {
   const [session, setSession] = useState<ExtensionAuthSession | null>(null);
   const [detectedInstance, setDetectedInstance] = useState<string | null>(null);
   const [lastInstance, setLastInstance] = useState<string | null>(null);
   const [instance, setInstance] = useState(DEFAULT_SERIAL_INSTANCE);
-  const [manualInstance, setManualInstance] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [choosingInstance, setChoosingInstance] = useState(false);
   const [loading, setLoading] = useState(true);
   const [action, setAction] = useState<"sign-in" | "sign-out" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [instanceError, setInstanceError] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -107,21 +276,6 @@ function App() {
       }
     })();
   }, []);
-
-  async function selectManualInstance() {
-    try {
-      const normalized = normalizeInstanceUrl(manualInstance);
-      setInstance(normalized);
-      setInstanceError(null);
-      setDialogOpen(false);
-    } catch (manualError) {
-      setInstanceError(
-        manualError instanceof Error
-          ? manualError.message
-          : "Enter a valid Serial instance",
-      );
-    }
-  }
 
   async function handleSignIn() {
     setAction("sign-in");
@@ -182,7 +336,7 @@ function App() {
 
   if (loading) {
     return (
-      <main className="grid min-h-[300px] place-items-center">
+      <main className="grid h-full place-items-center">
         <Loader2 className="text-muted-foreground size-5 animate-spin" />
       </main>
     );
@@ -190,7 +344,7 @@ function App() {
 
   if (session) {
     return (
-      <main className="flex min-h-[300px] flex-col p-5">
+      <main className="flex h-full flex-col p-5">
         <header className="flex items-center gap-3">
           <img className="size-10 rounded-lg" src="/icon/128.png" alt="" />
           <div className="min-w-0">
@@ -224,8 +378,23 @@ function App() {
     );
   }
 
+  if (choosingInstance) {
+    return (
+      <InstanceChooser
+        detectedInstance={detectedInstance}
+        instance={instance}
+        lastInstance={lastInstance}
+        onCancel={() => setChoosingInstance(false)}
+        onSelect={(nextInstance) => {
+          setInstance(nextInstance);
+          setChoosingInstance(false);
+        }}
+      />
+    );
+  }
+
   return (
-    <main className="grid gap-5 p-5">
+    <main className="flex h-full flex-col gap-5 p-5">
       <header className="flex items-center gap-3">
         <img className="size-12 rounded-xl" src="/icon/128.png" alt="" />
         <div>
@@ -242,7 +411,7 @@ function App() {
           type="button"
           variant="outline"
           className="h-11 w-full justify-start px-3 font-normal"
-          onClick={() => setDialogOpen(true)}
+          onClick={() => setChoosingInstance(true)}
         >
           <Server className="text-muted-foreground size-4" />
           <span className="min-w-0 flex-1 truncate text-sm">
@@ -265,99 +434,13 @@ function App() {
       )}
 
       <Button
-        className="w-full"
+        className="mt-auto w-full"
         disabled={action !== null}
         onClick={() => void handleSignIn()}
       >
         {action === "sign-in" && <Loader2 className="size-4 animate-spin" />}
         Continue with Serial
       </Button>
-
-      <Dialog
-        open={dialogOpen}
-        onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) setInstanceError(null);
-        }}
-      >
-        <DialogContent className="w-[348px] p-5">
-          <DialogHeader>
-            <DialogTitle>Choose your Serial instance</DialogTitle>
-            <DialogDescription>
-              Use the current Serial site automatically or enter another
-              instance.
-            </DialogDescription>
-          </DialogHeader>
-          <Tabs defaultValue="automatic">
-            <TabsList className="w-full">
-              <TabsTrigger value="automatic">Automatic</TabsTrigger>
-              <TabsTrigger value="manual">Manual</TabsTrigger>
-            </TabsList>
-            <TabsContent value="automatic" className="grid gap-3 pt-2">
-              {detectedInstance ? (
-                <Alert>
-                  <Info />
-                  <AlertDescription>
-                    Serial was detected at{" "}
-                    <strong>{displayHost(detectedInstance)}</strong>.
-                  </AlertDescription>
-                </Alert>
-              ) : (
-                <Alert>
-                  <Info />
-                  <AlertDescription>
-                    No Serial instance was detected in the current tab.
-                  </AlertDescription>
-                </Alert>
-              )}
-              {[detectedInstance, lastInstance, DEFAULT_SERIAL_INSTANCE]
-                .filter(
-                  (value, index, values): value is string =>
-                    Boolean(value) && values.indexOf(value) === index,
-                )
-                .map((candidate) => (
-                  <Button
-                    key={candidate}
-                    variant={candidate === instance ? "default" : "outline"}
-                    onClick={() => {
-                      setInstance(candidate);
-                      setDialogOpen(false);
-                    }}
-                  >
-                    {displayHost(candidate)}
-                  </Button>
-                ))}
-            </TabsContent>
-            <TabsContent value="manual" className="grid gap-3 pt-2">
-              <div className="grid gap-2">
-                <Label htmlFor="manual-instance">Server address</Label>
-                <Input
-                  id="manual-instance"
-                  type="url"
-                  placeholder="serial.example.com"
-                  value={manualInstance}
-                  onChange={(event) => {
-                    setManualInstance(event.target.value);
-                    setInstanceError(null);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      void selectManualInstance();
-                    }
-                  }}
-                />
-              </div>
-              {instanceError && (
-                <Alert variant="destructive">
-                  <Info />
-                  <AlertDescription>{instanceError}</AlertDescription>
-                </Alert>
-              )}
-              <Button onClick={() => void selectManualInstance()}>Done</Button>
-            </TabsContent>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
     </main>
   );
 }
