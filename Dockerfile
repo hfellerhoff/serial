@@ -79,6 +79,13 @@ WORKDIR /usr/src/app/apps/app
 # Copy migration files and source needed for running migrations
 COPY --from=build-base /usr/src/app/apps/app/src/server/db ./src/server/db
 COPY --from=build-base /usr/src/app/apps/app/src/env.js ./src/env.js
+COPY --from=build-base /usr/src/app/apps/app/src/lib/extension-auth.ts ./src/lib/extension-auth.ts
+
+# Catch missing transitive imports in the migration runtime before deployment.
+RUN PUBLIC_BASE_URL=http://localhost \
+    BETTER_AUTH_SECRET=container-build-smoke-test \
+    NODE_ENV=production \
+    node --import=tsx -e "await import('./src/env.js')"
 
 # Expose the port that the application listens on.
 EXPOSE 3000
