@@ -303,27 +303,34 @@ async function signOut() {
   return null;
 }
 
+async function handleAuthMessage(
+  message: AuthMessage,
+): Promise<AuthMessageResponse> {
+  try {
+    switch (message.type) {
+      case "auth.get-session":
+        return { ok: true, session: await getActiveSession() };
+      case "auth.sign-in":
+        return { ok: true, session: await signIn(message.instance) };
+      case "auth.sign-out":
+        return { ok: true, session: await signOut() };
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Unable to authenticate with Serial",
+    };
+  }
+}
+
 export default defineBackground(() => {
   browser.runtime.onMessage.addListener(
-    async (message: AuthMessage): Promise<AuthMessageResponse> => {
-      try {
-        switch (message.type) {
-          case "auth.get-session":
-            return { ok: true, session: await getActiveSession() };
-          case "auth.sign-in":
-            return { ok: true, session: await signIn(message.instance) };
-          case "auth.sign-out":
-            return { ok: true, session: await signOut() };
-        }
-      } catch (error) {
-        return {
-          ok: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Unable to authenticate with Serial",
-        };
-      }
+    (message: AuthMessage, _sender, sendResponse) => {
+      void handleAuthMessage(message).then(sendResponse);
+      return true;
     },
   );
 });

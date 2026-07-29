@@ -33,6 +33,15 @@ describe("normalizeInstanceUrl", () => {
     );
   });
 
+  it("defaults schemeless local instances to HTTP", () => {
+    expect(normalizeInstanceUrl("localhost:3005")).toBe(
+      "http://localhost:3005",
+    );
+    expect(normalizeInstanceUrl("127.0.0.1:3005")).toBe(
+      "http://127.0.0.1:3005",
+    );
+  });
+
   it("rejects insecure remote instances", () => {
     expect(() =>
       normalizeInstanceUrl("http://serial.example.com"),
@@ -50,6 +59,15 @@ describe("originPermission", () => {
   it("requests only the selected instance origin", () => {
     expect(originPermission("https://serial.example.com")).toBe(
       "https://serial.example.com/*",
+    );
+  });
+
+  it("uses the browser match pattern for every localhost port", () => {
+    expect(originPermission("http://localhost:3005")).toBe(
+      "http://localhost/*",
+    );
+    expect(originPermission("http://127.0.0.1:3005")).toBe(
+      "http://127.0.0.1/*",
     );
   });
 });

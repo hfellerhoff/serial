@@ -29,7 +29,13 @@ import type {
 } from "../../lib/auth";
 
 async function sendAuthMessage(message: AuthMessage) {
-  return (await browser.runtime.sendMessage(message)) as AuthMessageResponse;
+  const response = (await browser.runtime.sendMessage(
+    message,
+  )) as AuthMessageResponse;
+  if (!response || typeof response.ok !== "boolean") {
+    throw new Error("Unable to contact the Serial extension background");
+  }
+  return response;
 }
 
 async function detectSerialInstance() {
@@ -90,8 +96,12 @@ function App() {
             : (detected ?? previous ?? DEFAULT_SERIAL_INSTANCE),
         );
         if (!authResponse.ok) setError(authResponse.error);
-      } catch {
-        setError("Unable to load the Serial extension");
+      } catch (loadError) {
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Unable to load the Serial extension",
+        );
       } finally {
         setLoading(false);
       }
@@ -151,14 +161,23 @@ function App() {
   async function handleSignOut() {
     setAction("sign-out");
     setError(null);
-    const response = await sendAuthMessage({ type: "auth.sign-out" });
-    if (response.ok) {
-      setSession(null);
-      setInstance(session?.instance ?? instance);
-    } else {
-      setError(response.error);
+    try {
+      const response = await sendAuthMessage({ type: "auth.sign-out" });
+      if (response.ok) {
+        setSession(null);
+        setInstance(session?.instance ?? instance);
+      } else {
+        setError(response.error);
+      }
+    } catch (signOutError) {
+      setError(
+        signOutError instanceof Error
+          ? signOutError.message
+          : "Unable to sign out of the Serial extension",
+      );
+    } finally {
+      setAction(null);
     }
-    setAction(null);
   }
 
   if (loading) {

@@ -45,9 +45,14 @@ export function normalizeInstanceUrl(value: string): string {
     throw new Error("Enter a Serial instance address");
   }
 
-  const withScheme = /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed)
+  const hasScheme = /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed);
+  const schemelessUrl = hasScheme ? null : new URL(`http://${trimmed}`);
+  const isSchemelessLocal =
+    schemelessUrl?.hostname === "localhost" ||
+    schemelessUrl?.hostname === "127.0.0.1";
+  const withScheme = hasScheme
     ? trimmed
-    : `https://${trimmed}`;
+    : `${isSchemelessLocal ? "http" : "https"}://${trimmed}`;
   const url = new URL(withScheme);
 
   if (url.username || url.password) {
@@ -63,5 +68,6 @@ export function normalizeInstanceUrl(value: string): string {
 }
 
 export function originPermission(instance: string) {
-  return `${new URL(instance).origin}/*`;
+  const url = new URL(instance);
+  return `${url.protocol}//${url.hostname}/*`;
 }
