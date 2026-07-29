@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "turbo run dev --filter=@serial/app",
     "dev:demo": "node apps/extension/scripts/dev-demo.mjs",
+    "dev:demo:chrome": "node apps/extension/scripts/dev-demo.mjs chrome",
+    "dev:demo:firefox": "node apps/extension/scripts/dev-demo.mjs firefox",
     "dev:extension": "pnpm --filter @serial/extension dev",
     "build": "turbo run build:artifact",
     "build:artifact": "turbo run build:artifact",

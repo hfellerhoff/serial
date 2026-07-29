@@ -3,6 +3,20 @@ import { spawn } from "node:child_process";
 
 const STARTUP_TIMEOUT_MS = 30_000;
 const DEMO_URL_PATTERN = /Demo app:\s+(https?:\/\/\S+)/;
+const extensionScriptsByBrowser = {
+  chrome: "dev:chrome",
+  firefox: "dev:firefox",
+};
+
+const browser = process.argv[2] ?? "chrome";
+const extensionScript = extensionScriptsByBrowser[browser];
+
+if (!extensionScript) {
+  console.error(
+    `Unsupported demo browser "${browser}". Choose "chrome" or "firefox".`,
+  );
+  process.exit(1);
+}
 
 let extensionProcess;
 let isStopping = false;
@@ -111,14 +125,18 @@ try {
   const appUrl = await waitForDemoUrl();
   await waitForPort(appUrl);
 
-  console.log(`Opening extension browser at ${appUrl}`);
-  extensionProcess = spawn("pnpm", ["--filter", "@serial/extension", "dev"], {
-    env: {
-      ...process.env,
-      SERIAL_EXTENSION_START_URL: appUrl,
+  console.log(`Opening extension in ${browser} at ${appUrl}`);
+  extensionProcess = spawn(
+    "pnpm",
+    ["--filter", "@serial/extension", extensionScript],
+    {
+      env: {
+        ...process.env,
+        SERIAL_EXTENSION_START_URL: appUrl,
+      },
+      stdio: "inherit",
     },
-    stdio: "inherit",
-  });
+  );
 
   appProcess.once("exit", (code, signal) => {
     if (isStopping) return;

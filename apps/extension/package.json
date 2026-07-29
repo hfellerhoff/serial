@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "wxt",
+    "dev:chrome": "wxt -b chrome",
     "dev:firefox": "wxt -b firefox",
     "build": "wxt build",
     "build:artifact": "wxt build",
