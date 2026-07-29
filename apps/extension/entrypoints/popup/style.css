@@ -20,7 +20,8 @@ body {
 #root {
   background: hsl(var(--background));
   border-radius: var(--radius);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 @media (prefers-color-scheme: dark) {

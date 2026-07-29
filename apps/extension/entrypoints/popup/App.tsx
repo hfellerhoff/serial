@@ -31,6 +31,7 @@ import type {
   ExtensionAuthSession,
 } from "../../lib/auth";
 import { ExtensionHeader } from "./ExtensionHeader";
+import { PopupLayout } from "./PopupLayout";
 
 async function sendAuthMessage(message: AuthMessage) {
   const response = (await browser.runtime.sendMessage(
@@ -215,79 +216,77 @@ function InstanceChooser({
   }
 
   return (
-    <main className="flex h-full flex-col gap-4 overflow-y-auto p-5">
-      <header>
-        <h1 className="text-lg font-semibold">Choose your Serial instance</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Use a detected Serial site or enter another instance.
-        </p>
-      </header>
-
-      <Tabs
-        value={selectionMode}
-        onValueChange={(value) => {
-          setSelectionMode(value as "automatic" | "manual");
-          setInstanceError(null);
-        }}
-        className="min-h-0"
-      >
-        <TabsList className="w-full">
-          <TabsTrigger value="automatic">Automatic</TabsTrigger>
-          <TabsTrigger value="manual">Manual</TabsTrigger>
-        </TabsList>
-        <TabsContent value="automatic" className="mt-3 grid gap-2">
-          <p className="text-muted-foreground text-xs">
-            {detectedInstance
-              ? `Detected ${displayHost(detectedInstance)} in the current tab.`
-              : "No Serial instance was detected in the current tab."}
-          </p>
-          {automaticCandidates.map((candidate) => (
-            <InstanceChoiceItem
-              key={candidate}
-              candidate={candidate}
-              detectedInstance={detectedInstance}
-              lastInstance={lastInstance}
-              selectedInstance={selectedInstance}
-              onSelect={setSelectedInstance}
-            />
-          ))}
-        </TabsContent>
-        <TabsContent value="manual" className="mt-3 grid gap-3">
-          <div className="grid gap-2">
-            <Label htmlFor="manual-instance">Server address</Label>
-            <Input
-              id="manual-instance"
-              type="url"
-              placeholder="serial.example.com"
-              value={manualInstance}
-              onChange={(event) => {
-                setManualInstance(event.target.value);
-                setInstanceError(null);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") void handleDone();
-              }}
-            />
-          </div>
-          {instanceError && (
-            <Alert variant="destructive">
-              <Info />
-              <AlertDescription>{instanceError}</AlertDescription>
-            </Alert>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      <div className="mt-auto">
-        <Button
-          type="button"
-          className="w-full"
-          onClick={() => void handleDone()}
-        >
+    <PopupLayout
+      footer={
+        <Button type="button" className="w-full" onClick={handleDone}>
           Done
         </Button>
+      }
+    >
+      <div className="grid gap-4">
+        <header>
+          <h1 className="text-lg font-semibold">Choose your Serial instance</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Use a detected Serial site or enter another instance.
+          </p>
+        </header>
+
+        <Tabs
+          value={selectionMode}
+          onValueChange={(value) => {
+            setSelectionMode(value as "automatic" | "manual");
+            setInstanceError(null);
+          }}
+          className="min-h-0"
+        >
+          <TabsList className="w-full">
+            <TabsTrigger value="automatic">Automatic</TabsTrigger>
+            <TabsTrigger value="manual">Manual</TabsTrigger>
+          </TabsList>
+          <TabsContent value="automatic" className="mt-3 grid gap-2">
+            <p className="text-muted-foreground text-xs">
+              {detectedInstance
+                ? `Detected ${displayHost(detectedInstance)} in the current tab.`
+                : "No Serial instance was detected in the current tab."}
+            </p>
+            {automaticCandidates.map((candidate) => (
+              <InstanceChoiceItem
+                key={candidate}
+                candidate={candidate}
+                detectedInstance={detectedInstance}
+                lastInstance={lastInstance}
+                selectedInstance={selectedInstance}
+                onSelect={setSelectedInstance}
+              />
+            ))}
+          </TabsContent>
+          <TabsContent value="manual" className="mt-3 grid gap-3">
+            <div className="grid gap-2">
+              <Label htmlFor="manual-instance">Server address</Label>
+              <Input
+                id="manual-instance"
+                type="url"
+                placeholder="serial.example.com"
+                value={manualInstance}
+                onChange={(event) => {
+                  setManualInstance(event.target.value);
+                  setInstanceError(null);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") void handleDone();
+                }}
+              />
+            </div>
+            {instanceError && (
+              <Alert variant="destructive">
+                <Info />
+                <AlertDescription>{instanceError}</AlertDescription>
+              </Alert>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
-    </main>
+    </PopupLayout>
   );
 }
 
@@ -450,15 +449,34 @@ function App() {
 
   if (loading) {
     return (
-      <main className="grid h-full place-items-center">
-        <Loader2 className="text-muted-foreground size-5 animate-spin" />
-      </main>
+      <PopupLayout>
+        <div className="grid flex-1 place-items-center">
+          <Loader2 className="text-muted-foreground size-5 animate-spin" />
+        </div>
+      </PopupLayout>
     );
   }
 
   if (session) {
     return (
-      <main className="flex h-full flex-col p-5">
+      <PopupLayout
+        footer={
+          <Button
+            variant="outline"
+            size="icon md:default"
+            className="w-full"
+            disabled={action !== null}
+            onClick={() => void handleSignOut()}
+          >
+            {action === "sign-out" ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <LogOut className="size-4" />
+            )}
+            <span className="pl-1.5 md:pl-0">Sign out of extension</span>
+          </Button>
+        }
+      >
         <ExtensionHeader
           title="Serial"
           description={displayHost(session.instance)}
@@ -475,21 +493,7 @@ function App() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        <Button
-          variant="outline"
-          size="icon md:default"
-          className="w-full"
-          disabled={action !== null}
-          onClick={() => void handleSignOut()}
-        >
-          {action === "sign-out" ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <LogOut className="size-4" />
-          )}
-          <span className="pl-1.5 md:pl-0">Sign out of extension</span>
-        </Button>
-      </main>
+      </PopupLayout>
     );
   }
 
@@ -512,44 +516,48 @@ function App() {
   }
 
   return (
-    <main className="flex h-full flex-col gap-5 p-5">
-      <ExtensionHeader
-        title="Sign in to Serial"
-        description={`Continue with ${displayHost(instance)}.`}
-      />
+    <PopupLayout
+      footer={
+        <div className="grid gap-2">
+          <Button
+            size="icon md:default"
+            className="relative w-full"
+            disabled={action !== null}
+            onClick={() => void handleSignIn()}
+          >
+            <span>Sign in to instance</span>
+            {action === "sign-in" ? (
+              <Loader2 className="absolute right-4 size-4 animate-spin" />
+            ) : (
+              <ArrowRight className="absolute right-4 size-4" />
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={action !== null}
+            onClick={() => setChoosingInstance(true)}
+          >
+            Choose another instance
+          </Button>
+        </div>
+      }
+    >
+      <div className="grid gap-5">
+        <ExtensionHeader
+          title="Sign in to Serial"
+          description={`Continue with ${displayHost(instance)}.`}
+        />
 
-      {error && (
-        <Alert variant="destructive">
-          <Info />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="mt-auto grid gap-2">
-        <Button
-          size="icon md:default"
-          className="relative w-full"
-          disabled={action !== null}
-          onClick={() => void handleSignIn()}
-        >
-          <span>Sign in to instance</span>
-          {action === "sign-in" ? (
-            <Loader2 className="absolute right-4 size-4 animate-spin" />
-          ) : (
-            <ArrowRight className="absolute right-4 size-4" />
-          )}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          disabled={action !== null}
-          onClick={() => setChoosingInstance(true)}
-        >
-          Choose another instance
-        </Button>
+        {error && (
+          <Alert variant="destructive">
+            <Info />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
       </div>
-    </main>
+    </PopupLayout>
   );
 }
 
