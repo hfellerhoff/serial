@@ -117,14 +117,8 @@ function SignIn() {
                       onResponse: () => {
                         setLoading(false);
                       },
-                      onSuccess: () => {
-                        if (
-                          new URLSearchParams(window.location.search).has(
-                            "oauth_query",
-                          )
-                        ) {
-                          return;
-                        }
+                      onSuccess: (ctx) => {
+                        if (ctx.data?.redirect) return;
                         void router.navigate({
                           to: AUTH_SIGNED_IN_URL,
                           reloadDocument: true,

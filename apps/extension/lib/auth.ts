@@ -8,6 +8,12 @@ export type SerialUser = {
   id: string;
   name?: string;
   picture?: string;
+  theme?: SerialTheme;
+};
+
+export type SerialTheme = {
+  lightHSL?: [number, number, number];
+  darkHSL?: [number, number, number];
 };
 
 export type AuthEndpoints = {
@@ -33,7 +39,7 @@ export type ExtensionAuthSession = {
 
 export type AuthMessage =
   | { type: "auth.get-session" }
-  | { type: "auth.sign-in"; instance: string }
+  | { type: "auth.sign-in"; instance: string; interactive?: boolean }
   | { type: "auth.sign-out" };
 
 export type AuthMessageResponse =
@@ -71,4 +77,61 @@ export function normalizeInstanceUrl(value: string): string {
 export function originPermission(instance: string) {
   const url = new URL(instance);
   return `${url.protocol}//${url.hostname}/*`;
+}
+
+type ResolveInitialInstanceOptions = {
+  detectedInstance: string | null;
+  hasActiveWebSession: boolean;
+  selectedInstance: string | null;
+  lastInstance: string | null;
+};
+
+export function resolveInitialInstance({
+  detectedInstance,
+  hasActiveWebSession,
+  selectedInstance,
+  lastInstance,
+}: ResolveInitialInstanceOptions) {
+  if (detectedInstance) {
+    return hasActiveWebSession ? detectedInstance : null;
+  }
+  return selectedInstance ?? lastInstance;
+}
+
+function isHslTuple(value: unknown): value is [number, number, number] {
+  return (
+    Array.isArray(value) &&
+    value.length === 3 &&
+    value.every((part) => typeof part === "number" && Number.isFinite(part))
+  );
+}
+
+export function parseSerialTheme(value: unknown): SerialTheme | undefined {
+  if (!value || typeof value !== "object") return undefined;
+
+  const candidate = value as {
+    lightHSL?: unknown;
+    darkHSL?: unknown;
+  };
+  const lightHSL = isHslTuple(candidate.lightHSL)
+    ? candidate.lightHSL
+    : undefined;
+  const darkHSL = isHslTuple(candidate.darkHSL) ? candidate.darkHSL : undefined;
+
+  return lightHSL || darkHSL ? { lightHSL, darkHSL } : undefined;
+}
+
+export function getThemeCssVariables(theme: SerialTheme | undefined) {
+  const variables: Record<string, string> = {};
+  if (theme?.lightHSL) {
+    variables["--light-hue"] = String(theme.lightHSL[0]);
+    variables["--light-sat"] = `${theme.lightHSL[1]}%`;
+    variables["--light-lgt"] = `${theme.lightHSL[2]}%`;
+  }
+  if (theme?.darkHSL) {
+    variables["--dark-hue"] = String(theme.darkHSL[0]);
+    variables["--dark-sat"] = `${theme.darkHSL[1]}%`;
+    variables["--dark-lgt"] = `${theme.darkHSL[2]}%`;
+  }
+  return variables;
 }

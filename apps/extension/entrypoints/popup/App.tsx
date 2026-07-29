@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   AlertDescription,
@@ -18,9 +18,11 @@ import {
 import { Check, Info, Loader2, LogIn, LogOut, Server } from "lucide-react";
 import {
   DEFAULT_SERIAL_INSTANCE,
+  getThemeCssVariables,
   LAST_INSTANCE_STORAGE_KEY,
   normalizeInstanceUrl,
   originPermission,
+  resolveInitialInstance,
   SELECTED_INSTANCE_STORAGE_KEY,
 } from "../../lib/auth";
 import type {
@@ -40,21 +42,53 @@ async function sendAuthMessage(message: AuthMessage) {
   return response;
 }
 
-async function detectSerialInstance() {
+type DetectedSerialInstance = {
+  instance: string;
+  hasActiveWebSession: boolean;
+};
+
+async function detectSerialInstance(): Promise<DetectedSerialInstance | null> {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id || !tab.url?.startsWith("http")) return null;
 
   try {
     const [{ result }] = await browser.scripting.executeScript({
       target: { tabId: tab.id },
-      func: () => {
+      func: async () => {
         const marker = document.querySelector<HTMLMetaElement>(
           'meta[name="serial-instance"]',
         );
-        return marker?.content === "1" ? window.location.origin : null;
+        if (marker?.content !== "1") return null;
+
+        let hasActiveWebSession = false;
+        try {
+          const response = await fetch("/api/auth/get-session", {
+            cache: "no-store",
+            credentials: "include",
+          });
+          if (response.ok) {
+            const payload = (await response.json()) as {
+              session?: unknown;
+              user?: unknown;
+            } | null;
+            hasActiveWebSession = Boolean(payload?.session && payload.user);
+          }
+        } catch {
+          // The instance is still a useful manual candidate when unavailable.
+        }
+
+        return {
+          instance: window.location.origin,
+          hasActiveWebSession,
+        };
       },
     });
-    return typeof result === "string" ? result : null;
+    return result &&
+      typeof result === "object" &&
+      typeof result.instance === "string" &&
+      typeof result.hasActiveWebSession === "boolean"
+      ? result
+      : null;
   } catch {
     return null;
   }
@@ -62,6 +96,26 @@ async function detectSerialInstance() {
 
 function displayHost(instance: string) {
   return new URL(instance).host;
+}
+
+const SERIAL_THEME_CSS_VARIABLES = [
+  "--light-hue",
+  "--light-sat",
+  "--light-lgt",
+  "--dark-hue",
+  "--dark-sat",
+  "--dark-lgt",
+] as const;
+
+function applySerialTheme(session: ExtensionAuthSession | null) {
+  for (const variable of SERIAL_THEME_CSS_VARIABLES) {
+    document.documentElement.style.removeProperty(variable);
+  }
+  for (const [variable, value] of Object.entries(
+    getThemeCssVariables(session?.user.theme),
+  )) {
+    document.documentElement.style.setProperty(variable, value);
+  }
 }
 
 const INSTANCE_DESCRIPTIONS = {
@@ -116,7 +170,6 @@ type InstanceChooserProps = {
   detectedInstance: string | null;
   instance: string;
   lastInstance: string | null;
-  onCancel: () => void;
   onSelect: (instance: string) => Promise<void>;
 };
 
@@ -124,7 +177,6 @@ function InstanceChooser({
   detectedInstance,
   instance,
   lastInstance,
-  onCancel,
   onSelect,
 }: InstanceChooserProps) {
   const automaticCandidates = [
@@ -226,11 +278,12 @@ function InstanceChooser({
         </TabsContent>
       </Tabs>
 
-      <div className="mt-auto grid grid-cols-2 gap-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Back
-        </Button>
-        <Button type="button" onClick={() => void handleDone()}>
+      <div className="mt-auto">
+        <Button
+          type="button"
+          className="w-full"
+          onClick={() => void handleDone()}
+        >
           Done
         </Button>
       </div>
@@ -239,6 +292,7 @@ function InstanceChooser({
 }
 
 function App() {
+  const initialized = useRef(false);
   const [session, setSession] = useState<ExtensionAuthSession | null>(null);
   const [detectedInstance, setDetectedInstance] = useState<string | null>(null);
   const [lastInstance, setLastInstance] = useState<string | null>(null);
@@ -249,6 +303,13 @@ function App() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    applySerialTheme(session);
+  }, [session]);
+
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
     void (async () => {
       try {
         const [authResponse, detected, stored] = await Promise.all([
@@ -268,15 +329,51 @@ function App() {
             ? (stored[SELECTED_INSTANCE_STORAGE_KEY] as string)
             : null;
 
-        if (authResponse.ok) setSession(authResponse.session);
-        setDetectedInstance(detected);
+        const detectedOrigin = detected?.instance ?? null;
+        if (authResponse.ok && authResponse.session) {
+          setSession(authResponse.session);
+          setInstance(authResponse.session.instance);
+          return;
+        }
+
+        setDetectedInstance(detectedOrigin);
         setLastInstance(previous);
-        setInstance(
-          authResponse.ok && authResponse.session
-            ? authResponse.session.instance
-            : (selected ?? detected ?? previous ?? DEFAULT_SERIAL_INSTANCE),
-        );
         if (!authResponse.ok) setError(authResponse.error);
+
+        const initialInstance = resolveInitialInstance({
+          detectedInstance: detectedOrigin,
+          hasActiveWebSession: detected?.hasActiveWebSession ?? false,
+          selectedInstance: selected,
+          lastInstance: previous,
+        });
+        if (!initialInstance) {
+          setInstance(
+            detectedOrigin ?? selected ?? previous ?? DEFAULT_SERIAL_INSTANCE,
+          );
+          setChoosingInstance(true);
+          return;
+        }
+
+        setInstance(initialInstance);
+        if (detected?.hasActiveWebSession) {
+          const permission = originPermission(initialInstance);
+          const canSignInSilently = await browser.permissions.contains({
+            origins: [permission],
+          });
+          if (canSignInSilently) {
+            const response = await sendAuthMessage({
+              type: "auth.sign-in",
+              instance: initialInstance,
+              interactive: false,
+            });
+            if (response.ok && response.session) {
+              setSession(response.session);
+            } else {
+              setChoosingInstance(true);
+              if (!response.ok) setError(response.error);
+            }
+          }
+        }
       } catch (loadError) {
         setError(
           loadError instanceof Error
@@ -289,11 +386,11 @@ function App() {
     })();
   }, []);
 
-  async function handleSignIn() {
+  async function handleSignIn(targetInstance = instance) {
     setAction("sign-in");
     setError(null);
     try {
-      const normalized = normalizeInstanceUrl(instance);
+      const normalized = normalizeInstanceUrl(targetInstance);
       await browser.storage.local.set({
         [SELECTED_INSTANCE_STORAGE_KEY]: normalized,
       });
@@ -313,8 +410,10 @@ function App() {
       const response = await sendAuthMessage({
         type: "auth.sign-in",
         instance: normalized,
+        interactive: true,
       });
       if (!response.ok) throw new Error(response.error);
+      setInstance(normalized);
       setSession(response.session);
     } catch (signInError) {
       setError(
@@ -400,13 +499,13 @@ function App() {
         detectedInstance={detectedInstance}
         instance={instance}
         lastInstance={lastInstance}
-        onCancel={() => setChoosingInstance(false)}
         onSelect={async (nextInstance) => {
           await browser.storage.local.set({
             [SELECTED_INSTANCE_STORAGE_KEY]: nextInstance,
           });
           setInstance(nextInstance);
           setChoosingInstance(false);
+          await handleSignIn(nextInstance);
         }}
       />
     );
@@ -416,29 +515,8 @@ function App() {
     <main className="flex h-full flex-col gap-5 p-5">
       <ExtensionHeader
         title="Sign in to Serial"
-        description="Continue in your browser with your Serial account."
+        description={`Continue with ${displayHost(instance)}.`}
       />
-
-      <div className="grid gap-2">
-        <Label>Serial instance</Label>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-11 w-full justify-start px-3 font-normal"
-          onClick={() => setChoosingInstance(true)}
-        >
-          <Server className="text-muted-foreground size-4" />
-          <span className="min-w-0 flex-1 truncate text-sm">
-            {displayHost(instance)}
-          </span>
-          <span className="text-muted-foreground text-xs">Change</span>
-        </Button>
-        {detectedInstance === instance && (
-          <p className="text-muted-foreground text-xs">
-            Detected from the current tab
-          </p>
-        )}
-      </div>
 
       {error && (
         <Alert variant="destructive">

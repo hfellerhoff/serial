@@ -1,9 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { count } from "drizzle-orm";
 import {
   ensureExtensionOAuthClient,
   SERIAL_EXTENSION_AUTH_SCOPES,
   SERIAL_EXTENSION_CLIENT_ID,
 } from "~/server/auth/extension";
+import { db } from "~/server/db";
+import { user } from "~/server/db/schema";
 import { env } from "~/env";
 
 function corsResponse(body: BodyInit | null, init: ResponseInit = {}) {
@@ -26,6 +29,17 @@ export const Route = createFileRoute("/api/extension-auth/prepare")({
             throw new Error("Missing redirect URI");
           }
           redirectUri = body.redirectUri;
+
+          const userCount = await db
+            .select({ count: count() })
+            .from(user)
+            .get();
+          if ((userCount?.count ?? 0) === 0) {
+            throw new Error(
+              "Finish setting up this Serial instance and sign in there before connecting the extension",
+            );
+          }
+
           await ensureExtensionOAuthClient(redirectUri);
         } catch (error) {
           return corsResponse(

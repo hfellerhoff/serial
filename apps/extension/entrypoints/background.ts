@@ -2,6 +2,7 @@ import {
   AUTH_REDIRECT_PATH,
   AUTH_STORAGE_KEY,
   LAST_INSTANCE_STORAGE_KEY,
+  parseSerialTheme,
   SELECTED_INSTANCE_STORAGE_KEY,
 } from "../lib/auth";
 import type {
@@ -13,6 +14,7 @@ import type {
 } from "../lib/auth";
 
 const TOKEN_EXPIRY_BUFFER_MS = 30_000;
+const SERIAL_THEME_CLAIM = "https://serial.tube/theme";
 
 class InvalidSessionError extends Error {}
 
@@ -138,6 +140,7 @@ async function fetchUser(endpoint: string, accessToken: string) {
     sub?: string;
     name?: string;
     picture?: string;
+    [SERIAL_THEME_CLAIM]?: unknown;
   };
   if (!payload.sub) {
     throw new Error("Serial did not return an account identifier");
@@ -146,6 +149,7 @@ async function fetchUser(endpoint: string, accessToken: string) {
     id: payload.sub,
     name: payload.name,
     picture: payload.picture,
+    theme: parseSerialTheme(payload[SERIAL_THEME_CLAIM]),
   } satisfies SerialUser;
 }
 
@@ -215,7 +219,7 @@ async function getActiveSession() {
   }
 }
 
-async function signIn(instance: string) {
+async function signIn(instance: string, interactive = true) {
   const redirectUri = browser.identity.getRedirectURL(AUTH_REDIRECT_PATH);
   const endpoints = await prepareInstance(instance, redirectUri);
   const state = randomUrlSafeString();
@@ -234,7 +238,7 @@ async function signIn(instance: string) {
 
   const completedUrl = await browser.identity.launchWebAuthFlow({
     url: authorizationUrl.toString(),
-    interactive: true,
+    interactive,
   });
   if (!completedUrl) {
     throw new Error("Serial sign-in was cancelled");
@@ -319,7 +323,10 @@ async function handleAuthMessage(
       case "auth.get-session":
         return { ok: true, session: await getActiveSession() };
       case "auth.sign-in":
-        return { ok: true, session: await signIn(message.instance) };
+        return {
+          ok: true,
+          session: await signIn(message.instance, message.interactive),
+        };
       case "auth.sign-out":
         return { ok: true, session: await signOut() };
     }

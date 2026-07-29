@@ -12,7 +12,7 @@ import { checkout, polar, portal, webhooks } from "@polar-sh/better-auth";
 import { oauthProvider } from "@better-auth/oauth-provider";
 import { createElement } from "react";
 import { db } from "../db";
-import { appConfig, session, user } from "../db/schema";
+import { appConfig, session, user, userConfig } from "../db/schema";
 import {
   getPolarProductIds,
   IS_BILLING_ENABLED,
@@ -52,6 +52,7 @@ import {
   SERIAL_EXTENSION_CLIENT_ID,
 } from "~/server/auth/extension";
 import { getTrustedExtensionAuthOrigin } from "~/server/auth/extension-origin";
+import { parseHSL } from "~/server/api/routers/hsl";
 
 const SIGNED_IN_REDIRECT_AUTH_PATHS = [
   "/auth",
@@ -311,6 +312,17 @@ export const auth = betterAuth({
       cachedTrustedClients: new Set([SERIAL_EXTENSION_CLIENT_ID]),
       accessTokenExpiresIn: 5 * 60,
       refreshTokenExpiresIn: 30 * 24 * 60 * 60,
+      customUserInfoClaims: async ({ user: authenticatedUser }) => {
+        const config = await db.query.userConfig.findFirst({
+          where: eq(userConfig.userId, authenticatedUser.id),
+        });
+        return {
+          "https://serial.tube/theme": {
+            lightHSL: parseHSL(config?.lightHSL),
+            darkHSL: parseHSL(config?.darkHSL),
+          },
+        };
+      },
       allowDynamicClientRegistration: false,
       allowUnauthenticatedClientRegistration: false,
       silenceWarnings: {
