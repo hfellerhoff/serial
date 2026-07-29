@@ -1,5 +1,6 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
+import { parseExtensionRedirectUriList } from "./lib/extension-auth";
 
 const optionalBoolean = z.union([z.boolean(), z.stringbool()]).default(false);
 
@@ -100,14 +101,7 @@ export const env = createEnv({
     SERIAL_EXTENSION_REDIRECT_URIS: z
       .string()
       .optional()
-      .transform((value) =>
-        value
-          ? value
-              .split(",")
-              .map((uri) => uri.trim())
-              .filter(Boolean)
-          : [],
-      ),
+      .transform(parseExtensionRedirectUriList),
     TRUSTED_ORIGINS: z
       .string()
       .optional()

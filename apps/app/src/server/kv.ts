@@ -10,6 +10,7 @@ export interface KVStore {
   get: (key: string) => Promise<string | null>;
   set: (key: string, value: string, ttlSeconds?: number) => Promise<void>;
   setNX: (key: string, value: string, ttlSeconds?: number) => Promise<boolean>;
+  increment: (key: string, ttlSeconds: number) => Promise<number>;
 }
 
 // ── In-memory fallback ──────────────────────────────────────────────────────
@@ -57,6 +58,20 @@ class MemoryKV implements KVStore {
     }
     await this.set(key, value, ttlSeconds);
     return true;
+  }
+
+  increment(key: string, ttlSeconds: number): Promise<number> {
+    const now = Date.now();
+    const existing = this.store.get(key);
+    const isActive = existing && now <= existing.expiresAt;
+    const value = isActive ? Number.parseInt(existing.value, 10) + 1 : 1;
+    const expiresAt = isActive ? existing.expiresAt : now + ttlSeconds * 1000;
+
+    this.store.set(key, { value: String(value), expiresAt });
+    if (expiresAt < this.nextExpiry) {
+      this.nextExpiry = expiresAt;
+    }
+    return Promise.resolve(value);
   }
 
   /** Periodically sweep expired entries so they don't accumulate. */
@@ -111,6 +126,19 @@ async function createKVStore(): Promise<KVStore> {
             : await redis.set(key, value, { nx: true });
         return result !== null;
       },
+      async increment(key, ttlSeconds) {
+        return await redis.eval<string[], number>(
+          `
+            local value = redis.call("INCR", KEYS[1])
+            if value == 1 then
+              redis.call("EXPIRE", KEYS[1], ARGV[1])
+            end
+            return value
+          `,
+          [key],
+          [String(ttlSeconds)],
+        );
+      },
     };
   }
 
@@ -141,6 +169,21 @@ async function createKVStore(): Promise<KVStore> {
         }
         const result = await client.set(key, value, "NX");
         return result === "OK";
+      },
+      async increment(key, ttlSeconds) {
+        const result = await client.eval(
+          `
+            local value = redis.call("INCR", KEYS[1])
+            if value == 1 then
+              redis.call("EXPIRE", KEYS[1], ARGV[1])
+            end
+            return value
+          `,
+          1,
+          key,
+          ttlSeconds,
+        );
+        return Number(result);
       },
     };
   }

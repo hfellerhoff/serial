@@ -1,5 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { getAllowedExtensionRedirectUris } from "./extension-origin";
+import { extensionOAuthClientNeedsUpdate } from "~/lib/extension-auth";
 import { db } from "~/server/db";
 import {
   oauthAccessToken,
@@ -14,44 +15,57 @@ export const SERIAL_EXTENSION_AUTH_SCOPES = [
   "offline_access",
 ] as const;
 
-export async function ensureExtensionOAuthClient(redirectUri: string) {
-  const redirectUris = getAllowedExtensionRedirectUris();
-  if (!redirectUris.includes(redirectUri)) {
-    throw new Error("This extension redirect URL is not registered");
+function managedExtensionOAuthClientValues() {
+  return {
+    name: "Serial browser extension",
+    redirectUris: getAllowedExtensionRedirectUris(),
+    scopes: [...SERIAL_EXTENSION_AUTH_SCOPES],
+    tokenEndpointAuthMethod: "none",
+    grantTypes: ["authorization_code", "refresh_token"],
+    responseTypes: ["code"],
+    public: true,
+    requirePKCE: true,
+    skipConsent: true,
+    enableEndSession: false,
+  };
+}
+
+export async function provisionExtensionOAuthClient() {
+  const expected = managedExtensionOAuthClientValues();
+  const existing = await db.query.oauthClient.findFirst({
+    where: eq(oauthClient.clientId, SERIAL_EXTENSION_CLIENT_ID),
+  });
+
+  if (!existing) {
+    const now = new Date();
+    await db
+      .insert(oauthClient)
+      .values({
+        id: SERIAL_EXTENSION_CLIENT_ID,
+        clientId: SERIAL_EXTENSION_CLIENT_ID,
+        ...expected,
+        disabled: false,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoNothing({ target: oauthClient.clientId });
+    return "created" as const;
   }
 
-  const now = new Date();
+  if (!extensionOAuthClientNeedsUpdate(existing, expected)) {
+    return "unchanged" as const;
+  }
+
   await db
-    .insert(oauthClient)
-    .values({
-      id: SERIAL_EXTENSION_CLIENT_ID,
-      clientId: SERIAL_EXTENSION_CLIENT_ID,
-      name: "Serial browser extension",
-      redirectUris,
-      scopes: [...SERIAL_EXTENSION_AUTH_SCOPES],
-      tokenEndpointAuthMethod: "none",
-      grantTypes: ["authorization_code", "refresh_token"],
-      responseTypes: ["code"],
-      public: true,
-      requirePKCE: true,
-      skipConsent: true,
-      enableEndSession: false,
-      createdAt: now,
-      updatedAt: now,
+    .update(oauthClient)
+    .set({
+      ...expected,
+      // `disabled` is intentionally omitted so an operator can disable the
+      // extension client without a public request or restart undoing it.
+      updatedAt: new Date(),
     })
-    .onConflictDoUpdate({
-      target: oauthClient.clientId,
-      set: {
-        redirectUris,
-        scopes: [...SERIAL_EXTENSION_AUTH_SCOPES],
-        disabled: false,
-        skipConsent: true,
-        enableEndSession: false,
-        public: true,
-        requirePKCE: true,
-        updatedAt: now,
-      },
-    });
+    .where(eq(oauthClient.clientId, SERIAL_EXTENSION_CLIENT_ID));
+  return "updated" as const;
 }
 
 export async function revokeExtensionTokensForSession(sessionId: string) {

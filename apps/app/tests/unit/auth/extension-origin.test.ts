@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { getTrustedExtensionAuthOrigin } from "~/server/auth/extension-origin";
+import {
+  getExtensionPrepareOrigin,
+  getTrustedExtensionAuthOrigin,
+} from "~/server/auth/extension-origin";
 
 const CHROME_ORIGIN = "chrome-extension://abfgpdgoffipbnfjcdoejalehhbegamc";
 
@@ -22,6 +25,11 @@ describe("getTrustedExtensionAuthOrigin", () => {
           "/api/auth/oauth2/token",
           "chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         ),
+      ),
+    ).toBeNull();
+    expect(
+      getTrustedExtensionAuthOrigin(
+        extensionRequest("/api/auth/sign-out", CHROME_ORIGIN),
       ),
     ).toBeNull();
   });
@@ -53,6 +61,30 @@ describe("getTrustedExtensionAuthOrigin", () => {
     expect(
       getTrustedExtensionAuthOrigin(
         extensionRequest("/api/auth/oauth2/token", "not-an-origin"),
+      ),
+    ).toBeNull();
+  });
+
+  it("allows extension origins to prepare authentication", () => {
+    expect(
+      getExtensionPrepareOrigin(
+        extensionRequest("/api/extension-auth/prepare", CHROME_ORIGIN),
+      ),
+    ).toBe(CHROME_ORIGIN);
+    expect(
+      getExtensionPrepareOrigin(
+        extensionRequest(
+          "/api/extension-auth/prepare",
+          "moz-extension://test-install-uuid",
+        ),
+      ),
+    ).toBe("moz-extension://test-install-uuid");
+    expect(
+      getExtensionPrepareOrigin(
+        extensionRequest(
+          "/api/extension-auth/prepare",
+          "https://attacker.example.com",
+        ),
       ),
     ).toBeNull();
   });
