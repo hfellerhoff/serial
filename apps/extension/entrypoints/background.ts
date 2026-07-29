@@ -87,6 +87,8 @@ async function requestToken(
     expires_in?: number;
     error?: string;
     error_description?: string;
+    code?: string;
+    message?: string;
   };
   if (!response.ok || !payload.access_token) {
     const ErrorType =
@@ -94,7 +96,11 @@ async function requestToken(
         ? InvalidSessionError
         : Error;
     throw new ErrorType(
-      payload.error_description ?? payload.error ?? "Serial sign-in failed",
+      payload.error_description ??
+        payload.message ??
+        payload.error ??
+        payload.code ??
+        `Serial sign-in failed (${response.status})`,
     );
   }
   return payload;

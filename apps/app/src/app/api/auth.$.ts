@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "~/server/auth";
 import { isTrustedCorsOrigin } from "~/server/auth/constants";
+import { getTrustedExtensionAuthOrigin } from "~/server/auth/extension-origin";
 
 /**
  * Returns the request's Origin header if it is a trusted cross-origin caller
@@ -9,7 +10,10 @@ import { isTrustedCorsOrigin } from "~/server/auth/constants";
 function getTrustedCorsOrigin(request: Request): string | null {
   const origin = request.headers.get("origin");
   if (!origin) return null;
-  return isTrustedCorsOrigin(origin) ? origin : null;
+  return isTrustedCorsOrigin(origin) ||
+    getTrustedExtensionAuthOrigin(request) === origin
+    ? origin
+    : null;
 }
 
 function withCorsHeaders(response: Response, request: Request): Response {
@@ -49,7 +53,7 @@ export const Route = createFileRoute("/api/auth/$")({
             status: 204,
             headers: {
               "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-              "Access-Control-Allow-Headers": "Content-Type",
+              "Access-Control-Allow-Headers": "Content-Type, Authorization",
               "Access-Control-Max-Age": "86400",
             },
           }),

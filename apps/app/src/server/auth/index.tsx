@@ -51,6 +51,7 @@ import {
   SERIAL_EXTENSION_AUTH_SCOPES,
   SERIAL_EXTENSION_CLIENT_ID,
 } from "~/server/auth/extension";
+import { getTrustedExtensionAuthOrigin } from "~/server/auth/extension-origin";
 
 const SIGNED_IN_REDIRECT_AUTH_PATHS = [
   "/auth",
@@ -223,7 +224,13 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "sqlite",
   }),
-  trustedOrigins: Array.from(TRUSTED_ORIGINS_SET),
+  trustedOrigins: (request) => {
+    const extensionOrigin = getTrustedExtensionAuthOrigin(request);
+    return [
+      ...TRUSTED_ORIGINS_SET,
+      ...(extensionOrigin ? [extensionOrigin] : []),
+    ];
+  },
   ...(env.COOKIE_DOMAIN
     ? {
         advanced: {

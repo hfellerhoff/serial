@@ -1,11 +1,11 @@
 import { and, eq, inArray } from "drizzle-orm";
+import { getAllowedExtensionRedirectUris } from "./extension-origin";
 import { db } from "~/server/db";
 import {
   oauthAccessToken,
   oauthClient,
   oauthRefreshToken,
 } from "~/server/db/schema";
-import { env } from "~/env";
 
 export const SERIAL_EXTENSION_CLIENT_ID = "serial-browser-extension";
 export const SERIAL_EXTENSION_AUTH_SCOPES = [
@@ -13,22 +13,6 @@ export const SERIAL_EXTENSION_AUTH_SCOPES = [
   "profile",
   "offline_access",
 ] as const;
-
-const DEFAULT_EXTENSION_REDIRECT_URIS = [
-  // Chrome: derived from the public manifest key in apps/extension/wxt.config.ts.
-  "https://abfgpdgoffipbnfjcdoejalehhbegamc.chromiumapp.org/serial-auth",
-  // Firefox: SHA-1 of the explicit Gecko ID, extension@serial.tube.
-  "https://316a919b8777a95fa74b9564f4685cbe813b1a1d.extensions.allizom.org/serial-auth",
-];
-
-export function getAllowedExtensionRedirectUris() {
-  return Array.from(
-    new Set([
-      ...DEFAULT_EXTENSION_REDIRECT_URIS,
-      ...(env.SERIAL_EXTENSION_REDIRECT_URIS ?? []),
-    ]),
-  );
-}
 
 export async function ensureExtensionOAuthClient(redirectUri: string) {
   const redirectUris = getAllowedExtensionRedirectUris();
