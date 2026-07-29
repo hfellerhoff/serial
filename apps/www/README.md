@@ -10,6 +10,7 @@ Built with [Astro](https://astro.build) and Tailwind CSS 4.
 - `/pricing` — main-instance pricing
 - `/guides`, `/guides/[slug]` — guide articles (content in `src/content/guides`)
 - `/releases`, `/releases/[slug]` — release notes
+- `/releases/rss.xml` — release notes RSS feed
 - `/sitemap.xml`, `/.well-known/site.standard.publication`
 - `/api/og/{releases,guides}/[slug].png` — generated Open Graph images
 

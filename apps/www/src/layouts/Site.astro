@@ -36,6 +36,7 @@ const umamiSrc = import.meta.env.WWW_UMAMI_SRC;
 
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
 const ogImageUrl = new URL(ogImage, Astro.site).toString();
+const releasesRssUrl = new URL("/releases/rss.xml", Astro.site).toString();
 const publicationUri = getConfiguredPublicationUri(
   STANDARD_SITE_PUBLICATION_URI,
 );
@@ -56,6 +57,12 @@ const publicationUri = getConfiguredPublicationUri(
     <meta name="author" content="Henry Fellerhoff" />
     <meta name="theme-color" content="hsl(20 14.3% 4.1%)" />
     <link rel="canonical" href={canonicalUrl} />
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title="Serial Releases"
+      href={releasesRssUrl}
+    />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content={ogType} />
