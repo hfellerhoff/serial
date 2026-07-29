@@ -525,19 +525,30 @@ function App() {
         </Alert>
       )}
 
-      <Button
-        size="icon md:default"
-        className="mt-auto w-full"
-        disabled={action !== null}
-        onClick={() => void handleSignIn()}
-      >
-        {action === "sign-in" ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <LogIn className="size-4" />
-        )}
-        <span className="pl-1.5 md:pl-0">Continue with Serial</span>
-      </Button>
+      <div className="mt-auto grid gap-2">
+        <Button
+          size="icon md:default"
+          className="w-full"
+          disabled={action !== null}
+          onClick={() => void handleSignIn()}
+        >
+          {action === "sign-in" ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <LogIn className="size-4" />
+          )}
+          <span className="pl-1.5 md:pl-0">Continue with Serial</span>
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          disabled={action !== null}
+          onClick={() => setChoosingInstance(true)}
+        >
+          Choose another instance
+        </Button>
+      </div>
     </main>
   );
 }

@@ -34,6 +34,7 @@ import {
   isPublicSignupEnabled,
 } from "~/lib/constants";
 import {
+  AUTH_BASE_URL_CONFIG,
   isOAuthConfigured,
   TRUSTED_ORIGINS_SET,
 } from "~/server/auth/constants";
@@ -221,7 +222,7 @@ function buildGenericOAuthPlugin() {
 }
 
 export const auth = betterAuth({
-  baseURL: env.PUBLIC_BASE_URL,
+  baseURL: AUTH_BASE_URL_CONFIG,
   database: drizzleAdapter(db, {
     provider: "sqlite",
   }),

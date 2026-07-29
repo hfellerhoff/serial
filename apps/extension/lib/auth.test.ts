@@ -6,6 +6,7 @@ import {
   originPermission,
   parseSerialTheme,
   resolveInitialInstance,
+  validateAuthEndpoints,
 } from "./auth";
 
 describe("normalizeInstanceUrl", () => {
@@ -72,6 +73,44 @@ describe("originPermission", () => {
     expect(originPermission("http://127.0.0.1:3005")).toBe(
       "http://127.0.0.1/*",
     );
+  });
+});
+
+describe("validateAuthEndpoints", () => {
+  const instance = "https://alias.example.com";
+  const redirectUri =
+    "https://abfgpdgoffipbnfjcdoejalehhbegamc.chromiumapp.org/serial-auth";
+  const issuer = `${instance}/api/auth`;
+  const endpoints = {
+    issuer,
+    clientId: "serial-browser-extension",
+    scopes: ["openid", "profile"],
+    authorizationEndpoint: `${issuer}/oauth2/authorize`,
+    tokenEndpoint: `${issuer}/oauth2/token`,
+    revocationEndpoint: `${issuer}/oauth2/revoke`,
+    userInfoEndpoint: `${issuer}/oauth2/userinfo`,
+    redirectUri,
+  };
+
+  it("accepts endpoints on the selected alias", () => {
+    expect(validateAuthEndpoints(`${instance}/`, redirectUri, endpoints)).toBe(
+      endpoints,
+    );
+  });
+
+  it("rejects endpoints on a different origin", () => {
+    expect(() =>
+      validateAuthEndpoints(instance, redirectUri, {
+        ...endpoints,
+        tokenEndpoint: "https://attacker.example.com/api/auth/oauth2/token",
+      }),
+    ).toThrow("unexpected authentication endpoints");
+  });
+
+  it("rejects a redirect other than the browser-provided value", () => {
+    expect(() =>
+      validateAuthEndpoints(instance, "https://example.com/wrong", endpoints),
+    ).toThrow("unexpected authentication endpoints");
   });
 });
 

@@ -1,5 +1,9 @@
 import { defineConfig } from "wxt";
 import tailwindcss from "@tailwindcss/vite";
+import {
+  CHROME_EXTENSION_MANIFEST_KEY,
+  FIREFOX_EXTENSION_ID,
+} from "@serial/extension-identity";
 
 const startUrl = process.env.SERIAL_EXTENSION_START_URL;
 const extensionIcons = {
@@ -19,7 +23,7 @@ export default defineConfig({
   webExt: startUrl ? { startUrls: [startUrl] } : undefined,
   manifest: ({ manifestVersion }) => ({
     name: "Serial",
-    key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvq3bqhiFWK5G3Yi3g200Rg8k9kXUjs4Vkqutz1+Pk5+aKWjWKjnXG+pjG7eUyIq7wspsXHrJQcOV7RDRoWuVT0oTYok7J+kyYDGxZMHc5VS9ZADVKlvhB7HuM8pBE4HvU6dGu4sskAznN8co6XtTx0bZZyX+xp1R5EGncBUtycvc1BB93TRd2G29dLs5Cb/ek3zMk0pqrmNEgrZnLCNu536Oa5ViYJVWEZeg/qa3+rhE+cDux4pU9nRFE63p5TOb+dGmziQk89xKvsmS53P+CZPgzpXXhBnlHFjlC7O3pKn8W4TCxbhnPB7C3H+BzLzf10ZtKZeJri+h7Zsf/tA52QIDAQAB",
+    key: CHROME_EXTENSION_MANIFEST_KEY,
     icons: extensionIcons,
     ...(manifestVersion === 2
       ? { browser_action: { default_icon: extensionIcons } }
@@ -35,10 +39,10 @@ export default defineConfig({
         : undefined,
     browser_specific_settings: {
       gecko: {
-        id: "extension@serial.tube",
-        // Keep this declaration in sync when the extension starts transmitting data.
+        id: FIREFOX_EXTENSION_ID,
+        strict_min_version: "140.0",
         data_collection_permissions: {
-          required: ["none"],
+          required: ["authenticationInfo"],
         },
       },
     },

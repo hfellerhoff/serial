@@ -1,8 +1,9 @@
+export { EXTENSION_AUTH_REDIRECT_PATH as AUTH_REDIRECT_PATH } from "@serial/extension-identity";
+
 export const DEFAULT_SERIAL_INSTANCE = "https://app.serial.tube";
 export const AUTH_STORAGE_KEY = "serial.auth.session";
 export const LAST_INSTANCE_STORAGE_KEY = "serial.auth.last-instance";
 export const SELECTED_INSTANCE_STORAGE_KEY = "serial.auth.selected-instance";
-export const AUTH_REDIRECT_PATH = "serial-auth";
 
 export type SerialUser = {
   id: string;
@@ -45,6 +46,31 @@ export type AuthMessage =
 export type AuthMessageResponse =
   | { ok: true; session: ExtensionAuthSession | null }
   | { ok: false; error: string };
+
+export function validateAuthEndpoints(
+  instance: string,
+  redirectUri: string,
+  endpoints: AuthEndpoints,
+) {
+  const issuer = new URL("/api/auth", `${instance}/`).toString();
+  const expectedEndpoints = {
+    issuer,
+    authorizationEndpoint: `${issuer}/oauth2/authorize`,
+    tokenEndpoint: `${issuer}/oauth2/token`,
+    revocationEndpoint: `${issuer}/oauth2/revoke`,
+    userInfoEndpoint: `${issuer}/oauth2/userinfo`,
+    redirectUri,
+  };
+
+  for (const [key, expected] of Object.entries(expectedEndpoints)) {
+    if (endpoints[key as keyof typeof expectedEndpoints] !== expected) {
+      throw new Error(
+        "The Serial instance returned unexpected authentication endpoints",
+      );
+    }
+  }
+  return endpoints;
+}
 
 export function normalizeInstanceUrl(value: string): string {
   const trimmed = value.trim();

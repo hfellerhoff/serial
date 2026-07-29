@@ -38,7 +38,12 @@ There is no Safari demo command because WXT's development runner does not open
 Safari. Safari-targeted extensions must be built and packaged in a native app
 with Apple's tooling before they can be loaded in Safari.
 
-The Firefox manifest currently declares that the extension transmits no data.
-Update `browser_specific_settings.gecko.data_collection_permissions` in
-`wxt.config.ts` before adding features that send account, browsing, or page
-data outside the browser.
+The Firefox manifest declares `authenticationInfo` because signing in transmits
+account authentication data to the selected Serial server. Firefox 140 or later
+is required so this consent appears in Firefox's built-in installation flow.
+Keep the declaration current if the extension begins transmitting other data.
+
+Before the first Chrome Web Store release, replace the checked-in manifest key
+with the key assigned to the uploaded extension. The identity tests derive the
+Chrome and Firefox redirect URLs from their manifest identities and ensure the
+server allowlist stays in sync.

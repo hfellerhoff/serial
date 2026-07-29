@@ -4,6 +4,7 @@ import {
   LAST_INSTANCE_STORAGE_KEY,
   parseSerialTheme,
   SELECTED_INSTANCE_STORAGE_KEY,
+  validateAuthEndpoints,
 } from "../lib/auth";
 import type {
   AuthEndpoints,
@@ -69,10 +70,7 @@ async function prepareInstance(
       payload.error ?? "This is not a compatible Serial instance",
     );
   }
-  if (payload.issuer !== `${instance}/api/auth`) {
-    throw new Error("The Serial instance returned an unexpected issuer");
-  }
-  return payload;
+  return validateAuthEndpoints(instance, redirectUri, payload);
 }
 
 async function requestToken(

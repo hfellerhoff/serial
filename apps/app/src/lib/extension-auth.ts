@@ -1,10 +1,13 @@
-export const EXTENSION_AUTH_REDIRECT_PATH = "/serial-auth";
+import {
+  EXTENSION_IDENTITY_REDIRECT_URIS,
+  EXTENSION_AUTH_REDIRECT_PATH as IDENTITY_REDIRECT_PATH,
+} from "@serial/extension-identity";
+
+export const EXTENSION_AUTH_REDIRECT_PATH = `/${IDENTITY_REDIRECT_PATH}`;
 
 export const DEFAULT_EXTENSION_REDIRECT_URIS = [
-  // Chrome: derived from the public manifest key in apps/extension/wxt.config.ts.
-  "https://abfgpdgoffipbnfjcdoejalehhbegamc.chromiumapp.org/serial-auth",
-  // Firefox: SHA-1 of the explicit Gecko ID, extension@serial.tube.
-  "https://316a919b8777a95fa74b9564f4685cbe813b1a1d.extensions.allizom.org/serial-auth",
+  EXTENSION_IDENTITY_REDIRECT_URIS.chrome,
+  EXTENSION_IDENTITY_REDIRECT_URIS.firefox,
 ] as const;
 
 const CHROMIUM_REDIRECT_HOST = /^[a-p]{32}\.chromiumapp\.org$/;

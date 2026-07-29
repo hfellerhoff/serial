@@ -80,6 +80,7 @@ WORKDIR /usr/src/app/apps/app
 COPY --from=build-base /usr/src/app/apps/app/src/server/db ./src/server/db
 COPY --from=build-base /usr/src/app/apps/app/src/env.js ./src/env.js
 COPY --from=build-base /usr/src/app/apps/app/src/lib/extension-auth.ts ./src/lib/extension-auth.ts
+COPY --from=build-base /usr/src/app/packages/extension-identity /usr/src/app/packages/extension-identity
 
 # Catch missing transitive imports in the migration runtime before deployment.
 RUN PUBLIC_BASE_URL=http://localhost \

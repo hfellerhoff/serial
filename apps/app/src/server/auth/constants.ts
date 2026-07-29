@@ -1,10 +1,15 @@
 import { env } from "~/env";
+import { createAuthBaseUrlConfig } from "~/server/auth/base-url";
 
 const BASE_ORIGIN = new URL(env.PUBLIC_BASE_URL).origin;
 export const TRUSTED_ORIGINS_SET = new Set([
   BASE_ORIGIN,
   ...env.TRUSTED_ORIGINS.map((o) => new URL(o).origin),
 ]);
+export const AUTH_BASE_URL_CONFIG = createAuthBaseUrlConfig(
+  BASE_ORIGIN,
+  TRUSTED_ORIGINS_SET,
+);
 
 /**
  * Whether an origin may make credentialed CORS requests to the auth API.

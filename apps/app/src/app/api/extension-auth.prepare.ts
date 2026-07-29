@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { RateLimitResult } from "~/server/rate-limit";
-import { env } from "~/env";
 import {
   SERIAL_EXTENSION_AUTH_SCOPES,
   SERIAL_EXTENSION_CLIENT_ID,
 } from "~/server/auth/extension";
+import { getAuthIssuer } from "~/server/auth/base-url";
+import { AUTH_BASE_URL_CONFIG } from "~/server/auth/constants";
 import {
   getAllowedExtensionRedirectUris,
   getExtensionPrepareOrigin,
@@ -192,7 +193,7 @@ export const Route = createFileRoute("/api/extension-auth/prepare")({
           );
         }
 
-        const issuer = `${env.PUBLIC_BASE_URL}/api/auth`;
+        const issuer = getAuthIssuer(request, AUTH_BASE_URL_CONFIG);
         return jsonResponse(
           request,
           {
