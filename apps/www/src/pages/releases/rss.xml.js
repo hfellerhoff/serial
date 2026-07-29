@@ -22,6 +22,8 @@ function resolveAttribute(site, attribute) {
 export async function GET(context) {
   const container = await AstroContainer.create();
   const releases = await getAllReleases();
+  const releasesUrl = new URL("/releases/", context.site).toString();
+  const iconUrl = new URL("/icon-256.png", context.site).toString();
 
   const items = await Promise.all(
     releases.map(async (release) => {
@@ -47,6 +49,8 @@ export async function GET(context) {
             a: resolveAttribute(context.site, "href"),
             img: resolveAttribute(context.site, "src"),
           },
+          exclusiveFilter: (frame) =>
+            frame.tag === "a" && !frame.text.trim(),
         }),
       };
     }),
@@ -55,8 +59,15 @@ export async function GET(context) {
   return rss({
     title: "Serial Releases",
     description: "Release notes and product updates from Serial.",
-    site: new URL("/releases/", context.site),
+    site: releasesUrl,
     items,
-    customData: "<language>en-us</language>",
+    customData: `
+      <language>en-us</language>
+      <image>
+        <url>${iconUrl}</url>
+        <title>Serial Releases</title>
+        <link>${releasesUrl}</link>
+      </image>
+    `,
   });
 }
