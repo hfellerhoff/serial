@@ -15,7 +15,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@serial/ui";
-import { Check, Info, Loader2, LogIn, LogOut, Server } from "lucide-react";
+import { ArrowRight, Check, Info, Loader2, LogOut, Server } from "lucide-react";
 import {
   DEFAULT_SERIAL_INSTANCE,
   getThemeCssVariables,
@@ -528,16 +528,16 @@ function App() {
       <div className="mt-auto grid gap-2">
         <Button
           size="icon md:default"
-          className="w-full"
+          className="relative w-full"
           disabled={action !== null}
           onClick={() => void handleSignIn()}
         >
+          <span>Sign in to instance</span>
           {action === "sign-in" ? (
-            <Loader2 className="size-4 animate-spin" />
+            <Loader2 className="absolute right-4 size-4 animate-spin" />
           ) : (
-            <LogIn className="size-4" />
+            <ArrowRight className="absolute right-4 size-4" />
           )}
-          <span className="pl-1.5 md:pl-0">Continue with Serial</span>
         </Button>
         <Button
           type="button"
