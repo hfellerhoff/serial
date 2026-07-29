@@ -2,6 +2,13 @@ import { defineConfig } from "wxt";
 import tailwindcss from "@tailwindcss/vite";
 
 const startUrl = process.env.SERIAL_EXTENSION_START_URL;
+const extensionIcons = {
+  16: "icon/16.png",
+  32: "icon/32.png",
+  48: "icon/48.png",
+  96: "icon/96.png",
+  128: "icon/128.png",
+};
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
@@ -13,6 +20,10 @@ export default defineConfig({
   manifest: ({ manifestVersion }) => ({
     name: "Serial",
     key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvq3bqhiFWK5G3Yi3g200Rg8k9kXUjs4Vkqutz1+Pk5+aKWjWKjnXG+pjG7eUyIq7wspsXHrJQcOV7RDRoWuVT0oTYok7J+kyYDGxZMHc5VS9ZADVKlvhB7HuM8pBE4HvU6dGu4sskAznN8co6XtTx0bZZyX+xp1R5EGncBUtycvc1BB93TRd2G29dLs5Cb/ek3zMk0pqrmNEgrZnLCNu536Oa5ViYJVWEZeg/qa3+rhE+cDux4pU9nRFE63p5TOb+dGmziQk89xKvsmS53P+CZPgzpXXhBnlHFjlC7O3pKn8W4TCxbhnPB7C3H+BzLzf10ZtKZeJri+h7Zsf/tA52QIDAQAB",
+    icons: extensionIcons,
+    ...(manifestVersion === 2
+      ? { browser_action: { default_icon: extensionIcons } }
+      : { action: { default_icon: extensionIcons } }),
     permissions: ["identity", "storage", "activeTab", "scripting"],
     optional_permissions:
       manifestVersion === 2
