@@ -1,0 +1,148 @@
+@import "tailwindcss";
+@import "@fontsource-variable/outfit";
+
+@custom-variant dark (&:is(.dark *));
+
+@source "./**/*.{ts,tsx}";
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+    --light-hue: 60;
+    --light-sat: 10%;
+    --light-lgt: 100%;
+    --dark-hue: 60;
+    --dark-sat: 10%;
+    --dark-lgt: 15%;
+
+    --bg-hue: var(--light-hue);
+    --bg-sat: var(--light-sat);
+    --bg-lgt: var(--light-lgt);
+    --fg-hue: calc(var(--bg-hue) - 40);
+    --fg-sat: calc(var(--bg-sat) + 5%);
+    --fg-lgt: calc(var(--bg-lgt) - 85%);
+    --pr-hue: calc(var(--bg-hue) + 8);
+    --pr-sat: calc(var(--bg-sat) + 5%);
+    --pr-lgt: var(--bg-lgt);
+    --sc-hue: calc(var(--bg-hue) + 8);
+    --sc-sat: calc(var(--bg-sat) * 0.9);
+    --sc-lgt: calc(var(--bg-lgt) - 7.5%);
+    --mf-hue: calc(var(--bg-hue) - 8);
+    --mf-sat: calc(var(--bg-sat) - 10%);
+    --mf-lgt: calc(var(--bg-lgt) - 50%);
+    --rg-lgt: calc(var(--bg-lgt) - 70%);
+    --ds-hue: 0;
+    --ds-sat: 60%;
+    --ds-lgt: 30%;
+
+    --background: var(--bg-hue) var(--bg-sat) var(--bg-lgt);
+    --foreground: var(--fg-hue) var(--fg-sat) var(--fg-lgt);
+    --card: var(--background);
+    --card-foreground: var(--foreground);
+    --popover: var(--background);
+    --popover-foreground: var(--foreground);
+    --primary: var(--foreground);
+    --primary-foreground: var(--pr-hue) var(--pr-sat) var(--pr-lgt);
+    --secondary: var(--sc-hue) var(--sc-sat) var(--sc-lgt);
+    --secondary-foreground: var(--foreground);
+    --muted: var(--secondary);
+    --muted-foreground: var(--mf-hue) var(--mf-sat) var(--mf-lgt);
+    --accent: var(--secondary);
+    --accent-foreground: var(--foreground);
+    --destructive: var(--ds-hue) var(--ds-sat) var(--ds-lgt);
+    --destructive-foreground: var(--background);
+    --border: var(--secondary);
+    --input: var(--secondary);
+    --ring: var(--mf-hue) var(--mf-sat) var(--rg-lgt);
+    --font-sans: "Outfit Variable", sans-serif;
+  }
+
+  .dark {
+    --bg-hue: var(--dark-hue);
+    --bg-sat: var(--dark-sat);
+    --bg-lgt: var(--dark-lgt);
+    --fg-hue: calc(var(--bg-hue) + 40);
+    --fg-sat: calc(var(--bg-sat) - 5%);
+    --fg-lgt: calc(var(--bg-lgt) + 85%);
+    --pr-hue: calc(var(--bg-hue) - 8);
+    --pr-sat: calc(var(--bg-sat) - 5%);
+    --pr-lgt: var(--bg-lgt);
+    --sc-hue: calc(var(--bg-hue) - 8);
+    --sc-sat: calc(var(--bg-sat) - 10%);
+    --sc-lgt: max(calc(var(--bg-lgt) * 1.5), calc(var(--bg-lgt) + 10%));
+    --mf-hue: calc(var(--bg-hue) + 8);
+    --mf-sat: calc(var(--bg-sat) - 10%);
+    --mf-lgt: calc(var(--bg-lgt) + 50%);
+    --rg-lgt: calc(var(--bg-lgt) + 70%);
+    --destructive-foreground: var(--foreground);
+  }
+
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-border, currentColor);
+  }
+
+  body {
+    @apply bg-background text-foreground m-0 font-sans antialiased;
+  }
+}
+
+@theme inline {
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --animate-in: enter 0.15s ease-out;
+  --animate-out: exit 0.1s ease-in forwards;
+
+  @keyframes enter {
+    from {
+      opacity: var(--tw-enter-opacity, 1);
+      transform: scale(var(--tw-enter-scale, 1));
+    }
+  }
+
+  @keyframes exit {
+    to {
+      opacity: var(--tw-exit-opacity, 1);
+      transform: scale(var(--tw-exit-scale, 1));
+    }
+  }
+}
+
+@utility fade-in-* {
+  --tw-enter-opacity: calc(--value(integer) / 100);
+}
+
+@utility fade-out-* {
+  --tw-exit-opacity: calc(--value(integer) / 100);
+}
+
+@utility zoom-in-* {
+  --tw-enter-scale: calc(--value(integer) / 100);
+}
+
+@utility zoom-out-* {
+  --tw-exit-scale: calc(--value(integer) / 100);
+}

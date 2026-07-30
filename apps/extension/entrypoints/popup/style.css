@@ -1,0 +1,31 @@
+@import "@serial/ui/styles.css";
+
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body,
+#root {
+  width: 380px;
+  height: 380px;
+}
+
+body {
+  background: transparent;
+  margin: 0;
+  overflow: hidden;
+}
+
+#root {
+  background: hsl(var(--background));
+  border-radius: var(--radius);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}

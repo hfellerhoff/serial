@@ -45,6 +45,7 @@ export const Route = createRootRoute({
         { title: title },
         { name: "description", content: description },
         { name: "application-name", content: title },
+        { name: "serial-instance", content: "1" },
         { name: "mobile-web-app-capable", content: "yes" },
         { name: "apple-mobile-web-app-capable", content: "yes" },
         { name: "apple-mobile-web-app-title", content: title },

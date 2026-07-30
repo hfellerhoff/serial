@@ -8,6 +8,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 import { AuthHeader } from "~/components/auth/AuthHeader";
 import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";
@@ -25,15 +26,27 @@ const ERROR_MESSAGES = {
   INVALID_LOGIN: "Invalid email or password",
 };
 
+const signInSearchSchema = z.object({
+  callbackURL: z
+    .string()
+    .refine((value) => value.startsWith("/auth/connect-extension?"))
+    .optional(),
+});
+
 export const Route = createFileRoute("/auth/sign-in")({
   component: SignIn,
-  loader: async () => {
+  validateSearch: signInSearchSchema,
+  loaderDeps: ({ search }) => ({ callbackURL: search.callbackURL }),
+  loader: async ({ deps }) => {
     const [isForgotPasswordEnabled, authConfig] = await Promise.all([
       fetchIsForgotPasswordEnabled(),
       orpcRouterClient.admin.getSigninConfig(),
     ]);
     if (authConfig.isFirstUser) {
-      throw redirect({ to: "/auth/sign-up" });
+      throw redirect({
+        to: "/auth/sign-up",
+        search: { callbackURL: deps.callbackURL },
+      });
     }
     return { isForgotPasswordEnabled, authConfig };
   },
@@ -41,6 +54,8 @@ export const Route = createFileRoute("/auth/sign-in")({
 
 function SignIn() {
   const { isForgotPasswordEnabled, authConfig } = Route.useLoaderData();
+  const { callbackURL } = Route.useSearch();
+  const signedInDestination = callbackURL ?? AUTH_SIGNED_IN_URL;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -109,6 +124,7 @@ function SignIn() {
                     {
                       email,
                       password,
+                      callbackURL: signedInDestination,
                     },
                     {
                       onRequest: () => {
@@ -117,11 +133,9 @@ function SignIn() {
                       onResponse: () => {
                         setLoading(false);
                       },
-                      onSuccess: () => {
-                        void router.navigate({
-                          to: AUTH_SIGNED_IN_URL,
-                          reloadDocument: true,
-                        });
+                      onSuccess: (ctx) => {
+                        if (ctx.data?.redirect) return;
+                        window.location.assign(signedInDestination);
                       },
                       onError: async (ctx) => {
                         const errorMessage = ctx.error.message;
@@ -174,7 +188,7 @@ function SignIn() {
                 setLoading(true);
                 await authClient.signIn.oauth2({
                   providerId: authConfig.oauthProviderId,
-                  callbackURL: AUTH_SIGNED_IN_URL,
+                  callbackURL: signedInDestination,
                 });
               }}
             >
@@ -190,6 +204,7 @@ function SignIn() {
             <Link
               className="block text-center text-sm underline"
               to="/auth/sign-up"
+              search={{ callbackURL }}
             >
               Need an account? Sign up
             </Link>

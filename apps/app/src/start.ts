@@ -3,7 +3,11 @@ import {
   sentryGlobalFunctionMiddleware,
   sentryGlobalRequestMiddleware,
 } from "@sentry/tanstackstart-react";
-import { createStart } from "@tanstack/react-start";
+import { createCsrfMiddleware, createStart } from "@tanstack/react-start";
+
+const csrfMiddleware = createCsrfMiddleware({
+  filter: (context) => context.handlerType === "serverFn",
+});
 
 export const startInstance = createStart(() => {
   const dsn = process.env.SENTRY_DSN_BACKEND;
@@ -18,7 +22,10 @@ export const startInstance = createStart(() => {
   }
 
   return {
-    requestMiddleware: dsn ? [sentryGlobalRequestMiddleware] : [],
+    requestMiddleware: [
+      csrfMiddleware,
+      ...(dsn ? [sentryGlobalRequestMiddleware] : []),
+    ],
     functionMiddleware: dsn ? [sentryGlobalFunctionMiddleware] : [],
   };
 });

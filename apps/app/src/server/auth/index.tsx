@@ -67,7 +67,7 @@ export const authMiddleware = createMiddleware().server(
         ) {
           throw redirect({ to: "/api/demo/provision" });
         }
-      } else if (pathname.startsWith("/auth/")) {
+      } else if (SIGNED_IN_REDIRECT_AUTH_PATHS.includes(pathname)) {
         throw redirect({ to: "/" });
       }
     }
