@@ -1,6 +1,6 @@
 "use client";
 
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -13,10 +13,12 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { authClient, signUp } from "~/lib/auth-client";
 import { AUTH_SIGNED_IN_URL } from "~/lib/auth/constants";
+import { extensionConnectCallbackSchema } from "~/lib/extension-auth";
 import { orpcRouterClient } from "~/lib/orpc";
 
 const signUpSearchSchema = z.object({
   token: z.string().optional(),
+  callbackURL: extensionConnectCallbackSchema.optional(),
 });
 
 export const Route = createFileRoute("/auth/sign-up")({
@@ -32,9 +34,9 @@ function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const { token } = Route.useSearch();
+  const { token, callbackURL } = Route.useSearch();
+  const signedInDestination = callbackURL ?? AUTH_SIGNED_IN_URL;
 
   const signupStatus = Route.useLoaderData();
   const signupsEnabled = signupStatus.enabled === true;
@@ -52,7 +54,7 @@ function SignUp() {
             Sign ups are currently disabled.
           </p>
           {!signupStatus.isFirstUser && (
-            <Link to="/auth/sign-in">
+            <Link to="/auth/sign-in" search={{ callbackURL }}>
               <Button variant="outline">Go to Sign In</Button>
             </Link>
           )}
@@ -145,7 +147,7 @@ function SignUp() {
                     email,
                     password,
                     name: firstName,
-                    callbackURL: AUTH_SIGNED_IN_URL,
+                    callbackURL: signedInDestination,
                     ...(token ? { invitationToken: token } : {}),
                     fetchOptions: {
                       onResponse: () => {
@@ -158,10 +160,7 @@ function SignUp() {
                         toast.error(ctx.error.message);
                       },
                       onSuccess: () => {
-                        void router.navigate({
-                          to: AUTH_SIGNED_IN_URL,
-                          reloadDocument: true,
-                        });
+                        window.location.assign(signedInDestination);
                       },
                     },
                   });
@@ -196,7 +195,7 @@ function SignUp() {
                 setLoading(true);
                 await authClient.signIn.oauth2({
                   providerId: signupStatus.oauthProviderId,
-                  callbackURL: AUTH_SIGNED_IN_URL,
+                  callbackURL: signedInDestination,
                 });
               }}
             >
@@ -212,6 +211,7 @@ function SignUp() {
             <Link
               className="block text-center text-sm underline"
               to="/auth/sign-in"
+              search={{ callbackURL }}
             >
               Have an account? Sign in
             </Link>

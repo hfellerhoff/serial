@@ -18,6 +18,7 @@ import { Route as AuthVerifyEmailRouteImport } from './app/auth.verify-email'
 import { Route as AuthSignUpRouteImport } from './app/auth.sign-up'
 import { Route as AuthSignInRouteImport } from './app/auth.sign-in'
 import { Route as AuthResetRouteImport } from './app/auth.reset'
+import { Route as AuthConnectExtensionRouteImport } from './app/auth.connect-extension'
 import { Route as ApiHealthRouteImport } from './app/api/health'
 import { Route as AppViewsRouteImport } from './app/_app.views'
 import { Route as AppTagsRouteImport } from './app/_app.tags'
@@ -26,6 +27,7 @@ import { Route as AppFeedsRouteImport } from './app/_app.feeds'
 import { Route as AppDebugRouteImport } from './app/_app.debug'
 import { Route as AppAdminIndexRouteImport } from './app/_app.admin.index'
 import { Route as ApiRpcSplatRouteImport } from './app/api/rpc.$'
+import { Route as ApiExtensionAuthSplatRouteImport } from './app/api/extension-auth.$'
 import { Route as ApiDemoProvisionRouteImport } from './app/api.demo.provision'
 import { Route as ApiAuthSplatRouteImport } from './app/api/auth.$'
 import { Route as AppWatchIdRouteImport } from './app/_app.watch.$id'
@@ -81,6 +83,11 @@ const AuthResetRoute = AuthResetRouteImport.update({
   path: '/reset',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthConnectExtensionRoute = AuthConnectExtensionRouteImport.update({
+  id: '/connect-extension',
+  path: '/connect-extension',
+  getParentRoute: () => AuthRoute,
+} as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
@@ -119,6 +126,11 @@ const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
 const ApiRpcSplatRoute = ApiRpcSplatRouteImport.update({
   id: '/api/rpc/$',
   path: '/api/rpc/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiExtensionAuthSplatRoute = ApiExtensionAuthSplatRouteImport.update({
+  id: '/api/extension-auth/$',
+  path: '/api/extension-auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiDemoProvisionRoute = ApiDemoProvisionRouteImport.update({
@@ -183,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/tags': typeof AppTagsRoute
   '/views': typeof AppViewsRoute
   '/api/health': typeof ApiHealthRoute
+  '/auth/connect-extension': typeof AuthConnectExtensionRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
@@ -196,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/watch/$id': typeof AppWatchIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/demo/provision': typeof ApiDemoProvisionRoute
+  '/api/extension-auth/$': typeof ApiExtensionAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/admin/': typeof AppAdminIndexRoute
   '/admin/user/$id': typeof AppAdminUserIdRoute
@@ -210,6 +224,7 @@ export interface FileRoutesByTo {
   '/tags': typeof AppTagsRoute
   '/views': typeof AppViewsRoute
   '/api/health': typeof ApiHealthRoute
+  '/auth/connect-extension': typeof AuthConnectExtensionRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
@@ -224,6 +239,7 @@ export interface FileRoutesByTo {
   '/watch/$id': typeof AppWatchIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/demo/provision': typeof ApiDemoProvisionRoute
+  '/api/extension-auth/$': typeof ApiExtensionAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/admin': typeof AppAdminIndexRoute
   '/admin/user/$id': typeof AppAdminUserIdRoute
@@ -240,6 +256,7 @@ export interface FileRoutesById {
   '/_app/tags': typeof AppTagsRoute
   '/_app/views': typeof AppViewsRoute
   '/api/health': typeof ApiHealthRoute
+  '/auth/connect-extension': typeof AuthConnectExtensionRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
@@ -254,6 +271,7 @@ export interface FileRoutesById {
   '/_app/watch/$id': typeof AppWatchIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/demo/provision': typeof ApiDemoProvisionRoute
+  '/api/extension-auth/$': typeof ApiExtensionAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/admin/user/$id': typeof AppAdminUserIdRoute
@@ -271,6 +289,7 @@ export interface FileRouteTypes {
     | '/tags'
     | '/views'
     | '/api/health'
+    | '/auth/connect-extension'
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
@@ -284,6 +303,7 @@ export interface FileRouteTypes {
     | '/watch/$id'
     | '/api/auth/$'
     | '/api/demo/provision'
+    | '/api/extension-auth/$'
     | '/api/rpc/$'
     | '/admin/'
     | '/admin/user/$id'
@@ -298,6 +318,7 @@ export interface FileRouteTypes {
     | '/tags'
     | '/views'
     | '/api/health'
+    | '/auth/connect-extension'
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
@@ -312,6 +333,7 @@ export interface FileRouteTypes {
     | '/watch/$id'
     | '/api/auth/$'
     | '/api/demo/provision'
+    | '/api/extension-auth/$'
     | '/api/rpc/$'
     | '/admin'
     | '/admin/user/$id'
@@ -327,6 +349,7 @@ export interface FileRouteTypes {
     | '/_app/tags'
     | '/_app/views'
     | '/api/health'
+    | '/auth/connect-extension'
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
@@ -341,6 +364,7 @@ export interface FileRouteTypes {
     | '/_app/watch/$id'
     | '/api/auth/$'
     | '/api/demo/provision'
+    | '/api/extension-auth/$'
     | '/api/rpc/$'
     | '/_app/admin/'
     | '/_app/admin/user/$id'
@@ -354,6 +378,7 @@ export interface RootRouteChildren {
   ApiHealthRoute: typeof ApiHealthRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiDemoProvisionRoute: typeof ApiDemoProvisionRoute
+  ApiExtensionAuthSplatRoute: typeof ApiExtensionAuthSplatRoute
   ApiRpcSplatRoute: typeof ApiRpcSplatRoute
 }
 
@@ -422,6 +447,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthResetRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/auth/connect-extension': {
+      id: '/auth/connect-extension'
+      path: '/connect-extension'
+      fullPath: '/auth/connect-extension'
+      preLoaderRoute: typeof AuthConnectExtensionRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/api/health': {
       id: '/api/health'
       path: '/api/health'
@@ -476,6 +508,13 @@ declare module '@tanstack/react-router' {
       path: '/api/rpc/$'
       fullPath: '/api/rpc/$'
       preLoaderRoute: typeof ApiRpcSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/extension-auth/$': {
+      id: '/api/extension-auth/$'
+      path: '/api/extension-auth/$'
+      fullPath: '/api/extension-auth/$'
+      preLoaderRoute: typeof ApiExtensionAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/demo/provision': {
@@ -590,6 +629,7 @@ const AppRouteChildren: AppRouteChildren = {
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface AuthRouteChildren {
+  AuthConnectExtensionRoute: typeof AuthConnectExtensionRoute
   AuthResetRoute: typeof AuthResetRoute
   AuthSignInRoute: typeof AuthSignInRoute
   AuthSignUpRoute: typeof AuthSignUpRoute
@@ -597,6 +637,7 @@ interface AuthRouteChildren {
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
+  AuthConnectExtensionRoute: AuthConnectExtensionRoute,
   AuthResetRoute: AuthResetRoute,
   AuthSignInRoute: AuthSignInRoute,
   AuthSignUpRoute: AuthSignUpRoute,
@@ -613,6 +654,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHealthRoute: ApiHealthRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiDemoProvisionRoute: ApiDemoProvisionRoute,
+  ApiExtensionAuthSplatRoute: ApiExtensionAuthSplatRoute,
   ApiRpcSplatRoute: ApiRpcSplatRoute,
 }
 export const routeTree = rootRouteImport

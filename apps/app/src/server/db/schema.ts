@@ -117,9 +117,31 @@ export const verification = sqliteTable("verification", {
   updatedAt: integer("updated_at", { mode: "timestamp" }),
 });
 
+export const extensionSession = sqliteTable(
+  "extension_session",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    tokenHash: text("token_hash").notNull().unique(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .$default(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("extension_session_user_id_idx").on(table.userId),
+    index("extension_session_expires_at_idx").on(table.expiresAt),
+  ],
+);
+
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
+  extensionSessions: many(extensionSession),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -128,6 +150,16 @@ export const sessionRelations = relations(session, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+export const extensionSessionRelations = relations(
+  extensionSession,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [extensionSession.userId],
+      references: [user.id],
+    }),
+  }),
+);
 
 export const accountRelations = relations(account, ({ one }) => ({
   user: one(user, {

@@ -4,19 +4,29 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 import { AuthHeader } from "~/components/auth/AuthHeader";
 import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { authClient, useSession } from "~/lib/auth-client";
-import { AUTH_SIGNED_IN_URL } from "~/lib/auth/constants";
+import {
+  extensionConnectCallbackSchema,
+  getPostVerificationDestination,
+} from "~/lib/extension-auth";
 import { orpc } from "~/lib/orpc";
+
+const verifyEmailSearchSchema = z.object({
+  callbackURL: extensionConnectCallbackSchema.optional(),
+});
 
 export const Route = createFileRoute("/auth/verify-email")({
   component: VerifyEmail,
+  validateSearch: verifyEmailSearchSchema,
 });
 
 function VerifyEmail() {
+  const { callbackURL } = Route.useSearch();
   const { data: session } = useSession();
   const [otp, setOtp] = useState("");
   const [verifying, setVerifying] = useState(false);
@@ -76,7 +86,7 @@ function VerifyEmail() {
     }
 
     toast.success("Email verified!");
-    window.location.assign(AUTH_SIGNED_IN_URL);
+    window.location.assign(getPostVerificationDestination(callbackURL));
   }
 
   const inputRef = useCallback((node: HTMLInputElement | null) => {

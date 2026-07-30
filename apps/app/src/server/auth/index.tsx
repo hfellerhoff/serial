@@ -45,6 +45,7 @@ import { setOtpCooldown } from "~/server/otp";
 import { captureException, logError, logMessage } from "~/server/logger";
 import { env } from "~/env";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
+import { getExtensionConnectCallbackFromRequestUrl } from "~/lib/extension-auth";
 
 const SIGNED_IN_REDIRECT_AUTH_PATHS = [
   "/auth",
@@ -53,8 +54,8 @@ const SIGNED_IN_REDIRECT_AUTH_PATHS = [
 ];
 
 export const authMiddleware = createMiddleware().server(
-  async ({ pathname, next }) => {
-    const headers = getRequestHeaders() as Headers;
+  async ({ pathname, request, next }) => {
+    const headers = request.headers;
     const session = await auth.api.getSession({ headers });
 
     // Demo mode: auto-provision unauthenticated users and keep authed users
@@ -67,7 +68,7 @@ export const authMiddleware = createMiddleware().server(
         ) {
           throw redirect({ to: "/api/demo/provision" });
         }
-      } else if (pathname.startsWith("/auth/")) {
+      } else if (SIGNED_IN_REDIRECT_AUTH_PATHS.includes(pathname)) {
         throw redirect({ to: "/" });
       }
     }
@@ -86,9 +87,8 @@ export const authMiddleware = createMiddleware().server(
       }
     }
 
-    // Redirect unverified users to the verification page.
-    // Exempt /api/auth/* (sign-out, OTP verification) and /auth/* (other auth
-    // pages like sign-in) so the user can still sign out or complete flows.
+    // Redirect unverified users to the verification page. Preserve a valid
+    // extension connection callback so verification can resume that flow.
     if (
       IS_EMAIL_ENABLED &&
       session &&
@@ -96,7 +96,13 @@ export const authMiddleware = createMiddleware().server(
       pathname !== "/auth/verify-email" &&
       !pathname.startsWith("/api/auth/")
     ) {
-      throw redirect({ to: "/auth/verify-email" });
+      const callbackURL = getExtensionConnectCallbackFromRequestUrl(
+        request.url,
+      );
+      throw redirect({
+        to: "/auth/verify-email",
+        search: { callbackURL: callbackURL ?? undefined },
+      });
     }
 
     return await next();

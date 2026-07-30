@@ -330,6 +330,13 @@
       "when": 1779131252595,
       "tag": "0046_small_santa_claus",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "6",
+      "when": 1785374366024,
+      "tag": "0047_odd_vivisector",
+      "breakpoints": true
     }
   ]
 }

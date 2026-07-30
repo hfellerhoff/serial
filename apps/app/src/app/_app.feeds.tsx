@@ -1,6 +1,7 @@
 "use client";
 
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ItemGroup } from "@serial/ui";
 import { ImportIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -17,7 +18,6 @@ import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { ChipCombobox } from "~/components/ui/chip-combobox";
 import { Input } from "~/components/ui/input";
-import { ItemGroup } from "~/components/ui/item";
 import { Progress } from "~/components/ui/progress";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { Switch } from "~/components/ui/switch";
