@@ -10,15 +10,14 @@ import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { authClient, useSession } from "~/lib/auth-client";
-import { AUTH_SIGNED_IN_URL } from "~/lib/auth/constants";
-import { parseExtensionConnectCallback } from "~/lib/extension-auth";
+import {
+  extensionConnectCallbackSchema,
+  getPostVerificationDestination,
+} from "~/lib/extension-auth";
 import { orpc } from "~/lib/orpc";
 
 const verifyEmailSearchSchema = z.object({
-  callbackURL: z
-    .string()
-    .refine((value) => parseExtensionConnectCallback(value) !== null)
-    .optional(),
+  callbackURL: extensionConnectCallbackSchema.optional(),
 });
 
 export const Route = createFileRoute("/auth/verify-email")({
@@ -87,7 +86,7 @@ function VerifyEmail() {
     }
 
     toast.success("Email verified!");
-    window.location.assign(callbackURL ?? AUTH_SIGNED_IN_URL);
+    window.location.assign(getPostVerificationDestination(callbackURL));
   }
 
   const inputRef = useCallback((node: HTMLInputElement | null) => {

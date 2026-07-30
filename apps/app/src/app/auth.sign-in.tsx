@@ -19,6 +19,7 @@ import {
   AUTH_RESET_PASSWORD_URL,
   AUTH_SIGNED_IN_URL,
 } from "~/lib/auth/constants";
+import { extensionConnectCallbackSchema } from "~/lib/extension-auth";
 import { orpc, orpcRouterClient } from "~/lib/orpc";
 import { fetchIsForgotPasswordEnabled } from "~/server/auth/endpoints";
 
@@ -27,10 +28,7 @@ const ERROR_MESSAGES = {
 };
 
 const signInSearchSchema = z.object({
-  callbackURL: z
-    .string()
-    .refine((value) => value.startsWith("/auth/connect-extension?"))
-    .optional(),
+  callbackURL: extensionConnectCallbackSchema.optional(),
 });
 
 export const Route = createFileRoute("/auth/sign-in")({
@@ -100,6 +98,7 @@ function SignIn() {
                       to={AUTH_RESET_PASSWORD_URL}
                       search={{
                         email,
+                        callbackURL,
                       }}
                       className="ml-auto inline-block text-sm underline"
                     >
@@ -147,7 +146,8 @@ function SignIn() {
 
                           if (isSuccessful) {
                             void router.navigate({
-                              to: `${AUTH_RESET_PASSWORD_URL}?email=${encodeURIComponent(email)}`,
+                              to: AUTH_RESET_PASSWORD_URL,
+                              search: { email, callbackURL },
                             });
                           }
                           return;

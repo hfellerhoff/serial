@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_EXTENSION_REDIRECT_URIS,
   getExtensionConnectCallbackFromRequestUrl,
+  getPostVerificationDestination,
   parseExtensionConnectCallback,
   parseExtensionRedirectUri,
   parseExtensionRedirectUriList,
@@ -52,6 +53,11 @@ describe("Serial extension connection callbacks", () => {
         `https://serial.example.com${callback}`,
       ),
     ).toBe(callback);
+    expect(getPostVerificationDestination(callback)).toBe(callback);
+  });
+
+  it("uses the normal signed-in destination without a callback", () => {
+    expect(getPostVerificationDestination(undefined)).toBe("/");
   });
 
   it.each([

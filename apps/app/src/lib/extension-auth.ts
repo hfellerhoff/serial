@@ -49,6 +49,18 @@ export function parseExtensionConnectCallback(value: string) {
   }
 }
 
+export const extensionConnectCallbackSchema = z
+  .string()
+  .refine((value) => parseExtensionConnectCallback(value) !== null);
+
+export function getPostVerificationDestination(
+  callbackURL: string | undefined,
+) {
+  return callbackURL
+    ? (parseExtensionConnectCallback(callbackURL) ?? "/")
+    : "/";
+}
+
 export function getExtensionConnectCallbackFromRequestUrl(requestUrl: string) {
   try {
     const request = new URL(requestUrl);

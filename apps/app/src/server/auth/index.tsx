@@ -5,7 +5,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { createMiddleware } from "@tanstack/react-start";
-import { getRequest, getRequestHeaders } from "@tanstack/react-start/server";
+import { getRequestHeaders } from "@tanstack/react-start/server";
 import { redirect } from "@tanstack/react-router";
 import { asc, count, eq } from "drizzle-orm";
 import { checkout, polar, portal, webhooks } from "@polar-sh/better-auth";
@@ -54,8 +54,8 @@ const SIGNED_IN_REDIRECT_AUTH_PATHS = [
 ];
 
 export const authMiddleware = createMiddleware().server(
-  async ({ pathname, next }) => {
-    const headers = getRequestHeaders() as Headers;
+  async ({ pathname, request, next }) => {
+    const headers = request.headers;
     const session = await auth.api.getSession({ headers });
 
     // Demo mode: auto-provision unauthenticated users and keep authed users
@@ -97,7 +97,7 @@ export const authMiddleware = createMiddleware().server(
       !pathname.startsWith("/api/auth/")
     ) {
       const callbackURL = getExtensionConnectCallbackFromRequestUrl(
-        getRequest().url,
+        request.url,
       );
       throw redirect({
         to: "/auth/verify-email",

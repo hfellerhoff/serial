@@ -17,10 +17,12 @@ function AlertPane({
   title,
   description,
   hideButton,
+  callbackURL,
 }: {
   title: string;
   description: string;
   hideButton?: boolean;
+  callbackURL?: string;
 }) {
   return (
     <>
@@ -29,7 +31,11 @@ function AlertPane({
         <p className="mx-auto max-w-xs text-center">{description}</p>
         {!hideButton && (
           <CardFooter className="mt-4 w-full">
-            <Link to={AUTH_PAGE_URL} className="w-full">
+            <Link
+              to={AUTH_PAGE_URL}
+              search={{ callbackURL }}
+              className="w-full"
+            >
               <Button className="w-full">Back to Sign In</Button>
             </Link>
           </CardFooter>
@@ -69,6 +75,7 @@ export function AuthResetPageComponent() {
       <AlertPane
         title="Reset Password"
         description="Success! Your password as been reset."
+        callbackURL={searchParams.callbackURL}
       />
     );
   }
@@ -77,8 +84,13 @@ export function AuthResetPageComponent() {
     return (
       <AlertPane
         title="Reset Password"
-        description="Success! Check your email for your password reset email."
-        hideButton
+        description={
+          searchParams.callbackURL
+            ? "Check your email to reset your password, then return here to sign in."
+            : "Success! Check your email for your password reset email."
+        }
+        hideButton={!searchParams.callbackURL}
+        callbackURL={searchParams.callbackURL}
       />
     );
   }
@@ -134,6 +146,12 @@ export function AuthResetPageComponent() {
     );
   }
 
+  const resetPasswordRedirect = searchParams.callbackURL
+    ? `${AUTH_RESET_PASSWORD_URL}?${new URLSearchParams({
+        callbackURL: searchParams.callbackURL,
+      }).toString()}`
+    : AUTH_RESET_PASSWORD_URL;
+
   return (
     <InputPane title="Reset Password">
       <div className="grid gap-4">
@@ -157,7 +175,7 @@ export function AuthResetPageComponent() {
           onClick={async () => {
             await authClient.requestPasswordReset({
               email,
-              redirectTo: AUTH_RESET_PASSWORD_URL,
+              redirectTo: resetPasswordRedirect,
               fetchOptions: {
                 onResponse: () => {
                   setLoading(false);

@@ -13,14 +13,12 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { authClient, signUp } from "~/lib/auth-client";
 import { AUTH_SIGNED_IN_URL } from "~/lib/auth/constants";
+import { extensionConnectCallbackSchema } from "~/lib/extension-auth";
 import { orpcRouterClient } from "~/lib/orpc";
 
 const signUpSearchSchema = z.object({
   token: z.string().optional(),
-  callbackURL: z
-    .string()
-    .refine((value) => value.startsWith("/auth/connect-extension?"))
-    .optional(),
+  callbackURL: extensionConnectCallbackSchema.optional(),
 });
 
 export const Route = createFileRoute("/auth/sign-up")({
