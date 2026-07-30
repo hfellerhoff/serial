@@ -102,6 +102,12 @@ export const env = createEnv({
       .string()
       .optional()
       .transform(parseExtensionRedirectUriList),
+    SERIAL_CAPTURE_MAX_CONCURRENT_FETCHES: z.coerce
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .default(8),
     TRUSTED_ORIGINS: z
       .string()
       .optional()
@@ -183,6 +189,8 @@ export const env = createEnv({
     OAUTH_PKCE: process.env.OAUTH_PKCE,
     OAUTH_REDIRECT_URI: process.env.OAUTH_REDIRECT_URI,
     SERIAL_EXTENSION_REDIRECT_URIS: process.env.SERIAL_EXTENSION_REDIRECT_URIS,
+    SERIAL_CAPTURE_MAX_CONCURRENT_FETCHES:
+      process.env.SERIAL_CAPTURE_MAX_CONCURRENT_FETCHES,
     TRUSTED_ORIGINS: process.env.TRUSTED_ORIGINS,
     SENTRY_DSN_BACKEND: process.env.SENTRY_DSN_BACKEND,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,

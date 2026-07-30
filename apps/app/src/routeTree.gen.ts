@@ -27,6 +27,7 @@ import { Route as AppFeedsRouteImport } from './app/_app.feeds'
 import { Route as AppDebugRouteImport } from './app/_app.debug'
 import { Route as AppAdminIndexRouteImport } from './app/_app.admin.index'
 import { Route as ApiRpcSplatRouteImport } from './app/api/rpc.$'
+import { Route as ApiExtensionBookmarksRouteImport } from './app/api.extension.bookmarks'
 import { Route as ApiExtensionAuthSplatRouteImport } from './app/api/extension-auth.$'
 import { Route as ApiDemoProvisionRouteImport } from './app/api.demo.provision'
 import { Route as ApiAuthSplatRouteImport } from './app/api/auth.$'
@@ -128,6 +129,11 @@ const ApiRpcSplatRoute = ApiRpcSplatRouteImport.update({
   path: '/api/rpc/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiExtensionBookmarksRoute = ApiExtensionBookmarksRouteImport.update({
+  id: '/api/extension/bookmarks',
+  path: '/api/extension/bookmarks',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiExtensionAuthSplatRoute = ApiExtensionAuthSplatRouteImport.update({
   id: '/api/extension-auth/$',
   path: '/api/extension-auth/$',
@@ -210,6 +216,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/demo/provision': typeof ApiDemoProvisionRoute
   '/api/extension-auth/$': typeof ApiExtensionAuthSplatRoute
+  '/api/extension/bookmarks': typeof ApiExtensionBookmarksRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/admin/': typeof AppAdminIndexRoute
   '/admin/user/$id': typeof AppAdminUserIdRoute
@@ -240,6 +247,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/demo/provision': typeof ApiDemoProvisionRoute
   '/api/extension-auth/$': typeof ApiExtensionAuthSplatRoute
+  '/api/extension/bookmarks': typeof ApiExtensionBookmarksRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/admin': typeof AppAdminIndexRoute
   '/admin/user/$id': typeof AppAdminUserIdRoute
@@ -272,6 +280,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/demo/provision': typeof ApiDemoProvisionRoute
   '/api/extension-auth/$': typeof ApiExtensionAuthSplatRoute
+  '/api/extension/bookmarks': typeof ApiExtensionBookmarksRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/admin/user/$id': typeof AppAdminUserIdRoute
@@ -304,6 +313,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/demo/provision'
     | '/api/extension-auth/$'
+    | '/api/extension/bookmarks'
     | '/api/rpc/$'
     | '/admin/'
     | '/admin/user/$id'
@@ -334,6 +344,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/demo/provision'
     | '/api/extension-auth/$'
+    | '/api/extension/bookmarks'
     | '/api/rpc/$'
     | '/admin'
     | '/admin/user/$id'
@@ -365,6 +376,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/demo/provision'
     | '/api/extension-auth/$'
+    | '/api/extension/bookmarks'
     | '/api/rpc/$'
     | '/_app/admin/'
     | '/_app/admin/user/$id'
@@ -379,6 +391,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiDemoProvisionRoute: typeof ApiDemoProvisionRoute
   ApiExtensionAuthSplatRoute: typeof ApiExtensionAuthSplatRoute
+  ApiExtensionBookmarksRoute: typeof ApiExtensionBookmarksRoute
   ApiRpcSplatRoute: typeof ApiRpcSplatRoute
 }
 
@@ -508,6 +521,13 @@ declare module '@tanstack/react-router' {
       path: '/api/rpc/$'
       fullPath: '/api/rpc/$'
       preLoaderRoute: typeof ApiRpcSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/extension/bookmarks': {
+      id: '/api/extension/bookmarks'
+      path: '/api/extension/bookmarks'
+      fullPath: '/api/extension/bookmarks'
+      preLoaderRoute: typeof ApiExtensionBookmarksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/extension-auth/$': {
@@ -655,6 +675,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiDemoProvisionRoute: ApiDemoProvisionRoute,
   ApiExtensionAuthSplatRoute: ApiExtensionAuthSplatRoute,
+  ApiExtensionBookmarksRoute: ApiExtensionBookmarksRoute,
   ApiRpcSplatRoute: ApiRpcSplatRoute,
 }
 export const routeTree = rootRouteImport
