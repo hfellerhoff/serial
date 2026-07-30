@@ -405,6 +405,75 @@ export const feedCategories = sqliteTable(
 export const feedCategorySchema = createSelectSchema(feedCategories);
 export type DatabaseFeedCategory = typeof feedCategories.$inferSelect;
 
+// === Bookmarks ===
+
+export const bookmarks = sqliteTable(
+  "bookmark",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    sourceUrl: text("source_url").notNull(),
+    canonicalUrl: text("canonical_url").notNull(),
+    isSaved: integer("is_saved", { mode: "boolean" }).notNull().default(true),
+    isRead: integer("is_read", { mode: "boolean" }).notNull().default(false),
+    progress: integer("progress", { mode: "number" }).notNull().default(0),
+    duration: integer("duration", { mode: "number" }).notNull().default(0),
+    savedUpdatedAt: integer("saved_updated_at", { mode: "timestamp" })
+      .$default(() => new Date())
+      .notNull(),
+    readUpdatedAt: integer("read_updated_at", { mode: "timestamp" })
+      .$default(() => new Date())
+      .notNull(),
+    progressUpdatedAt: integer("progress_updated_at", { mode: "timestamp" })
+      .$default(() => new Date())
+      .notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .$default(() => new Date())
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .$default(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    unique("bookmark_user_id_canonical_url_unique").on(
+      table.userId,
+      table.canonicalUrl,
+    ),
+    index("bookmark_user_id_idx").on(table.userId),
+  ],
+);
+
+export const pageCaptures = sqliteTable("page_capture", {
+  bookmarkId: text("bookmark_id")
+    .primaryKey()
+    .references(() => bookmarks.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  author: text("author"),
+  publishedAt: integer("published_at", { mode: "timestamp" }),
+  contentHtml: text("content_html").notNull(),
+  effectiveUrl: text("effective_url").notNull(),
+  iconUrl: text("icon_url"),
+  representativeImageUrl: text("representative_image_url"),
+  contentHash: text("content_hash").notNull(),
+  captureSource: text("capture_source", {
+    enum: ["extension-live-dom", "server-static-fetch"],
+  }).notNull(),
+  extractorVersion: text("extractor_version").notNull(),
+  sanitizerPolicyVersion: integer("sanitizer_policy_version").notNull(),
+  capturedAt: integer("captured_at", { mode: "timestamp" })
+    .$default(() => new Date())
+    .notNull(),
+});
+
+export const bookmarkSchema = createSelectSchema(bookmarks);
+export const pageCaptureSchema = createSelectSchema(pageCaptures);
+export type DatabaseBookmark = typeof bookmarks.$inferSelect;
+export type DatabasePageCapture = typeof pageCaptures.$inferSelect;
+
 export const userConfig = sqliteTable("user_config", {
   id: text("id")
     .primaryKey()
@@ -546,6 +615,80 @@ export const viewFeeds = sqliteTable(
   ],
 );
 export type DatabaseViewFeed = typeof viewFeeds.$inferSelect;
+
+export const bookmarkViews = sqliteTable(
+  "bookmark_view",
+  {
+    bookmarkId: text("bookmark_id")
+      .notNull()
+      .references(() => bookmarks.id, { onDelete: "cascade" }),
+    viewId: integer("view_id")
+      .notNull()
+      .references(() => views.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.bookmarkId, table.viewId] }),
+    index("bookmark_view_view_id_idx").on(table.viewId),
+  ],
+);
+
+export const bookmarkTags = sqliteTable(
+  "bookmark_tag",
+  {
+    bookmarkId: text("bookmark_id")
+      .notNull()
+      .references(() => bookmarks.id, { onDelete: "cascade" }),
+    tagId: integer("tag_id")
+      .notNull()
+      .references(() => contentCategories.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.bookmarkId, table.tagId] }),
+    index("bookmark_tag_tag_id_idx").on(table.tagId),
+  ],
+);
+
+export const bookmarkRelations = relations(bookmarks, ({ one, many }) => ({
+  user: one(user, {
+    fields: [bookmarks.userId],
+    references: [user.id],
+  }),
+  capture: one(pageCaptures),
+  views: many(bookmarkViews),
+  tags: many(bookmarkTags),
+}));
+
+export const pageCaptureRelations = relations(pageCaptures, ({ one }) => ({
+  bookmark: one(bookmarks, {
+    fields: [pageCaptures.bookmarkId],
+    references: [bookmarks.id],
+  }),
+}));
+
+export const bookmarkViewRelations = relations(bookmarkViews, ({ one }) => ({
+  bookmark: one(bookmarks, {
+    fields: [bookmarkViews.bookmarkId],
+    references: [bookmarks.id],
+  }),
+  view: one(views, {
+    fields: [bookmarkViews.viewId],
+    references: [views.id],
+  }),
+}));
+
+export const bookmarkTagRelations = relations(bookmarkTags, ({ one }) => ({
+  bookmark: one(bookmarks, {
+    fields: [bookmarkTags.bookmarkId],
+    references: [bookmarks.id],
+  }),
+  tag: one(contentCategories, {
+    fields: [bookmarkTags.tagId],
+    references: [contentCategories.id],
+  }),
+}));
+
+export type DatabaseBookmarkView = typeof bookmarkViews.$inferSelect;
+export type DatabaseBookmarkTag = typeof bookmarkTags.$inferSelect;
 
 export const viewSectionInputSchema = z.object({
   placement: z.number(),
