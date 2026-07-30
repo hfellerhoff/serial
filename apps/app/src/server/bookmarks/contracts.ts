@@ -18,7 +18,7 @@ export const SANITIZER_POLICY_VERSION = 1;
 export const EXTENSION_BOOKMARK_CONTRACT_VERSION = 1;
 export const READABILITY_EXTRACTOR_VERSION = "mozilla-readability-0.6";
 
-export const captureFailureReasonSchema = z.enum([
+const captureFailureReasonSchema = z.enum([
   "blocked_target",
   "timeout",
   "http_error",
@@ -78,52 +78,37 @@ const versionString = z
       Buffer.byteLength(value, "ascii") <= BOOKMARK_CAPTURE_LIMITS.versionBytes,
   );
 
-export const extensionCaptureCandidateSchema = z
-  .object({
-    effectiveUrl: boundedUrlString,
-    canonicalUrl: z.unknown().transform(optionalBoundedUrlString).optional(),
-    title: boundedString(BOOKMARK_CAPTURE_LIMITS.titleCodePoints),
-    author: z
-      .unknown()
-      .transform((value) =>
-        optionalBoundedString(value, BOOKMARK_CAPTURE_LIMITS.authorCodePoints),
-      )
-      .optional(),
-    publishedAt: z
-      .unknown()
-      .transform((value) =>
-        typeof value === "string" &&
-        z.iso.datetime({ offset: true }).safeParse(value).success
-          ? value
-          : undefined,
-      )
-      .optional(),
-    iconUrl: z.unknown().transform(optionalBoundedUrlString).optional(),
-    representativeImageUrl: z
-      .unknown()
-      .transform(optionalBoundedUrlString)
-      .optional(),
-    contentHtml: z.string().min(1),
-    extractorVersion: versionString,
-    sanitizerPolicyVersion: z.number().int().positive(),
-  })
-  .strict();
-
-export const extensionBookmarkSaveRequestSchema = z
-  .object({
-    contractVersion: z.literal(EXTENSION_BOOKMARK_CONTRACT_VERSION),
-    sourceUrl: boundedUrlString,
-    bookmarkId: z.string().min(1).optional(),
-    capture: extensionCaptureCandidateSchema.optional(),
-  })
-  .strict();
+export const extensionCaptureCandidateSchema = z.strictObject({
+  effectiveUrl: boundedUrlString,
+  canonicalUrl: z.unknown().transform(optionalBoundedUrlString).optional(),
+  title: boundedString(BOOKMARK_CAPTURE_LIMITS.titleCodePoints),
+  author: z
+    .unknown()
+    .transform((value) =>
+      optionalBoundedString(value, BOOKMARK_CAPTURE_LIMITS.authorCodePoints),
+    )
+    .optional(),
+  publishedAt: z
+    .unknown()
+    .transform((value) =>
+      typeof value === "string" &&
+      z.iso.datetime({ offset: true }).safeParse(value).success
+        ? value
+        : undefined,
+    )
+    .optional(),
+  iconUrl: z.unknown().transform(optionalBoundedUrlString).optional(),
+  representativeImageUrl: z
+    .unknown()
+    .transform(optionalBoundedUrlString)
+    .optional(),
+  contentHtml: z.string().min(1),
+  extractorVersion: versionString,
+  sanitizerPolicyVersion: z.number().int().positive(),
+});
 
 export type ExtensionCaptureCandidate = z.infer<
   typeof extensionCaptureCandidateSchema
->;
-
-export type ExtensionBookmarkSaveRequest = z.infer<
-  typeof extensionBookmarkSaveRequestSchema
 >;
 
 export type TrustedCapture = {
