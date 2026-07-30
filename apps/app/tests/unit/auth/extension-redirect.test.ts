@@ -1,9 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_EXTENSION_REDIRECT_URIS,
+  getExtensionConnectCallbackFromRequestUrl,
+  parseExtensionConnectCallback,
   parseExtensionRedirectUri,
   parseExtensionRedirectUriList,
 } from "~/lib/extension-auth";
+
+const VALID_CONNECT_SEARCH = new URLSearchParams({
+  redirect_uri:
+    "https://abfgpdgoffipbnfjcdoejalehhbegamc.chromiumapp.org/serial-auth",
+  state: "s".repeat(43),
+  code_challenge: "c".repeat(43),
+  code_challenge_method: "S256",
+}).toString();
 
 describe("Serial extension redirect URIs", () => {
   it("accepts browser identity redirect URIs", () => {
@@ -30,5 +40,26 @@ describe("Serial extension redirect URIs", () => {
     expect(
       parseExtensionRedirectUriList(` ${redirectUri},${redirectUri} `),
     ).toEqual([redirectUri]);
+  });
+});
+
+describe("Serial extension connection callbacks", () => {
+  it("preserves a valid callback from the current request", () => {
+    const callback = `/auth/connect-extension?${VALID_CONNECT_SEARCH}`;
+
+    expect(
+      getExtensionConnectCallbackFromRequestUrl(
+        `https://serial.example.com${callback}`,
+      ),
+    ).toBe(callback);
+  });
+
+  it.each([
+    "/",
+    "/auth/connect-extension",
+    "/auth/connect-extension?state=invalid",
+    `https://example.com/auth/connect-extension?${VALID_CONNECT_SEARCH}`,
+  ])("rejects invalid callback %s", (callback) => {
+    expect(parseExtensionConnectCallback(callback)).toBeNull();
   });
 });

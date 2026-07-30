@@ -5,7 +5,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { createMiddleware } from "@tanstack/react-start";
-import { getRequestHeaders } from "@tanstack/react-start/server";
+import { getRequest, getRequestHeaders } from "@tanstack/react-start/server";
 import { redirect } from "@tanstack/react-router";
 import { asc, count, eq } from "drizzle-orm";
 import { checkout, polar, portal, webhooks } from "@polar-sh/better-auth";
@@ -45,6 +45,7 @@ import { setOtpCooldown } from "~/server/otp";
 import { captureException, logError, logMessage } from "~/server/logger";
 import { env } from "~/env";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
+import { getExtensionConnectCallbackFromRequestUrl } from "~/lib/extension-auth";
 
 const SIGNED_IN_REDIRECT_AUTH_PATHS = [
   "/auth",
@@ -86,9 +87,8 @@ export const authMiddleware = createMiddleware().server(
       }
     }
 
-    // Redirect unverified users to the verification page.
-    // Exempt /api/auth/* (sign-out, OTP verification) and /auth/* (other auth
-    // pages like sign-in) so the user can still sign out or complete flows.
+    // Redirect unverified users to the verification page. Preserve a valid
+    // extension connection callback so verification can resume that flow.
     if (
       IS_EMAIL_ENABLED &&
       session &&
@@ -96,7 +96,13 @@ export const authMiddleware = createMiddleware().server(
       pathname !== "/auth/verify-email" &&
       !pathname.startsWith("/api/auth/")
     ) {
-      throw redirect({ to: "/auth/verify-email" });
+      const callbackURL = getExtensionConnectCallbackFromRequestUrl(
+        getRequest().url,
+      );
+      throw redirect({
+        to: "/auth/verify-email",
+        search: { callbackURL: callbackURL ?? undefined },
+      });
     }
 
     return await next();

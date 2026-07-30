@@ -1,19 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
-import { z } from "zod";
 import { AuthHeader } from "~/components/auth/AuthHeader";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";
 import { useSession } from "~/lib/auth-client";
-
-const connectSearchSchema = z.object({
-  redirect_uri: z.string(),
-  state: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
-  code_challenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
-  code_challenge_method: z.literal("S256"),
-});
+import { extensionConnectSearchSchema } from "~/lib/extension-auth";
 
 const ACTION_TEXT = {
   approve: "Connect extension",
@@ -21,7 +14,7 @@ const ACTION_TEXT = {
 } as const;
 
 export const Route = createFileRoute("/auth/connect-extension")({
-  validateSearch: connectSearchSchema,
+  validateSearch: extensionConnectSearchSchema,
   component: ConnectExtension,
 });
 
