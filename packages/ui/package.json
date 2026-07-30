@@ -1,0 +1,32 @@
+{
+  "name": "@serial/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.6.0",
+    "@fontsource-variable/outfit": "^5.2.8",
+    "@radix-ui/react-label": "^2.1.11",
+    "@radix-ui/react-separator": "^1.1.11",
+    "@radix-ui/react-slot": "^1.3.0",
+    "@radix-ui/react-tabs": "^1.1.17",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "react": "19.2.7",
+    "tailwind-merge": "^3.6.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17",
+    "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "react": "19.2.7"
+  }
+}

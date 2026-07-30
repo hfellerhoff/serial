@@ -3,11 +3,13 @@ import { zodValidator } from "@tanstack/zod-adapter";
 import z from "zod";
 import { AuthHeader } from "~/components/auth/AuthHeader";
 import { AuthResetPageComponent } from "~/components/auth/reset/AuthResetPageComponent";
+import { extensionConnectCallbackSchema } from "~/lib/extension-auth";
 import { fetchIsForgotPasswordEnabled } from "~/server/auth/endpoints";
 
 const authSearchSchema = z.object({
   token: z.string().default(""),
   email: z.string().default(""),
+  callbackURL: extensionConnectCallbackSchema.optional(),
 });
 
 export const Route = createFileRoute("/auth/reset")({

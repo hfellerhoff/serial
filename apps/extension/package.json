@@ -1,0 +1,52 @@
+{
+  "name": "@serial/extension",
+  "description": "The Serial browser extension.",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "dev:chrome": "wxt -b chrome",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:artifact": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox",
+    "typecheck": "wxt prepare && tsc --noEmit",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "test:unit": "vitest run",
+    "postinstall": "wxt prepare"
+  },
+  "dependencies": {
+    "@serial/extension-identity": "workspace:*",
+    "@serial/ui": "workspace:*",
+    "lucide-react": "^1.23.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@eslint/compat": "^2.1.0",
+    "@eslint/js": "^10.0.1",
+    "@tailwindcss/vite": "^4.3.2",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@wxt-dev/module-react": "^1.1.5",
+    "eslint": "^10.6.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "prettier": "^3.9.4",
+    "tailwindcss": "^4.3.2",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.63.0",
+    "vitest": "^4.1.10",
+    "web-ext": "^10.5.0",
+    "wxt": "^0.20.27"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

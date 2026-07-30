@@ -64,7 +64,7 @@ export const fetchConfigCss = createServerFn({ method: "GET" }).handler(
 );
 
 export const fetchAdminUserById = createServerFn({ method: "GET" })
-  .inputValidator((userId: string) => userId)
+  .validator((userId: string) => userId)
   .handler(async ({ data: userId }) => {
     const request = getRequest();
     const headers = request.headers;
