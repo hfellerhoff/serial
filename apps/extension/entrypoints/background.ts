@@ -106,8 +106,8 @@ async function getActiveSession() {
       await clearSession(session);
       return null;
     }
-    const payload = await readAuthJsonResponse(response);
     if (!response.ok) return session;
+    const payload = await readAuthJsonResponse(response);
     const updated = updateSessionFromResponse(session, payload);
     await storeSession(updated);
     return updated;

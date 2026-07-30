@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import {
   Alert,
   AlertDescription,
@@ -143,6 +143,20 @@ type InstanceChooserProps = {
   onSelect: (instance: string) => void;
 };
 
+type InstanceChooserState = {
+  selectionMode: "automatic" | "manual";
+  selectedInstance: string;
+  manualInstance: string;
+  instanceError: string | null;
+};
+
+function updateInstanceChooserState(
+  state: InstanceChooserState,
+  update: Partial<InstanceChooserState>,
+) {
+  return { ...state, ...update };
+}
+
 function InstanceChooser({
   detectedInstance,
   instance,
@@ -160,12 +174,17 @@ function InstanceChooser({
   const initialSelectionMode = automaticCandidates.includes(instance)
     ? "automatic"
     : "manual";
-  const [selectionMode, setSelectionMode] = useState<"automatic" | "manual">(
-    initialSelectionMode,
+  const [chooserState, updateChooserState] = useReducer(
+    updateInstanceChooserState,
+    {
+      selectionMode: initialSelectionMode,
+      selectedInstance: instance,
+      manualInstance: instance,
+      instanceError: null,
+    },
   );
-  const [selectedInstance, setSelectedInstance] = useState(instance);
-  const [manualInstance, setManualInstance] = useState(instance);
-  const [instanceError, setInstanceError] = useState<string | null>(null);
+  const { selectionMode, selectedInstance, manualInstance, instanceError } =
+    chooserState;
 
   function handleDone() {
     try {
@@ -173,14 +192,15 @@ function InstanceChooser({
         selectionMode === "manual"
           ? normalizeInstanceUrl(manualInstance)
           : selectedInstance;
-      setInstanceError(null);
+      updateChooserState({ instanceError: null });
       onSelect(nextInstance);
     } catch (manualError) {
-      setInstanceError(
-        manualError instanceof Error
-          ? manualError.message
-          : "Enter a valid Serial instance",
-      );
+      updateChooserState({
+        instanceError:
+          manualError instanceof Error
+            ? manualError.message
+            : "Enter a valid Serial instance",
+      });
     }
   }
 
@@ -203,8 +223,10 @@ function InstanceChooser({
         <Tabs
           value={selectionMode}
           onValueChange={(value) => {
-            setSelectionMode(value as "automatic" | "manual");
-            setInstanceError(null);
+            updateChooserState({
+              selectionMode: value as "automatic" | "manual",
+              instanceError: null,
+            });
           }}
           className="min-h-0"
         >
@@ -225,7 +247,9 @@ function InstanceChooser({
                 detectedInstance={detectedInstance}
                 lastInstance={lastInstance}
                 selectedInstance={selectedInstance}
-                onSelect={setSelectedInstance}
+                onSelect={(nextInstance) => {
+                  updateChooserState({ selectedInstance: nextInstance });
+                }}
               />
             ))}
           </TabsContent>
@@ -238,8 +262,10 @@ function InstanceChooser({
                 placeholder="serial.example.com"
                 value={manualInstance}
                 onChange={(event) => {
-                  setManualInstance(event.target.value);
-                  setInstanceError(null);
+                  updateChooserState({
+                    manualInstance: event.target.value,
+                    instanceError: null,
+                  });
                 }}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") void handleDone();

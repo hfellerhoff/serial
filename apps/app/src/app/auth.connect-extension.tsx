@@ -54,16 +54,19 @@ function ConnectExtension() {
           codeChallenge: search.code_challenge,
         }),
       });
-      const payload = (await response.json()) as {
-        redirectUrl?: unknown;
-        error?: unknown;
-      };
-      if (!response.ok || typeof payload.redirectUrl !== "string") {
+      if (!response.ok) {
+        const errorPayload = (await response.json()) as { error?: unknown };
         throw new Error(
-          typeof payload.error === "string"
-            ? payload.error
+          typeof errorPayload.error === "string"
+            ? errorPayload.error
             : "Unable to connect the extension",
         );
+      }
+      const payload = (await response.json()) as {
+        redirectUrl?: unknown;
+      };
+      if (typeof payload.redirectUrl !== "string") {
+        throw new Error("Unable to connect the extension");
       }
       window.location.assign(payload.redirectUrl);
     } catch (responseError) {
