@@ -9,6 +9,8 @@ import {
   baseFeedSchema,
   extractRssMetadata,
 } from "../types";
+import { readFeedHttp } from "../feedHttp";
+import { boundFeedItems } from "../feedBounds";
 import type { DatabaseFeed } from "~/server/db/schema";
 import type {
   ConditionalHeaders,
@@ -18,6 +20,10 @@ import type {
   RSSContent,
 } from "../types";
 import { captureException, logError } from "~/server/logger";
+import { workerPool } from "~/lib/workerPool";
+
+const MAX_OG_IMAGE_FETCHES_PER_FEED = 8;
+const OG_IMAGE_FETCH_CONCURRENCY = 2;
 
 function getLongestString(...strings: Array<string | undefined>) {
   return strings.reduce((acc: string, cur) => {
@@ -111,11 +117,14 @@ function extractThumbnail(
 
 async function fetchOgImage(url: string): Promise<string | undefined> {
   try {
-    const response = await fetch(url);
+    const response = await readFeedHttp(url, {
+      maxBodyBytes: 256 * 1024,
+      totalDurationMs: 3_000,
+    });
 
     if (!response.ok) return undefined;
 
-    const html = await response.text();
+    const html = response.text;
 
     // Try og:image meta tag
     const ogImageMatch = html.match(
@@ -186,7 +195,7 @@ export async function fetchWebsiteFeedData(
   cached?: ConditionalHeaders,
 ): Promise<FeedFetchResult | null> {
   try {
-    const feedResponse = await fetch(feed.url, {
+    const feedResponse = await readFeedHttp(feed.url, {
       headers: cached ? buildConditionalHeaders(cached) : undefined,
     });
 
@@ -197,8 +206,12 @@ export async function fetchWebsiteFeedData(
       };
     }
 
-    const text = await feedResponse.text();
-    const rssData = await parser.parseString(text);
+    if (!feedResponse.ok) {
+      throw new Error(
+        `Failed to fetch website feed: ${feedResponse.status} ${feedResponse.statusText}`,
+      );
+    }
+    const rssData = await parser.parseString(feedResponse.text);
 
     const data = websiteSchema.parse(rssData);
 
@@ -208,39 +221,55 @@ export async function fetchWebsiteFeedData(
       ...extractRssMetadata(data),
     };
 
-    const itemPromises = data.items.map(async (item) => {
-      const id = item.guid || item.id;
+    const items = boundFeedItems(
+      data.items.flatMap((item) => {
+        const id = item.guid || item.id;
 
-      if (!id) return null;
+        if (!id) return [];
 
-      let thumbnail = extractThumbnail(item);
+        return [
+          {
+            id,
+            title: item.title,
+            publishedDate: item.pubDate || item.isoDate || item.updated || "",
+            url: item.link,
+            author: item.creator ?? "",
+            thumbnail: extractThumbnail(item),
+            content: getLongestString(
+              item["content:encoded"],
+              item.content,
+              item.description,
+            ),
+            contentSnippet: item.contentSnippet,
+          } satisfies RSSContent,
+        ];
+      }),
+    );
 
-      // Fetch og:image as last resort if no thumbnail found
-      if (!thumbnail) {
-        thumbnail = await fetchOgImage(item.link);
+    const metadataCandidates = items
+      .flatMap((item, position) =>
+        item.thumbnail ? [] : [{ itemIndex: position, item }],
+      )
+      .slice(0, MAX_OG_IMAGE_FETCHES_PER_FEED);
+
+    for await (const { itemIndex, thumbnail } of workerPool(
+      metadataCandidates,
+      OG_IMAGE_FETCH_CONCURRENCY,
+      async (candidate) => ({
+        itemIndex: candidate.itemIndex,
+        thumbnail: await fetchOgImage(candidate.item.url),
+      }),
+    )) {
+      if (thumbnail && items[itemIndex]) {
+        items[itemIndex].thumbnail = thumbnail;
       }
-
-      return {
-        id,
-        title: item.title,
-        publishedDate: item.pubDate || item.isoDate || item.updated || "",
-        url: item.link,
-        author: item.creator ?? "",
-        thumbnail,
-        content: getLongestString(
-          item["content:encoded"],
-          item.content,
-          item.description,
-        ),
-        contentSnippet: item.contentSnippet,
-      } satisfies RSSContent;
-    });
+    }
 
     return {
       id: feed.id,
       title: data.title,
       url: data.link ?? new URL(feed.url).origin,
-      items: (await Promise.all(itemPromises)).filter(Boolean),
+      items,
       fetchMetadata,
     };
   } catch (e) {

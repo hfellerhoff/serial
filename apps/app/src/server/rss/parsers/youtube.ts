@@ -9,6 +9,8 @@ import {
   baseFeedSchema,
   extractRssMetadata,
 } from "../types";
+import { readFeedHttp } from "../feedHttp";
+import { boundFeedItems } from "../feedBounds";
 import type { feeds } from "~/server/db/schema";
 import type {
   ConditionalHeaders,
@@ -55,7 +57,13 @@ const youtubeSchema = baseFeedSchema.extend({
 export async function fetchYouTubeFeedDetails(
   url: string,
 ): Promise<NewFeedDetails | null> {
-  const rssData = await parser.parseURL(url);
+  const response = await readFeedHttp(url);
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch YouTube feed: ${response.status} ${response.statusText}`,
+    );
+  }
+  const rssData = await parser.parseString(response.text);
   const data = youtubeSchema.parse(rssData);
 
   return {
@@ -70,7 +78,7 @@ export async function fetchYouTubeFeedData(
   cached?: ConditionalHeaders,
 ): Promise<FeedFetchResult | null> {
   try {
-    const feedResponse = await fetch(feed.url, {
+    const feedResponse = await readFeedHttp(feed.url, {
       headers: cached ? buildConditionalHeaders(cached) : undefined,
     });
 
@@ -81,8 +89,12 @@ export async function fetchYouTubeFeedData(
       };
     }
 
-    const text = await feedResponse.text();
-    const rssData = await parser.parseString(text);
+    if (!feedResponse.ok) {
+      throw new Error(
+        `Failed to fetch YouTube feed: ${feedResponse.status} ${feedResponse.statusText}`,
+      );
+    }
+    const rssData = await parser.parseString(feedResponse.text);
     const data = youtubeSchema.parse(rssData);
 
     // Build fetch metadata from HTTP headers and RSS elements
@@ -95,21 +107,23 @@ export async function fetchYouTubeFeedData(
       id: feed.id,
       title: data.title,
       url: data.link,
-      items: data.items.map((item) => {
-        const thumbnail = item["media:group"]["media:thumbnail"][0]?.$.url;
-        const description = item["media:group"]["media:description"][0];
+      items: boundFeedItems(
+        data.items.map((item) => {
+          const thumbnail = item["media:group"]["media:thumbnail"][0]?.$.url;
+          const description = item["media:group"]["media:description"][0];
 
-        return {
-          id: item.id.replace("yt:video:", ""),
-          title: item.title,
-          publishedDate: item.isoDate,
-          url: item.link,
-          author: item.author,
-          thumbnail: thumbnail,
-          content: description,
-          contentSnippet: description,
-        } satisfies RSSContent;
-      }),
+          return {
+            id: item.id.replace("yt:video:", ""),
+            title: item.title,
+            publishedDate: item.isoDate,
+            url: item.link,
+            author: item.author,
+            thumbnail: thumbnail,
+            content: description,
+            contentSnippet: description,
+          } satisfies RSSContent;
+        }),
+      ),
       fetchMetadata,
     };
   } catch (e) {

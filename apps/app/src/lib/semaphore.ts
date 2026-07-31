@@ -46,8 +46,8 @@ export class Semaphore {
  * Check if the database URL points to Turso's hosted service.
  * Turso hosted URLs contain ".turso.io"
  */
-function isTursoHosted(): boolean {
-  return env.DATABASE_URL.includes(".turso.io");
+export function getDatabaseConcurrencyLimit(databaseUrl: string): number {
+  return databaseUrl.includes(".turso.io") ? 10 : 5;
 }
 
 /**
@@ -55,7 +55,9 @@ function isTursoHosted(): boolean {
  *
  * - Local libsql-server: Limited to 5 concurrent connections to prevent
  *   "DbCreateTimeout" errors (the server has a small internal connection pool)
- * - Turso hosted: No practical limit - their infrastructure handles high concurrency
- *   and billing is based on rows read/written, not connections
+ * - Turso hosted: Limited to 10 concurrent operations so Feed and bulk work
+ *   cannot burst with input size.
  */
-export const dbSemaphore = new Semaphore(isTursoHosted() ? Infinity : 5);
+export const dbSemaphore = new Semaphore(
+  getDatabaseConcurrencyLimit(env.DATABASE_URL ?? ""),
+);
