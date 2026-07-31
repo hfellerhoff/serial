@@ -1,14 +1,14 @@
-import type { ApplicationStore } from "./data/store";
 import type {
-  ApplicationViewSection,
-  DatabaseFeedCategory,
-} from "~/server/db/schema";
+  FeedItemFilterIndex,
+  FeedItemListProjection,
+} from "./data/feed-items/listProjection";
+import type { ApplicationViewSection } from "~/server/db/schema";
 import { VIEW_LAYOUT_ITEM_TYPE } from "~/server/db/constants";
 
 function getItemPlacement(
   feedId: number,
   viewSections: ApplicationViewSection[],
-  feedCategories: DatabaseFeedCategory[],
+  filterIndex: FeedItemFilterIndex,
 ): number {
   let minFeedPlacement = Infinity;
   let minTagPlacement = Infinity;
@@ -18,12 +18,11 @@ function getItemPlacement(
       if (section.itemId === feedId) {
         minFeedPlacement = Math.min(minFeedPlacement, section.placement);
       }
-    } else if (section.itemType === VIEW_LAYOUT_ITEM_TYPE.TAG) {
-      for (const fc of feedCategories) {
-        if (fc.feedId === feedId && fc.categoryId === section.itemId) {
-          minTagPlacement = Math.min(minTagPlacement, section.placement);
-        }
-      }
+    } else if (
+      section.itemType === VIEW_LAYOUT_ITEM_TYPE.TAG &&
+      filterIndex.categoryIdsByFeedId.get(feedId)?.has(section.itemId)
+    ) {
+      minTagPlacement = Math.min(minTagPlacement, section.placement);
     }
   }
 
@@ -35,7 +34,7 @@ function getItemPlacement(
 }
 
 export function sortFeedItemsOrderByDate(
-  feedItems: ApplicationStore["feedItemsDict"],
+  feedItems: Record<string, FeedItemListProjection>,
 ) {
   return function (a: string, b: string) {
     const itemA = feedItems[a];
@@ -61,7 +60,7 @@ export function sortFeedItemsOrderByDate(
 }
 
 export function sortFeedItemsOrderByWatchedAt(
-  feedItems: ApplicationStore["feedItemsDict"],
+  feedItems: Record<string, FeedItemListProjection>,
 ) {
   return function (a: string, b: string) {
     const itemA = feedItems[a];
@@ -102,9 +101,9 @@ export function sortFeedItemsOrderByWatchedAt(
 }
 
 export function sortFeedItemsOrderBySectionThenDate(
-  feedItems: ApplicationStore["feedItemsDict"],
+  feedItems: Record<string, FeedItemListProjection>,
   viewSections: ApplicationViewSection[],
-  feedCategories: DatabaseFeedCategory[],
+  filterIndex: FeedItemFilterIndex,
 ) {
   return function (a: string, b: string) {
     const itemA = feedItems[a];
@@ -115,12 +114,12 @@ export function sortFeedItemsOrderBySectionThenDate(
     const placementA = getItemPlacement(
       itemA.feedId,
       viewSections,
-      feedCategories,
+      filterIndex,
     );
     const placementB = getItemPlacement(
       itemB.feedId,
       viewSections,
-      feedCategories,
+      filterIndex,
     );
 
     if (placementA !== placementB) {

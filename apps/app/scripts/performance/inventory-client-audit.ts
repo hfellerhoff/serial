@@ -30,7 +30,7 @@ const findingPaths: Record<string, string[]> = {
   "CL-03": [
     "src/lib/data/store.ts",
     "src/lib/data/scopeMembership.ts",
-    "src/lib/data/feed-items/clientFilters.ts",
+    "src/lib/data/feed-items/listProjection.ts",
     "src/lib/data/feed-items/index.ts",
     "src/components/feed/SidebarCategories.tsx",
     "src/components/feed/SidebarFeeds.tsx",

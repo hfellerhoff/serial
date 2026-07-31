@@ -42,7 +42,6 @@ export function MarkVisibleAsReadButton() {
   const feedFilter = useAtomValue(feedFilterAtom);
 
   const filteredItemIds = useFilteredFeedItemsOrder();
-  const feedItemsDict = feedItemsStore.useFeedItemsDict();
 
   const fetchMoreItems = useFetchMoreItems();
   const fetchMoreItemsForFeed = useFetchMoreItemsForFeed();
@@ -65,6 +64,7 @@ export function MarkVisibleAsReadButton() {
 
     setIsLoading(true);
     try {
+      const feedItemsDict = feedItemsStore.getState().feedItemsDict;
       const items = filteredItemIds
         .map((id) => ({
           id,
