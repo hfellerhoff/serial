@@ -24,6 +24,11 @@ import {
   computeChangedBookmarkSyncBuckets,
 } from "~/server/mixed-content/sync";
 import { NORMALIZED_ARRAY_CHUNK_SIZE } from "~/lib/data/normalized-idb-storage";
+import {
+  CLIENT_PAGE_RETENTION_BUDGETS,
+  getBoundedItemWindow,
+  selectPersistedPages,
+} from "~/lib/data/page-retention";
 
 const PAGE_SIZE = 30;
 const VISIBILITIES: VisibilityFilter[] = ["unread", "read", "later"];
@@ -66,6 +71,17 @@ export type ClientAuditResult = {
     measured: number;
     budget: number;
   };
+  retention: {
+    budgets: {
+      memoryPages: number;
+      memoryBytes: number;
+      indexedDbPages: number;
+      indexedDbBytes: number;
+      mountedItems: number;
+    };
+    afterTwelvePages: RetentionPlateauMetrics;
+    afterTwentyFourPages: RetentionPlateauMetrics;
+  };
   operations: {
     bookmarkSave: ClientAuditOperation;
     bookmarkProgressEvent: ClientAuditOperation;
@@ -80,6 +96,17 @@ export type ClientAuditResult = {
     warmSynchronization: ClientAuditOperation;
     normalizedPersistenceMutation: ClientAuditOperation;
   };
+};
+
+type RetentionPlateauMetrics = {
+  pages: number;
+  entities: number;
+  scopeReferences: number;
+  retainedBytes: number;
+  retainedHeapBytes: number;
+  persistedPages: number;
+  persistedBytes: number;
+  mountedItems: number;
 };
 
 function makeBookmark(index: number): ApplicationBookmark {
@@ -361,6 +388,75 @@ function persistedPayloadBytes() {
   };
 }
 
+function measureRetentionPlateau(pageCount: number): RetentionPlateauMetrics {
+  resetStores();
+  const scopeKey = "view:1:unread";
+  let requestCursor: { postedAt: Date; id: string } | null = null;
+  for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+    const pageItems = Array.from({ length: PAGE_SIZE }, (_, itemIndex) =>
+      makeFeedItem(pageIndex * PAGE_SIZE + itemIndex),
+    );
+    const state = feedItemsStore.getState();
+    feedItemsStore.setState({
+      feedItemsDict: {
+        ...state.feedItemsDict,
+        ...Object.fromEntries(pageItems.map((item) => [item.id, item])),
+      },
+      feedItemsOrder: [
+        ...state.feedItemsOrder,
+        ...pageItems.map((item) => item.id),
+      ],
+    });
+    const nextCursor = {
+      postedAt: pageItems[pageItems.length - 1]!.postedAt,
+      id: pageItems[pageItems.length - 1]!.id,
+    };
+    feedItemsStore.getState().retainFeedItemPage({
+      scopeKey,
+      itemIds: pageItems.map((item) => item.id),
+      requestCursor,
+      nextCursor,
+      replacesScope: pageIndex === 0,
+    });
+    requestCursor = nextCursor;
+  }
+
+  const state = feedItemsStore.getState();
+  const pages = state.retainedFeedPages[scopeKey] ?? [];
+  const persistedPages = selectPersistedPages(pages);
+  const persistedEntityIds = new Set(
+    persistedPages.flatMap((page) => page.entityIds),
+  );
+  const persistedBytes = serialize({
+    pages: persistedPages,
+    feedItems: Object.fromEntries(
+      Object.entries(state.feedItemsDict).filter(([id]) =>
+        persistedEntityIds.has(id),
+      ),
+    ),
+  }).byteLength;
+  const scopeReferences = state.scopeFeedItemIds[scopeKey] ?? [];
+  return {
+    pages: pages.length,
+    entities: Object.keys(state.feedItemsDict).length,
+    scopeReferences: scopeReferences.length,
+    retainedBytes: state.retainedFeedPageBytes,
+    retainedHeapBytes: serialize({
+      feedItemsDict: state.feedItemsDict,
+      feedItemsOrder: state.feedItemsOrder,
+      scopeReferences,
+      pages,
+    }).byteLength,
+    persistedPages: persistedPages.length,
+    persistedBytes,
+    mountedItems: getBoundedItemWindow({
+      itemIds: scopeReferences,
+      renderEnd: scopeReferences.length,
+      selectedItemId: null,
+    }).itemIds.length,
+  };
+}
+
 export function runClientAuditProfile(
   profileName: BenchmarkProfileName,
 ): ClientAuditResult {
@@ -517,6 +613,8 @@ export function runClientAuditProfile(
   const responsePageBytes = bookmarkSyncPages.map((page) =>
     Buffer.byteLength(JSON.stringify(page)),
   );
+  const afterTwelvePages = measureRetentionPlateau(12);
+  const afterTwentyFourPages = measureRetentionPlateau(24);
 
   return {
     profile: profileName,
@@ -537,6 +635,17 @@ export function runClientAuditProfile(
     persistenceMutationBytes: {
       measured: persistenceMutationBytes,
       budget: NORMALIZED_PERSISTENCE_MUTATION_BUDGET_BYTES,
+    },
+    retention: {
+      budgets: {
+        memoryPages: CLIENT_PAGE_RETENTION_BUDGETS.memory.maxPages,
+        memoryBytes: CLIENT_PAGE_RETENTION_BUDGETS.memory.maxBytes,
+        indexedDbPages: CLIENT_PAGE_RETENTION_BUDGETS.indexedDb.maxPages,
+        indexedDbBytes: CLIENT_PAGE_RETENTION_BUDGETS.indexedDb.maxBytes,
+        mountedItems: CLIENT_PAGE_RETENTION_BUDGETS.mountedItems,
+      },
+      afterTwelvePages,
+      afterTwentyFourPages,
     },
     operations: {
       bookmarkSave,

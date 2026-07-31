@@ -38,6 +38,7 @@ describe("client performance audit model", () => {
         authoritativeRefills: 0,
       });
     },
+    30_000,
   );
 
   it("retains bounded list references while identifying whole-cache persistence", () => {
@@ -94,5 +95,39 @@ describe("client performance audit model", () => {
     expect(
       result.operations.normalizedPersistenceMutation.durationMs,
     ).toBeLessThan(50);
+  }, 30_000);
+
+  it("plateaus repeated pagination within memory, IndexedDB, and mounted-item budgets", () => {
+    const result = runClientAuditProfile("small");
+
+    expect(result.retention.afterTwentyFourPages.pages).toBe(
+      result.retention.afterTwelvePages.pages,
+    );
+    expect(result.retention.afterTwentyFourPages.entities).toBe(
+      result.retention.afterTwelvePages.entities,
+    );
+    expect(result.retention.afterTwentyFourPages.scopeReferences).toBe(
+      result.retention.afterTwelvePages.scopeReferences,
+    );
+    expect(result.retention.afterTwentyFourPages.pages).toBeLessThanOrEqual(
+      result.retention.budgets.memoryPages,
+    );
+    expect(
+      result.retention.afterTwentyFourPages.retainedBytes,
+    ).toBeLessThanOrEqual(result.retention.budgets.memoryBytes);
+    expect(
+      result.retention.afterTwentyFourPages.retainedHeapBytes,
+    ).toBeLessThanOrEqual(
+      result.retention.afterTwelvePages.retainedHeapBytes + 1_024,
+    );
+    expect(
+      result.retention.afterTwentyFourPages.persistedPages,
+    ).toBeLessThanOrEqual(result.retention.budgets.indexedDbPages);
+    expect(
+      result.retention.afterTwentyFourPages.persistedBytes,
+    ).toBeLessThanOrEqual(result.retention.budgets.indexedDbBytes);
+    expect(
+      result.retention.afterTwentyFourPages.mountedItems,
+    ).toBeLessThanOrEqual(result.retention.budgets.mountedItems);
   });
 });

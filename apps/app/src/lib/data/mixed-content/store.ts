@@ -18,23 +18,31 @@ import {
   replaceScopeInIndexes,
   uniqueReferences,
 } from "./bookmarkProjection";
-import type { LoadedMixedScope, ProjectionIndexes } from "./bookmarkProjection";
+import {
+  filterSuppressedReferences,
+  getMixedRetentionPins,
+  getPersistedMixedContentState,
+  mergeRetainedMixedPage,
+  mixedReferenceKey,
+  retainedMixedReferenceKeys,
+  updateBookmarkPageMembership,
+} from "./page-retention";
+import type { ProjectionIndexes } from "./bookmarkProjection";
+import type {
+  LoadedMixedScope,
+  PersistedMixedContentState,
+  SuppressedReferences,
+} from "./page-retention";
 import type { VisibilityFilter } from "../atoms";
 import type { ApplicationFeedItem, ApplicationView } from "~/server/db/schema";
 import type {
   ApplicationBookmark,
   MixedContentPage,
-  MixedContentReference,
   MixedContentScope,
 } from "~/server/mixed-content/projection";
 
 export { getMixedScopeKey } from "./bookmarkProjection";
-export type { LoadedMixedScope } from "./bookmarkProjection";
-
-type SuppressedReferences = Record<
-  string,
-  Record<string, MixedContentReference[]>
->;
+export type { LoadedMixedScope } from "./page-retention";
 
 type MixedContentStore = {
   scopes: Record<string, LoadedMixedScope>;
@@ -62,7 +70,7 @@ type MixedContentStore = {
 };
 
 const vanillaMixedContentStore = createStore<MixedContentStore>()(
-  persist(
+  persist<MixedContentStore, [], [], PersistedMixedContentState>(
     (set, get) => ({
       scopes: {},
       suppressedReferences: {},
@@ -79,6 +87,15 @@ const vanillaMixedContentStore = createStore<MixedContentStore>()(
         const key = getMixedScopeKey(scope, visibility);
         const current = get();
         const existing = current.scopes[key];
+        const requestCursor = replacesScope ? null : existing?.cursor;
+        const pages = mergeRetainedMixedPage({
+          pages: existing?.pages ?? [],
+          page,
+          requestCursor,
+          replacesScope,
+        });
+        const retainedKeys = retainedMixedReferenceKeys(pages);
+        const pinnedEntityIds = getMixedRetentionPins();
         const nextScope = {
           scope,
           visibility,
@@ -86,7 +103,12 @@ const vanillaMixedContentStore = createStore<MixedContentStore>()(
             replacesScope
               ? page.references
               : [...(existing?.references ?? []), ...page.references],
+          ).filter(
+            (reference) =>
+              retainedKeys.has(mixedReferenceKey(reference)) ||
+              pinnedEntityIds.has(reference.entityId),
           ),
+          pages,
           cursor: page.cursor,
           hasMore: page.hasMore,
         };
@@ -103,7 +125,16 @@ const vanillaMixedContentStore = createStore<MixedContentStore>()(
             feedItems,
           });
         }
-        set({ scopes, projectionIndexes, projectionIndexesComplete: true });
+        set({
+          scopes,
+          suppressedReferences: filterSuppressedReferences(
+            current.suppressedReferences,
+            { [key]: retainedKeys },
+            pinnedEntityIds,
+          ),
+          projectionIndexes,
+          projectionIndexesComplete: true,
+        });
       },
       reprojectUpsert: ({ bookmark, previousBookmark, feedItems, views }) => {
         if (!isBookmarkProjectionChange(previousBookmark, bookmark)) return [];
@@ -201,7 +232,19 @@ const vanillaMixedContentStore = createStore<MixedContentStore>()(
           references = uniqueReferences(references);
           if (referencesEqual(scopeState.references, references)) continue;
 
-          const nextScope = { ...scopeState, references };
+          const nextScope = {
+            ...scopeState,
+            references,
+            pages: updateBookmarkPageMembership(
+              scopeState.pages,
+              bookmark.id,
+              references.some(
+                (reference) =>
+                  reference.entityKind === "bookmark" &&
+                  reference.entityId === bookmark.id,
+              ),
+            ),
+          };
           if (scopes === current.scopes) scopes = { ...current.scopes };
           scopes[key] = nextScope;
           replaceScopeInIndexes({
@@ -266,7 +309,15 @@ const vanillaMixedContentStore = createStore<MixedContentStore>()(
           ]);
           if (referencesEqual(scopeState.references, references)) continue;
 
-          const nextScope = { ...scopeState, references };
+          const nextScope = {
+            ...scopeState,
+            references,
+            pages: updateBookmarkPageMembership(
+              scopeState.pages,
+              bookmarkId,
+              false,
+            ),
+          };
           if (scopes === current.scopes) scopes = { ...current.scopes };
           scopes[key] = nextScope;
           replaceScopeInIndexes({
@@ -301,14 +352,15 @@ const vanillaMixedContentStore = createStore<MixedContentStore>()(
       storage: createNormalizedIDBStorage({
         recordFields: ["scopes", "suppressedReferences"],
       }),
-      partialize: (state) => ({
-        scopes: state.scopes,
-        suppressedReferences: state.suppressedReferences,
-      }),
+      partialize: getPersistedMixedContentState,
       merge: (persistedState, currentState) => {
-        const persisted = persistedState as
-          Partial<MixedContentStore> | undefined;
-        const scopes = persisted?.scopes ?? {};
+        const persisted = persistedState as Partial<MixedContentStore>;
+        const scopes = Object.fromEntries(
+          Object.entries(persisted?.scopes ?? {}).map(([key, scope]) => [
+            key,
+            { ...scope, pages: scope.pages ?? [] },
+          ]),
+        );
         return {
           ...currentState,
           ...(persisted ?? {}),

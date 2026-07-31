@@ -44,6 +44,7 @@ import { useViewFeeds } from "~/lib/data/view-feeds/store";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { ArticleSidebars } from "~/components/feed/read/ArticleSidebars";
+import { useRetentionPin } from "~/lib/hooks/useRetentionPin";
 
 const parser = unified()
   .use(rehypeParse, { fragment: true })
@@ -67,6 +68,7 @@ export const Route = createFileRoute("/_app/read/$id")({
 function ReadPage() {
   const params = Route.useParams();
   const router = useRouter();
+  useRetentionPin("feed-item", params.id);
 
   const [articleStyle] = useFlagState("ARTICLE_STYLE");
 

@@ -30,6 +30,12 @@ import {
   getFirstRenderedFeedItemId,
   useScrollToFeedItem,
 } from "~/lib/hooks/useScrollToFeedItem";
+import {
+  clearRetainedEntityPins,
+  setRetainedEntityPins,
+} from "~/lib/data/page-retention";
+
+let nextUndoRetentionOwnerId = 0;
 
 export function MarkVisibleAsReadButton() {
   const [isLoading, setIsLoading] = useState(false);
@@ -76,11 +82,9 @@ export function MarkVisibleAsReadButton() {
 
       await bulkMutation.mutateAsync({ items, isWatched: true });
 
-      showUndoToast({
-        message: `Marked ${items.length} item${items.length === 1 ? "" : "s"} as read`,
-        onUndo: async () => {
-          await setBulkWatchedValue({ items, isWatched: false });
-        },
+      const undoRetentionOwner = `undo:mark-visible:${++nextUndoRetentionOwnerId}`;
+      setRetainedEntityPins(undoRetentionOwner, {
+        feedItemIds: items.map((item) => item.id),
       });
 
       // Determine active filter type (priority: feed > category > view)
@@ -89,26 +93,39 @@ export function MarkVisibleAsReadButton() {
 
       // Force one refill request after the mutation. Marking items as read can
       // make a previously exhausted page eligible for fresh unread content.
-      switch (activeFilterType) {
-        case "feed": {
-          await fetchMoreItemsForFeed(feedFilter, visibilityFilter, {
-            force: true,
-          });
-          break;
-        }
-        case "category": {
-          await fetchMoreItemsForCategory(categoryFilter, visibilityFilter, {
-            force: true,
-          });
-          break;
-        }
-        default: {
-          if (viewFilter?.id) {
-            await fetchMoreItems(viewFilter.id, visibilityFilter, {
+      try {
+        switch (activeFilterType) {
+          case "feed": {
+            await fetchMoreItemsForFeed(feedFilter, visibilityFilter, {
               force: true,
             });
+            break;
+          }
+          case "category": {
+            await fetchMoreItemsForCategory(categoryFilter, visibilityFilter, {
+              force: true,
+            });
+            break;
+          }
+          default: {
+            if (viewFilter?.id) {
+              await fetchMoreItems(viewFilter.id, visibilityFilter, {
+                force: true,
+              });
+            }
           }
         }
+      } finally {
+        // The refill response reflects the completed mark-as-read mutation.
+        // Exposing Undo afterward prevents a fast shortcut from restoring the
+        // item before that older response replaces the scope membership.
+        showUndoToast({
+          message: `Marked ${items.length} item${items.length === 1 ? "" : "s"} as read`,
+          onUndo: async () => {
+            await setBulkWatchedValue({ items, isWatched: false });
+          },
+          onDismiss: () => clearRetainedEntityPins(undoRetentionOwner),
+        });
       }
 
       selectFirstRenderedItem();

@@ -1,4 +1,8 @@
 import type { ApplicationFeedItem } from "~/server/db/schema";
+import {
+  clearRetainedEntityPins,
+  setRetainedEntityPins,
+} from "~/lib/data/page-retention";
 
 type PendingFieldOverride<T> = {
   token: object;
@@ -23,6 +27,9 @@ function setPendingFieldOverride<T>(
   pendingFeedItemOverrides.set(itemId, {
     ...pendingFeedItemOverrides.get(itemId),
     [field]: { token, value, updatedAt },
+  });
+  setRetainedEntityPins(`optimistic:feed-item:${itemId}`, {
+    feedItemIds: [itemId],
   });
   return token;
 }
@@ -66,6 +73,7 @@ export function clearPendingFeedItemOverride(
 
   if (Object.keys(nextOverrides).length === 0) {
     pendingFeedItemOverrides.delete(itemId);
+    clearRetainedEntityPins(`optimistic:feed-item:${itemId}`);
   } else {
     pendingFeedItemOverrides.set(itemId, nextOverrides);
   }
@@ -95,5 +103,8 @@ export function applyPendingFeedItemOverrides(item: ApplicationFeedItem) {
 }
 
 export function clearPendingFeedItemOverrides() {
+  for (const itemId of pendingFeedItemOverrides.keys()) {
+    clearRetainedEntityPins(`optimistic:feed-item:${itemId}`);
+  }
   pendingFeedItemOverrides.clear();
 }
