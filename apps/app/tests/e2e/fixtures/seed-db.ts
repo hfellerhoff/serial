@@ -2,8 +2,12 @@ import { randomBytes } from "node:crypto";
 import { createClient } from "@libsql/client";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/libsql";
+import { createId } from "@paralleldrive/cuid2";
+import { hashPassword } from "better-auth/crypto";
 import * as schema from "../../../src/server/db/schema";
+import { seedBenchmarkFixture } from "../../../scripts/performance/fixtures";
 import { SELF_HOSTED_RSS_SERVER_PORT } from "./ports";
+import type { BenchmarkProfileName } from "../../../scripts/performance/model";
 
 const ARTICLE_HTML = Array.from(
   { length: 20 },
@@ -31,6 +35,30 @@ export async function cleanupUser(tursoPort: number, email: string) {
   const { db, client } = getDb(tursoPort);
   await db.delete(schema.user).where(eq(schema.user.email, email));
   client.close();
+}
+
+export async function seedClientPerformanceData(
+  tursoPort: number,
+  profileName: BenchmarkProfileName,
+) {
+  const { db, client } = getDb(tursoPort);
+  const userId = `client-performance-${uniqueId()}`;
+  const email = `${userId}@benchmark.invalid`;
+  const password = "testpassword123";
+  await seedBenchmarkFixture({ database: db, profileName, userId });
+  const hashedPassword = await hashPassword(password);
+  const now = new Date();
+  await db.insert(schema.account).values({
+    id: createId(),
+    accountId: userId,
+    providerId: "credential",
+    userId,
+    password: hashedPassword,
+    createdAt: now,
+    updatedAt: now,
+  });
+  client.close();
+  return { userId, email, password };
 }
 
 export async function getFeedItemProgress(tursoPort: number, id: string) {

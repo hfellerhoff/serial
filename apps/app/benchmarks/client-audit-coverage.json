@@ -1,0 +1,2481 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-31",
+  "scope": "All client/shared routes, components, hooks, state, subscription, persistence, rendering, styles, and browser entry code under apps/app/src.",
+  "files": 309,
+  "findings": { "CL-01": 5, "CL-02": 4, "CL-03": 8, "CL-04": 6, "CL-05": 5 },
+  "coverage": [
+    {
+      "file": "src/app/__root.tsx",
+      "classification": "route",
+      "lines": 180,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/_app.admin.index.tsx",
+      "classification": "route",
+      "lines": 8,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/_app.admin.info.tsx",
+      "classification": "route",
+      "lines": 8,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/_app.admin.invites.tsx",
+      "classification": "route",
+      "lines": 57,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/_app.admin.settings.tsx",
+      "classification": "route",
+      "lines": 28,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/_app.admin.stats.tsx",
+      "classification": "route",
+      "lines": 32,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/_app.admin.user.$id.tsx",
+      "classification": "route",
+      "lines": 25,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/_app.admin.users.tsx",
+      "classification": "route",
+      "lines": 26,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/_app.debug.tsx",
+      "classification": "route",
+      "lines": 24,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/_app.feeds.tsx",
+      "classification": "route",
+      "lines": 786,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/_app.import.tsx",
+      "classification": "route",
+      "lines": 630,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/_app.index.tsx",
+      "classification": "route",
+      "lines": 128,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/_app.read.$id.tsx",
+      "classification": "route",
+      "lines": 299,
+      "status": "finding",
+      "findings": ["CL-05"],
+      "result": "Reviewed; contributes to CL-05."
+    },
+    {
+      "file": "src/app/_app.tags.tsx",
+      "classification": "route",
+      "lines": 415,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/_app.tsx",
+      "classification": "route",
+      "lines": 306,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/_app.views.tsx",
+      "classification": "route",
+      "lines": 386,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/_app.watch.$id.tsx",
+      "classification": "route",
+      "lines": 74,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/auth.connect-extension.tsx",
+      "classification": "route",
+      "lines": 130,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/auth.reset.tsx",
+      "classification": "route",
+      "lines": 44,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/auth.sign-in.tsx",
+      "classification": "route",
+      "lines": 217,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/auth.sign-up.tsx",
+      "classification": "route",
+      "lines": 224,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/auth.tsx",
+      "classification": "route",
+      "lines": 45,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/auth.verify-email.tsx",
+      "classification": "route",
+      "lines": 149,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/app/maintenance.tsx",
+      "classification": "route",
+      "lines": 40,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/AddContentCategoryDialog.tsx",
+      "classification": "component",
+      "lines": 4,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/AddFeedDialog.tsx",
+      "classification": "component",
+      "lines": 522,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ButtonWithShortcut.tsx",
+      "classification": "component",
+      "lines": 52,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ConnectionsDialog.tsx",
+      "classification": "component",
+      "lines": 59,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/CustomVideoDialog.tsx",
+      "classification": "component",
+      "lines": 74,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/CustomVideoPlayer/CustomVideoPlayerProvider.tsx",
+      "classification": "component",
+      "lines": 488,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/CustomVideoPlayer/YouTubePlayerErrorOverlay.tsx",
+      "classification": "component",
+      "lines": 46,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/CustomVideoPlayer/constants.ts",
+      "classification": "component",
+      "lines": 89,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/CustomVideoPlayer/index.tsx",
+      "classification": "component",
+      "lines": 543,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/CustomVideoPlayer/useYouTubeVideoShortcuts.tsx",
+      "classification": "component",
+      "lines": 157,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/DemoBanner.tsx",
+      "classification": "component",
+      "lines": 74,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ImpersonationBanner.tsx",
+      "classification": "component",
+      "lines": 62,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ImportLoading.tsx",
+      "classification": "component",
+      "lines": 32,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/LeftSidebarBottomNav.tsx",
+      "classification": "component",
+      "lines": 89,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ResponsiveVideo.module.css",
+      "classification": "component",
+      "lines": 27,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ResponsiveVideo.tsx",
+      "classification": "component",
+      "lines": 113,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/SerialLogo.tsx",
+      "classification": "component",
+      "lines": 12,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ThemeProvider.tsx",
+      "classification": "component",
+      "lines": 13,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/admin/AdminInviteList.tsx",
+      "classification": "component",
+      "lines": 239,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/admin/AdminSessionList.tsx",
+      "classification": "component",
+      "lines": 141,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/admin/AdminTabs.tsx",
+      "classification": "component",
+      "lines": 67,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/admin/AdminUserActions.tsx",
+      "classification": "component",
+      "lines": 146,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/admin/AdminUserDetails.tsx",
+      "classification": "component",
+      "lines": 118,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/admin/AdminUserList.tsx",
+      "classification": "component",
+      "lines": 125,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/admin/AdminUserRow.tsx",
+      "classification": "component",
+      "lines": 48,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/admin/EditInviteDialog.tsx",
+      "classification": "component",
+      "lines": 272,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/admin/InviteUserDialog.tsx",
+      "classification": "component",
+      "lines": 330,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/admin/PublicSignupToggle.tsx",
+      "classification": "component",
+      "lines": 231,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/admin/SendInviteDialog.tsx",
+      "classification": "component",
+      "lines": 93,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/admin/SignupNotificationSetting.tsx",
+      "classification": "component",
+      "lines": 114,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/admin/UserFeedCountChart.tsx",
+      "classification": "component",
+      "lines": 113,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/admin/UserRetentionChart.tsx",
+      "classification": "component",
+      "lines": 215,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/admin/UserSigninsChart.tsx",
+      "classification": "component",
+      "lines": 106,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/admin/UserSignupsChart.tsx",
+      "classification": "component",
+      "lines": 106,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/app-sidebar.tsx",
+      "classification": "component",
+      "lines": 70,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/auth/AuthHeader.tsx",
+      "classification": "component",
+      "lines": 23,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/auth/reset/AuthResetPageComponent.tsx",
+      "classification": "component",
+      "lines": 206,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/brand-icons.tsx",
+      "classification": "component",
+      "lines": 19,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/color-theme/AppearanceTabs.tsx",
+      "classification": "component",
+      "lines": 30,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/color-theme/ArticlesTab.tsx",
+      "classification": "component",
+      "lines": 186,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/color-theme/ColorThemePopoverButton.tsx",
+      "classification": "component",
+      "lines": 42,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/color-theme/DesignTab.tsx",
+      "classification": "component",
+      "lines": 275,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/color-theme/EnableCustomVideoPlayerToggle.tsx",
+      "classification": "component",
+      "lines": 30,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/color-theme/ShowArticleStyleToggle.tsx",
+      "classification": "component",
+      "lines": 33,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/color-theme/ShowShortcutsToggle.tsx",
+      "classification": "component",
+      "lines": 31,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/color-theme/VideosTab.tsx",
+      "classification": "component",
+      "lines": 6,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/connections/InstapaperConnection.tsx",
+      "classification": "component",
+      "lines": 175,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/content-category-dialog/AddContentCategoryDialog.tsx",
+      "classification": "component",
+      "lines": 88,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/content-category-dialog/BulkAssignFeedsToTagsContent.tsx",
+      "classification": "component",
+      "lines": 76,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/content-category-dialog/BulkAssignFeedsToTagsDialog.tsx",
+      "classification": "component",
+      "lines": 31,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/content-category-dialog/CategoryFeedsInput.tsx",
+      "classification": "component",
+      "lines": 33,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/content-category-dialog/CategoryNameInput.tsx",
+      "classification": "component",
+      "lines": 32,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/content-category-dialog/EditContentCategoryDialog.tsx",
+      "classification": "component",
+      "lines": 41,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/content-category-dialog/EditContentCategoryDialogContent.tsx",
+      "classification": "component",
+      "lines": 134,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/debug/ClientPerformanceProfiler.tsx",
+      "classification": "component",
+      "lines": 59,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/debug/FeedRefreshTimeframesChart.tsx",
+      "classification": "component",
+      "lines": 134,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed-discovery/FeedDiscoveryCommand.tsx",
+      "classification": "component",
+      "lines": 237,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed-discovery/FeedDiscoveryResults.tsx",
+      "classification": "component",
+      "lines": 6,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed-discovery/feedSearchOptions.ts",
+      "classification": "component",
+      "lines": 39,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed-discovery/useFeedDiscovery.ts",
+      "classification": "component",
+      "lines": 75,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/AppDialogs.tsx",
+      "classification": "component",
+      "lines": 34,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/ClientDatetime.tsx",
+      "classification": "component",
+      "lines": 23,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/FeedListItem.tsx",
+      "classification": "component",
+      "lines": 177,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/FeedLoader.tsx",
+      "classification": "component",
+      "lines": 23,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/FeedManagementTabs.tsx",
+      "classification": "component",
+      "lines": 56,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/Header.tsx",
+      "classification": "component",
+      "lines": 48,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/HeaderCenterContent.tsx",
+      "classification": "component",
+      "lines": 88,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/ItemVisibilityChips.tsx",
+      "classification": "component",
+      "lines": 50,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/ManageFeedsButton.tsx",
+      "classification": "component",
+      "lines": 33,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/MarkVisibleAsReadButton.tsx",
+      "classification": "component",
+      "lines": 148,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/OpenRightSidebarButton.tsx",
+      "classification": "component",
+      "lines": 21,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/RefetchItemsButton.tsx",
+      "classification": "component",
+      "lines": 136,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/SidebarCategories.tsx",
+      "classification": "component",
+      "lines": 163,
+      "status": "finding",
+      "findings": ["CL-03"],
+      "result": "Reviewed; contributes to CL-03."
+    },
+    {
+      "file": "src/components/feed/SidebarFeeds.tsx",
+      "classification": "component",
+      "lines": 528,
+      "status": "finding",
+      "findings": ["CL-03"],
+      "result": "Reviewed; contributes to CL-03."
+    },
+    {
+      "file": "src/components/feed/SidebarViews.tsx",
+      "classification": "component",
+      "lines": 223,
+      "status": "finding",
+      "findings": ["CL-03"],
+      "result": "Reviewed; contributes to CL-03."
+    },
+    {
+      "file": "src/components/feed/TopLeftButton.tsx",
+      "classification": "component",
+      "lines": 59,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/TopRightHeaderContent.tsx",
+      "classification": "component",
+      "lines": 107,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/UserManagementButton.tsx",
+      "classification": "component",
+      "lines": 165,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/UserProfileEditDialog/DeleteAccountSection.tsx",
+      "classification": "component",
+      "lines": 149,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/UserProfileEditDialog/ExportDataSection.tsx",
+      "classification": "component",
+      "lines": 72,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/UserProfileEditDialog/index.tsx",
+      "classification": "component",
+      "lines": 150,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/ViewFilterChips.tsx",
+      "classification": "component",
+      "lines": 87,
+      "status": "finding",
+      "findings": ["CL-03"],
+      "result": "Reviewed; contributes to CL-03."
+    },
+    {
+      "file": "src/components/feed/dialogStore.ts",
+      "classification": "component",
+      "lines": 60,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/import/GlobalImportDropzone.tsx",
+      "classification": "component",
+      "lines": 121,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/import/ImportDropzone.tsx",
+      "classification": "component",
+      "lines": 66,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/import/utils/getInitialFeedDataFromCSVInput.ts",
+      "classification": "component",
+      "lines": 61,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/import/utils/getInitialFeedDataFromFileInputElement.ts",
+      "classification": "component",
+      "lines": 87,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/import/utils/getInitialFeedDataFromOPMLInput.ts",
+      "classification": "component",
+      "lines": 170,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/import/utils/shared.ts",
+      "classification": "component",
+      "lines": 64,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/read/ArticleContent.tsx",
+      "classification": "component",
+      "lines": 162,
+      "status": "finding",
+      "findings": ["CL-05"],
+      "result": "Reviewed; contributes to CL-05."
+    },
+    {
+      "file": "src/components/feed/read/ArticleImageLightbox.tsx",
+      "classification": "component",
+      "lines": 58,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/read/ArticleSidebars.tsx",
+      "classification": "component",
+      "lines": 984,
+      "status": "finding",
+      "findings": ["CL-05"],
+      "result": "Reviewed; contributes to CL-05."
+    },
+    {
+      "file": "src/components/feed/read/article.module.css",
+      "classification": "component",
+      "lines": 201,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/read/innerDocumentLinks.ts",
+      "classification": "component",
+      "lines": 164,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/subscription-dialog/BillingCycleSwitchButton.tsx",
+      "classification": "component",
+      "lines": 28,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/subscription-dialog/CurrentPlanContent.tsx",
+      "classification": "component",
+      "lines": 144,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/subscription-dialog/EmailVerificationBanner.tsx",
+      "classification": "component",
+      "lines": 117,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/subscription-dialog/FreePlanCard.tsx",
+      "classification": "component",
+      "lines": 98,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/subscription-dialog/PlanSwitchConfirmation.tsx",
+      "classification": "component",
+      "lines": 117,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/subscription-dialog/ProPlanCard.tsx",
+      "classification": "component",
+      "lines": 136,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/subscription-dialog/StandardPlanCards.tsx",
+      "classification": "component",
+      "lines": 165,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/subscription-dialog/SubscriptionDialog.tsx",
+      "classification": "component",
+      "lines": 62,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/subscription-dialog/SubscriptionDialogBody.tsx",
+      "classification": "component",
+      "lines": 95,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/subscription-dialog/SubscriptionDialogFooter.tsx",
+      "classification": "component",
+      "lines": 84,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/subscription-dialog/constants.ts",
+      "classification": "component",
+      "lines": 49,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/subscription-dialog/context.tsx",
+      "classification": "component",
+      "lines": 49,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/subscription-dialog/index.ts",
+      "classification": "component",
+      "lines": 5,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/subscription-dialog/types.ts",
+      "classification": "component",
+      "lines": 16,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/subscription-dialog/useSubscriptionDialogController.ts",
+      "classification": "component",
+      "lines": 268,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/subscription-dialog/utils.ts",
+      "classification": "component",
+      "lines": 103,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/useManagementShortcuts.ts",
+      "classification": "component",
+      "lines": 62,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/view-lists/EmptyStates.tsx",
+      "classification": "component",
+      "lines": 88,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/view-lists/FlipItem.tsx",
+      "classification": "component",
+      "lines": 21,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/view-lists/ItemDisplay.tsx",
+      "classification": "component",
+      "lines": 683,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/view-lists/PaginationEnd.tsx",
+      "classification": "component",
+      "lines": 10,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/view-lists/PaginationLoader.tsx",
+      "classification": "component",
+      "lines": 15,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/view-lists/RenderViewItems.tsx",
+      "classification": "component",
+      "lines": 415,
+      "status": "finding",
+      "findings": ["CL-05"],
+      "result": "Reviewed; contributes to CL-05."
+    },
+    {
+      "file": "src/components/feed/view-lists/ViewItemGrid.tsx",
+      "classification": "component",
+      "lines": 49,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/view-lists/ViewItemLargeGrid.tsx",
+      "classification": "component",
+      "lines": 49,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/view-lists/ViewItemLargeList.tsx",
+      "classification": "component",
+      "lines": 46,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/view-lists/ViewItemStandardList.tsx",
+      "classification": "component",
+      "lines": 46,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/view-lists/ViewListContainer.tsx",
+      "classification": "component",
+      "lines": 17,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/view-lists/index.ts",
+      "classification": "component",
+      "lines": 2,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/view-lists/skeletons.tsx",
+      "classification": "component",
+      "lines": 104,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/view-lists/useViewListScroll.tsx",
+      "classification": "component",
+      "lines": 109,
+      "status": "finding",
+      "findings": ["CL-04"],
+      "result": "Reviewed; contributes to CL-04."
+    },
+    {
+      "file": "src/components/feed/view-lists/useViewSections.ts",
+      "classification": "component",
+      "lines": 194,
+      "status": "finding",
+      "findings": ["CL-05"],
+      "result": "Reviewed; contributes to CL-05."
+    },
+    {
+      "file": "src/components/feed/watch/[id]/ContentActions.tsx",
+      "classification": "component",
+      "lines": 172,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/watch/[id]/VideoDisplay.tsx",
+      "classification": "component",
+      "lines": 135,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/watch/[id]/useVideoNavigationShortcuts.ts",
+      "classification": "component",
+      "lines": 75,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/watch/[id]/useView.tsx",
+      "classification": "component",
+      "lines": 19,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/feed/watch/[id]/useZoom.tsx",
+      "classification": "component",
+      "lines": 146,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/form/EditableSavableTextField.tsx",
+      "classification": "component",
+      "lines": 196,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/loading.tsx",
+      "classification": "component",
+      "lines": 15,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/pwa/ReloadPrompt.tsx",
+      "classification": "component",
+      "lines": 130,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/releases/ReleaseNotifier.tsx",
+      "classification": "component",
+      "lines": 16,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/releases/ReleaseNotifierClient.tsx",
+      "classification": "component",
+      "lines": 58,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/alert.tsx",
+      "classification": "ui-primitive",
+      "lines": 2,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/avatar.tsx",
+      "classification": "ui-primitive",
+      "lines": 110,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/badge.tsx",
+      "classification": "ui-primitive",
+      "lines": 27,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/button.tsx",
+      "classification": "ui-primitive",
+      "lines": 27,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/calendar.tsx",
+      "classification": "ui-primitive",
+      "lines": 251,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/card-radio-group.tsx",
+      "classification": "ui-primitive",
+      "lines": 79,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/card.tsx",
+      "classification": "ui-primitive",
+      "lines": 10,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/chart.tsx",
+      "classification": "ui-primitive",
+      "lines": 405,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/checkbox.tsx",
+      "classification": "ui-primitive",
+      "lines": 33,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/chip-combobox.tsx",
+      "classification": "ui-primitive",
+      "lines": 368,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/command.tsx",
+      "classification": "ui-primitive",
+      "lines": 169,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/component-variants.ts",
+      "classification": "ui-primitive",
+      "lines": 77,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/dialog.tsx",
+      "classification": "ui-primitive",
+      "lines": 141,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/drawer.tsx",
+      "classification": "ui-primitive",
+      "lines": 131,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/dropdown-menu.tsx",
+      "classification": "ui-primitive",
+      "lines": 243,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/hover-card.tsx",
+      "classification": "ui-primitive",
+      "lines": 36,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/input.tsx",
+      "classification": "ui-primitive",
+      "lines": 3,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/label.tsx",
+      "classification": "ui-primitive",
+      "lines": 2,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/popover.tsx",
+      "classification": "ui-primitive",
+      "lines": 38,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/progress.tsx",
+      "classification": "ui-primitive",
+      "lines": 32,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/radio-group.tsx",
+      "classification": "ui-primitive",
+      "lines": 46,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/responsive-dropdown.tsx",
+      "classification": "ui-primitive",
+      "lines": 227,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/selectable-chip-list.tsx",
+      "classification": "ui-primitive",
+      "lines": 332,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/selectable-chip-list.utils.ts",
+      "classification": "ui-primitive",
+      "lines": 16,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/separator.tsx",
+      "classification": "ui-primitive",
+      "lines": 29,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/sheet.tsx",
+      "classification": "ui-primitive",
+      "lines": 153,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/sidebar.tsx",
+      "classification": "ui-primitive",
+      "lines": 732,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/skeleton.tsx",
+      "classification": "ui-primitive",
+      "lines": 15,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/slider.tsx",
+      "classification": "ui-primitive",
+      "lines": 31,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/sonner.tsx",
+      "classification": "ui-primitive",
+      "lines": 36,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/switch.tsx",
+      "classification": "ui-primitive",
+      "lines": 32,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/tabs.tsx",
+      "classification": "ui-primitive",
+      "lines": 2,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/toggle-group.tsx",
+      "classification": "ui-primitive",
+      "lines": 79,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/ui/tooltip.tsx",
+      "classification": "ui-primitive",
+      "lines": 62,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/view-dialog/AddViewDialog.tsx",
+      "classification": "component",
+      "lines": 155,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/view-dialog/BulkEditViewsDialog.tsx",
+      "classification": "component",
+      "lines": 136,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/view-dialog/ContentTab.tsx",
+      "classification": "component",
+      "lines": 61,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/view-dialog/DisplayTab.tsx",
+      "classification": "component",
+      "lines": 50,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/view-dialog/EditViewDialog.tsx",
+      "classification": "component",
+      "lines": 266,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/view-dialog/ViewSectionAddDropdown.tsx",
+      "classification": "component",
+      "lines": 160,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/view-dialog/ViewSectionList.tsx",
+      "classification": "component",
+      "lines": 308,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/view-dialog/index.ts",
+      "classification": "component",
+      "lines": 6,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/components/view-dialog/inputs.tsx",
+      "classification": "component",
+      "lines": 238,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/hooks/use-mobile.ts",
+      "classification": "hook",
+      "lines": 22,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/auth-client.ts",
+      "classification": "client-shared",
+      "lines": 26,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/auth/constants.ts",
+      "classification": "client-shared",
+      "lines": 4,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/constants.ts",
+      "classification": "client-shared",
+      "lines": 80,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/constants/article-fonts.ts",
+      "classification": "client-shared",
+      "lines": 13,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/constants/shortcuts.ts",
+      "classification": "client-shared",
+      "lines": 92,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/InitialClientQueries.tsx",
+      "classification": "state-sync-persistence",
+      "lines": 83,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/atoms.ts",
+      "classification": "state-sync-persistence",
+      "lines": 73,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/bookmarks/manifest.ts",
+      "classification": "state-sync-persistence",
+      "lines": 15,
+      "status": "finding",
+      "findings": ["CL-01"],
+      "result": "Reviewed; contributes to CL-01."
+    },
+    {
+      "file": "src/lib/data/bookmarks/store.ts",
+      "classification": "state-sync-persistence",
+      "lines": 64,
+      "status": "finding",
+      "findings": ["CL-01", "CL-02", "CL-04"],
+      "result": "Reviewed; contributes to CL-01, CL-02, CL-04."
+    },
+    {
+      "file": "src/lib/data/captions/store.ts",
+      "classification": "state-sync-persistence",
+      "lines": 31,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/clientChannel.ts",
+      "classification": "state-sync-persistence",
+      "lines": 18,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/combineAbortSignals.ts",
+      "classification": "state-sync-persistence",
+      "lines": 42,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/content-categories/index.ts",
+      "classification": "state-sync-persistence",
+      "lines": 15,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/content-categories/mutations.ts",
+      "classification": "state-sync-persistence",
+      "lines": 53,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/content-categories/store.ts",
+      "classification": "state-sync-persistence",
+      "lines": 132,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/createSelectorHooks.ts",
+      "classification": "state-sync-persistence",
+      "lines": 35,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/export/buildOPML.ts",
+      "classification": "state-sync-persistence",
+      "lines": 99,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/export/buildViewOPML.ts",
+      "classification": "state-sync-persistence",
+      "lines": 251,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/feed-categories/index.ts",
+      "classification": "state-sync-persistence",
+      "lines": 15,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/feed-categories/mutations.ts",
+      "classification": "state-sync-persistence",
+      "lines": 28,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/feed-categories/store.ts",
+      "classification": "state-sync-persistence",
+      "lines": 125,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/feed-items/clientFilters.ts",
+      "classification": "state-sync-persistence",
+      "lines": 190,
+      "status": "finding",
+      "findings": ["CL-03"],
+      "result": "Reviewed; contributes to CL-03."
+    },
+    {
+      "file": "src/lib/data/feed-items/filters.ts",
+      "classification": "state-sync-persistence",
+      "lines": 287,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/feed-items/index.ts",
+      "classification": "state-sync-persistence",
+      "lines": 230,
+      "status": "finding",
+      "findings": ["CL-03"],
+      "result": "Reviewed; contributes to CL-03."
+    },
+    {
+      "file": "src/lib/data/feed-items/mergeFeedItem.ts",
+      "classification": "state-sync-persistence",
+      "lines": 80,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/feed-items/mutations.ts",
+      "classification": "state-sync-persistence",
+      "lines": 280,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/feed-items/pendingMutations.ts",
+      "classification": "state-sync-persistence",
+      "lines": 100,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/feeds/index.ts",
+      "classification": "state-sync-persistence",
+      "lines": 18,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/feeds/mutations.ts",
+      "classification": "state-sync-persistence",
+      "lines": 209,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/feeds/store.ts",
+      "classification": "state-sync-persistence",
+      "lines": 155,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/feeds/utils.ts",
+      "classification": "state-sync-persistence",
+      "lines": 9,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/hydration.ts",
+      "classification": "state-sync-persistence",
+      "lines": 26,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/idb-storage.ts",
+      "classification": "state-sync-persistence",
+      "lines": 110,
+      "status": "finding",
+      "findings": ["CL-02"],
+      "result": "Reviewed; contributes to CL-02."
+    },
+    {
+      "file": "src/lib/data/import-drop.ts",
+      "classification": "state-sync-persistence",
+      "lines": 15,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/instapaper/index.ts",
+      "classification": "state-sync-persistence",
+      "lines": 56,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/loading-machine.ts",
+      "classification": "state-sync-persistence",
+      "lines": 389,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/mixed-content/mutations.ts",
+      "classification": "state-sync-persistence",
+      "lines": 81,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/mixed-content/store.ts",
+      "classification": "state-sync-persistence",
+      "lines": 292,
+      "status": "finding",
+      "findings": ["CL-01", "CL-02", "CL-04"],
+      "result": "Reviewed; contributes to CL-01, CL-02, CL-04."
+    },
+    {
+      "file": "src/lib/data/plan-success.ts",
+      "classification": "state-sync-persistence",
+      "lines": 14,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/scopeMembership.ts",
+      "classification": "state-sync-persistence",
+      "lines": 173,
+      "status": "finding",
+      "findings": ["CL-03"],
+      "result": "Reviewed; contributes to CL-03."
+    },
+    {
+      "file": "src/lib/data/store.ts",
+      "classification": "state-sync-persistence",
+      "lines": 2029,
+      "status": "finding",
+      "findings": ["CL-02", "CL-03", "CL-04"],
+      "result": "Reviewed; contributes to CL-02, CL-03, CL-04."
+    },
+    {
+      "file": "src/lib/data/subscription.ts",
+      "classification": "state-sync-persistence",
+      "lines": 20,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/subscriptionCoordinator.ts",
+      "classification": "state-sync-persistence",
+      "lines": 65,
+      "status": "finding",
+      "findings": ["CL-01"],
+      "result": "Reviewed; contributes to CL-01."
+    },
+    {
+      "file": "src/lib/data/useDataSubscription.ts",
+      "classification": "hook",
+      "lines": 414,
+      "status": "finding",
+      "findings": ["CL-01"],
+      "result": "Reviewed; contributes to CL-01."
+    },
+    {
+      "file": "src/lib/data/useStoreHydration.ts",
+      "classification": "hook",
+      "lines": 49,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/user/useDeleteAccountMutation.ts",
+      "classification": "hook",
+      "lines": 16,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/user/useUpdateNameMutation.ts",
+      "classification": "hook",
+      "lines": 7,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/view-feeds/index.ts",
+      "classification": "state-sync-persistence",
+      "lines": 15,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/view-feeds/mutations.ts",
+      "classification": "state-sync-persistence",
+      "lines": 36,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/view-feeds/store.ts",
+      "classification": "state-sync-persistence",
+      "lines": 123,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/views/constants.ts",
+      "classification": "state-sync-persistence",
+      "lines": 3,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/views/index.ts",
+      "classification": "state-sync-persistence",
+      "lines": 135,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/views/mutations.ts",
+      "classification": "state-sync-persistence",
+      "lines": 109,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/views/store.ts",
+      "classification": "state-sync-persistence",
+      "lines": 168,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/views/utils.ts",
+      "classification": "state-sync-persistence",
+      "lines": 14,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/demo.ts",
+      "classification": "client-shared",
+      "lines": 3,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/doesAnyFormElementHaveFocus.ts",
+      "classification": "client-shared",
+      "lines": 11,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/extension-auth.ts",
+      "classification": "client-shared",
+      "lines": 128,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/use-media-query.ts",
+      "classification": "hook",
+      "lines": 20,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useAltKeyHeld.ts",
+      "classification": "hook",
+      "lines": 45,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useArticleNavigation.ts",
+      "classification": "hook",
+      "lines": 399,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useDebouncedSaveProgress.ts",
+      "classification": "hook",
+      "lines": 72,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useFeedItemActions.ts",
+      "classification": "hook",
+      "lines": 123,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useFeedItemNavigation.ts",
+      "classification": "hook",
+      "lines": 670,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useFlagState.ts",
+      "classification": "hook",
+      "lines": 100,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useFlipItems.ts",
+      "classification": "hook",
+      "lines": 276,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useInfiniteScroll.ts",
+      "classification": "hook",
+      "lines": 105,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useIsInactive.tsx",
+      "classification": "hook",
+      "lines": 62,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useItemWindow.ts",
+      "classification": "hook",
+      "lines": 53,
+      "status": "finding",
+      "findings": ["CL-04"],
+      "result": "Reviewed; contributes to CL-04."
+    },
+    {
+      "file": "src/lib/hooks/useLazyCategoryFilter.ts",
+      "classification": "hook",
+      "lines": 30,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useLazyFeedFilter.ts",
+      "classification": "hook",
+      "lines": 30,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useLoadMoreItems.ts",
+      "classification": "hook",
+      "lines": 97,
+      "status": "finding",
+      "findings": ["CL-04"],
+      "result": "Reviewed; contributes to CL-04."
+    },
+    {
+      "file": "src/lib/hooks/useOpenOriginalShortcut.ts",
+      "classification": "hook",
+      "lines": 13,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useRefreshFeedItem.ts",
+      "classification": "hook",
+      "lines": 38,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useSaveProgress.ts",
+      "classification": "hook",
+      "lines": 60,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useScrollDirection.ts",
+      "classification": "hook",
+      "lines": 54,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useScrollToFeedItem.ts",
+      "classification": "hook",
+      "lines": 64,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useShiftSelect.ts",
+      "classification": "hook",
+      "lines": 55,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useShortcut.ts",
+      "classification": "hook",
+      "lines": 157,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useShowShortcuts.ts",
+      "classification": "hook",
+      "lines": 12,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useValidateViewItems.ts",
+      "classification": "hook",
+      "lines": 93,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/iterators.ts",
+      "classification": "client-shared",
+      "lines": 29,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/orpc.ts",
+      "classification": "client-shared",
+      "lines": 15,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/public-config.ts",
+      "classification": "client-shared",
+      "lines": 43,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/query-client.ts",
+      "classification": "client-shared",
+      "lines": 60,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/query-provider.tsx",
+      "classification": "client-shared",
+      "lines": 19,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/schemas/utils.ts",
+      "classification": "client-shared",
+      "lines": 15,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/scroll.ts",
+      "classification": "client-shared",
+      "lines": 91,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/semaphore.ts",
+      "classification": "client-shared",
+      "lines": 62,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/sortFeedItems.ts",
+      "classification": "client-shared",
+      "lines": 146,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/transformSecondsToFormattedTime.ts",
+      "classification": "client-shared",
+      "lines": 16,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/undo/UndoShortcutListener.tsx",
+      "classification": "client-shared",
+      "lines": 27,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/undo/UndoToast.tsx",
+      "classification": "client-shared",
+      "lines": 89,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/undo/index.ts",
+      "classification": "client-shared",
+      "lines": 4,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/undo/store.ts",
+      "classification": "client-shared",
+      "lines": 21,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/undo/types.ts",
+      "classification": "client-shared",
+      "lines": 7,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/undo/useUndoToast.tsx",
+      "classification": "hook",
+      "lines": 29,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/utils.ts",
+      "classification": "client-shared",
+      "lines": 50,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/utils/detectTruncatedContent.ts",
+      "classification": "client-shared",
+      "lines": 86,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/utils/truncationAlert.ts",
+      "classification": "client-shared",
+      "lines": 23,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/workerPool.ts",
+      "classification": "client-shared",
+      "lines": 48,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/router.tsx",
+      "classification": "client-shared",
+      "lines": 25,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/start.ts",
+      "classification": "client-shared",
+      "lines": 32,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/styles/globals.css",
+      "classification": "style",
+      "lines": 621,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/sw.ts",
+      "classification": "client-shared",
+      "lines": 182,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    }
+  ]
+}
