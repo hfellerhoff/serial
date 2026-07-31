@@ -78,7 +78,9 @@ export function calculateNextFetch(
 /**
  * Parse HTTP headers from a fetch Response and extract metadata relevant for caching.
  */
-export function parseHttpHeaders(response: Response): FeedFetchMetadata {
+export function parseHttpHeaders(
+  response: Pick<Response, "headers">,
+): FeedFetchMetadata {
   const metadata: FeedFetchMetadata = {};
 
   // ETag header

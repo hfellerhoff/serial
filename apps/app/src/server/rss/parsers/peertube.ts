@@ -9,6 +9,8 @@ import {
   baseFeedSchema,
   extractRssMetadata,
 } from "../types";
+import { readFeedHttp } from "../feedHttp";
+import { boundFeedItems } from "../feedBounds";
 import type { DatabaseFeed } from "~/server/db/schema";
 import type {
   ConditionalHeaders,
@@ -89,7 +91,7 @@ export async function fetchPeerTubeFeedData(
   cached?: ConditionalHeaders,
 ): Promise<FeedFetchResult | null> {
   try {
-    const feedResponse = await fetch(feed.url, {
+    const feedResponse = await readFeedHttp(feed.url, {
       headers: cached ? buildConditionalHeaders(cached) : undefined,
     });
 
@@ -100,8 +102,12 @@ export async function fetchPeerTubeFeedData(
       };
     }
 
-    const text = await feedResponse.text();
-    const rssData = await parser.parseString(text);
+    if (!feedResponse.ok) {
+      throw new Error(
+        `Failed to fetch PeerTube feed: ${feedResponse.status} ${feedResponse.statusText}`,
+      );
+    }
+    const rssData = await parser.parseString(feedResponse.text);
 
     const data = peerTubeSchema.parse(rssData);
 
@@ -115,25 +121,27 @@ export async function fetchPeerTubeFeedData(
       id: feed.id,
       title: data.title,
       url: data.link,
-      items: data.items.flatMap((item) => {
-        const idParts = item.guid.split("/");
-        const id = idParts[idParts.length - 1];
+      items: boundFeedItems(
+        data.items.flatMap((item) => {
+          const idParts = item.guid.split("/");
+          const id = idParts[idParts.length - 1];
 
-        if (!id) return [];
+          if (!id) return [];
 
-        return [
-          {
-            id,
-            title: item.title,
-            publishedDate: item.isoDate,
-            url: item.link,
-            author: item.creator,
-            thumbnail: item["media:thumbnail"].$.url,
-            content: item["media:description"],
-            contentSnippet: item["media:description"],
-          } satisfies RSSContent,
-        ];
-      }),
+          return [
+            {
+              id,
+              title: item.title,
+              publishedDate: item.isoDate,
+              url: item.link,
+              author: item.creator,
+              thumbnail: item["media:thumbnail"].$.url,
+              content: item["media:description"],
+              contentSnippet: item["media:description"],
+            } satisfies RSSContent,
+          ];
+        }),
+      ),
       fetchMetadata,
     };
   } catch (e) {

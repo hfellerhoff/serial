@@ -9,6 +9,8 @@ import {
   baseFeedSchema,
   extractRssMetadata,
 } from "../types";
+import { readFeedHttp } from "../feedHttp";
+import { boundFeedItems } from "../feedBounds";
 import type { DatabaseFeed } from "~/server/db/schema";
 import type {
   ConditionalHeaders,
@@ -74,14 +76,13 @@ export async function fetchNebulaFeedDetails(
 ): Promise<NewFeedDetails | null> {
   try {
     const rssUrl = convertNebulaUrlToRssUrl(url);
-    const response = await fetch(rssUrl);
+    const response = await readFeedHttp(rssUrl);
     if (!response.ok) {
       throw new Error(
         `Failed to fetch Nebula feed: ${response.status} ${response.statusText}`,
       );
     }
-    const text = await response.text();
-    const rssData = await parser.parseString(text);
+    const rssData = await parser.parseString(response.text);
 
     const { data: nebulaData, success } = nebulaSchema.safeParse(rssData);
 
@@ -105,7 +106,7 @@ export async function fetchNebulaFeedData(
   cached?: ConditionalHeaders,
 ): Promise<FeedFetchResult | null> {
   try {
-    const feedResponse = await fetch(feed.url, {
+    const feedResponse = await readFeedHttp(feed.url, {
       headers: cached ? buildConditionalHeaders(cached) : undefined,
     });
 
@@ -116,8 +117,12 @@ export async function fetchNebulaFeedData(
       };
     }
 
-    const text = await feedResponse.text();
-    const rssData = await parser.parseString(text);
+    if (!feedResponse.ok) {
+      throw new Error(
+        `Failed to fetch Nebula feed: ${feedResponse.status} ${feedResponse.statusText}`,
+      );
+    }
+    const rssData = await parser.parseString(feedResponse.text);
 
     const data = nebulaSchema.parse(rssData);
 
@@ -131,21 +136,23 @@ export async function fetchNebulaFeedData(
       id: feed.id,
       title: data.title,
       url: data.link,
-      items: data.items.map((item) => {
-        const idParts = item.guid.split("/");
-        const id = idParts[idParts.length - 1] || item.guid;
+      items: boundFeedItems(
+        data.items.map((item) => {
+          const idParts = item.guid.split("/");
+          const id = idParts[idParts.length - 1] || item.guid;
 
-        return {
-          id,
-          title: item.title,
-          publishedDate: item.isoDate,
-          url: item.link,
-          author: item["dc:creator"] ?? item.creator ?? data.title,
-          thumbnail: extractThumbnailFromContent(item.content),
-          content: item.contentSnippet,
-          contentSnippet: item.contentSnippet,
-        } satisfies RSSContent;
-      }),
+          return {
+            id,
+            title: item.title,
+            publishedDate: item.isoDate,
+            url: item.link,
+            author: item["dc:creator"] ?? item.creator ?? data.title,
+            thumbnail: extractThumbnailFromContent(item.content),
+            content: item.contentSnippet,
+            contentSnippet: item.contentSnippet,
+          } satisfies RSSContent;
+        }),
+      ),
       fetchMetadata,
     };
   } catch (e) {

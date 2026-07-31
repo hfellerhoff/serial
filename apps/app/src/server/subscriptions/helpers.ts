@@ -112,9 +112,25 @@ export async function checkUserRefreshEligibility(
     getUserPlanId(userId),
     isAdminUser(db, userId),
   ]);
-  const config = getEffectivePlanConfig(planId, { isAdmin });
+  return checkUserRefreshEligibilityForPlan(db, userId, planId, {
+    isAdmin,
+  });
+}
 
-  const now = new Date();
+export async function checkUserRefreshEligibilityForPlan(
+  db: DB,
+  userId: string,
+  planId: PlanId,
+  options: { isAdmin?: boolean; now?: Date } = {},
+): Promise<
+  | { eligible: true; nextRefreshAt: Date }
+  | { eligible: false; nextRefreshAt: Date }
+> {
+  const config = getEffectivePlanConfig(planId, {
+    isAdmin: options.isAdmin,
+  });
+
+  const now = options.now ?? new Date();
   const nowEpoch = Math.floor(now.getTime() / 1000);
   const nextRefreshAt = new Date(now.getTime() + config.refreshIntervalMs);
 
