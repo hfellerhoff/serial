@@ -19,6 +19,7 @@ import { Button } from "~/components/ui/button";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { useDialogStore } from "~/components/feed/dialogStore";
 import { DemoBanner } from "~/components/DemoBanner";
+import { ClientPerformanceProfiler } from "~/components/debug/ClientPerformanceProfiler";
 import { ImpersonationBanner } from "~/components/ImpersonationBanner";
 import { ReleaseNotifier } from "~/components/releases/ReleaseNotifier";
 import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
@@ -256,45 +257,47 @@ function RootLayout() {
     // <ApplyColorTheme>
     <Suspense fallback={<FeedLoading />}>
       <InitialClientQueries>
-        <GlobalImportDropzone />
-        <div className="flex h-svh flex-col overflow-hidden">
-          <ImpersonationBanner />
-          <DemoBanner />
-          <SidebarProvider
-            className="h-auto min-h-0 flex-1"
-            style={
-              {
-                "--sidebar-width": "calc(var(--spacing) * 72)",
-                "--header-height": "calc(var(--spacing) * 12)",
-              } as React.CSSProperties
-            }
-          >
-            <AppLeftSidebar />
-            <SidebarInset
+        <ClientPerformanceProfiler>
+          <GlobalImportDropzone />
+          <div className="flex h-svh flex-col overflow-hidden">
+            <ImpersonationBanner />
+            <DemoBanner />
+            <SidebarProvider
+              className="h-auto min-h-0 flex-1"
               style={
-                pathname.startsWith("/watch/")
-                  ? { scrollbarGutter: "auto" }
-                  : undefined
+                {
+                  "--sidebar-width": "calc(var(--spacing) * 72)",
+                  "--header-height": "calc(var(--spacing) * 12)",
+                } as React.CSSProperties
               }
             >
-              <Header />
-              <main className="flex flex-col">
-                <div className="h-full w-full pb-6">
-                  <Outlet />
-                </div>
-                <AppDialogs />
-                {billingEnabled && (
-                  <CheckoutSuccessDialog
-                    open={showPlanSuccess}
-                    onOpenChange={closePlanSuccess}
-                  />
-                )}
-              </main>
-              <ReleaseNotifier />
-            </SidebarInset>
-            <AppRightSidebar />
-          </SidebarProvider>
-        </div>
+              <AppLeftSidebar />
+              <SidebarInset
+                style={
+                  pathname.startsWith("/watch/")
+                    ? { scrollbarGutter: "auto" }
+                    : undefined
+                }
+              >
+                <Header />
+                <main className="flex flex-col">
+                  <div className="h-full w-full pb-6">
+                    <Outlet />
+                  </div>
+                  <AppDialogs />
+                  {billingEnabled && (
+                    <CheckoutSuccessDialog
+                      open={showPlanSuccess}
+                      onOpenChange={closePlanSuccess}
+                    />
+                  )}
+                </main>
+                <ReleaseNotifier />
+              </SidebarInset>
+              <AppRightSidebar />
+            </SidebarProvider>
+          </div>
+        </ClientPerformanceProfiler>
       </InitialClientQueries>
     </Suspense>
     // </ApplyColorTheme>
