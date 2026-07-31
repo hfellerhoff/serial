@@ -51,4 +51,33 @@ describe("client performance audit model", () => {
       1,
     );
   });
+
+  it("keeps synchronization pages and normalized persistence mutations within explicit budgets", () => {
+    const result = runClientAuditProfile("stress");
+
+    expect(result.synchronizationBytes.request).toBeLessThanOrEqual(
+      result.synchronizationBytes.requestBudget,
+    );
+    expect(result.synchronizationBytes.maximumResponsePage).toBeLessThanOrEqual(
+      result.synchronizationBytes.responseBudget,
+    );
+    expect(result.persistenceMutationBytes.measured).toBeLessThanOrEqual(
+      result.persistenceMutationBytes.budget,
+    );
+    expect(
+      result.operations.coldSynchronization.bookmarkStoreNotifications,
+    ).toBeLessThanOrEqual(128);
+    expect(
+      result.operations.coldSynchronization.feedItemStoreNotifications,
+    ).toBe(0);
+    expect(result.operations.warmSynchronization).toMatchObject({
+      bookmarkStoreNotifications: 0,
+      feedItemStoreNotifications: 0,
+      mixedStoreNotifications: 0,
+      authoritativeRefills: 0,
+    });
+    expect(
+      result.operations.normalizedPersistenceMutation.durationMs,
+    ).toBeLessThan(50);
+  });
 });
