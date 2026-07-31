@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "generatedAt": "2026-07-31",
   "scope": "All client/shared routes, components, hooks, state, subscription, persistence, rendering, styles, and browser entry code under apps/app/src.",
-  "files": 310,
+  "files": 311,
   "findings": { "CL-01": 6, "CL-02": 4, "CL-03": 8, "CL-04": 6, "CL-05": 5 },
   "coverage": [
     {
@@ -1928,7 +1928,7 @@
     {
       "file": "src/lib/data/mixed-content/bookmarkProjection.ts",
       "classification": "state-sync-persistence",
-      "lines": 427,
+      "lines": 428,
       "status": "finding",
       "findings": ["CL-01"],
       "result": "Reviewed; contributes to CL-01."
@@ -1968,7 +1968,7 @@
     {
       "file": "src/lib/data/store.ts",
       "classification": "state-sync-persistence",
-      "lines": 2029,
+      "lines": 1951,
       "status": "finding",
       "findings": ["CL-02", "CL-03", "CL-04"],
       "result": "Reviewed; contributes to CL-02, CL-03, CL-04."
@@ -2334,6 +2334,14 @@
       "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
     },
     {
+      "file": "src/lib/schemas/bulk.ts",
+      "classification": "client-shared",
+      "lines": 23,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
       "file": "src/lib/schemas/utils.ts",
       "classification": "client-shared",
       "lines": 15,
@@ -2352,7 +2360,7 @@
     {
       "file": "src/lib/semaphore.ts",
       "classification": "client-shared",
-      "lines": 62,
+      "lines": 64,
       "status": "clean",
       "findings": [],
       "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
