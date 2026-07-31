@@ -18,6 +18,7 @@ const findingPaths: Record<string, string[]> = {
     "src/lib/data/subscriptionCoordinator.ts",
     "src/lib/data/bookmarks/manifest.ts",
     "src/lib/data/bookmarks/store.ts",
+    "src/lib/data/mixed-content/bookmarkProjection.ts",
     "src/lib/data/mixed-content/store.ts",
   ],
   "CL-02": [

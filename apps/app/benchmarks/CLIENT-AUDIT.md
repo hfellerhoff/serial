@@ -3,11 +3,14 @@
 ## Result
 
 The pre-UI Bookmark foundation is not safe to extend yet. The audit originally
-found five release-blocking client/synchronization problems. CL-02 is now
-resolved: Bookmark synchronization uses a constant-size bucket manifest,
-unchanged reconnects refill no mixed scopes, incoming pages commit as one frame
-batch, and large persisted collections use normalized or chunked IndexedDB
-records. The remaining findings continue to block the UI checkpoint.
+found five release-blocking client/synchronization problems. CL-01's unbounded
+Bookmark event projection and CL-02's synchronization/persistence growth are now
+resolved. Entity-only events patch one Bookmark without mixed projection work,
+while projection-relevant events target only changed scopes. Bookmark
+synchronization uses a constant-size bucket manifest, unchanged reconnects
+refill no mixed scopes, incoming pages commit as one frame batch, and large
+persisted collections use normalized or chunked IndexedDB records. The remaining
+findings continue to block the UI checkpoint.
 
 The checked [coverage ledger](client-audit-coverage.json) records a finding or an
 explicit clean result for every applicable route, component, hook, state,
@@ -50,16 +53,17 @@ Retained evidence:
 
 ## Fixture results
 
-| Measurement                          |                   Small |          Representative |                   Stress |
-| ------------------------------------ | ----------------------: | ----------------------: | -----------------------: |
-| Feed items / Bookmarks / Views       |         1,000 / 100 / 3 |     10,000 / 1,000 / 10 |      50,000 / 5,000 / 25 |
-| Loaded mixed scopes                  |                      12 |                      33 |                       78 |
-| Persisted client payload             |                 0.58 MB |                 5.60 MB |                 28.31 MB |
-| One Bookmark progress event          |    0.59 ms / 12 refills |    1.06 ms / 33 refills |     3.83 ms / 78 refills |
-| 100 Bookmark events, one frame       |    41.7 ms / 12 refills |    99.8 ms / 33 refills |    312.1 ms / 78 refills |
-| 100 Bookmark events, separate frames | 33.8 ms / 1,200 refills | 86.8 ms / 3,300 refills | 302.5 ms / 7,800 refills |
-| Cold synchronization JS              |                 3.18 ms |                 45.2 ms |                 439.2 ms |
-| Whole-cache structured clone         |                 5.18 ms |                 28.9 ms |                 149.4 ms |
+| Measurement                          |               Small |      Representative |              Stress |
+| ------------------------------------ | ------------------: | ------------------: | ------------------: |
+| Feed items / Bookmarks / Views       |     1,000 / 100 / 3 | 10,000 / 1,000 / 10 | 50,000 / 5,000 / 25 |
+| Loaded mixed scopes                  |                  12 |                  33 |                  78 |
+| Persisted client payload             |             0.58 MB |             5.60 MB |            28.31 MB |
+| One Bookmark progress event          | 0.05 ms / 0 refills | 0.08 ms / 0 refills | 0.12 ms / 0 refills |
+| One Bookmark capture event           | 0.03 ms / 0 refills | 0.07 ms / 0 refills | 0.09 ms / 0 refills |
+| 100 Bookmark events, one frame       | 0.15 ms / 0 refills | 0.15 ms / 0 refills | 0.21 ms / 0 refills |
+| 100 Bookmark events, separate frames | 0.13 ms / 0 refills | 0.18 ms / 0 refills | 0.20 ms / 0 refills |
+| Cold synchronization JS              |             4.74 ms |             42.8 ms |            418.6 ms |
+| Whole-cache structured clone         |             9.85 ms |             30.9 ms |            149.1 ms |
 
 CL-02's retained post-remediation profiles replace the final two rows with the
 following bounded measurements:
@@ -67,10 +71,10 @@ following bounded measurements:
 | Measurement                                  |       Small | Representative |       Stress |
 | -------------------------------------------- | ----------: | -------------: | -----------: |
 | Bookmark sync request / 16 KiB budget        |    2.68 KiB |       2.68 KiB |     2.68 KiB |
-| Largest response page / 256 KiB budget       |    2.20 KiB |      13.34 KiB |    35.20 KiB |
-| Cold Bookmark commit / notifications         | 0.09 ms / 1 |    0.34 ms / 1 |  1.07 ms / 1 |
-| Unchanged warm sync / mixed refills          | 1.35 ms / 0 |    3.59 ms / 0 | 18.81 ms / 0 |
-| Normalized mutation / 512 KiB storage budget |    8.92 KiB |       8.92 KiB |     8.92 KiB |
+| Largest response page / 256 KiB budget       |    2.20 KiB |      13.32 KiB |    35.20 KiB |
+| Cold Bookmark commit / notifications         | 1.70 ms / 1 |    0.34 ms / 1 |  0.73 ms / 1 |
+| Unchanged warm sync / mixed refills          | 1.23 ms / 0 |    3.53 ms / 0 | 18.78 ms / 0 |
+| Normalized mutation / 512 KiB storage budget |    8.96 KiB |       8.96 KiB |     8.96 KiB |
 
 Heap deltas are diagnostic only because garbage collection may occur inside a
 sample; payload size, notification count, refill count, and synchronous duration
@@ -80,11 +84,11 @@ The representative Chromium run recorded:
 
 | Scenario             | Usable / observed time |  Long task |            React work |               IndexedDB | RPC requests / bytes |
 | -------------------- | ---------------------: | ---------: | --------------------: | ----------------------: | -------------------: |
-| Cold client          |          577 ms usable |  69 ms max | 26 commits, 35 ms max | 11 reads, 1,348 records |          7 / 1.49 MB |
-| Warm hydration       |          605 ms usable | 212 ms max | 20 commits, 94 ms max | 1,350 reads, 345 writes |           6 / 329 KB |
-| Visibility reconnect |      3.0 s observation |  85 ms max | 17 commits, 73 ms max |     0 reads, 345 writes |           6 / 329 KB |
-| Pagination           |      2.0 s observation | 118 ms max | 11 commits, 62 ms max |                    none |            1 / 22 KB |
-| Native reader entry  |                 220 ms | 191 ms max |  8 commits, 90 ms max |               32 writes |         2 / streamed |
+| Cold client          |          587 ms usable |  72 ms max | 24 commits, 37 ms max | 11 reads, 1,348 records |          7 / 1.49 MB |
+| Warm hydration       |          549 ms usable | 203 ms max | 18 commits, 95 ms max | 1,350 reads, 345 writes |           6 / 329 KB |
+| Visibility reconnect |      3.0 s observation |  90 ms max | 16 commits, 78 ms max |     0 reads, 345 writes |           6 / 329 KB |
+| Pagination           |      2.0 s observation | 124 ms max | 12 commits, 66 ms max |                    none |            1 / 22 KB |
+| Native reader entry  |                 233 ms | 201 ms max |  8 commits, 96 ms max |               32 writes |         2 / streamed |
 
 Normalized IndexedDB counts are per-record operations rather than whole-store
 transactions. Cold load writes the authoritative retained records once; warm
@@ -94,30 +98,27 @@ structured-clone value.
 
 The original representative run failed with `RESPONSE_TOO_LARGE` while automatic
 mixed synchronization materialized all 10,000 Feed items for every scope. The
-post-remediation run passes because reconnect synchronizes Bookmark buckets only;
-mixed pages are requested on demand through their bounded page contract instead
-of being preloaded for every View and visibility. Capture rendering is not
+post-remediation run passes because reconnect compares the fixed Bookmark bucket
+manifest without publishing unchanged buckets; mixed pages are requested on
+demand through their bounded page contract instead of being preloaded for every
+View and visibility. Capture rendering is not
 reachable in the app before the Serial-app Bookmark UI checkpoint, so the audit
 covers its current cache/SSE representation and records native Page-capture
 rendering as part of that later checkpoint's acceptance.
 
 ## Prioritized findings
 
-### CL-01 — Critical: list-neutral Bookmark events reproject and refill every scope
+### CL-01 — Resolved: Bookmark event projection is change-aware
 
-`processPublishedChunks` sends every Bookmark upsert—including progress-only and
-capture-only changes—through `reprojectUpsert`. That routine scans, filters, and
-sorts every loaded scope, and `useDataSubscription` then requests an authoritative
-first page for every affected scope. One stress event creates 78 server refills;
-100 events delivered across animation frames create 7,800. Even a same-frame
-burst still performs 100 complete local reprojections and produced a 311 ms main-
-thread stall.
-
-Remediation direction: classify Bookmark changes by projection-relevant fields;
-patch entity-only state without reprojection; index canonical membership and
-scope membership; return only genuinely changed scopes; coalesce and deduplicate
-authoritative validation with bounded concurrency; make list-neutral-event zero
-refill behavior a hard regression test.
+Bookmark upserts are classified against the cached entity before mixed-list work.
+Progress and Page-capture changes update the Bookmark cache with zero mixed-store
+notifications and zero authoritative refills. Visibility, ordering, View/Tag
+organization, canonical suppression, and deletion use inverse scope/canonical
+indexes and return only references that actually changed. At stress size, one
+progress or capture event completes below 0.2 ms in the retained diagnostic run;
+both 100-event burst shapes produce zero projection notifications and refills.
+Deterministic unit coverage locks canonical restoration, organization and
+visibility moves, optimistic rollback, and animation-frame batching semantics.
 
 ### CL-02 — Resolved: synchronization and persistence are incremental and bounded
 

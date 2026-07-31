@@ -1,3 +1,4 @@
+import { readFeedHttp } from "../feedHttp";
 import { getPeerTubeFeedIfMatches } from "./peertube";
 import { getWebsiteFeedIfMatches } from "./website";
 import type { NewFeedDetails } from "../types";
@@ -7,13 +8,13 @@ export async function fetchUnknownRssFeed(
   url: string,
 ): Promise<NewFeedDetails | null> {
   try {
-    const feed = await fetch(url);
+    const feed = await readFeedHttp(url);
     if (!feed.ok) {
       throw new Error(
         `Failed to fetch RSS feed: ${feed.status} ${feed.statusText}`,
       );
     }
-    const text = await feed.text();
+    const text = feed.text;
 
     const peerTubeFeed = await getPeerTubeFeedIfMatches(text);
     if (peerTubeFeed) return peerTubeFeed;
