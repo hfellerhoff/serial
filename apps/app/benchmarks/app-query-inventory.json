@@ -7,17 +7,17 @@
     "scripts/**/*.ts(x)"
   ],
   "exclusions": ["node_modules", "src/server/db/migrations"],
-  "accessCount": 410,
+  "accessCount": 415,
   "areas": {
     "Bookmark and capture": 21,
     "administration": 33,
     "application support": 42,
     "authentication": 17,
-    "background and maintenance tasks": 18,
+    "background and maintenance tasks": 20,
     "database infrastructure": 3,
     "request procedures": 155,
     "synchronization and projection": 10,
-    "test-only infrastructure": 111
+    "test-only infrastructure": 114
   },
   "entries": [
     {
@@ -275,22 +275,6 @@
       "line": 31,
       "method": "delete",
       "expression": "db.delete"
-    },
-    {
-      "file": "server/tasks/feeds/background-refresh.ts",
-      "area": "background and maintenance tasks",
-      "symbol": "eligibleUsers",
-      "line": 47,
-      "method": "select",
-      "expression": "db\n        .select"
-    },
-    {
-      "file": "server/tasks/feeds/background-refresh.ts",
-      "area": "background and maintenance tasks",
-      "symbol": "feedsToRefresh",
-      "line": 85,
-      "method": "select",
-      "expression": "db\n      .select"
     },
     {
       "file": "src/app/api.extension.bookmarks.ts",
@@ -2221,10 +2205,42 @@
       "expression": "database\n            .select"
     },
     {
+      "file": "src/server/rss/backgroundRefresh.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "getDueUserPage",
+      "line": 105,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/rss/backgroundRefresh.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "result",
+      "line": 115,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/rss/backgroundRefresh.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "getDueFeedPage",
+      "line": 133,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/rss/backgroundRefresh.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "getDueUserPage",
+      "line": 91,
+      "method": "select",
+      "expression": "db\n      .select"
+    },
+    {
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
       "symbol": "existingItems",
-      "line": 175,
+      "line": 186,
       "method": "select",
       "expression": "context.db\n      .select"
     },
@@ -2232,71 +2248,71 @@
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
       "symbol": "feedItemsList",
-      "line": 207,
+      "line": 218,
       "method": "insert",
       "expression": "context.db\n        .insert"
     },
     {
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
-      "symbol": "feedPromises",
-      "line": 273,
+      "symbol": "processFeed",
+      "line": 283,
       "method": "update",
       "expression": "context.db\n              .update"
     },
     {
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
-      "symbol": "feedPromises",
-      "line": 292,
+      "symbol": "processFeed",
+      "line": 302,
       "method": "update",
       "expression": "context.db\n              .update"
     },
     {
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
-      "symbol": "feedPromises",
-      "line": 316,
+      "symbol": "processFeed",
+      "line": 326,
       "method": "update",
       "expression": "context.db\n            .update"
     },
     {
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
-      "symbol": "feedPromises",
-      "line": 364,
+      "symbol": "processFeed",
+      "line": 374,
       "method": "update",
       "expression": "context.db\n            .update"
     },
     {
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
-      "symbol": "feedPromises",
-      "line": 387,
+      "symbol": "processFeed",
+      "line": 397,
       "method": "update",
       "expression": "context.db\n            .update"
     },
     {
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
-      "symbol": "feedPromises",
-      "line": 414,
+      "symbol": "processFeed",
+      "line": 424,
       "method": "update",
       "expression": "context.db\n            .update"
     },
     {
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
-      "symbol": "feedPromises",
-      "line": 443,
+      "symbol": "processFeed",
+      "line": 453,
       "method": "update",
       "expression": "context.db\n          .update"
     },
     {
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
-      "symbol": "feedPromises",
-      "line": 472,
+      "symbol": "processFeed",
+      "line": 482,
       "method": "update",
       "expression": "context.db\n            .update"
     },
@@ -2336,17 +2352,9 @@
       "file": "src/server/subscriptions/helpers.ts",
       "area": "application support",
       "symbol": "result",
-      "line": 123,
+      "line": 139,
       "method": "update",
       "expression": "db\n    .update"
-    },
-    {
-      "file": "src/server/subscriptions/helpers.ts",
-      "area": "application support",
-      "symbol": "userRow",
-      "line": 139,
-      "method": "select",
-      "expression": "db\n    .select"
     },
     {
       "file": "src/server/subscriptions/helpers.ts",
@@ -2359,8 +2367,16 @@
     {
       "file": "src/server/subscriptions/helpers.ts",
       "area": "application support",
+      "symbol": "userRow",
+      "line": 155,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/subscriptions/helpers.ts",
+      "area": "application support",
       "symbol": "activeFeeds",
-      "line": 156,
+      "line": 172,
       "method": "select",
       "expression": "db\n    .select"
     },
@@ -2368,7 +2384,7 @@
       "file": "src/server/subscriptions/helpers.ts",
       "area": "application support",
       "symbol": "deactivateExcessFeeds",
-      "line": 169,
+      "line": 185,
       "method": "update",
       "expression": "db\n    .update"
     },
@@ -3299,6 +3315,30 @@
       "line": 36,
       "method": "transaction",
       "expression": "session.database.transaction"
+    },
+    {
+      "file": "tests/unit/rss/background-refresh.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 38,
+      "method": "insert",
+      "expression": "testDatabase.database.insert"
+    },
+    {
+      "file": "tests/unit/rss/background-refresh.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 54,
+      "method": "insert",
+      "expression": "testDatabase.database\n        .insert"
+    },
+    {
+      "file": "tests/unit/rss/background-refresh.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 97,
+      "method": "insert",
+      "expression": "testDatabase.database.insert"
     }
   ]
 }
