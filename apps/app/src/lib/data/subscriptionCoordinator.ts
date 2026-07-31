@@ -27,6 +27,7 @@ export function processPublishedChunks(payloads: PublishedChunk[]) {
         visibility: chunk.visibility,
         page: chunk.page,
         replacesScope: chunk.replacesScope,
+        feedItems: feedItemsStore.getState().feedItemsDict,
       });
       continue;
     }
@@ -37,9 +38,13 @@ export function processPublishedChunks(payloads: PublishedChunk[]) {
       continue;
     }
     if (chunk.type === "bookmark-upsert") {
+      const previousBookmark = bookmarksStore
+        .getState()
+        .getBookmark(chunk.bookmark.id);
       bookmarksStore.getState().upsert(chunk.bookmark);
       const affected = mixedContentStore.getState().reprojectUpsert({
         bookmark: chunk.bookmark,
+        previousBookmark,
         feedItems: feedItemsStore.getState().feedItemsDict,
         views: viewsStore.getState().views,
       });
@@ -52,7 +57,10 @@ export function processPublishedChunks(payloads: PublishedChunk[]) {
       continue;
     }
     bookmarksStore.getState().remove(chunk.id);
-    const affected = mixedContentStore.getState().reprojectDeletion(chunk.id);
+    const affected = mixedContentStore.getState().reprojectDeletion({
+      bookmarkId: chunk.id,
+      feedItems: feedItemsStore.getState().feedItemsDict,
+    });
     for (const scope of affected) {
       affectedScopes.set(
         JSON.stringify([scope.scope, scope.visibility]),

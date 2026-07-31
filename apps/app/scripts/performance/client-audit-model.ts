@@ -46,6 +46,7 @@ export type ClientAuditResult = {
   operations: {
     bookmarkSave: ClientAuditOperation;
     bookmarkProgressEvent: ClientAuditOperation;
+    bookmarkCaptureEvent: ClientAuditOperation;
     bookmarkOrganizationChange: ClientAuditOperation;
     bookmarkDelete: ClientAuditOperation;
     feedProgressEvent: ClientAuditOperation;
@@ -126,8 +127,8 @@ function makeView(index: number): ApplicationView {
     createdAt: FIXTURE_TIME,
     updatedAt: FIXTURE_TIME,
     isDefault: false,
-    categoryIds: [],
-    feedIds: [],
+    categoryIds: index === -1 ? [] : [index],
+    feedIds: index === -1 ? [] : [index + 1],
     viewSections: [],
   };
 }
@@ -142,31 +143,34 @@ function feedReference(index: number): MixedContentReference {
 }
 
 function resetStores() {
-  bookmarksStore.setState({ bookmarksDict: {} });
-  mixedContentStore.setState({ scopes: {}, suppressedReferences: {} });
+  bookmarksStore.getState().reset();
+  mixedContentStore.getState().reset();
   feedItemsStore.getState().reset();
 }
 
 function seedClientFixture(profileName: BenchmarkProfileName) {
   resetStores();
   const profile = BENCHMARK_PROFILES[profileName];
-  const views = Array.from({ length: profile.views + 1 }, (_, index) =>
-    makeView(index),
-  );
+  const views = [
+    makeView(-1),
+    ...Array.from({ length: profile.views }, (_, index) => makeView(index)),
+  ];
   viewsStore.setState({
     views,
     viewsDict: Object.fromEntries(views.map((view) => [view.id, view])),
     fetchStatus: "success",
   });
 
-  const bookmarks = Array.from({ length: profile.bookmarks }, (_, index) =>
-    makeBookmark(index),
-  );
-  bookmarksStore.setState({
-    bookmarksDict: Object.fromEntries(
-      bookmarks.map((bookmark) => [bookmark.id, bookmark]),
-    ),
-  });
+  const bookmarks = Array.from({ length: profile.bookmarks }, (_, index) => ({
+    ...makeBookmark(index),
+    viewIds: [index % profile.views],
+    tagIds: [index % profile.views],
+  }));
+  bookmarksStore
+    .getState()
+    .replace(
+      Object.fromEntries(bookmarks.map((bookmark) => [bookmark.id, bookmark])),
+    );
 
   const feedItems = Array.from({ length: profile.feedItems }, (_, index) =>
     makeFeedItem(index),
@@ -188,17 +192,43 @@ function seedClientFixture(profileName: BenchmarkProfileName) {
       const references = Array.from({ length: PAGE_SIZE }, (_, index) =>
         feedReference((offset + index) % profile.feedItems),
       );
+      const scopedBookmark =
+        view.id === -1
+          ? undefined
+          : bookmarks.find(
+              (bookmark) =>
+                bookmark.viewIds.includes(view.id) &&
+                (bookmark.isSaved
+                  ? visibility === "later"
+                  : bookmark.isRead
+                    ? visibility === "read"
+                    : visibility === "unread"),
+            );
+      if (scopedBookmark) {
+        references[references.length - 1] = {
+          entityKind: "bookmark",
+          entityId: scopedBookmark.id,
+          sectionPlacement: null,
+          normalizedAt:
+            visibility === "later"
+              ? scopedBookmark.savedUpdatedAt
+              : visibility === "read"
+                ? scopedBookmark.readUpdatedAt
+                : scopedBookmark.createdAt,
+        };
+      }
       mixedContentStore.getState().applyPage({
         scope: { type: "view", viewId: view.id },
         visibility,
         page: {
           references,
-          bookmarks: [],
+          bookmarks: scopedBookmark ? [scopedBookmark] : [],
           feedItems: [],
           cursor: null,
           hasMore: true,
         },
         replacesScope: true,
+        feedItems: feedItemsDict,
       });
     }
   }
@@ -258,7 +288,7 @@ function measurePersistenceClone() {
         feedItemsOrder: feedItemsStore.getState().feedItemsOrder,
       },
       bookmarks: {
-        bookmarksDict: bookmarksStore.getState().bookmarksDict,
+        bookmarksDict: bookmarksStore.getState().snapshot(),
       },
       mixedContent: {
         scopes: mixedContentStore.getState().scopes,
@@ -275,7 +305,7 @@ function persistedPayloadBytes() {
     feedItemsOrder: feedItemsStore.getState().feedItemsOrder,
   }).byteLength;
   const bookmarks = serialize({
-    bookmarksDict: bookmarksStore.getState().bookmarksDict,
+    bookmarksDict: bookmarksStore.getState().snapshot(),
   }).byteLength;
   const mixedContent = serialize({
     scopes: mixedContentStore.getState().scopes,
@@ -300,6 +330,10 @@ export function runClientAuditProfile(
         bookmarkUpsertPayload({
           ...makeBookmark(profile.bookmarks + 1),
           id: "audit-bookmark-new",
+          isSaved: true,
+          isRead: false,
+          viewIds: [profile.views - 1],
+          tagIds: [profile.views - 1],
         }),
       ]).length,
   );
@@ -314,12 +348,27 @@ export function runClientAuditProfile(
   );
 
   fixture = seedClientFixture(profileName);
+  const captureBookmark = fixture.bookmarks[0]!;
+  const bookmarkCaptureEvent = measure(
+    () =>
+      processPublishedChunks([
+        bookmarkUpsertPayload({
+          ...captureBookmark,
+          title: "Updated capture title",
+          captureHash: "updated-capture-hash",
+          capturedAt: new Date(FIXTURE_TIME.getTime() + 1),
+          updatedAt: new Date(FIXTURE_TIME.getTime() + 1),
+        }),
+      ]).length,
+  );
+
+  fixture = seedClientFixture(profileName);
   const bookmarkOrganizationChange = measure(
     () =>
       processPublishedChunks([
         bookmarkUpsertPayload({
           ...fixture.bookmarks[0]!,
-          viewIds: [profile.views],
+          viewIds: [profile.views - 1],
           tagIds: [profile.views - 1],
           updatedAt: new Date(FIXTURE_TIME.getTime() + 1),
         }),
@@ -436,6 +485,7 @@ export function runClientAuditProfile(
     operations: {
       bookmarkSave,
       bookmarkProgressEvent,
+      bookmarkCaptureEvent,
       bookmarkOrganizationChange,
       bookmarkDelete,
       feedProgressEvent,

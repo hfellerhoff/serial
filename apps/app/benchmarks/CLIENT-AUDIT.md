@@ -3,11 +3,11 @@
 ## Result
 
 The pre-UI Bookmark foundation is not safe to extend yet. The audit found five
-release-blocking client/synchronization problems. The most serious is the same
-unbounded mixed projection observed by the server benchmark crossing the client
-boundary: representative browser synchronization exceeded libSQL's response
-limit, and list-neutral Bookmark events schedule authoritative work for every
-loaded mixed scope.
+release-blocking client/synchronization problems. CL-01's unbounded Bookmark
+event projection has since been remediated: entity-only events now patch one
+Bookmark without mixed projection work, while projection-relevant events target
+only changed scopes. The other four findings remain release blockers, including
+representative browser synchronization exceeding libSQL's response limit.
 
 The checked [coverage ledger](client-audit-coverage.json) records a finding or an
 explicit clean result for every applicable route, component, hook, state,
@@ -50,16 +50,17 @@ Retained evidence:
 
 ## Fixture results
 
-| Measurement                          |                   Small |          Representative |                   Stress |
-| ------------------------------------ | ----------------------: | ----------------------: | -----------------------: |
-| Feed items / Bookmarks / Views       |         1,000 / 100 / 3 |     10,000 / 1,000 / 10 |      50,000 / 5,000 / 25 |
-| Loaded mixed scopes                  |                      12 |                      33 |                       78 |
-| Persisted client payload             |                 0.58 MB |                 5.60 MB |                 28.31 MB |
-| One Bookmark progress event          |    0.59 ms / 12 refills |    1.06 ms / 33 refills |     3.83 ms / 78 refills |
-| 100 Bookmark events, one frame       |    41.7 ms / 12 refills |    99.8 ms / 33 refills |    312.1 ms / 78 refills |
-| 100 Bookmark events, separate frames | 33.8 ms / 1,200 refills | 86.8 ms / 3,300 refills | 302.5 ms / 7,800 refills |
-| Cold synchronization JS              |                 3.18 ms |                 45.2 ms |                 439.2 ms |
-| Whole-cache structured clone         |                 5.18 ms |                 28.9 ms |                 149.4 ms |
+| Measurement                          |               Small |      Representative |              Stress |
+| ------------------------------------ | ------------------: | ------------------: | ------------------: |
+| Feed items / Bookmarks / Views       |     1,000 / 100 / 3 | 10,000 / 1,000 / 10 | 50,000 / 5,000 / 25 |
+| Loaded mixed scopes                  |                  12 |                  33 |                  78 |
+| Persisted client payload             |             0.58 MB |             5.60 MB |            28.31 MB |
+| One Bookmark progress event          | 0.04 ms / 0 refills | 0.08 ms / 0 refills | 0.11 ms / 0 refills |
+| One Bookmark capture event           | 0.02 ms / 0 refills | 0.07 ms / 0 refills | 0.08 ms / 0 refills |
+| 100 Bookmark events, one frame       | 0.14 ms / 0 refills | 0.15 ms / 0 refills | 0.16 ms / 0 refills |
+| 100 Bookmark events, separate frames | 0.13 ms / 0 refills | 0.19 ms / 0 refills | 0.22 ms / 0 refills |
+| Cold synchronization JS              |             4.74 ms |             42.8 ms |            418.6 ms |
+| Whole-cache structured clone         |             9.85 ms |             30.9 ms |            149.1 ms |
 
 Heap deltas are diagnostic only because garbage collection may occur inside a
 sample; payload size, notification count, refill count, and synchronous duration
@@ -85,21 +86,17 @@ native Page-capture rendering as part of that later checkpoint's acceptance.
 
 ## Prioritized findings
 
-### CL-01 — Critical: list-neutral Bookmark events reproject and refill every scope
+### CL-01 — Resolved: Bookmark event projection is change-aware
 
-`processPublishedChunks` sends every Bookmark upsert—including progress-only and
-capture-only changes—through `reprojectUpsert`. That routine scans, filters, and
-sorts every loaded scope, and `useDataSubscription` then requests an authoritative
-first page for every affected scope. One stress event creates 78 server refills;
-100 events delivered across animation frames create 7,800. Even a same-frame
-burst still performs 100 complete local reprojections and produced a 311 ms main-
-thread stall.
-
-Remediation direction: classify Bookmark changes by projection-relevant fields;
-patch entity-only state without reprojection; index canonical membership and
-scope membership; return only genuinely changed scopes; coalesce and deduplicate
-authoritative validation with bounded concurrency; make list-neutral-event zero
-refill behavior a hard regression test.
+Bookmark upserts are classified against the cached entity before mixed-list work.
+Progress and Page-capture changes update the Bookmark cache with zero mixed-store
+notifications and zero authoritative refills. Visibility, ordering, View/Tag
+organization, canonical suppression, and deletion use inverse scope/canonical
+indexes and return only references that actually changed. At stress size, one
+progress or capture event completes below 0.2 ms in the retained diagnostic run;
+both 100-event burst shapes produce zero projection notifications and refills.
+Deterministic unit coverage locks canonical restoration, organization and
+visibility moves, optimistic rollback, and animation-frame batching semantics.
 
 ### CL-02 — Critical: synchronization and persisted state scale with the library
 

@@ -9,45 +9,73 @@ import type {
   BookmarkManifestEntry,
 } from "~/server/mixed-content/sync";
 
-type BookmarkStore = {
+type PersistedBookmarkStore = {
   bookmarksDict: Record<string, ApplicationBookmark>;
+};
+
+type BookmarkStore = {
+  revision: number;
   reset: () => void;
+  replace: (bookmarks: Record<string, ApplicationBookmark>) => void;
+  getBookmark: (id: string) => ApplicationBookmark | undefined;
+  snapshot: () => Record<string, ApplicationBookmark>;
   upsert: (bookmark: ApplicationBookmark) => void;
   remove: (id: string) => void;
   applyDiff: (diff: BookmarkDiffEntry[]) => void;
   manifest: () => BookmarkManifestEntry[];
 };
 
+const bookmarkEntities: Record<string, ApplicationBookmark> = {};
+
+function isPersistedBookmarkStore(
+  value: unknown,
+): value is PersistedBookmarkStore {
+  return (
+    typeof value === "object" && value !== null && "bookmarksDict" in value
+  );
+}
+
+function replaceBookmarkEntities(
+  bookmarks: Record<string, ApplicationBookmark>,
+) {
+  for (const id of Object.keys(bookmarkEntities)) delete bookmarkEntities[id];
+  Object.assign(bookmarkEntities, bookmarks);
+}
+
 const vanillaBookmarkStore = createStore<BookmarkStore>()(
   persist(
     (set, get) => ({
-      bookmarksDict: {},
-      reset: () => set({ bookmarksDict: {} }),
-      upsert: (bookmark) =>
-        set({
-          bookmarksDict: {
-            ...get().bookmarksDict,
-            [bookmark.id]: bookmark,
-          },
-        }),
+      revision: 0,
+      reset: () => {
+        replaceBookmarkEntities({});
+        set({ revision: get().revision + 1 });
+      },
+      replace: (bookmarks) => {
+        replaceBookmarkEntities(bookmarks);
+        set({ revision: get().revision + 1 });
+      },
+      getBookmark: (id) => bookmarkEntities[id],
+      snapshot: () => bookmarkEntities,
+      upsert: (bookmark) => {
+        bookmarkEntities[bookmark.id] = bookmark;
+        set({ revision: get().revision + 1 });
+      },
       remove: (id) => {
-        const { [id]: _removed, ...bookmarksDict } = get().bookmarksDict;
-        void _removed;
-        set({ bookmarksDict });
+        delete bookmarkEntities[id];
+        set({ revision: get().revision + 1 });
       },
       applyDiff: (diff) => {
-        const bookmarksDict = { ...get().bookmarksDict };
         for (const entry of diff) {
           if (entry.status === "new" || entry.status === "updated") {
-            bookmarksDict[entry.bookmark.id] = entry.bookmark;
+            bookmarkEntities[entry.bookmark.id] = entry.bookmark;
           } else if (entry.status === "deleted") {
-            delete bookmarksDict[entry.id];
+            delete bookmarkEntities[entry.id];
           }
         }
-        set({ bookmarksDict });
+        set({ revision: get().revision + 1 });
       },
       manifest: () =>
-        Object.values(get().bookmarksDict).map((bookmark) => ({
+        Object.values(bookmarkEntities).map((bookmark) => ({
           id: bookmark.id,
           version: bookmarkManifestValue(bookmark),
         })),
@@ -55,7 +83,13 @@ const vanillaBookmarkStore = createStore<BookmarkStore>()(
     {
       name: "serial-bookmarks-store",
       storage: createIDBStorage(),
-      partialize: (state) => ({ bookmarksDict: state.bookmarksDict }),
+      partialize: () => ({ bookmarksDict: bookmarkEntities }),
+      merge: (persistedState, currentState) => {
+        if (isPersistedBookmarkStore(persistedState)) {
+          replaceBookmarkEntities(persistedState.bookmarksDict);
+        }
+        return currentState;
+      },
     },
   ),
 );
