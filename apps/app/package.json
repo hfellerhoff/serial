@@ -51,7 +51,12 @@
     "test:e2e:self-hosted": "node --import=tsx scripts/run-e2e.ts self-hosted",
     "test:e2e:self-hosted:ui": "node --import=tsx scripts/run-e2e.ts self-hosted --ui",
     "test:e2e:demo": "node --import=tsx scripts/run-e2e.ts demo",
-    "test:e2e:demo:ui": "node --import=tsx scripts/run-e2e.ts demo --ui"
+    "test:e2e:demo:ui": "node --import=tsx scripts/run-e2e.ts demo --ui",
+    "benchmark:app": "node --import=tsx scripts/performance/run-app-benchmark.ts",
+    "benchmark:app:smoke": "node --import=tsx scripts/performance/run-app-benchmark.ts --profile small --cache warm --output benchmarks/results/local-small.json",
+    "benchmark:app:gate": "node --import=tsx scripts/performance/run-app-benchmark.ts --profile representative --cache all --gate",
+    "benchmark:inventory": "node --import=tsx scripts/performance/inventory-app-queries.ts",
+    "benchmark:inventory:check": "node --import=tsx scripts/performance/inventory-app-queries.ts --check"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
