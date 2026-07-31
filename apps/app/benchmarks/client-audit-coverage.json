@@ -752,7 +752,7 @@
     {
       "file": "src/components/feed/MarkVisibleAsReadButton.tsx",
       "classification": "component",
-      "lines": 148,
+      "lines": 165,
       "status": "clean",
       "findings": [],
       "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
@@ -2456,7 +2456,7 @@
     {
       "file": "src/lib/undo/types.ts",
       "classification": "client-shared",
-      "lines": 7,
+      "lines": 8,
       "status": "clean",
       "findings": [],
       "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
@@ -2464,7 +2464,7 @@
     {
       "file": "src/lib/undo/useUndoToast.tsx",
       "classification": "hook",
-      "lines": 29,
+      "lines": 41,
       "status": "clean",
       "findings": [],
       "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
