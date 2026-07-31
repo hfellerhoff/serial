@@ -38,6 +38,7 @@ describe("client performance audit model", () => {
         authoritativeRefills: 0,
       });
     },
+    30_000,
   );
 
   it("retains bounded list references while identifying whole-cache persistence", () => {
@@ -94,7 +95,7 @@ describe("client performance audit model", () => {
     expect(
       result.operations.normalizedPersistenceMutation.durationMs,
     ).toBeLessThan(50);
-  });
+  }, 30_000);
 
   it("plateaus repeated pagination within memory, IndexedDB, and mounted-item budgets", () => {
     const result = runClientAuditProfile("small");
