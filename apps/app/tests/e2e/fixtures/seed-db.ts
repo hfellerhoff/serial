@@ -86,6 +86,66 @@ export async function setFeedItemAsYouTubeVideo(
   client.close();
 }
 
+export async function seedBookmarkProjectionData(
+  tursoPort: number,
+  email: string,
+  feedItemId: string,
+) {
+  const { db, client } = getDb(tursoPort);
+  const [testUser, item, userView] = await Promise.all([
+    db.select().from(schema.user).where(eq(schema.user.email, email)).get(),
+    db
+      .select()
+      .from(schema.feedItems)
+      .where(eq(schema.feedItems.id, feedItemId))
+      .get(),
+    db
+      .select()
+      .from(schema.views)
+      .innerJoin(schema.user, eq(schema.views.userId, schema.user.id))
+      .where(eq(schema.user.email, email))
+      .get(),
+  ]);
+  if (!testUser || !item || !userView) {
+    client.close();
+    throw new Error("Bookmark projection seed prerequisites were not found");
+  }
+
+  const bookmarkId = `bookmark-${uniqueId()}`;
+  const now = new Date();
+  await db.insert(schema.bookmarks).values({
+    id: bookmarkId,
+    userId: testUser.id,
+    sourceUrl: item.url,
+    canonicalUrl: item.url,
+    isSaved: true,
+    isRead: false,
+    createdAt: now,
+    updatedAt: now,
+    savedUpdatedAt: now,
+    readUpdatedAt: now,
+    progressUpdatedAt: now,
+  });
+  await db.insert(schema.bookmarkViews).values({
+    bookmarkId,
+    viewId: userView.views.id,
+  });
+  await db.insert(schema.pageCaptures).values({
+    bookmarkId,
+    title: "Captured Bookmark",
+    author: "Bookmark Author",
+    contentHtml: "<p>Captured Bookmark body</p>",
+    effectiveUrl: item.url,
+    contentHash: `hash-${bookmarkId}`,
+    captureSource: "extension-live-dom",
+    extractorVersion: "playwright-fixture",
+    sanitizerPolicyVersion: 1,
+    capturedAt: now,
+  });
+  client.close();
+  return { bookmarkId, viewId: userView.views.id };
+}
+
 export async function getViewsForUser(tursoPort: number, email: string) {
   const { db, client } = getDb(tursoPort);
   const userViews = await db
