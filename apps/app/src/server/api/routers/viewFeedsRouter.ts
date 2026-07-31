@@ -7,6 +7,7 @@ import {
 } from "./feed-router/utils";
 import { protectedProcedure } from "~/server/orpc/base";
 import { viewFeeds, views } from "~/server/db/schema";
+import { boundedNumberIdsSchema } from "~/lib/schemas/bulk";
 
 export const getAll = protectedProcedure.handler(async ({ context }) => {
   const userViews = await context.db
@@ -93,7 +94,7 @@ export const removeFromView = protectedProcedure
   });
 
 export const bulkAssignToView = protectedProcedure
-  .input(z.object({ feedIds: z.number().array(), viewId: z.number() }))
+  .input(z.object({ feedIds: boundedNumberIdsSchema, viewId: z.number() }))
   .handler(async ({ context, input }) => {
     if (input.feedIds.length === 0) return;
 
@@ -133,7 +134,7 @@ export const bulkAssignToView = protectedProcedure
   });
 
 export const bulkRemoveFromView = protectedProcedure
-  .input(z.object({ feedIds: z.number().array(), viewId: z.number() }))
+  .input(z.object({ feedIds: boundedNumberIdsSchema, viewId: z.number() }))
   .handler(async ({ context, input }) => {
     if (input.feedIds.length === 0) return;
 

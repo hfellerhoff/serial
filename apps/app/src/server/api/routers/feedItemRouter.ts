@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
 import { z } from "zod";
 import { getClientChannel } from "../channels";
 import { verifyFeedsOwnedByUser } from "./feed-router/utils";
@@ -10,118 +10,23 @@ import { publisher } from "~/server/api/publisher";
 import { feedItems, feeds } from "~/server/db/schema";
 import { protectedProcedure } from "~/server/orpc/base";
 import { fetchAndInsertFeedData } from "~/server/rss/fetchFeeds";
+import {
+  deduplicateByLastValue,
+  MAX_BULK_MUTATION_ITEMS,
+} from "~/lib/schemas/bulk";
 
-type GetAllItemsChunk =
+type FeedItemsChunk =
   | {
       type: "feed-items";
       feedItems: ApplicationFeedItem[];
+      hasMore?: boolean;
+      nextCursor?: { postedAt: Date; id: string } | null;
     }
   | {
       type: "feed-status";
       feedId: number;
       status: FetchFeedsStatus;
     };
-
-const GET_ALL_ITEMS_YIELD_BUFFER_MS = 100;
-const GET_ALL_CHUNK_SIZE = 100;
-export const getAll = protectedProcedure.handler(async function* ({
-  context,
-}): AsyncGenerator<GetAllItemsChunk> {
-  // Get existing items, yield
-  const feedsList = await context.db.query.feeds.findMany({
-    where: eq(feeds.userId, context.user.id),
-  });
-  const feedIds = feedsList.map((feed) => feed.id);
-
-  const itemsData = await context.db.query.feedItems.findMany({
-    where: and(inArray(feedItems.feedId, feedIds)),
-    orderBy: desc(feedItems.postedAt),
-  });
-
-  const existingApplicationFeedItems = itemsData.map((item) => {
-    const itemFeed = feedsList.find((f) => f.id === item.feedId);
-
-    return {
-      ...item,
-      platform: itemFeed?.platform ?? "youtube",
-    } as ApplicationFeedItem;
-  });
-
-  // Send existing feed items to user
-  let timeLastSent = 0;
-  let inProgressChunk = [];
-  for (const chunk of prepareArrayChunks(
-    existingApplicationFeedItems,
-    GET_ALL_CHUNK_SIZE,
-  )) {
-    inProgressChunk.push(...chunk);
-
-    if (inProgressChunk.length < GET_ALL_CHUNK_SIZE) {
-      continue;
-    }
-
-    const now = Date.now();
-    const timePassed = now - timeLastSent;
-
-    if (timePassed < GET_ALL_ITEMS_YIELD_BUFFER_MS) {
-      await new Promise((res) =>
-        setTimeout(res, GET_ALL_ITEMS_YIELD_BUFFER_MS - timePassed),
-      );
-    }
-
-    timeLastSent = Date.now();
-
-    yield {
-      type: "feed-items",
-      feedItems: inProgressChunk,
-    };
-
-    inProgressChunk = [];
-  }
-
-  // Send new feed items to user as they come in
-  for await (const feedResult of fetchAndInsertFeedData(context, feedsList)) {
-    yield {
-      type: "feed-status",
-      status: feedResult.status,
-      feedId: feedResult.id,
-    };
-
-    if (feedResult.status !== "success") {
-      continue;
-    }
-
-    for (const chunk of prepareArrayChunks(
-      feedResult.feedItems,
-      GET_ALL_CHUNK_SIZE,
-    )) {
-      inProgressChunk.push(...chunk);
-      if (inProgressChunk.length < GET_ALL_CHUNK_SIZE) {
-        continue;
-      }
-
-      const now = Date.now();
-      const timePassed = now - timeLastSent;
-
-      if (timePassed < GET_ALL_ITEMS_YIELD_BUFFER_MS) {
-        await new Promise((res) =>
-          setTimeout(res, GET_ALL_ITEMS_YIELD_BUFFER_MS - timePassed),
-        );
-      }
-
-      timeLastSent = Date.now();
-
-      yield {
-        type: "feed-items",
-        feedItems: chunk,
-      };
-
-      inProgressChunk = [];
-    }
-  }
-
-  return;
-});
 
 export const setWatchedValue = protectedProcedure
   .input(
@@ -219,12 +124,20 @@ export const setWatchedValue = protectedProcedure
 export const setBulkWatchedValue = protectedProcedure
   .input(
     z.object({
-      items: z.array(
-        z.object({
-          id: z.string(),
-          feedId: z.number(),
-        }),
-      ),
+      items: z
+        .array(
+          z.object({
+            id: z.string(),
+            feedId: z.number(),
+          }),
+        )
+        .max(MAX_BULK_MUTATION_ITEMS)
+        .transform((values) =>
+          deduplicateByLastValue(
+            values,
+            (value) => `${value.feedId}:${value.id}`,
+          ),
+        ),
       isWatched: z.boolean(),
     }),
   )
@@ -420,11 +333,19 @@ export const getById = protectedProcedure
   });
 
 export const getByFeedId = protectedProcedure
-  .input(z.object({ feedId: z.number() }))
+  .input(
+    z.object({
+      feedId: z.number(),
+      cursor: z
+        .object({ postedAt: z.coerce.date(), id: z.string() })
+        .optional(),
+      limit: z.number().int().min(1).max(50).optional(),
+    }),
+  )
   .handler(async function* ({
     context,
     input,
-  }): AsyncGenerator<GetAllItemsChunk> {
+  }): AsyncGenerator<FeedItemsChunk> {
     const feed = await context.db.query.feeds.findFirst({
       where: and(eq(feeds.id, input.feedId), eq(feeds.userId, context.user.id)),
     });
@@ -433,12 +354,26 @@ export const getByFeedId = protectedProcedure
       return;
     }
 
+    const limit = input.limit ?? 50;
+    const cursorFilter = input.cursor
+      ? or(
+          lt(feedItems.postedAt, input.cursor.postedAt),
+          and(
+            eq(feedItems.postedAt, input.cursor.postedAt),
+            lt(feedItems.id, input.cursor.id),
+          ),
+        )
+      : undefined;
     const itemsData = await context.db.query.feedItems.findMany({
-      where: and(eq(feedItems.feedId, input.feedId)),
-      orderBy: desc(feedItems.postedAt),
+      where: and(eq(feedItems.feedId, input.feedId), cursorFilter),
+      orderBy: [desc(feedItems.postedAt), desc(feedItems.id)],
+      limit: limit + 1,
     });
+    const hasMore = itemsData.length > limit;
+    const itemsToReturn = itemsData.slice(0, limit);
+    const lastItem = itemsToReturn.at(-1);
 
-    const existingApplicationFeedItems = itemsData.map((item) => ({
+    const existingApplicationFeedItems = itemsToReturn.map((item) => ({
       ...item,
       platform: feed.platform,
     })) as ApplicationFeedItem[];
@@ -447,7 +382,16 @@ export const getByFeedId = protectedProcedure
       yield {
         type: "feed-items",
         feedItems: chunk,
+        hasMore,
+        nextCursor:
+          hasMore && lastItem
+            ? { postedAt: lastItem.postedAt, id: lastItem.id }
+            : null,
       };
+    }
+
+    if (input.cursor) {
+      return;
     }
 
     for await (const feedResult of fetchAndInsertFeedData(context, [feed])) {
