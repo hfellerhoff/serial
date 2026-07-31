@@ -161,7 +161,7 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
       },
     ]);
 
-    expect(bookmarksStore.getState().bookmarksDict[savedBookmark.id]).toEqual(
+    expect(bookmarksStore.getState().getBookmark(savedBookmark.id)).toEqual(
       savedBookmark,
     );
     expect(feedItemsStore.getState().feedItemsDict[item.id]).toEqual(item);
@@ -195,12 +195,21 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
         reference("feed-item", other.id),
       ]),
       replacesScope: true,
+      feedItems: feedItemsStore.getState().feedItemsDict,
     });
     mixedContentStore.getState().applyPage({
       scope,
       visibility: "read",
       page: page([]),
       replacesScope: true,
+      feedItems: feedItemsStore.getState().feedItemsDict,
+    });
+    mixedContentStore.getState().applyPage({
+      scope,
+      visibility: "later",
+      page: page([]),
+      replacesScope: true,
+      feedItems: feedItemsStore.getState().feedItemsDict,
     });
 
     const saved = bookmark();
@@ -298,12 +307,14 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
       visibility: "unread",
       page: page(references),
       replacesScope: true,
+      feedItems: feedItemsStore.getState().feedItemsDict,
     });
     mixedContentStore.getState().applyPage({
       scope,
       visibility: "read",
       page: page([]),
       replacesScope: true,
+      feedItems: feedItemsStore.getState().feedItemsDict,
     });
     orpcMocks.setBookmarkBulkReadValue.mockResolvedValue([]);
     orpcMocks.setFeedBulkWatchedValue.mockImplementation(
@@ -320,7 +331,7 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
 
     await setMixedReadValue({ references, isRead: true });
     expect(
-      bookmarksStore.getState().bookmarksDict[archivedBookmark.id]?.isRead,
+      bookmarksStore.getState().getBookmark(archivedBookmark.id)?.isRead,
     ).toBe(true);
     expect(feedItemsStore.getState().feedItemsDict[item.id]?.isWatched).toBe(
       true,
@@ -339,7 +350,7 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
 
     await setMixedReadValue({ references, isRead: false });
     expect(
-      bookmarksStore.getState().bookmarksDict[archivedBookmark.id]?.isRead,
+      bookmarksStore.getState().getBookmark(archivedBookmark.id)?.isRead,
     ).toBe(false);
     expect(feedItemsStore.getState().feedItemsDict[item.id]?.isWatched).toBe(
       false,
@@ -352,5 +363,45 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
       items: [{ id: item.id, feedId: item.feedId }],
       isWatched: false,
     });
+  });
+
+  it("restores Bookmark projection when an optimistic read change fails", async () => {
+    const unreadBookmark = bookmark({ isSaved: false, isRead: false });
+    bookmarksStore.getState().upsert(unreadBookmark);
+    const scope = { type: "view" as const, viewId: 10 };
+    const references = [reference("bookmark", unreadBookmark.id)];
+    mixedContentStore.getState().applyPage({
+      scope,
+      visibility: "unread",
+      page: page(references),
+      replacesScope: true,
+      feedItems: feedItemsStore.getState().feedItemsDict,
+    });
+    mixedContentStore.getState().applyPage({
+      scope,
+      visibility: "read",
+      page: page([]),
+      replacesScope: true,
+      feedItems: feedItemsStore.getState().feedItemsDict,
+    });
+    orpcMocks.setBookmarkBulkReadValue.mockRejectedValueOnce(
+      new Error("write failed"),
+    );
+
+    await expect(
+      setMixedReadValue({ references, isRead: true }),
+    ).rejects.toThrow("write failed");
+
+    expect(
+      bookmarksStore.getState().getBookmark(unreadBookmark.id)?.isRead,
+    ).toBe(false);
+    expect(
+      mixedContentStore.getState().scopes[getMixedScopeKey(scope, "unread")]
+        ?.references,
+    ).toEqual(references);
+    expect(
+      mixedContentStore.getState().scopes[getMixedScopeKey(scope, "read")]
+        ?.references,
+    ).toEqual([]);
   });
 });
