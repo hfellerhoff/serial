@@ -9,7 +9,7 @@ import { feedCategoriesStore } from "./feed-categories/store";
 import { mergeFeedItem } from "./feed-items/mergeFeedItem";
 import { clearPendingFeedItemOverrides } from "./feed-items/pendingMutations";
 import { feedsStore } from "./feeds/store";
-import { createIDBStorage } from "./idb-storage";
+import { createNormalizedIDBStorage } from "./normalized-idb-storage";
 import { loadingActor } from "./loading-machine";
 import {
   applyScopeMembershipUpdate,
@@ -125,6 +125,7 @@ export type ApplicationStore = {
   feedStatusDict: Record<number, FetchFeedsStatus>;
   setFeedItemsDict: (itemsDict: Record<string, ApplicationFeedItem>) => void;
   setFeedItem: (id: string, item: ApplicationFeedItem) => void;
+  setFeedItems: (items: ApplicationFeedItem[]) => void;
   fetchFeedItemsForFeed: (feedId: number) => Promise<void>;
   fetchNewData: () => Promise<void>;
   revalidateView: (viewId: number) => Promise<void>;
@@ -245,6 +246,18 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             item,
           ),
         }),
+      setFeedItems: (items) => {
+        if (items.length === 0) return;
+        const feedItemsDict = { ...get().feedItemsDict };
+        for (const item of items) feedItemsDict[item.id] = item;
+        set({
+          feedItemsDict,
+          scopeFeedItemIds: reconcileScopeMembershipsForItems(
+            get().scopeFeedItemIds,
+            items,
+          ),
+        });
+      },
       fetchFeedItemsLastFetchedAt: null,
       hasInitialData: false,
       currentViewId: null,
@@ -1850,7 +1863,10 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
     }),
     {
       name: "serial-application-store",
-      storage: createIDBStorage(),
+      storage: createNormalizedIDBStorage({
+        recordFields: ["feedItemsDict"],
+        arrayFields: ["feedItemsOrder"],
+      }),
       version: 1,
       partialize: (state) => ({
         feedItemsDict: state.feedItemsDict,
