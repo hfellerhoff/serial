@@ -6,6 +6,7 @@ import {
   getTableColumns,
   gt,
   inArray,
+  isNull,
   lt,
   or,
   sql,
@@ -37,6 +38,10 @@ import type {
 } from "~/server/db/schema";
 import type { ORPCContext } from "~/server/orpc/base";
 import type { FetchFeedsStatus } from "~/server/rss/fetchFeeds";
+import type {
+  BookmarkSyncChunk,
+  MixedContentChunk,
+} from "~/server/mixed-content/sync";
 import { captureException, logDebug, logError } from "~/server/logger";
 import {
   checkUserRefreshEligibility,
@@ -82,6 +87,7 @@ export type PaginationCursor = {
   postedAt: Date;
   id: string;
   isWatchedUpdatedAt?: Date | null;
+  isWatchLaterUpdatedAt?: Date | null;
 } | null;
 
 export type ClientManifestEntry = {
@@ -197,7 +203,9 @@ type RouterPublishedChunk =
   | { source: "revalidate"; chunk: RevalidateViewChunk }
   | { source: "visibility"; chunk: GetItemsByVisibilityChunk }
   | { source: "feed"; chunk: GetItemsByFeedChunk }
-  | { source: "category"; chunk: GetItemsByCategoryIdChunk };
+  | { source: "category"; chunk: GetItemsByCategoryIdChunk }
+  | { source: "bookmark"; chunk: BookmarkSyncChunk }
+  | { source: "mixed"; chunk: MixedContentChunk };
 
 type ChannelSubscription = {
   channel: string;
@@ -699,6 +707,7 @@ function processPaginationResults<
     id: string;
     placement?: number;
     isWatchedUpdatedAt?: Date | null;
+    isWatchLaterUpdatedAt?: Date | null;
   },
 >(itemsData: T[], limit: number): PaginationResult<T> {
   const hasMore = itemsData.length > limit;
@@ -712,6 +721,7 @@ function processPaginationResults<
           postedAt: lastItem.postedAt,
           id: lastItem.id,
           isWatchedUpdatedAt: lastItem.isWatchedUpdatedAt ?? undefined,
+          isWatchLaterUpdatedAt: lastItem.isWatchLaterUpdatedAt ?? undefined,
         }
       : null;
 
@@ -818,13 +828,20 @@ function buildPaginatedFeedItemQuery({
   const filterConditions = [
     ...scopeFilterConditions,
     buildVisibilityFilter(visibilityFilter),
-    buildCursorCondition(cursor, placementExpr),
+    buildCursorCondition(cursor, visibilityFilter, placementExpr),
   ].filter((f): f is NonNullable<typeof f> => f !== undefined);
 
   return {
     filter: filterConditions.length > 0 ? and(...filterConditions) : undefined,
     orderBy: placementExpr
-      ? [asc(placementExpr), desc(feedItems.postedAt), desc(feedItems.id)]
+      ? visibilityFilter === "later"
+        ? [
+            asc(placementExpr),
+            desc(feedItems.isWatchLaterUpdatedAt),
+            desc(feedItems.postedAt),
+            desc(feedItems.id),
+          ]
+        : [asc(placementExpr), desc(feedItems.postedAt), desc(feedItems.id)]
       : buildFlatItemsOrderBy(visibilityFilter),
     placementExpr,
   };
@@ -2264,6 +2281,7 @@ const cursorSchema = z
     postedAt: z.coerce.date(),
     id: z.string(),
     isWatchedUpdatedAt: z.coerce.date().nullable().optional(),
+    isWatchLaterUpdatedAt: z.coerce.date().nullable().optional(),
   })
   .nullable();
 
@@ -2278,10 +2296,33 @@ function buildCursorCondition(
     postedAt: Date;
     id: string;
     isWatchedUpdatedAt?: Date | null;
+    isWatchLaterUpdatedAt?: Date | null;
   } | null,
+  visibilityFilter: VisibilityFilter,
   placementColumn?: SQL<number>,
 ) {
   if (!cursor) return undefined;
+
+  if (visibilityFilter === "later") {
+    const savedAt = cursor.isWatchLaterUpdatedAt ?? null;
+    const postedAtCondition = or(
+      lt(feedItems.postedAt, cursor.postedAt),
+      and(eq(feedItems.postedAt, cursor.postedAt), lt(feedItems.id, cursor.id)),
+    );
+    const timeCondition = savedAt
+      ? or(
+          lt(feedItems.isWatchLaterUpdatedAt, savedAt),
+          isNull(feedItems.isWatchLaterUpdatedAt),
+          and(eq(feedItems.isWatchLaterUpdatedAt, savedAt), postedAtCondition),
+        )
+      : and(isNull(feedItems.isWatchLaterUpdatedAt), postedAtCondition);
+    if (!placementColumn || cursor.placement === undefined)
+      return timeCondition;
+    return or(
+      gt(placementColumn, cursor.placement),
+      and(eq(placementColumn, cursor.placement), timeCondition),
+    );
+  }
 
   // isWatchedUpdatedAt-based cursor for read visibility filter
   if (cursor.isWatchedUpdatedAt) {
@@ -2328,6 +2369,14 @@ function buildFlatItemsOrderBy(visibilityFilter: VisibilityFilter) {
   if (visibilityFilter === "read") {
     return [
       desc(feedItems.isWatchedUpdatedAt),
+      desc(feedItems.postedAt),
+      desc(feedItems.id),
+    ];
+  }
+
+  if (visibilityFilter === "later") {
+    return [
+      desc(feedItems.isWatchLaterUpdatedAt),
       desc(feedItems.postedAt),
       desc(feedItems.id),
     ];

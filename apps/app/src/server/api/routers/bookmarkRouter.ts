@@ -9,6 +9,10 @@ import {
   updateBookmarkState,
 } from "~/server/bookmarks/service";
 import { normalizeBookmarkUrl } from "~/server/bookmarks/url";
+import {
+  publishBookmarkDeletion,
+  publishBookmarkUpsert,
+} from "~/server/mixed-content/sync";
 
 const bookmarkIdSchema = z.string().min(1);
 const bookmarkUrlSchema = z.string().superRefine((value, context) => {
@@ -29,13 +33,26 @@ export const save = protectedProcedure
       bookmarkId: bookmarkIdSchema.optional(),
     }),
   )
-  .handler(({ context, input }) =>
-    saveBookmarkFromApp({
+  .handler(async ({ context, input }) => {
+    const result = await saveBookmarkFromApp({
       database: context.db,
       userId: context.user.id,
       ...input,
-    }),
-  );
+    });
+    if (result.removedBookmarkId) {
+      await publishBookmarkDeletion({
+        userId: context.user.id,
+        id: result.removedBookmarkId,
+        canonicalUrl: result.bookmark.canonicalUrl,
+      });
+    }
+    await publishBookmarkUpsert({
+      database: context.db,
+      userId: context.user.id,
+      bookmarkId: result.bookmark.id,
+    });
+    return result;
+  });
 
 export const getCapture = protectedProcedure
   .input(
@@ -68,13 +85,19 @@ export const updateState = protectedProcedure
         { message: "Progress and duration must be updated together" },
       ),
   )
-  .handler(({ context, input }) =>
-    updateBookmarkState({
+  .handler(async ({ context, input }) => {
+    const bookmark = await updateBookmarkState({
       database: context.db,
       userId: context.user.id,
       ...input,
-    }),
-  );
+    });
+    await publishBookmarkUpsert({
+      database: context.db,
+      userId: context.user.id,
+      bookmarkId: bookmark.id,
+    });
+    return bookmark;
+  });
 
 export const setView = protectedProcedure
   .input(
@@ -84,13 +107,18 @@ export const setView = protectedProcedure
       assigned: z.boolean(),
     }),
   )
-  .handler(({ context, input }) =>
-    setBookmarkView({
+  .handler(async ({ context, input }) => {
+    await setBookmarkView({
       database: context.db,
       userId: context.user.id,
       ...input,
-    }),
-  );
+    });
+    await publishBookmarkUpsert({
+      database: context.db,
+      userId: context.user.id,
+      bookmarkId: input.bookmarkId,
+    });
+  });
 
 export const setTag = protectedProcedure
   .input(
@@ -100,20 +128,61 @@ export const setTag = protectedProcedure
       assigned: z.boolean(),
     }),
   )
-  .handler(({ context, input }) =>
-    setBookmarkTag({
+  .handler(async ({ context, input }) => {
+    await setBookmarkTag({
       database: context.db,
       userId: context.user.id,
       ...input,
+    });
+    await publishBookmarkUpsert({
+      database: context.db,
+      userId: context.user.id,
+      bookmarkId: input.bookmarkId,
+    });
+  });
+
+export const setBulkReadValue = protectedProcedure
+  .input(
+    z.object({
+      bookmarkIds: z.array(bookmarkIdSchema).max(500),
+      isRead: z.boolean(),
     }),
-  );
+  )
+  .handler(async ({ context, input }) => {
+    const updated = await Promise.all(
+      input.bookmarkIds.map((bookmarkId) =>
+        updateBookmarkState({
+          database: context.db,
+          userId: context.user.id,
+          bookmarkId,
+          isRead: input.isRead,
+        }),
+      ),
+    );
+    await Promise.all(
+      updated.map((bookmark) =>
+        publishBookmarkUpsert({
+          database: context.db,
+          userId: context.user.id,
+          bookmarkId: bookmark.id,
+        }),
+      ),
+    );
+    return updated;
+  });
 
 export const remove = protectedProcedure
   .input(z.object({ bookmarkId: bookmarkIdSchema }))
-  .handler(({ context, input }) =>
-    deleteBookmark({
+  .handler(async ({ context, input }) => {
+    const deleted = await deleteBookmark({
       database: context.db,
       userId: context.user.id,
       ...input,
-    }),
-  );
+    });
+    await publishBookmarkDeletion({
+      userId: context.user.id,
+      id: deleted.id,
+      canonicalUrl: deleted.canonicalUrl,
+    });
+    return deleted;
+  });
