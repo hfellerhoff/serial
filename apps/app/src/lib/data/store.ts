@@ -2051,7 +2051,8 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
       version: 1,
       partialize: getPersistedApplicationState,
       merge: (persisted, current) => {
-        const persistedState = persisted as Partial<ApplicationStore>;
+        const persistedState =
+          (persisted as Partial<ApplicationStore> | undefined) ?? {};
         const merged = {
           ...current,
           ...persistedState,

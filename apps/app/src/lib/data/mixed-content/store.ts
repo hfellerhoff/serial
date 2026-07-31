@@ -38,7 +38,6 @@ import type { ApplicationFeedItem, ApplicationView } from "~/server/db/schema";
 import type {
   ApplicationBookmark,
   MixedContentPage,
-  MixedContentReference,
   MixedContentScope,
 } from "~/server/mixed-content/projection";
 

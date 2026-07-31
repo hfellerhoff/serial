@@ -1960,7 +1960,7 @@
     {
       "file": "src/lib/data/mixed-content/store.ts",
       "classification": "state-sync-persistence",
-      "lines": 378,
+      "lines": 377,
       "status": "finding",
       "findings": ["CL-01", "CL-02", "CL-04"],
       "result": "Reviewed; contributes to CL-01, CL-02, CL-04."
@@ -2000,7 +2000,7 @@
     {
       "file": "src/lib/data/store.ts",
       "classification": "state-sync-persistence",
-      "lines": 2162,
+      "lines": 2163,
       "status": "finding",
       "findings": ["CL-02", "CL-03", "CL-04"],
       "result": "Reviewed; contributes to CL-02, CL-03, CL-04."
