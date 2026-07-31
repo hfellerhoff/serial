@@ -125,7 +125,6 @@ export type ApplicationStore = {
   feedStatusDict: Record<number, FetchFeedsStatus>;
   setFeedItemsDict: (itemsDict: Record<string, ApplicationFeedItem>) => void;
   setFeedItem: (id: string, item: ApplicationFeedItem) => void;
-  fetchFeedItems: () => Promise<void>;
   fetchFeedItemsForFeed: (feedId: number) => Promise<void>;
   fetchNewData: () => Promise<void>;
   revalidateView: (viewId: number) => Promise<void>;
@@ -702,83 +701,6 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             },
           });
         }
-      },
-
-      fetchFeedItems: async () => {
-        if (!loadingActor.getSnapshot().matches("idle")) return;
-
-        console.log("FETCHING");
-
-        set({
-          feedStatusDict: {},
-        });
-
-        let lastUpdateTime = 0;
-        const DEBOUNCE_TIME = 1000;
-
-        for await (const incomingChunk of await orpcRouterClient.feedItem.getAll()) {
-          const timeSinceLastUpdate = Date.now() - lastUpdateTime;
-          const timeToWait = DEBOUNCE_TIME - timeSinceLastUpdate;
-          const shouldWaitToRender = timeToWait > 0;
-
-          const feedStatusDict = shouldWaitToRender
-            ? get().feedStatusDict
-            : {
-                ...get().feedStatusDict,
-              };
-
-          const feedItemsDict = shouldWaitToRender
-            ? get().feedItemsDict
-            : {
-                ...get().feedItemsDict,
-              };
-
-          const feedItemsOrder = shouldWaitToRender
-            ? get().feedItemsOrder
-            : [...get().feedItemsOrder];
-          let incomingFeedItems: ApplicationFeedItem[] = [];
-
-          if (incomingChunk.type === "feed-status") {
-            feedStatusDict[incomingChunk.feedId] = incomingChunk.status;
-          } else {
-            incomingFeedItems = incomingChunk.feedItems;
-            const existingIds = new Set(feedItemsOrder);
-
-            incomingFeedItems.forEach((item) => {
-              mergeFeedItemIntoOrder(
-                feedItemsDict,
-                feedItemsOrder,
-                existingIds,
-                item,
-              );
-            });
-          }
-
-          set({
-            feedItemsDict: feedItemsDict,
-            feedItemsOrder,
-            feedStatusDict: feedStatusDict,
-            scopeFeedItemIds:
-              incomingFeedItems.length > 0
-                ? reconcileScopeMembershipsForItems(
-                    get().scopeFeedItemIds,
-                    getMergedFeedItems(feedItemsDict, incomingFeedItems),
-                  )
-                : get().scopeFeedItemIds,
-          });
-
-          if (!shouldWaitToRender) {
-            lastUpdateTime = Date.now();
-          }
-        }
-
-        const finalFeedItemsDict = get().feedItemsDict;
-        set({
-          fetchFeedItemsLastFetchedAt: Date.now(),
-          feedItemsDict: { ...finalFeedItemsDict },
-          feedItemsOrder: [...get().feedItemsOrder],
-          feedStatusDict: { ...get().feedStatusDict },
-        });
       },
 
       fetchFeedItemsForFeed: async (feedId: number) => {

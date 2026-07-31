@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, notInArray } from "drizzle-orm";
+import { and, asc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -20,6 +20,10 @@ import {
   views,
   viewSections,
 } from "~/server/db/schema";
+import {
+  deduplicateByLastValue,
+  MAX_BULK_MUTATION_ITEMS,
+} from "~/lib/schemas/bulk";
 
 export const create = protectedProcedure
   .input(createViewSchema)
@@ -219,28 +223,40 @@ export const update = protectedProcedure
 export const updatePlacement = protectedProcedure
   .input(
     z.object({
-      views: z.array(
-        z.object({
-          id: z.number(),
-          placement: z.number(),
-        }),
-      ),
+      views: z
+        .array(
+          z.object({
+            id: z.number(),
+            placement: z.number(),
+          }),
+        )
+        .max(MAX_BULK_MUTATION_ITEMS)
+        .transform((values) =>
+          deduplicateByLastValue(values, (value) => value.id),
+        ),
     }),
   )
   .handler(async ({ context, input }) => {
+    if (input.views.length === 0) return;
+
     await context.db.transaction(async (tx) => {
-      return await Promise.all(
-        input.views.map(async (view) => {
-          return await tx
-            .update(views)
-            .set({
-              placement: view.placement,
-            })
-            .where(
-              and(eq(views.id, view.id), eq(views.userId, context.user.id)),
-            );
-        }),
+      const placementCases = input.views.map(
+        (view) => sql`when ${view.id} then ${view.placement}`,
       );
+      await tx
+        .update(views)
+        .set({
+          placement: sql`case ${views.id} ${sql.join(placementCases, sql.raw(" "))} else ${views.placement} end`,
+        })
+        .where(
+          and(
+            inArray(
+              views.id,
+              input.views.map((view) => view.id),
+            ),
+            eq(views.userId, context.user.id),
+          ),
+        );
     });
   });
 
@@ -286,22 +302,36 @@ export const getAll = protectedProcedure.handler(async ({ context }) => {
         ])
       : [[], [], []];
 
+  const categoryIdsByViewId = new Map<number, number[]>();
+  for (const association of viewCategoriesList) {
+    if (association.viewId === null || association.categoryId === null)
+      continue;
+    const categoryIds = categoryIdsByViewId.get(association.viewId) ?? [];
+    categoryIds.push(association.categoryId);
+    categoryIdsByViewId.set(association.viewId, categoryIds);
+  }
+  const feedIdsByViewId = new Map<number, number[]>();
+  for (const association of viewFeedsList) {
+    const feedIds = feedIdsByViewId.get(association.viewId) ?? [];
+    feedIds.push(association.feedId);
+    feedIdsByViewId.set(association.viewId, feedIds);
+  }
+  const sectionsByViewId = new Map<number, ApplicationView["viewSections"]>();
+  for (const section of viewSectionsList) {
+    const sections = sectionsByViewId.get(section.viewId) ?? [];
+    sections.push({
+      ...section,
+      itemType: section.itemType as "tag" | "feed",
+    });
+    sectionsByViewId.set(section.viewId, sections);
+  }
+
   const customViews: ApplicationView[] = viewsList.map((view) => ({
     ...view,
     isDefault: false,
-    categoryIds: viewCategoriesList
-      .filter((category) => category.viewId === view.id)
-      .map((category) => category.categoryId)
-      .filter((id) => id !== null),
-    feedIds: viewFeedsList
-      .filter((vf) => vf.viewId === view.id)
-      .map((vf) => vf.feedId),
-    viewSections: viewSectionsList
-      .filter((sv) => sv.viewId === view.id)
-      .map((sv) => ({
-        ...sv,
-        itemType: sv.itemType as "tag" | "feed",
-      })),
+    categoryIds: categoryIdsByViewId.get(view.id) ?? [],
+    feedIds: feedIdsByViewId.get(view.id) ?? [],
+    viewSections: sectionsByViewId.get(view.id) ?? [],
   }));
 
   const inboxView = buildUncategorizedView(
