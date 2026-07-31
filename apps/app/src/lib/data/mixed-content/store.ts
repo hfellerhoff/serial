@@ -2,23 +2,34 @@ import { createStore } from "zustand";
 import { persist } from "zustand/middleware";
 import { createIDBStorage } from "../idb-storage";
 import { createSelectorHooks } from "../createSelectorHooks";
+import {
+  bookmarkReference,
+  bookmarkVisibility,
+  buildProjectionIndexes,
+  canonicalize,
+  collisionScopeKeys,
+  emptyProjectionIndexes,
+  getMixedScopeKey,
+  isBookmarkProjectionChange,
+  matchesScope,
+  matchingLoadedScopeKeys,
+  referenceRecordsEqual,
+  referencesEqual,
+  replaceScopeInIndexes,
+  uniqueReferences,
+} from "./bookmarkProjection";
+import type { LoadedMixedScope, ProjectionIndexes } from "./bookmarkProjection";
 import type { VisibilityFilter } from "../atoms";
 import type { ApplicationFeedItem, ApplicationView } from "~/server/db/schema";
 import type {
   ApplicationBookmark,
-  MixedContentCursor,
   MixedContentPage,
   MixedContentReference,
   MixedContentScope,
 } from "~/server/mixed-content/projection";
 
-export type LoadedMixedScope = {
-  scope: MixedContentScope;
-  visibility: VisibilityFilter;
-  references: MixedContentReference[];
-  cursor: MixedContentCursor;
-  hasMore: boolean;
-};
+export { getMixedScopeKey } from "./bookmarkProjection";
+export type { LoadedMixedScope } from "./bookmarkProjection";
 
 type SuppressedReferences = Record<
   string,
@@ -28,170 +39,136 @@ type SuppressedReferences = Record<
 type MixedContentStore = {
   scopes: Record<string, LoadedMixedScope>;
   suppressedReferences: SuppressedReferences;
+  projectionIndexes: ProjectionIndexes;
+  projectionIndexesComplete: boolean;
   reset: () => void;
   applyPage: (input: {
     scope: MixedContentScope;
     visibility: VisibilityFilter;
     page: MixedContentPage;
     replacesScope: boolean;
+    feedItems: Record<string, ApplicationFeedItem>;
   }) => void;
   reprojectUpsert: (input: {
     bookmark: ApplicationBookmark;
+    previousBookmark: ApplicationBookmark | undefined;
     feedItems: Record<string, ApplicationFeedItem>;
     views: ApplicationView[];
   }) => LoadedMixedScope[];
-  reprojectDeletion: (bookmarkId: string) => LoadedMixedScope[];
+  reprojectDeletion: (input: {
+    bookmarkId: string;
+    feedItems: Record<string, ApplicationFeedItem>;
+  }) => LoadedMixedScope[];
 };
-
-export function getMixedScopeKey(
-  scope: MixedContentScope,
-  visibility: VisibilityFilter,
-) {
-  return scope.type === "view"
-    ? `view:${scope.viewId}:${visibility}`
-    : `tag:${scope.tagId}:${visibility}`;
-}
-
-function compareReferences(
-  left: MixedContentReference,
-  right: MixedContentReference,
-) {
-  const leftPlacement = left.sectionPlacement ?? 0;
-  const rightPlacement = right.sectionPlacement ?? 0;
-  if (leftPlacement !== rightPlacement) return leftPlacement - rightPlacement;
-  const timeDifference =
-    right.normalizedAt.getTime() - left.normalizedAt.getTime();
-  if (timeDifference !== 0) return timeDifference;
-  const kindDifference = left.entityKind.localeCompare(right.entityKind);
-  if (kindDifference !== 0) return kindDifference;
-  return right.entityId.localeCompare(left.entityId);
-}
-
-function matchesVisibility(
-  bookmark: ApplicationBookmark,
-  visibility: VisibilityFilter,
-) {
-  if (visibility === "later") return bookmark.isSaved;
-  if (bookmark.isSaved) return false;
-  return visibility === "read" ? bookmark.isRead : !bookmark.isRead;
-}
-
-function matchesScope(
-  bookmark: ApplicationBookmark,
-  scope: MixedContentScope,
-  views: ApplicationView[],
-) {
-  const bookmarkTagIds = new Set(bookmark.tagIds);
-  const bookmarkViewIds = new Set(bookmark.viewIds);
-  if (scope.type === "tag") return bookmarkTagIds.has(scope.tagId);
-  const customViews = views.filter((view) => view.id >= 0);
-  if (scope.viewId < 0) {
-    return !customViews.some(
-      (view) =>
-        (view.contentType === "all" || view.contentType === "longform") &&
-        (bookmarkViewIds.has(view.id) ||
-          view.categoryIds.some((tagId) => bookmarkTagIds.has(tagId)) ||
-          (view.feedIds.length === 0 && view.categoryIds.length === 0)),
-    );
-  }
-  const view = customViews.find((candidate) => candidate.id === scope.viewId);
-  if (
-    !view ||
-    (view.contentType !== "all" && view.contentType !== "longform")
-  ) {
-    return false;
-  }
-  return (
-    bookmarkViewIds.has(view.id) ||
-    view.categoryIds.some((tagId) => bookmarkTagIds.has(tagId)) ||
-    (view.feedIds.length === 0 && view.categoryIds.length === 0)
-  );
-}
-
-function bookmarkReference(
-  bookmark: ApplicationBookmark,
-  scopeState: LoadedMixedScope,
-  views: ApplicationView[],
-): MixedContentReference {
-  const scope = scopeState.scope;
-  const bookmarkTagIds = new Set(bookmark.tagIds);
-  const view =
-    scope.type === "view"
-      ? views.find((candidate) => candidate.id === scope.viewId)
-      : undefined;
-  const hasSections =
-    scopeState.visibility !== "read" && (view?.viewSections.length ?? 0) > 0;
-  const matchingPlacements =
-    view?.viewSections
-      .filter(
-        (section) =>
-          section.itemType === "tag" && bookmarkTagIds.has(section.itemId),
-      )
-      .map((section) => section.placement) ?? [];
-  const normalizedAt =
-    scopeState.visibility === "later"
-      ? bookmark.savedUpdatedAt
-      : scopeState.visibility === "read"
-        ? bookmark.readUpdatedAt
-        : bookmark.createdAt;
-  return {
-    entityKind: "bookmark",
-    entityId: bookmark.id,
-    sectionPlacement: hasSections
-      ? matchingPlacements.length > 0
-        ? Math.min(...matchingPlacements)
-        : 999_999
-      : null,
-    normalizedAt,
-  };
-}
-
-function uniqueReferences(references: MixedContentReference[]) {
-  const byKey = new Map(
-    references.map((reference) => [
-      `${reference.entityKind}:${reference.entityId}`,
-      reference,
-    ]),
-  );
-  return [...byKey.values()].sort(compareReferences);
-}
 
 const vanillaMixedContentStore = createStore<MixedContentStore>()(
   persist(
     (set, get) => ({
       scopes: {},
       suppressedReferences: {},
-      reset: () => set({ scopes: {}, suppressedReferences: {} }),
-      applyPage: ({ scope, visibility, page, replacesScope }) => {
-        const key = getMixedScopeKey(scope, visibility);
-        const existing = get().scopes[key];
+      projectionIndexes: emptyProjectionIndexes(),
+      projectionIndexesComplete: true,
+      reset: () =>
         set({
-          scopes: {
-            ...get().scopes,
-            [key]: {
-              scope,
-              visibility,
-              references: uniqueReferences(
-                replacesScope
-                  ? page.references
-                  : [...(existing?.references ?? []), ...page.references],
-              ),
-              cursor: page.cursor,
-              hasMore: page.hasMore,
-            },
-          },
-        });
-      },
-      reprojectUpsert: ({ bookmark, feedItems, views }) => {
-        const scopes = { ...get().scopes };
-        const suppressedReferences = { ...get().suppressedReferences };
-        const bookmarkSuppressed = {
-          ...(suppressedReferences[bookmark.id] ?? {}),
+          scopes: {},
+          suppressedReferences: {},
+          projectionIndexes: emptyProjectionIndexes(),
+          projectionIndexesComplete: true,
+        }),
+      applyPage: ({ scope, visibility, page, replacesScope, feedItems }) => {
+        const key = getMixedScopeKey(scope, visibility);
+        const current = get();
+        const existing = current.scopes[key];
+        const nextScope = {
+          scope,
+          visibility,
+          references: uniqueReferences(
+            replacesScope
+              ? page.references
+              : [...(existing?.references ?? []), ...page.references],
+          ),
+          cursor: page.cursor,
+          hasMore: page.hasMore,
         };
-        const affected: LoadedMixedScope[] = [];
+        const scopes = { ...current.scopes, [key]: nextScope };
+        const projectionIndexes = current.projectionIndexesComplete
+          ? current.projectionIndexes
+          : buildProjectionIndexes(scopes, feedItems);
+        if (current.projectionIndexesComplete) {
+          replaceScopeInIndexes({
+            indexes: projectionIndexes,
+            scopeKey: key,
+            previousReferences: existing?.references ?? [],
+            nextReferences: nextScope.references,
+            feedItems,
+          });
+        }
+        set({ scopes, projectionIndexes, projectionIndexesComplete: true });
+      },
+      reprojectUpsert: ({ bookmark, previousBookmark, feedItems, views }) => {
+        if (!isBookmarkProjectionChange(previousBookmark, bookmark)) return [];
 
-        for (const [key, scopeState] of Object.entries(scopes)) {
-          const newlySuppressed = scopeState.references.filter((reference) => {
+        const current = get();
+        const projectionIndexes = current.projectionIndexesComplete
+          ? current.projectionIndexes
+          : buildProjectionIndexes(current.scopes, feedItems);
+        const candidateKeys = new Set(
+          projectionIndexes.bookmarkScopeKeys[bookmark.id] ?? [],
+        );
+        if (previousBookmark) {
+          for (const key of matchingLoadedScopeKeys(
+            previousBookmark,
+            current.scopes,
+            views,
+          )) {
+            candidateKeys.add(key);
+          }
+        }
+        for (const key of matchingLoadedScopeKeys(
+          bookmark,
+          current.scopes,
+          views,
+        )) {
+          candidateKeys.add(key);
+        }
+
+        const canonicalChanged =
+          previousBookmark?.canonicalUrl !== bookmark.canonicalUrl;
+        const previousSuppressed =
+          current.suppressedReferences[bookmark.id] ?? {};
+        const nextSuppressedForBookmark = canonicalChanged
+          ? {}
+          : { ...previousSuppressed };
+        if (canonicalChanged) {
+          for (const key of Object.keys(previousSuppressed)) {
+            candidateKeys.add(key);
+          }
+          for (const key of collisionScopeKeys(
+            bookmark.canonicalUrl,
+            projectionIndexes,
+          )) {
+            candidateKeys.add(key);
+          }
+        }
+
+        let scopes = current.scopes;
+        const affected: LoadedMixedScope[] = [];
+        for (const key of candidateKeys) {
+          const scopeState = current.scopes[key];
+          if (!scopeState) continue;
+          let references = scopeState.references.filter(
+            (reference) =>
+              reference.entityKind !== "bookmark" ||
+              reference.entityId !== bookmark.id,
+          );
+          if (canonicalChanged) {
+            references = uniqueReferences([
+              ...references,
+              ...(previousSuppressed[key] ?? []),
+            ]);
+          }
+
+          const newlySuppressed = references.filter((reference) => {
             if (reference.entityKind !== "feed-item") return false;
             const item = feedItems[reference.entityId];
             return item?.url
@@ -199,25 +176,21 @@ const vanillaMixedContentStore = createStore<MixedContentStore>()(
               : false;
           });
           if (newlySuppressed.length > 0) {
-            bookmarkSuppressed[key] = uniqueReferences([
-              ...(bookmarkSuppressed[key] ?? []),
+            nextSuppressedForBookmark[key] = uniqueReferences([
+              ...(nextSuppressedForBookmark[key] ?? []),
               ...newlySuppressed,
             ]);
           }
-          const newlySuppressedKeys = new Set(
-            newlySuppressed.map(
-              (reference) => `${reference.entityKind}:${reference.entityId}`,
-            ),
+          const newlySuppressedIds = new Set(
+            newlySuppressed.map((reference) => reference.entityId),
           );
-          let references = scopeState.references.filter(
+          references = references.filter(
             (reference) =>
-              reference.entityId !== bookmark.id &&
-              !newlySuppressedKeys.has(
-                `${reference.entityKind}:${reference.entityId}`,
-              ),
+              reference.entityKind !== "feed-item" ||
+              !newlySuppressedIds.has(reference.entityId),
           );
           if (
-            matchesVisibility(bookmark, scopeState.visibility) &&
+            bookmarkVisibility(bookmark) === scopeState.visibility &&
             matchesScope(bookmark, scopeState.scope, views)
           ) {
             references = [
@@ -225,43 +198,101 @@ const vanillaMixedContentStore = createStore<MixedContentStore>()(
               bookmarkReference(bookmark, scopeState, views),
             ];
           }
-          const nextScope = {
-            ...scopeState,
-            references: uniqueReferences(references),
-          };
+          references = uniqueReferences(references);
+          if (referencesEqual(scopeState.references, references)) continue;
+
+          const nextScope = { ...scopeState, references };
+          if (scopes === current.scopes) scopes = { ...current.scopes };
           scopes[key] = nextScope;
+          replaceScopeInIndexes({
+            indexes: projectionIndexes,
+            scopeKey: key,
+            previousReferences: scopeState.references,
+            nextReferences: references,
+            feedItems,
+          });
           affected.push(nextScope);
         }
-        suppressedReferences[bookmark.id] = bookmarkSuppressed;
-        set({ scopes, suppressedReferences });
+
+        const suppressedReferences = { ...current.suppressedReferences };
+        if (Object.keys(nextSuppressedForBookmark).length > 0) {
+          suppressedReferences[bookmark.id] = nextSuppressedForBookmark;
+        } else {
+          delete suppressedReferences[bookmark.id];
+        }
+        const suppressionChanged = !referenceRecordsEqual(
+          previousSuppressed,
+          nextSuppressedForBookmark,
+        );
+        if (
+          affected.length > 0 ||
+          suppressionChanged ||
+          !current.projectionIndexesComplete
+        ) {
+          set({
+            scopes,
+            suppressedReferences,
+            projectionIndexes,
+            projectionIndexesComplete: true,
+          });
+        }
         return affected;
       },
-      reprojectDeletion: (bookmarkId) => {
-        const scopes = { ...get().scopes };
+      reprojectDeletion: ({ bookmarkId, feedItems }) => {
+        const current = get();
+        const projectionIndexes = current.projectionIndexesComplete
+          ? current.projectionIndexes
+          : buildProjectionIndexes(current.scopes, feedItems);
+        const hadSuppressedReferences =
+          current.suppressedReferences[bookmarkId] !== undefined;
         const suppressedForBookmark =
-          get().suppressedReferences[bookmarkId] ?? {};
+          current.suppressedReferences[bookmarkId] ?? {};
+        const candidateKeys = new Set([
+          ...(projectionIndexes.bookmarkScopeKeys[bookmarkId] ?? []),
+          ...Object.keys(suppressedForBookmark),
+        ]);
+        let scopes = current.scopes;
         const affected: LoadedMixedScope[] = [];
-        for (const [key, scopeState] of Object.entries(scopes)) {
-          const nextScope = {
-            ...scopeState,
-            references: uniqueReferences([
-              ...scopeState.references.filter(
-                (reference) =>
-                  !(
-                    reference.entityKind === "bookmark" &&
-                    reference.entityId === bookmarkId
-                  ),
-              ),
-              ...(suppressedForBookmark[key] ?? []),
-            ]),
-          };
+        for (const key of candidateKeys) {
+          const scopeState = current.scopes[key];
+          if (!scopeState) continue;
+          const references = uniqueReferences([
+            ...scopeState.references.filter(
+              (reference) =>
+                reference.entityKind !== "bookmark" ||
+                reference.entityId !== bookmarkId,
+            ),
+            ...(suppressedForBookmark[key] ?? []),
+          ]);
+          if (referencesEqual(scopeState.references, references)) continue;
+
+          const nextScope = { ...scopeState, references };
+          if (scopes === current.scopes) scopes = { ...current.scopes };
           scopes[key] = nextScope;
+          replaceScopeInIndexes({
+            indexes: projectionIndexes,
+            scopeKey: key,
+            previousReferences: scopeState.references,
+            nextReferences: references,
+            feedItems,
+          });
           affected.push(nextScope);
         }
         const { [bookmarkId]: _removed, ...suppressedReferences } =
-          get().suppressedReferences;
+          current.suppressedReferences;
         void _removed;
-        set({ scopes, suppressedReferences });
+        if (
+          affected.length > 0 ||
+          hadSuppressedReferences ||
+          !current.projectionIndexesComplete
+        ) {
+          set({
+            scopes,
+            suppressedReferences,
+            projectionIndexes,
+            projectionIndexesComplete: true,
+          });
+        }
         return affected;
       },
     }),
@@ -272,20 +303,20 @@ const vanillaMixedContentStore = createStore<MixedContentStore>()(
         scopes: state.scopes,
         suppressedReferences: state.suppressedReferences,
       }),
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as
+          Partial<MixedContentStore> | undefined;
+        const scopes = persisted?.scopes ?? {};
+        return {
+          ...currentState,
+          ...(persisted ?? {}),
+          scopes,
+          projectionIndexes: emptyProjectionIndexes(),
+          projectionIndexesComplete: Object.keys(scopes).length === 0,
+        };
+      },
     },
   ),
 );
-
-function canonicalize(url: string) {
-  try {
-    const parsed = new URL(url);
-    parsed.hash = "";
-    if (parsed.protocol === "http:" && parsed.port === "80") parsed.port = "";
-    if (parsed.protocol === "https:" && parsed.port === "443") parsed.port = "";
-    return parsed.toString();
-  } catch {
-    return url;
-  }
-}
 
 export const mixedContentStore = createSelectorHooks(vanillaMixedContentStore);
