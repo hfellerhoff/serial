@@ -1,0 +1,3267 @@
+{
+  "schemaVersion": 1,
+  "scope": ["src/**/*.ts(x)", "tests/**/*.ts(x)", "scripts/**/*.ts(x)"],
+  "exclusions": ["node_modules", "src/server/db/migrations"],
+  "accessCount": 406,
+  "areas": {
+    "Bookmark and capture": 21,
+    "administration": 33,
+    "application support": 42,
+    "authentication": 17,
+    "background and maintenance tasks": 14,
+    "database infrastructure": 3,
+    "request procedures": 155,
+    "synchronization and projection": 10,
+    "test-only infrastructure": 111
+  },
+  "entries": [
+    {
+      "file": "scripts/performance/database.ts",
+      "area": "application support",
+      "symbol": "baseClient",
+      "line": 238,
+      "method": "createClient",
+      "expression": "createClient"
+    },
+    {
+      "file": "scripts/performance/database.ts",
+      "area": "application support",
+      "symbol": "openBenchmarkDatabase",
+      "line": 242,
+      "method": "drizzle",
+      "expression": "drizzle"
+    },
+    {
+      "file": "scripts/performance/database.ts",
+      "area": "application support",
+      "symbol": "applyMigrations",
+      "line": 56,
+      "method": "execute",
+      "expression": "client.execute"
+    },
+    {
+      "file": "scripts/performance/database.ts",
+      "area": "application support",
+      "symbol": "applyMigrations",
+      "line": 69,
+      "method": "execute",
+      "expression": "client.execute"
+    },
+    {
+      "file": "scripts/performance/database.ts",
+      "area": "application support",
+      "symbol": "applyMigrations",
+      "line": 82,
+      "method": "execute",
+      "expression": "client.execute"
+    },
+    {
+      "file": "scripts/performance/fixtures.ts",
+      "area": "application support",
+      "symbol": "seedBenchmarkFixture",
+      "line": 104,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "scripts/performance/fixtures.ts",
+      "area": "application support",
+      "symbol": "viewRows",
+      "line": 106,
+      "method": "select",
+      "expression": "database\n    .select"
+    },
+    {
+      "file": "scripts/performance/fixtures.ts",
+      "area": "application support",
+      "symbol": "seedBenchmarkFixture",
+      "line": 117,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "scripts/performance/fixtures.ts",
+      "area": "application support",
+      "symbol": "seedBenchmarkFixture",
+      "line": 126,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "scripts/performance/fixtures.ts",
+      "area": "application support",
+      "symbol": "seedBenchmarkFixture",
+      "line": 133,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "scripts/performance/fixtures.ts",
+      "area": "application support",
+      "symbol": "seedBenchmarkFixture",
+      "line": 157,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "scripts/performance/fixtures.ts",
+      "area": "application support",
+      "symbol": "seedBenchmarkFixture",
+      "line": 192,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "scripts/performance/fixtures.ts",
+      "area": "application support",
+      "symbol": "seedBenchmarkFixture",
+      "line": 223,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "scripts/performance/fixtures.ts",
+      "area": "application support",
+      "symbol": "seedBenchmarkFixture",
+      "line": 239,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "scripts/performance/fixtures.ts",
+      "area": "application support",
+      "symbol": "seedBenchmarkFixture",
+      "line": 249,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "scripts/performance/fixtures.ts",
+      "area": "application support",
+      "symbol": "seedBenchmarkFixture",
+      "line": 258,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "scripts/performance/fixtures.ts",
+      "area": "application support",
+      "symbol": "removeBenchmarkFixture",
+      "line": 276,
+      "method": "delete",
+      "expression": "input.database.delete"
+    },
+    {
+      "file": "scripts/performance/fixtures.ts",
+      "area": "application support",
+      "symbol": "seedBenchmarkFixture",
+      "line": 49,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "scripts/performance/fixtures.ts",
+      "area": "application support",
+      "symbol": "seedBenchmarkFixture",
+      "line": 70,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "scripts/performance/fixtures.ts",
+      "area": "application support",
+      "symbol": "feedRows",
+      "line": 72,
+      "method": "select",
+      "expression": "database\n    .select"
+    },
+    {
+      "file": "scripts/performance/fixtures.ts",
+      "area": "application support",
+      "symbol": "seedBenchmarkFixture",
+      "line": 84,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "scripts/performance/fixtures.ts",
+      "area": "application support",
+      "symbol": "tagRows",
+      "line": 86,
+      "method": "select",
+      "expression": "database\n    .select"
+    },
+    {
+      "file": "scripts/performance/operations.ts",
+      "area": "application support",
+      "symbol": "rows",
+      "line": 132,
+      "method": "select",
+      "expression": "database\n    .select"
+    },
+    {
+      "file": "scripts/performance/operations.ts",
+      "area": "application support",
+      "symbol": "queryFeedViewPage",
+      "line": 59,
+      "method": "select",
+      "expression": "database\n      .select"
+    },
+    {
+      "file": "scripts/performance/operations.ts",
+      "area": "application support",
+      "symbol": "queryFeedViewPage",
+      "line": 64,
+      "method": "select",
+      "expression": "database.select"
+    },
+    {
+      "file": "scripts/performance/operations.ts",
+      "area": "application support",
+      "symbol": "queryFeedViewPage",
+      "line": 65,
+      "method": "select",
+      "expression": "database\n      .select"
+    },
+    {
+      "file": "scripts/performance/operations.ts",
+      "area": "application support",
+      "symbol": "queryFeedViewPage",
+      "line": 79,
+      "method": "select",
+      "expression": "database\n            .select"
+    },
+    {
+      "file": "scripts/performance/operations.ts",
+      "area": "application support",
+      "symbol": "queryFeedViewPage",
+      "line": 85,
+      "method": "select",
+      "expression": "database\n            .select"
+    },
+    {
+      "file": "scripts/performance/operations.ts",
+      "area": "application support",
+      "symbol": "queryFeedViewPage",
+      "line": 91,
+      "method": "select",
+      "expression": "database\n            .select"
+    },
+    {
+      "file": "scripts/performance/operations.ts",
+      "area": "application support",
+      "symbol": "queryFeedViewPage",
+      "line": 97,
+      "method": "select",
+      "expression": "database\n            .select"
+    },
+    {
+      "file": "src/app/api.extension.bookmarks.ts",
+      "area": "Bookmark and capture",
+      "symbol": "storedUser",
+      "line": 78,
+      "method": "findFirst",
+      "expression": "db.query.user.findFirst"
+    },
+    {
+      "file": "src/app/api/extension-auth.$.ts",
+      "area": "authentication",
+      "symbol": "getExtensionUser",
+      "line": 105,
+      "method": "findFirst",
+      "expression": "db.query.user.findFirst"
+    },
+    {
+      "file": "src/app/api/extension-auth.$.ts",
+      "area": "authentication",
+      "symbol": "getExtensionUser",
+      "line": 106,
+      "method": "findFirst",
+      "expression": "db.query.userConfig.findFirst"
+    },
+    {
+      "file": "src/server/api/routers/admin/config.ts",
+      "area": "administration",
+      "symbol": "configs",
+      "line": 113,
+      "method": "select",
+      "expression": "db.select"
+    },
+    {
+      "file": "src/server/api/routers/admin/config.ts",
+      "area": "administration",
+      "symbol": "setSignupNotificationSetting",
+      "line": 132,
+      "method": "insert",
+      "expression": "db\n      .insert"
+    },
+    {
+      "file": "src/server/api/routers/admin/config.ts",
+      "area": "administration",
+      "symbol": "setSignupNotificationSetting",
+      "line": 148,
+      "method": "insert",
+      "expression": "db\n        .insert"
+    },
+    {
+      "file": "src/server/api/routers/admin/config.ts",
+      "area": "administration",
+      "symbol": "adminUsers",
+      "line": 176,
+      "method": "select",
+      "expression": "db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/admin/config.ts",
+      "area": "administration",
+      "symbol": "adminAccountRows",
+      "line": 183,
+      "method": "select",
+      "expression": "db\n        .select"
+    },
+    {
+      "file": "src/server/api/routers/admin/config.ts",
+      "area": "administration",
+      "symbol": "setEnabledSigninProviders",
+      "line": 221,
+      "method": "insert",
+      "expression": "db\n      .insert"
+    },
+    {
+      "file": "src/server/api/routers/admin/config.ts",
+      "area": "administration",
+      "symbol": "configs",
+      "line": 23,
+      "method": "select",
+      "expression": "db.select"
+    },
+    {
+      "file": "src/server/api/routers/admin/config.ts",
+      "area": "administration",
+      "symbol": "setEnabledSignupProviders",
+      "line": 248,
+      "method": "insert",
+      "expression": "db\n      .insert"
+    },
+    {
+      "file": "src/server/api/routers/admin/config.ts",
+      "area": "administration",
+      "symbol": "configs",
+      "line": 268,
+      "method": "select",
+      "expression": "db.select"
+    },
+    {
+      "file": "src/server/api/routers/admin/config.ts",
+      "area": "administration",
+      "symbol": "userCount",
+      "line": 277,
+      "method": "select",
+      "expression": "db.select"
+    },
+    {
+      "file": "src/server/api/routers/admin/config.ts",
+      "area": "administration",
+      "symbol": "configs",
+      "line": 311,
+      "method": "select",
+      "expression": "db.select"
+    },
+    {
+      "file": "src/server/api/routers/admin/config.ts",
+      "area": "administration",
+      "symbol": "userCount",
+      "line": 317,
+      "method": "select",
+      "expression": "db.select"
+    },
+    {
+      "file": "src/server/api/routers/admin/config.ts",
+      "area": "administration",
+      "symbol": "adminUsers",
+      "line": 34,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/admin/config.ts",
+      "area": "administration",
+      "symbol": "adminAccountRows",
+      "line": 43,
+      "method": "select",
+      "expression": "db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/admin/config.ts",
+      "area": "administration",
+      "symbol": "setPublicSignupSetting",
+      "line": 93,
+      "method": "insert",
+      "expression": "db\n      .insert"
+    },
+    {
+      "file": "src/server/api/routers/admin/invitations.ts",
+      "area": "administration",
+      "symbol": "existingUser",
+      "line": 104,
+      "method": "select",
+      "expression": "db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/admin/invitations.ts",
+      "area": "administration",
+      "symbol": "inv",
+      "line": 117,
+      "method": "select",
+      "expression": "db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/admin/invitations.ts",
+      "area": "administration",
+      "symbol": "inv",
+      "line": 168,
+      "method": "select",
+      "expression": "db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/admin/invitations.ts",
+      "area": "administration",
+      "symbol": "updateInvitation",
+      "line": 178,
+      "method": "update",
+      "expression": "db\n      .update"
+    },
+    {
+      "file": "src/server/api/routers/admin/invitations.ts",
+      "area": "administration",
+      "symbol": "inv",
+      "line": 194,
+      "method": "select",
+      "expression": "db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/admin/invitations.ts",
+      "area": "administration",
+      "symbol": "deleteInvitation",
+      "line": 204,
+      "method": "delete",
+      "expression": "db.delete"
+    },
+    {
+      "file": "src/server/api/routers/admin/invitations.ts",
+      "area": "administration",
+      "symbol": "createInvitation",
+      "line": 34,
+      "method": "insert",
+      "expression": "db\n      .insert"
+    },
+    {
+      "file": "src/server/api/routers/admin/invitations.ts",
+      "area": "administration",
+      "symbol": "rows",
+      "line": 62,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/admin/queries.ts",
+      "area": "administration",
+      "symbol": "queryUserById",
+      "line": 15,
+      "method": "select",
+      "expression": "db.select"
+    },
+    {
+      "file": "src/server/api/routers/admin/queries.ts",
+      "area": "administration",
+      "symbol": "queryUserById",
+      "line": 16,
+      "method": "select",
+      "expression": "db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/admin/stats.ts",
+      "area": "administration",
+      "symbol": "query",
+      "line": 110,
+      "method": "select",
+      "expression": "db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/admin/stats.ts",
+      "area": "administration",
+      "symbol": "results",
+      "line": 144,
+      "method": "select",
+      "expression": "db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/admin/stats.ts",
+      "area": "administration",
+      "symbol": "getRetentionStats",
+      "line": 181,
+      "method": "select",
+      "expression": "db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/admin/stats.ts",
+      "area": "administration",
+      "symbol": "getRetentionStats",
+      "line": 201,
+      "method": "select",
+      "expression": "db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/admin/stats.ts",
+      "area": "administration",
+      "symbol": "allFeedsSq",
+      "line": 281,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/admin/stats.ts",
+      "area": "administration",
+      "symbol": "allFeedCounts",
+      "line": 291,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/admin/stats.ts",
+      "area": "administration",
+      "symbol": "activeFeedsSq",
+      "line": 302,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/admin/stats.ts",
+      "area": "administration",
+      "symbol": "activeFeedCounts",
+      "line": 313,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/contentCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "categories",
+      "line": 109,
+      "method": "update",
+      "expression": "tx\n        .update"
+    },
+    {
+      "file": "src/server/api/routers/contentCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 136,
+      "method": "insert",
+      "expression": "tx\n              .insert"
+    },
+    {
+      "file": "src/server/api/routers/contentCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 150,
+      "method": "delete",
+      "expression": "tx\n              .delete"
+    },
+    {
+      "file": "src/server/api/routers/contentCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "deleteCategory",
+      "line": 168,
+      "method": "delete",
+      "expression": "context.db\n      .delete"
+    },
+    {
+      "file": "src/server/api/routers/contentCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "create",
+      "line": 27,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/contentCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "categories",
+      "line": 47,
+      "method": "insert",
+      "expression": "tx\n        .insert"
+    },
+    {
+      "file": "src/server/api/routers/contentCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "create",
+      "line": 61,
+      "method": "insert",
+      "expression": "tx.insert"
+    },
+    {
+      "file": "src/server/api/routers/contentCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "contentCategoriesList",
+      "line": 74,
+      "method": "select",
+      "expression": "context.db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/contentCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 92,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "insertedFeeds",
+      "line": 109,
+      "method": "insert",
+      "expression": "tx\n            .insert"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "results",
+      "line": 122,
+      "method": "insert",
+      "expression": "tx.insert"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "results",
+      "line": 131,
+      "method": "insert",
+      "expression": "tx.insert"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "promiseResults",
+      "line": 203,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "newFeeds",
+      "line": 229,
+      "method": "insert",
+      "expression": "tx\n                .insert"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "matchingCategories",
+      "line": 249,
+      "method": "select",
+      "expression": "tx\n                .select"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "matchingCategoryPromises",
+      "line": 272,
+      "method": "insert",
+      "expression": "tx.insert"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "newContentCategoryList",
+      "line": 281,
+      "method": "insert",
+      "expression": "tx\n                    .insert"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "nonMatchingCategoryPromises",
+      "line": 292,
+      "method": "insert",
+      "expression": "tx.insert"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "deleteFeed",
+      "line": 343,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "deletedFeeds",
+      "line": 344,
+      "method": "delete",
+      "expression": "tx\n        .delete"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "userViews",
+      "line": 351,
+      "method": "select",
+      "expression": "tx\n        .select"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "deleteFeed",
+      "line": 357,
+      "method": "delete",
+      "expression": "tx.delete"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "feedsList",
+      "line": 373,
+      "method": "findMany",
+      "expression": "context.db.query.feeds.findMany"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 397,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "updatedFeeds",
+      "line": 422,
+      "method": "update",
+      "expression": "tx\n        .update"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 437,
+      "method": "delete",
+      "expression": "tx\n        .delete"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 448,
+      "method": "insert",
+      "expression": "tx\n            .insert"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 461,
+      "method": "delete",
+      "expression": "tx.delete"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 463,
+      "method": "delete",
+      "expression": "tx\n            .delete"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 472,
+      "method": "insert",
+      "expression": "tx\n            .insert"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "bulkDelete",
+      "line": 534,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "deletedFeeds",
+      "line": 535,
+      "method": "delete",
+      "expression": "tx\n        .delete"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "userViews",
+      "line": 547,
+      "method": "select",
+      "expression": "tx\n        .select"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "bulkDelete",
+      "line": 553,
+      "method": "delete",
+      "expression": "tx.delete"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "feed",
+      "line": 574,
+      "method": "findFirst",
+      "expression": "context.db.query.feeds.findFirst"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "updatedFeeds",
+      "line": 592,
+      "method": "update",
+      "expression": "context.db\n      .update"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "bulkSetActive",
+      "line": 616,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "activeCountResult",
+      "line": 620,
+      "method": "select",
+      "expression": "tx\n          .select"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "currentFeeds",
+      "line": 634,
+      "method": "findMany",
+      "expression": "tx.query.feeds.findMany"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "bulkSetActive",
+      "line": 650,
+      "method": "update",
+      "expression": "tx\n        .update"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/index.ts",
+      "area": "request procedures",
+      "symbol": "results",
+      "line": 69,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/utils.ts",
+      "area": "request procedures",
+      "symbol": "newFeeds",
+      "line": 153,
+      "method": "insert",
+      "expression": "db\n    .insert"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/utils.ts",
+      "area": "request procedures",
+      "symbol": "matchingCategories",
+      "line": 172,
+      "method": "select",
+      "expression": "db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/utils.ts",
+      "area": "request procedures",
+      "symbol": "insertFeedWithCategories",
+      "line": 193,
+      "method": "insert",
+      "expression": "db\n        .insert"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/utils.ts",
+      "area": "request procedures",
+      "symbol": "insertFeedWithCategories",
+      "line": 216,
+      "method": "insert",
+      "expression": "db.insert"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/utils.ts",
+      "area": "request procedures",
+      "symbol": "findExistingFeedThatMatches",
+      "line": 27,
+      "method": "findFirst",
+      "expression": "tx.query.feeds.findFirst"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/utils.ts",
+      "area": "request procedures",
+      "symbol": "userFeeds",
+      "line": 48,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/utils.ts",
+      "area": "request procedures",
+      "symbol": "userViews",
+      "line": 71,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/feed-router/utils.ts",
+      "area": "request procedures",
+      "symbol": "userCategories",
+      "line": 94,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/feedCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "bulkRemoveFromFeeds",
+      "line": 110,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/feedCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "bulkRemoveFromFeeds",
+      "line": 123,
+      "method": "delete",
+      "expression": "tx\n        .delete"
+    },
+    {
+      "file": "src/server/api/routers/feedCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "feedCategoriesList",
+      "line": 18,
+      "method": "select",
+      "expression": "context.db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/feedCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "assignToFeed",
+      "line": 30,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/feedCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "assignToFeed",
+      "line": 41,
+      "method": "insert",
+      "expression": "tx.insert"
+    },
+    {
+      "file": "src/server/api/routers/feedCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "removeFromFeed",
+      "line": 51,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/feedCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "removeFromFeed",
+      "line": 62,
+      "method": "delete",
+      "expression": "tx\n        .delete"
+    },
+    {
+      "file": "src/server/api/routers/feedCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "bulkAssignToFeeds",
+      "line": 78,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/feedCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "contentCategoriesList",
+      "line": 9,
+      "method": "select",
+      "expression": "context.db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/feedCategoriesRouter.ts",
+      "area": "request procedures",
+      "symbol": "bulkAssignToFeeds",
+      "line": 93,
+      "method": "insert",
+      "expression": "tx\n            .insert"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "result",
+      "line": 137,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "result",
+      "line": 148,
+      "method": "update",
+      "expression": "tx\n        .update"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "setWatchedValue",
+      "line": 188,
+      "method": "select",
+      "expression": "context.db\n        .select"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "setBulkWatchedValue",
+      "line": 235,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "setBulkWatchedValue",
+      "line": 253,
+      "method": "update",
+      "expression": "tx\n        .update"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "result",
+      "line": 281,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "result",
+      "line": 292,
+      "method": "update",
+      "expression": "tx\n        .update"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "feedsList",
+      "line": 31,
+      "method": "findMany",
+      "expression": "context.db.query.feeds.findMany"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "setWatchLaterValue",
+      "line": 332,
+      "method": "select",
+      "expression": "context.db\n        .select"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "itemsData",
+      "line": 36,
+      "method": "findMany",
+      "expression": "context.db.query.feedItems.findMany"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "setProgress",
+      "line": 373,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "setProgress",
+      "line": 384,
+      "method": "update",
+      "expression": "tx\n        .update"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "item",
+      "line": 400,
+      "method": "findFirst",
+      "expression": "context.db.query.feedItems.findFirst"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "feed",
+      "line": 408,
+      "method": "findFirst",
+      "expression": "context.db.query.feeds.findFirst"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "feed",
+      "line": 428,
+      "method": "findFirst",
+      "expression": "context.db.query.feeds.findFirst"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "itemsData",
+      "line": 436,
+      "method": "findMany",
+      "expression": "context.db.query.feedItems.findMany"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "queryFeedItemsForView",
+      "line": 1093,
+      "method": "findMany",
+      "expression": "context.db.query.feedItems.findMany"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "queryFeedItemsForView",
+      "line": 1099,
+      "method": "select",
+      "expression": "context.db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "insertResult",
+      "line": 1870,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "streamingImport",
+      "line": 2010,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "existingViews",
+      "line": 2012,
+      "method": "select",
+      "expression": "tx\n            .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "inserted",
+      "line": 2023,
+      "method": "insert",
+      "expression": "tx\n              .insert"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "existingCategories",
+      "line": 2047,
+      "method": "select",
+      "expression": "tx\n                  .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "insertedCategories",
+      "line": 2065,
+      "method": "insert",
+      "expression": "tx\n              .insert"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "existingViewSections",
+      "line": 2083,
+      "method": "select",
+      "expression": "tx\n                  .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "streamingImport",
+      "line": 2193,
+      "method": "insert",
+      "expression": "tx\n              .insert"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "streamingImport",
+      "line": 2200,
+      "method": "insert",
+      "expression": "tx\n              .insert"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "streamingImport",
+      "line": 2207,
+      "method": "insert",
+      "expression": "tx.insert"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "feed",
+      "line": 2591,
+      "method": "findFirst",
+      "expression": "context.db.query.feeds.findFirst"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "itemsData",
+      "line": 2615,
+      "method": "findMany",
+      "expression": "context.db.query.feedItems.findMany"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "category",
+      "line": 2707,
+      "method": "findFirst",
+      "expression": "context.db.query.contentCategories.findFirst"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "categoryFeedLinks",
+      "line": 2727,
+      "method": "select",
+      "expression": "context.db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "feedsList",
+      "line": 2751,
+      "method": "findMany",
+      "expression": "context.db.query.feeds.findMany"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "itemsData",
+      "line": 2768,
+      "method": "findMany",
+      "expression": "context.db.query.feedItems.findMany"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "getItemsByVisibility",
+      "line": 3247,
+      "method": "findMany",
+      "expression": "context.db.query.feedItems.findMany"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "getItemsByVisibility",
+      "line": 3253,
+      "method": "select",
+      "expression": "context.db\n          .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "items",
+      "line": 3332,
+      "method": "select",
+      "expression": "context.db\n        .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "fetchUserPrerequisiteData",
+      "line": 568,
+      "method": "select",
+      "expression": "context.db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "fetchUserPrerequisiteData",
+      "line": 573,
+      "method": "findMany",
+      "expression": "context.db.query.feeds.findMany"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "fetchUserPrerequisiteData",
+      "line": 576,
+      "method": "select",
+      "expression": "context.db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "fetchUserPrerequisiteData",
+      "line": 594,
+      "method": "select",
+      "expression": "context.db\n          .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "fetchUserPrerequisiteData",
+      "line": 600,
+      "method": "select",
+      "expression": "context.db\n          .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "fetchUserPrerequisiteData",
+      "line": 606,
+      "method": "select",
+      "expression": "context.db\n          .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "fetchUserPrerequisiteData",
+      "line": 612,
+      "method": "select",
+      "expression": "context.db\n          .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "queryLightweightItemsForView",
+      "line": 924,
+      "method": "select",
+      "expression": "context.db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "queryLightweightItemsForView",
+      "line": 931,
+      "method": "select",
+      "expression": "context.db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/instapaperRouter.ts",
+      "area": "request procedures",
+      "symbol": "connection",
+      "line": 10,
+      "method": "findFirst",
+      "expression": "context.db.query.instapaperConnections.findFirst"
+    },
+    {
+      "file": "src/server/api/routers/instapaperRouter.ts",
+      "area": "request procedures",
+      "symbol": "saveBookmark",
+      "line": 119,
+      "method": "update",
+      "expression": "context.db\n      .update"
+    },
+    {
+      "file": "src/server/api/routers/instapaperRouter.ts",
+      "area": "request procedures",
+      "symbol": "linkAccount",
+      "line": 36,
+      "method": "findFirst",
+      "expression": "context.db.query.instapaperConnections.findFirst"
+    },
+    {
+      "file": "src/server/api/routers/instapaperRouter.ts",
+      "area": "request procedures",
+      "symbol": "linkAccount",
+      "line": 42,
+      "method": "update",
+      "expression": "context.db\n        .update"
+    },
+    {
+      "file": "src/server/api/routers/instapaperRouter.ts",
+      "area": "request procedures",
+      "symbol": "linkAccount",
+      "line": 52,
+      "method": "insert",
+      "expression": "context.db.insert"
+    },
+    {
+      "file": "src/server/api/routers/instapaperRouter.ts",
+      "area": "request procedures",
+      "symbol": "unlinkAccount",
+      "line": 64,
+      "method": "delete",
+      "expression": "context.db\n    .delete"
+    },
+    {
+      "file": "src/server/api/routers/instapaperRouter.ts",
+      "area": "request procedures",
+      "symbol": "connection",
+      "line": 78,
+      "method": "findFirst",
+      "expression": "context.db.query.instapaperConnections.findFirst"
+    },
+    {
+      "file": "src/server/api/routers/instapaperRouter.ts",
+      "area": "request procedures",
+      "symbol": "feedItem",
+      "line": 86,
+      "method": "findFirst",
+      "expression": "context.db.query.feedItems.findFirst"
+    },
+    {
+      "file": "src/server/api/routers/instapaperRouter.ts",
+      "area": "request procedures",
+      "symbol": "feed",
+      "line": 95,
+      "method": "findFirst",
+      "expression": "context.db.query.feeds.findFirst"
+    },
+    {
+      "file": "src/server/api/routers/mixedContentRouter.ts",
+      "area": "request procedures",
+      "symbol": "synchronize",
+      "line": 99,
+      "method": "select",
+      "expression": "context.db\n        .select"
+    },
+    {
+      "file": "src/server/api/routers/subscriptionRouter.ts",
+      "area": "request procedures",
+      "symbol": "currentUser",
+      "line": 79,
+      "method": "select",
+      "expression": "context.db\n        .select"
+    },
+    {
+      "file": "src/server/api/routers/userConfigRouter.ts",
+      "area": "request procedures",
+      "symbol": "setThemeHSL",
+      "line": 31,
+      "method": "insert",
+      "expression": "context.db\n      .insert"
+    },
+    {
+      "file": "src/server/api/routers/userConfigRouter.ts",
+      "area": "request procedures",
+      "symbol": "setArticleFont",
+      "line": 61,
+      "method": "insert",
+      "expression": "context.db\n      .insert"
+    },
+    {
+      "file": "src/server/api/routers/userConfigRouter.ts",
+      "area": "request procedures",
+      "symbol": "config",
+      "line": 84,
+      "method": "findFirst",
+      "expression": "context.db.query.userConfig.findFirst"
+    },
+    {
+      "file": "src/server/api/routers/userRouter.ts",
+      "area": "request procedures",
+      "symbol": "users",
+      "line": 20,
+      "method": "select",
+      "expression": "context.db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/userRouter.ts",
+      "area": "request procedures",
+      "symbol": "updateName",
+      "line": 39,
+      "method": "update",
+      "expression": "context.db\n      .update"
+    },
+    {
+      "file": "src/server/api/routers/userRouter.ts",
+      "area": "request procedures",
+      "symbol": "deleteUser",
+      "line": 58,
+      "method": "delete",
+      "expression": "context.db.delete"
+    },
+    {
+      "file": "src/server/api/routers/viewFeedsRouter.ts",
+      "area": "request procedures",
+      "symbol": "bulkAssignToView",
+      "line": 100,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/viewFeedsRouter.ts",
+      "area": "request procedures",
+      "symbol": "userViews",
+      "line": 12,
+      "method": "select",
+      "expression": "context.db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/viewFeedsRouter.ts",
+      "area": "request procedures",
+      "symbol": "bulkAssignToView",
+      "line": 123,
+      "method": "insert",
+      "expression": "tx\n        .insert"
+    },
+    {
+      "file": "src/server/api/routers/viewFeedsRouter.ts",
+      "area": "request procedures",
+      "symbol": "bulkRemoveFromView",
+      "line": 140,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/viewFeedsRouter.ts",
+      "area": "request procedures",
+      "symbol": "bulkRemoveFromView",
+      "line": 163,
+      "method": "delete",
+      "expression": "tx\n        .delete"
+    },
+    {
+      "file": "src/server/api/routers/viewFeedsRouter.ts",
+      "area": "request procedures",
+      "symbol": "getAll",
+      "line": 20,
+      "method": "select",
+      "expression": "context.db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/viewFeedsRouter.ts",
+      "area": "request procedures",
+      "symbol": "assignToView",
+      "line": 29,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/viewFeedsRouter.ts",
+      "area": "request procedures",
+      "symbol": "assignToView",
+      "line": 50,
+      "method": "insert",
+      "expression": "tx\n        .insert"
+    },
+    {
+      "file": "src/server/api/routers/viewFeedsRouter.ts",
+      "area": "request procedures",
+      "symbol": "removeFromView",
+      "line": 63,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/viewFeedsRouter.ts",
+      "area": "request procedures",
+      "symbol": "removeFromView",
+      "line": 84,
+      "method": "delete",
+      "expression": "tx\n        .delete"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 107,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "viewsResult",
+      "line": 132,
+      "method": "update",
+      "expression": "tx\n        .update"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 152,
+      "method": "delete",
+      "expression": "tx\n          .delete"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 156,
+      "method": "delete",
+      "expression": "tx\n          .delete"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 165,
+      "method": "insert",
+      "expression": "tx\n          .insert"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 178,
+      "method": "delete",
+      "expression": "tx.delete"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 180,
+      "method": "delete",
+      "expression": "tx\n          .delete"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 189,
+      "method": "insert",
+      "expression": "tx\n          .insert"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 202,
+      "method": "delete",
+      "expression": "tx.delete"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 205,
+      "method": "insert",
+      "expression": "tx.insert"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "updatePlacement",
+      "line": 231,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "updatePlacement",
+      "line": 234,
+      "method": "update",
+      "expression": "tx\n            .update"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "deleteView",
+      "line": 250,
+      "method": "delete",
+      "expression": "context.db\n      .delete"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "getAll",
+      "line": 257,
+      "method": "select",
+      "expression": "context.db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "getAll",
+      "line": 262,
+      "method": "select",
+      "expression": "context.db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "create",
+      "line": 27,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "getAll",
+      "line": 273,
+      "method": "select",
+      "expression": "context.db\n            .select"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "getAll",
+      "line": 277,
+      "method": "select",
+      "expression": "context.db\n            .select"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "getAll",
+      "line": 281,
+      "method": "select",
+      "expression": "context.db\n            .select"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "viewsResult",
+      "line": 52,
+      "method": "insert",
+      "expression": "tx\n        .insert"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "create",
+      "line": 71,
+      "method": "insert",
+      "expression": "tx.insert"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "create",
+      "line": 80,
+      "method": "insert",
+      "expression": "tx.insert"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "create",
+      "line": 89,
+      "method": "insert",
+      "expression": "tx.insert"
+    },
+    {
+      "file": "src/server/auth/endpoints.ts",
+      "area": "authentication",
+      "symbol": "config",
+      "line": 34,
+      "method": "select",
+      "expression": "db\n        .select"
+    },
+    {
+      "file": "src/server/auth/extension.ts",
+      "area": "authentication",
+      "symbol": "issueExtensionGrant",
+      "line": 107,
+      "method": "insert",
+      "expression": "db.insert"
+    },
+    {
+      "file": "src/server/auth/extension.ts",
+      "area": "authentication",
+      "symbol": "exchangeExtensionGrant",
+      "line": 138,
+      "method": "transaction",
+      "expression": "db.transaction"
+    },
+    {
+      "file": "src/server/auth/extension.ts",
+      "area": "authentication",
+      "symbol": "findExtensionSession",
+      "line": 177,
+      "method": "findFirst",
+      "expression": "db.query.extensionSession.findFirst"
+    },
+    {
+      "file": "src/server/auth/extension.ts",
+      "area": "authentication",
+      "symbol": "revokeExtensionSession",
+      "line": 186,
+      "method": "delete",
+      "expression": "db\n    .delete"
+    },
+    {
+      "file": "src/server/auth/index.tsx",
+      "area": "authentication",
+      "symbol": "userCount",
+      "line": 352,
+      "method": "select",
+      "expression": "db.select"
+    },
+    {
+      "file": "src/server/auth/index.tsx",
+      "area": "authentication",
+      "symbol": "configs",
+      "line": 355,
+      "method": "select",
+      "expression": "db.select"
+    },
+    {
+      "file": "src/server/auth/index.tsx",
+      "area": "authentication",
+      "symbol": "firstUser",
+      "line": 449,
+      "method": "select",
+      "expression": "db\n        .select"
+    },
+    {
+      "file": "src/server/auth/index.tsx",
+      "area": "authentication",
+      "symbol": "auth",
+      "line": 457,
+      "method": "update",
+      "expression": "db.update"
+    },
+    {
+      "file": "src/server/auth/index.tsx",
+      "area": "authentication",
+      "symbol": "auth",
+      "line": 462,
+      "method": "insert",
+      "expression": "db\n          .insert"
+    },
+    {
+      "file": "src/server/auth/index.tsx",
+      "area": "authentication",
+      "symbol": "auth",
+      "line": 473,
+      "method": "insert",
+      "expression": "db\n          .insert"
+    },
+    {
+      "file": "src/server/auth/index.tsx",
+      "area": "authentication",
+      "symbol": "sessionCount",
+      "line": 488,
+      "method": "select",
+      "expression": "db\n          .select"
+    },
+    {
+      "file": "src/server/auth/index.tsx",
+      "area": "authentication",
+      "symbol": "configs",
+      "line": 495,
+      "method": "select",
+      "expression": "db.select"
+    },
+    {
+      "file": "src/server/auth/index.tsx",
+      "area": "authentication",
+      "symbol": "notifyConfig",
+      "line": 534,
+      "method": "select",
+      "expression": "db\n            .select"
+    },
+    {
+      "file": "src/server/auth/index.tsx",
+      "area": "authentication",
+      "symbol": "emailConfig",
+      "line": 539,
+      "method": "select",
+      "expression": "db\n            .select"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "replaceCapture",
+      "line": 100,
+      "method": "update",
+      "expression": "database\n    .update"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "consolidateBookmarks",
+      "line": 136,
+      "method": "select",
+      "expression": "database\n      .select"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "consolidateBookmarks",
+      "line": 140,
+      "method": "select",
+      "expression": "database\n      .select"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "consolidateBookmarks",
+      "line": 151,
+      "method": "insert",
+      "expression": "database\n      .insert"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "consolidateBookmarks",
+      "line": 159,
+      "method": "insert",
+      "expression": "database\n      .insert"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "consolidateBookmarks",
+      "line": 165,
+      "method": "update",
+      "expression": "database\n    .update"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "consolidateBookmarks",
+      "line": 172,
+      "method": "delete",
+      "expression": "database.delete"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "persistBookmarkSave",
+      "line": 194,
+      "method": "transaction",
+      "expression": "database.transaction"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "row",
+      "line": 388,
+      "method": "select",
+      "expression": "database\n    .select"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "updated",
+      "line": 433,
+      "method": "update",
+      "expression": "database\n    .update"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "verifyOrganizationOwnership",
+      "line": 473,
+      "method": "findFirst",
+      "expression": "input.database.query.views.findFirst"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "verifyOrganizationOwnership",
+      "line": 479,
+      "method": "findFirst",
+      "expression": "input.database.query.contentCategories.findFirst"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "setBookmarkView",
+      "line": 500,
+      "method": "insert",
+      "expression": "database\n      .insert"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "setBookmarkView",
+      "line": 505,
+      "method": "delete",
+      "expression": "database\n      .delete"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "setBookmarkTag",
+      "line": 526,
+      "method": "insert",
+      "expression": "database\n      .insert"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "setBookmarkTag",
+      "line": 531,
+      "method": "delete",
+      "expression": "database\n      .delete"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "deleted",
+      "line": 548,
+      "method": "delete",
+      "expression": "database\n    .delete"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "findOwnedBookmark",
+      "line": 70,
+      "method": "findFirst",
+      "expression": "database.query.bookmarks.findFirst"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "findCapture",
+      "line": 79,
+      "method": "findFirst",
+      "expression": "database.query.pageCaptures.findFirst"
+    },
+    {
+      "file": "src/server/bookmarks/service.ts",
+      "area": "Bookmark and capture",
+      "symbol": "replaceCapture",
+      "line": 93,
+      "method": "insert",
+      "expression": "database\n    .insert"
+    },
+    {
+      "file": "src/server/db/index.ts",
+      "area": "database infrastructure",
+      "symbol": "client",
+      "line": 52,
+      "method": "createClient",
+      "expression": "createClient"
+    },
+    {
+      "file": "src/server/db/index.ts",
+      "area": "database infrastructure",
+      "symbol": "db",
+      "line": 59,
+      "method": "drizzle",
+      "expression": "drizzle"
+    },
+    {
+      "file": "src/server/db/migrate.ts",
+      "area": "database infrastructure",
+      "symbol": "run",
+      "line": 201,
+      "method": "transaction",
+      "expression": "db.transaction"
+    },
+    {
+      "file": "src/server/invitations.ts",
+      "area": "application support",
+      "symbol": "redeemInvitationToken",
+      "line": 83,
+      "method": "transaction",
+      "expression": "db.transaction"
+    },
+    {
+      "file": "src/server/invitations.ts",
+      "area": "application support",
+      "symbol": "redeemInvitationToken",
+      "line": 88,
+      "method": "insert",
+      "expression": "tx.insert"
+    },
+    {
+      "file": "src/server/mixed-content/projection.ts",
+      "area": "synchronization and projection",
+      "symbol": "bookmarkRows",
+      "line": 340,
+      "method": "select",
+      "expression": "database\n    .select"
+    },
+    {
+      "file": "src/server/mixed-content/projection.ts",
+      "area": "synchronization and projection",
+      "symbol": "loadApplicationBookmarks",
+      "line": 353,
+      "method": "select",
+      "expression": "database\n            .select"
+    },
+    {
+      "file": "src/server/mixed-content/projection.ts",
+      "area": "synchronization and projection",
+      "symbol": "loadApplicationBookmarks",
+      "line": 357,
+      "method": "select",
+      "expression": "database\n            .select"
+    },
+    {
+      "file": "src/server/mixed-content/projection.ts",
+      "area": "synchronization and projection",
+      "symbol": "loadProjectionData",
+      "line": 389,
+      "method": "select",
+      "expression": "database\n      .select"
+    },
+    {
+      "file": "src/server/mixed-content/projection.ts",
+      "area": "synchronization and projection",
+      "symbol": "loadProjectionData",
+      "line": 398,
+      "method": "select",
+      "expression": "database\n      .select"
+    },
+    {
+      "file": "src/server/mixed-content/projection.ts",
+      "area": "synchronization and projection",
+      "symbol": "loadProjectionData",
+      "line": 403,
+      "method": "select",
+      "expression": "database\n      .select"
+    },
+    {
+      "file": "src/server/mixed-content/projection.ts",
+      "area": "synchronization and projection",
+      "symbol": "loadProjectionData",
+      "line": 414,
+      "method": "select",
+      "expression": "database\n            .select"
+    },
+    {
+      "file": "src/server/mixed-content/projection.ts",
+      "area": "synchronization and projection",
+      "symbol": "loadProjectionData",
+      "line": 420,
+      "method": "select",
+      "expression": "database\n            .select"
+    },
+    {
+      "file": "src/server/mixed-content/projection.ts",
+      "area": "synchronization and projection",
+      "symbol": "loadProjectionData",
+      "line": 426,
+      "method": "select",
+      "expression": "database\n            .select"
+    },
+    {
+      "file": "src/server/mixed-content/projection.ts",
+      "area": "synchronization and projection",
+      "symbol": "loadProjectionData",
+      "line": 432,
+      "method": "select",
+      "expression": "database\n            .select"
+    },
+    {
+      "file": "src/server/rss/fetchFeeds.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "existingItems",
+      "line": 175,
+      "method": "select",
+      "expression": "context.db\n      .select"
+    },
+    {
+      "file": "src/server/rss/fetchFeeds.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "feedItemsList",
+      "line": 207,
+      "method": "insert",
+      "expression": "context.db\n        .insert"
+    },
+    {
+      "file": "src/server/rss/fetchFeeds.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "feedPromises",
+      "line": 273,
+      "method": "update",
+      "expression": "context.db\n              .update"
+    },
+    {
+      "file": "src/server/rss/fetchFeeds.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "feedPromises",
+      "line": 292,
+      "method": "update",
+      "expression": "context.db\n              .update"
+    },
+    {
+      "file": "src/server/rss/fetchFeeds.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "feedPromises",
+      "line": 316,
+      "method": "update",
+      "expression": "context.db\n            .update"
+    },
+    {
+      "file": "src/server/rss/fetchFeeds.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "feedPromises",
+      "line": 364,
+      "method": "update",
+      "expression": "context.db\n            .update"
+    },
+    {
+      "file": "src/server/rss/fetchFeeds.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "feedPromises",
+      "line": 387,
+      "method": "update",
+      "expression": "context.db\n            .update"
+    },
+    {
+      "file": "src/server/rss/fetchFeeds.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "feedPromises",
+      "line": 414,
+      "method": "update",
+      "expression": "context.db\n            .update"
+    },
+    {
+      "file": "src/server/rss/fetchFeeds.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "feedPromises",
+      "line": 443,
+      "method": "update",
+      "expression": "context.db\n          .update"
+    },
+    {
+      "file": "src/server/rss/fetchFeeds.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "feedPromises",
+      "line": 472,
+      "method": "update",
+      "expression": "context.db\n            .update"
+    },
+    {
+      "file": "src/server/scripts/addIdsToFeedItems.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "countQuery",
+      "line": 15,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/scripts/addIdsToFeedItems.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "migrate",
+      "line": 26,
+      "method": "transaction",
+      "expression": "db.transaction"
+    },
+    {
+      "file": "src/server/scripts/addIdsToFeedItems.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "feedItems",
+      "line": 31,
+      "method": "select",
+      "expression": "tx\n        .select"
+    },
+    {
+      "file": "src/server/scripts/addIdsToFeedItems.ts",
+      "area": "background and maintenance tasks",
+      "symbol": "res",
+      "line": 50,
+      "method": "update",
+      "expression": "tx\n              .update"
+    },
+    {
+      "file": "src/server/subscriptions/helpers.ts",
+      "area": "application support",
+      "symbol": "result",
+      "line": 123,
+      "method": "update",
+      "expression": "db\n    .update"
+    },
+    {
+      "file": "src/server/subscriptions/helpers.ts",
+      "area": "application support",
+      "symbol": "userRow",
+      "line": 139,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/subscriptions/helpers.ts",
+      "area": "application support",
+      "symbol": "result",
+      "line": 14,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/subscriptions/helpers.ts",
+      "area": "application support",
+      "symbol": "activeFeeds",
+      "line": 156,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/subscriptions/helpers.ts",
+      "area": "application support",
+      "symbol": "deactivateExcessFeeds",
+      "line": 169,
+      "method": "update",
+      "expression": "db\n    .update"
+    },
+    {
+      "file": "src/server/subscriptions/helpers.ts",
+      "area": "application support",
+      "symbol": "row",
+      "line": 51,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "src/server/subscriptions/kv.ts",
+      "area": "application support",
+      "symbol": "applySubscriptionSideEffects",
+      "line": 174,
+      "method": "update",
+      "expression": "db.update"
+    },
+    {
+      "file": "src/server/subscriptions/kv.ts",
+      "area": "application support",
+      "symbol": "activeFeeds",
+      "line": 180,
+      "method": "select",
+      "expression": "db\n        .select"
+    },
+    {
+      "file": "src/server/subscriptions/kv.ts",
+      "area": "application support",
+      "symbol": "applySubscriptionSideEffects",
+      "line": 198,
+      "method": "update",
+      "expression": "db\n          .update"
+    },
+    {
+      "file": "src/server/subscriptions/kv.ts",
+      "area": "application support",
+      "symbol": "applySubscriptionSideEffects",
+      "line": 214,
+      "method": "update",
+      "expression": "db\n      .update"
+    },
+    {
+      "file": "tests/e2e/fixtures/auth.ts",
+      "area": "test-only infrastructure",
+      "symbol": "client",
+      "line": 107,
+      "method": "createClient",
+      "expression": "createClient"
+    },
+    {
+      "file": "tests/e2e/fixtures/auth.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedAdmin",
+      "line": 113,
+      "method": "batch",
+      "expression": "client.batch"
+    },
+    {
+      "file": "tests/e2e/fixtures/enable-public-signups.ts",
+      "area": "test-only infrastructure",
+      "symbol": "enablePublicSignups",
+      "line": 10,
+      "method": "insert",
+      "expression": "db\n    .insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/enable-public-signups.ts",
+      "area": "test-only infrastructure",
+      "symbol": "row",
+      "line": 23,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "tests/e2e/fixtures/enable-public-signups.ts",
+      "area": "test-only infrastructure",
+      "symbol": "client",
+      "line": 7,
+      "method": "createClient",
+      "expression": "createClient"
+    },
+    {
+      "file": "tests/e2e/fixtures/enable-public-signups.ts",
+      "area": "test-only infrastructure",
+      "symbol": "db",
+      "line": 8,
+      "method": "drizzle",
+      "expression": "drizzle"
+    },
+    {
+      "file": "tests/e2e/fixtures/reset-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "client",
+      "line": 7,
+      "method": "createClient",
+      "expression": "createClient"
+    },
+    {
+      "file": "tests/e2e/fixtures/reset-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "db",
+      "line": 8,
+      "method": "drizzle",
+      "expression": "drizzle"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedBookmarkProjectionData",
+      "line": 102,
+      "method": "select",
+      "expression": "db\n      .select"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedBookmarkProjectionData",
+      "line": 116,
+      "method": "insert",
+      "expression": "db.insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedBookmarkProjectionData",
+      "line": 129,
+      "method": "insert",
+      "expression": "db.insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedBookmarkProjectionData",
+      "line": 133,
+      "method": "insert",
+      "expression": "db.insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "client",
+      "line": 15,
+      "method": "createClient",
+      "expression": "createClient"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "userViews",
+      "line": 151,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "getDb",
+      "line": 16,
+      "method": "drizzle",
+      "expression": "drizzle"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "testUser",
+      "line": 207,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedArticleData",
+      "line": 218,
+      "method": "insert",
+      "expression": "db.insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedArticleData",
+      "line": 233,
+      "method": "insert",
+      "expression": "db\n    .insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedArticleData",
+      "line": 252,
+      "method": "insert",
+      "expression": "db.insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "testUser",
+      "line": 282,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "tags",
+      "line": 290,
+      "method": "insert",
+      "expression": "db\n    .insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "createdViews",
+      "line": 304,
+      "method": "insert",
+      "expression": "db\n    .insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "cleanupUser",
+      "line": 32,
+      "method": "delete",
+      "expression": "db.delete"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedAddFeedSelectionData",
+      "line": 324,
+      "method": "insert",
+      "expression": "db.insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "testUser",
+      "line": 373,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "feedItem",
+      "line": 38,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedYouTubeVideoData",
+      "line": 383,
+      "method": "insert",
+      "expression": "db.insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedYouTubeVideoData",
+      "line": 396,
+      "method": "insert",
+      "expression": "db\n    .insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedYouTubeVideoData",
+      "line": 417,
+      "method": "insert",
+      "expression": "db.insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "testUser",
+      "line": 482,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedMultipleArticleData",
+      "line": 493,
+      "method": "insert",
+      "expression": "db.insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedMultipleArticleData",
+      "line": 508,
+      "method": "insert",
+      "expression": "db\n    .insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedMultipleArticleData",
+      "line": 531,
+      "method": "insert",
+      "expression": "db.insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "setFeedItemContent",
+      "line": 54,
+      "method": "update",
+      "expression": "db\n    .update"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "testUser",
+      "line": 601,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "tags",
+      "line": 612,
+      "method": "insert",
+      "expression": "db\n    .insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedViewLayoutData",
+      "line": 637,
+      "method": "insert",
+      "expression": "db\n      .insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedViewLayoutData",
+      "line": 663,
+      "method": "insert",
+      "expression": "db.insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "feedItem",
+      "line": 67,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedViewLayoutData",
+      "line": 683,
+      "method": "insert",
+      "expression": "db.insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "client",
+      "line": 717,
+      "method": "createClient",
+      "expression": "createClient"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "userResult",
+      "line": 720,
+      "method": "execute",
+      "expression": "client.execute"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "result",
+      "line": 778,
+      "method": "execute",
+      "expression": "client.execute"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "setFeedItemAsYouTubeVideo",
+      "line": 78,
+      "method": "update",
+      "expression": "db\n    .update"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "setFeedItemAsYouTubeVideo",
+      "line": 82,
+      "method": "update",
+      "expression": "db\n    .update"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedBookmarkProjectionData",
+      "line": 96,
+      "method": "select",
+      "expression": "db.select"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedBookmarkProjectionData",
+      "line": 97,
+      "method": "select",
+      "expression": "db\n      .select"
+    },
+    {
+      "file": "tests/e2e/self-hosted/bookmark-mixed-sync.spec.ts",
+      "area": "test-only infrastructure",
+      "symbol": "transaction",
+      "line": 23,
+      "method": "transaction",
+      "expression": "database.transaction"
+    },
+    {
+      "file": "tests/unit/bookmarks/database.ts",
+      "area": "test-only infrastructure",
+      "symbol": "client",
+      "line": 24,
+      "method": "createClient",
+      "expression": "createClient"
+    },
+    {
+      "file": "tests/unit/bookmarks/database.ts",
+      "area": "test-only infrastructure",
+      "symbol": "database",
+      "line": 25,
+      "method": "drizzle",
+      "expression": "drizzle"
+    },
+    {
+      "file": "tests/unit/bookmarks/database.ts",
+      "area": "test-only infrastructure",
+      "symbol": "createBookmarkTestDatabase",
+      "line": 36,
+      "method": "execute",
+      "expression": "client.execute"
+    },
+    {
+      "file": "tests/unit/bookmarks/database.ts",
+      "area": "test-only infrastructure",
+      "symbol": "createBookmarkTestDatabase",
+      "line": 49,
+      "method": "execute",
+      "expression": "client.execute"
+    },
+    {
+      "file": "tests/unit/bookmarks/database.ts",
+      "area": "test-only infrastructure",
+      "symbol": "createBookmarkTestDatabase",
+      "line": 63,
+      "method": "execute",
+      "expression": "client.execute"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedBookmark",
+      "line": 100,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedView",
+      "line": 116,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 138,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 139,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 158,
+      "method": "insert",
+      "expression": "database\n      .insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "feedOnlyItems",
+      "line": 173,
+      "method": "select",
+      "expression": "database\n      .select"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 182,
+      "method": "delete",
+      "expression": "database.delete"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 183,
+      "method": "select",
+      "expression": "database.select"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 184,
+      "method": "delete",
+      "expression": "database.delete"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 208,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 212,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 216,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 220,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 224,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 228,
+      "method": "insert",
+      "expression": "database\n      .insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 276,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 299,
+      "method": "insert",
+      "expression": "database\n      .insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 303,
+      "method": "insert",
+      "expression": "database\n      .insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 307,
+      "method": "insert",
+      "expression": "database\n      .insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 352,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 357,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 358,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedUser",
+      "line": 36,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 365,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 382,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 388,
+      "method": "insert",
+      "expression": "database\n      .insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 426,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 440,
+      "method": "insert",
+      "expression": "database\n      .insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 443,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedFeed",
+      "line": 50,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedFeedItem",
+      "line": 70,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 127,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 142,
+      "method": "select",
+      "expression": "database.select"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 215,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 220,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 246,
+      "method": "update",
+      "expression": "database\n      .update"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 250,
+      "method": "update",
+      "expression": "database\n      .update"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 301,
+      "method": "select",
+      "expression": "database\n        .select"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 307,
+      "method": "select",
+      "expression": "database\n        .select"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 312,
+      "method": "select",
+      "expression": "database.select"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 328,
+      "method": "update",
+      "expression": "database\n      .update"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 376,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 385,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 396,
+      "method": "delete",
+      "expression": "database.delete"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 398,
+      "method": "findFirst",
+      "expression": "database.query.bookmarks.findFirst"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 403,
+      "method": "insert",
+      "expression": "database\n      .insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 406,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 432,
+      "method": "select",
+      "expression": "database.select"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 433,
+      "method": "select",
+      "expression": "database.select"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 434,
+      "method": "select",
+      "expression": "database.select"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 435,
+      "method": "select",
+      "expression": "database.select"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 441,
+      "method": "delete",
+      "expression": "database.delete"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 443,
+      "method": "select",
+      "expression": "database\n        .select"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 454,
+      "method": "select",
+      "expression": "database\n        .select"
+    },
+    {
+      "file": "tests/unit/bookmarks/persistence.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedUsers",
+      "line": 58,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/performance/app-benchmark-instrumentation.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 15,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/app-benchmark-instrumentation.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "rows",
+      "line": 25,
+      "method": "select",
+      "expression": "session.database.select"
+    },
+    {
+      "file": "tests/unit/performance/app-benchmark-instrumentation.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 36,
+      "method": "transaction",
+      "expression": "session.database.transaction"
+    }
+  ]
+}
