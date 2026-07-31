@@ -4,6 +4,7 @@ import { z } from "zod";
 import { verifyFeedsOwnedByUser } from "./feed-router/utils";
 import { protectedProcedure } from "~/server/orpc/base";
 import { contentCategories, feedCategories } from "~/server/db/schema";
+import { boundedNumberIdsSchema } from "~/lib/schemas/bulk";
 
 export const getAll = protectedProcedure.handler(async ({ context }) => {
   const contentCategoriesList = await context.db
@@ -71,7 +72,7 @@ export const removeFromFeed = protectedProcedure
   });
 
 export const bulkAssignToFeeds = protectedProcedure
-  .input(z.object({ feedIds: z.number().array(), categoryId: z.number() }))
+  .input(z.object({ feedIds: boundedNumberIdsSchema, categoryId: z.number() }))
   .handler(async ({ context, input }) => {
     if (input.feedIds.length === 0) return;
 
@@ -88,22 +89,20 @@ export const bulkAssignToFeeds = protectedProcedure
         );
       }
 
-      await Promise.all(
-        input.feedIds.map(async (feedId) => {
-          await tx
-            .insert(feedCategories)
-            .values({
-              feedId,
-              categoryId: input.categoryId,
-            })
-            .onConflictDoNothing();
-        }),
-      );
+      await tx
+        .insert(feedCategories)
+        .values(
+          input.feedIds.map((feedId) => ({
+            feedId,
+            categoryId: input.categoryId,
+          })),
+        )
+        .onConflictDoNothing();
     });
   });
 
 export const bulkRemoveFromFeeds = protectedProcedure
-  .input(z.object({ feedIds: z.number().array(), categoryId: z.number() }))
+  .input(z.object({ feedIds: boundedNumberIdsSchema, categoryId: z.number() }))
   .handler(async ({ context, input }) => {
     if (input.feedIds.length === 0) return;
 

@@ -1,0 +1,448 @@
+import { serialize } from "node:v8";
+import { performance } from "node:perf_hooks";
+import { BENCHMARK_PROFILES } from "./model";
+import type { BenchmarkProfileName } from "./model";
+import type { VisibilityFilter } from "~/lib/data/atoms";
+import type { ApplicationFeedItem, ApplicationView } from "~/server/db/schema";
+import type {
+  ApplicationBookmark,
+  MixedContentReference,
+} from "~/server/mixed-content/projection";
+import type { PublishedChunk } from "~/server/api/publisher";
+import { bookmarksStore } from "~/lib/data/bookmarks/store";
+import { feedItemsStore } from "~/lib/data/store";
+import { mixedContentStore } from "~/lib/data/mixed-content/store";
+import { processPublishedChunks } from "~/lib/data/subscriptionCoordinator";
+import { viewsStore } from "~/lib/data/views/store";
+
+const PAGE_SIZE = 30;
+const VISIBILITIES: VisibilityFilter[] = ["unread", "read", "later"];
+const FIXTURE_TIME = new Date("2026-01-15T12:00:00.000Z");
+
+export type ClientAuditOperation = {
+  durationMs: number;
+  heapDeltaBytes: number;
+  bookmarkStoreNotifications: number;
+  feedItemStoreNotifications: number;
+  mixedStoreNotifications: number;
+  authoritativeRefills: number;
+};
+
+export type ClientAuditResult = {
+  profile: BenchmarkProfileName;
+  fixture: {
+    feedItems: number;
+    bookmarks: number;
+    views: number;
+    loadedMixedScopes: number;
+    referencesPerScope: number;
+  };
+  persistedPayloadBytes: {
+    application: number;
+    bookmarks: number;
+    mixedContent: number;
+    total: number;
+  };
+  operations: {
+    bookmarkSave: ClientAuditOperation;
+    bookmarkProgressEvent: ClientAuditOperation;
+    bookmarkOrganizationChange: ClientAuditOperation;
+    bookmarkDelete: ClientAuditOperation;
+    feedProgressEvent: ClientAuditOperation;
+    bookmarkBurstSingleFrame: ClientAuditOperation;
+    bookmarkBurstSeparateFrames: ClientAuditOperation;
+    coldSynchronization: ClientAuditOperation;
+    persistenceStructuredClone: ClientAuditOperation;
+  };
+};
+
+function makeBookmark(index: number): ApplicationBookmark {
+  const date = new Date(FIXTURE_TIME.getTime() - index * 1_000);
+  return {
+    id: `audit-bookmark-${index}`,
+    userId: "audit-user",
+    sourceUrl: `https://bookmarks.serial.test/${index}`,
+    canonicalUrl: `https://bookmarks.serial.test/${index}`,
+    isSaved: index % 5 === 0,
+    isRead: index % 5 > 2,
+    progress: index % 101,
+    duration: 100,
+    savedUpdatedAt: date,
+    readUpdatedAt: date,
+    progressUpdatedAt: date,
+    createdAt: date,
+    updatedAt: date,
+    title: `Audit bookmark ${index}`,
+    author: "Serial audit",
+    publishedAt: date,
+    effectiveUrl: `https://bookmarks.serial.test/${index}`,
+    iconUrl: null,
+    representativeImageUrl: null,
+    captureHash: `bookmark-hash-${index}`,
+    capturedAt: date,
+    viewIds: [index % 25],
+    tagIds: [index % 25],
+  };
+}
+
+function makeFeedItem(index: number): ApplicationFeedItem {
+  const date = new Date(FIXTURE_TIME.getTime() - index * 1_000);
+  return {
+    id: `audit-feed-item-${index}`,
+    feedId: (index % 100) + 1,
+    contentId: `audit-${index}`,
+    title: `Audit feed item ${index}`,
+    author: "Serial audit",
+    url: `https://feeds.serial.test/${index}`,
+    thumbnail: "",
+    content: `<p>Audit body ${index}</p>`,
+    contentSnippet: `Audit summary ${index}`,
+    isWatched: index % 5 > 2,
+    isWatchLater: index % 5 === 0,
+    progress: index % 101,
+    duration: 100,
+    orientation: "horizontal",
+    platform: "website",
+    postedAt: date,
+    createdAt: date,
+    updatedAt: date,
+    isWatchedUpdatedAt: date,
+    isWatchLaterUpdatedAt: date,
+    contentHash: `feed-hash-${index}`,
+  };
+}
+
+function makeView(index: number): ApplicationView {
+  return {
+    id: index,
+    userId: "audit-user",
+    name: `Audit view ${index}`,
+    daysWindow: 0,
+    readStatus: 0,
+    orientation: "horizontal",
+    contentType: "all",
+    layout: "list",
+    placement: index,
+    createdAt: FIXTURE_TIME,
+    updatedAt: FIXTURE_TIME,
+    isDefault: false,
+    categoryIds: [],
+    feedIds: [],
+    viewSections: [],
+  };
+}
+
+function feedReference(index: number): MixedContentReference {
+  return {
+    entityKind: "feed-item",
+    entityId: `audit-feed-item-${index}`,
+    sectionPlacement: null,
+    normalizedAt: new Date(FIXTURE_TIME.getTime() - index * 1_000),
+  };
+}
+
+function resetStores() {
+  bookmarksStore.setState({ bookmarksDict: {} });
+  mixedContentStore.setState({ scopes: {}, suppressedReferences: {} });
+  feedItemsStore.getState().reset();
+}
+
+function seedClientFixture(profileName: BenchmarkProfileName) {
+  resetStores();
+  const profile = BENCHMARK_PROFILES[profileName];
+  const views = Array.from({ length: profile.views + 1 }, (_, index) =>
+    makeView(index),
+  );
+  viewsStore.setState({
+    views,
+    viewsDict: Object.fromEntries(views.map((view) => [view.id, view])),
+    fetchStatus: "success",
+  });
+
+  const bookmarks = Array.from({ length: profile.bookmarks }, (_, index) =>
+    makeBookmark(index),
+  );
+  bookmarksStore.setState({
+    bookmarksDict: Object.fromEntries(
+      bookmarks.map((bookmark) => [bookmark.id, bookmark]),
+    ),
+  });
+
+  const feedItems = Array.from({ length: profile.feedItems }, (_, index) =>
+    makeFeedItem(index),
+  );
+  const feedItemsDict = Object.fromEntries(
+    feedItems.map((item) => [item.id, item]),
+  );
+  feedItemsStore.setState({
+    feedItemsDict,
+    feedItemsOrder: feedItems.map((item) => item.id),
+    hasInitialData: true,
+  });
+
+  for (const view of views) {
+    for (const visibility of VISIBILITIES) {
+      const offset =
+        (view.id * VISIBILITIES.length + VISIBILITIES.indexOf(visibility)) *
+        PAGE_SIZE;
+      const references = Array.from({ length: PAGE_SIZE }, (_, index) =>
+        feedReference((offset + index) % profile.feedItems),
+      );
+      mixedContentStore.getState().applyPage({
+        scope: { type: "view", viewId: view.id },
+        visibility,
+        page: {
+          references,
+          bookmarks: [],
+          feedItems: [],
+          cursor: null,
+          hasMore: true,
+        },
+        replacesScope: true,
+      });
+    }
+  }
+
+  return { profile, bookmarks, feedItems, views };
+}
+
+function measure(operation: () => number): ClientAuditOperation {
+  let bookmarkStoreNotifications = 0;
+  let feedItemStoreNotifications = 0;
+  let mixedStoreNotifications = 0;
+  const unsubscribers = [
+    bookmarksStore.subscribe(() => bookmarkStoreNotifications++),
+    feedItemsStore.subscribe(() => feedItemStoreNotifications++),
+    mixedContentStore.subscribe(() => mixedStoreNotifications++),
+  ];
+  const heapBefore = process.memoryUsage().heapUsed;
+  const startedAt = performance.now();
+  const authoritativeRefills = operation();
+  const durationMs = performance.now() - startedAt;
+  const heapDeltaBytes = process.memoryUsage().heapUsed - heapBefore;
+  for (const unsubscribe of unsubscribers) unsubscribe();
+  return {
+    durationMs,
+    heapDeltaBytes,
+    bookmarkStoreNotifications,
+    feedItemStoreNotifications,
+    mixedStoreNotifications,
+    authoritativeRefills,
+  };
+}
+
+function bookmarkUpsertPayload(bookmark: ApplicationBookmark): PublishedChunk {
+  return {
+    source: "bookmark",
+    chunk: { type: "bookmark-upsert", bookmark },
+  };
+}
+
+function updatedBookmark(bookmark: ApplicationBookmark, progress: number) {
+  const updatedAt = new Date(
+    bookmark.progressUpdatedAt.getTime() + progress + 1,
+  );
+  return {
+    ...bookmark,
+    progress,
+    progressUpdatedAt: updatedAt,
+    updatedAt,
+  };
+}
+
+function measurePersistenceClone() {
+  return measure(() => {
+    structuredClone({
+      application: {
+        feedItemsDict: feedItemsStore.getState().feedItemsDict,
+        feedItemsOrder: feedItemsStore.getState().feedItemsOrder,
+      },
+      bookmarks: {
+        bookmarksDict: bookmarksStore.getState().bookmarksDict,
+      },
+      mixedContent: {
+        scopes: mixedContentStore.getState().scopes,
+        suppressedReferences: mixedContentStore.getState().suppressedReferences,
+      },
+    });
+    return 0;
+  });
+}
+
+function persistedPayloadBytes() {
+  const application = serialize({
+    feedItemsDict: feedItemsStore.getState().feedItemsDict,
+    feedItemsOrder: feedItemsStore.getState().feedItemsOrder,
+  }).byteLength;
+  const bookmarks = serialize({
+    bookmarksDict: bookmarksStore.getState().bookmarksDict,
+  }).byteLength;
+  const mixedContent = serialize({
+    scopes: mixedContentStore.getState().scopes,
+    suppressedReferences: mixedContentStore.getState().suppressedReferences,
+  }).byteLength;
+  return {
+    application,
+    bookmarks,
+    mixedContent,
+    total: application + bookmarks + mixedContent,
+  };
+}
+
+export function runClientAuditProfile(
+  profileName: BenchmarkProfileName,
+): ClientAuditResult {
+  let fixture = seedClientFixture(profileName);
+  const profile = fixture.profile;
+  const bookmarkSave = measure(
+    () =>
+      processPublishedChunks([
+        bookmarkUpsertPayload({
+          ...makeBookmark(profile.bookmarks + 1),
+          id: "audit-bookmark-new",
+        }),
+      ]).length,
+  );
+
+  fixture = seedClientFixture(profileName);
+  const baseBookmark = fixture.bookmarks[0]!;
+  const bookmarkProgressEvent = measure(
+    () =>
+      processPublishedChunks([
+        bookmarkUpsertPayload(updatedBookmark(baseBookmark, 1)),
+      ]).length,
+  );
+
+  fixture = seedClientFixture(profileName);
+  const bookmarkOrganizationChange = measure(
+    () =>
+      processPublishedChunks([
+        bookmarkUpsertPayload({
+          ...fixture.bookmarks[0]!,
+          viewIds: [profile.views],
+          tagIds: [profile.views - 1],
+          updatedAt: new Date(FIXTURE_TIME.getTime() + 1),
+        }),
+      ]).length,
+  );
+
+  fixture = seedClientFixture(profileName);
+  const bookmarkDelete = measure(
+    () =>
+      processPublishedChunks([
+        {
+          source: "bookmark",
+          chunk: {
+            type: "bookmark-delete",
+            id: fixture.bookmarks[0]!.id,
+            canonicalUrl: fixture.bookmarks[0]!.canonicalUrl,
+          },
+        },
+      ]).length,
+  );
+
+  fixture = seedClientFixture(profileName);
+  const feedProgressEvent = measure(() => {
+    const item = fixture.feedItems[0]!;
+    feedItemsStore.getState().setFeedItem(item.id, {
+      ...item,
+      progress: (item.progress ?? 0) + 1,
+    });
+    return 0;
+  });
+
+  fixture = seedClientFixture(profileName);
+  const bookmarkBurst = Array.from({ length: 100 }, (_, index) =>
+    bookmarkUpsertPayload(
+      updatedBookmark(
+        fixture.bookmarks[index % fixture.bookmarks.length]!,
+        index,
+      ),
+    ),
+  );
+  const bookmarkBurstSingleFrame = measure(
+    () => processPublishedChunks(bookmarkBurst).length,
+  );
+
+  fixture = seedClientFixture(profileName);
+  const bookmarkBurstSeparateFrames = measure(() => {
+    let refills = 0;
+    for (const payload of bookmarkBurst) {
+      refills += processPublishedChunks([payload]).length;
+    }
+    return refills;
+  });
+
+  fixture = seedClientFixture(profileName);
+  const coldSynchronizationPayloads: PublishedChunk[] = [
+    {
+      source: "bookmark",
+      chunk: {
+        type: "bookmark-diff",
+        diff: fixture.bookmarks.map((bookmark) => ({
+          status: "new" as const,
+          bookmark,
+        })),
+      },
+    },
+    ...Object.values(mixedContentStore.getState().scopes).map(
+      (scope): PublishedChunk => ({
+        source: "mixed",
+        chunk: {
+          type: "mixed-content-page",
+          scope: scope.scope,
+          visibility: scope.visibility,
+          page: {
+            references: scope.references,
+            bookmarks: [],
+            feedItems: scope.references.flatMap((reference) => {
+              const item =
+                feedItemsStore.getState().feedItemsDict[reference.entityId];
+              return item ? [item] : [];
+            }),
+            cursor: null,
+            hasMore: true,
+          },
+          replacesScope: true,
+        },
+      }),
+    ),
+  ];
+  resetStores();
+  viewsStore.setState({
+    views: fixture.views,
+    viewsDict: Object.fromEntries(fixture.views.map((view) => [view.id, view])),
+    fetchStatus: "success",
+  });
+  const coldSynchronization = measure(() => {
+    processPublishedChunks(coldSynchronizationPayloads);
+    return 0;
+  });
+
+  fixture = seedClientFixture(profileName);
+  const payloadBytes = persistedPayloadBytes();
+  const persistenceStructuredClone = measurePersistenceClone();
+
+  return {
+    profile: profileName,
+    fixture: {
+      feedItems: profile.feedItems,
+      bookmarks: profile.bookmarks,
+      views: profile.views,
+      loadedMixedScopes: (profile.views + 1) * VISIBILITIES.length,
+      referencesPerScope: PAGE_SIZE,
+    },
+    persistedPayloadBytes: payloadBytes,
+    operations: {
+      bookmarkSave,
+      bookmarkProgressEvent,
+      bookmarkOrganizationChange,
+      bookmarkDelete,
+      feedProgressEvent,
+      bookmarkBurstSingleFrame,
+      bookmarkBurstSeparateFrames,
+      coldSynchronization,
+      persistenceStructuredClone,
+    },
+  };
+}
