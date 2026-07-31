@@ -159,7 +159,7 @@ request. Do not commit credentials, database URLs, or raw user data.
 ## Database-facing inventory and comparison operations
 
 `benchmarks/app-query-inventory.json` is generated from all TypeScript and TSX
-under `src`, `tests`, and `scripts` (excluding migrations). It records database
+under `src`, `server`, `tests`, and `scripts` (excluding migrations). It records database
 client creation and every direct select, insert, update, delete, transaction,
 batch, execute, and relational find call, grouped across request procedures,
 synchronization/projection, background and maintenance tasks, Bookmark capture,
@@ -185,3 +185,7 @@ pairs without changing the calculation.
 Capture fetching, RSS parsing, Redis/KV access, browser rendering, and publisher
 delivery remain in the repository-wide inventory even when they are not SQL page
 pairs. Their audit evidence uses the environment/tool division above.
+
+The repository-wide server/database review, prioritized findings, and named
+coverage ledger are retained in
+[`server-database-audit.md`](server-database-audit.md).
