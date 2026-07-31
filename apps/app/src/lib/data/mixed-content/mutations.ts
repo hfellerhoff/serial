@@ -30,7 +30,7 @@ export async function setMixedReadValue(input: {
 }) {
   const targets = partitionMixedReadTargets(input.references);
   const previousBookmarks = targets.bookmarkIds
-    .map((id) => bookmarksStore.getState().bookmarksDict[id])
+    .map((id) => bookmarksStore.getState().getBookmark(id))
     .filter((bookmark) => bookmark !== undefined);
   const now = new Date();
 
@@ -44,6 +44,7 @@ export async function setMixedReadValue(input: {
     bookmarksStore.getState().upsert(optimisticBookmark);
     mixedContentStore.getState().reprojectUpsert({
       bookmark: optimisticBookmark,
+      previousBookmark: bookmark,
       feedItems: feedItemsStore.getState().feedItemsDict,
       views: viewsStore.getState().views,
     });
@@ -66,9 +67,13 @@ export async function setMixedReadValue(input: {
     ]);
   } catch (error) {
     for (const bookmark of previousBookmarks) {
+      const optimisticBookmark = bookmarksStore
+        .getState()
+        .getBookmark(bookmark.id);
       bookmarksStore.getState().upsert(bookmark);
       mixedContentStore.getState().reprojectUpsert({
         bookmark,
+        previousBookmark: optimisticBookmark,
         feedItems: feedItemsStore.getState().feedItemsDict,
         views: viewsStore.getState().views,
       });
