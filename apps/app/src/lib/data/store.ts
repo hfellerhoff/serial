@@ -7,6 +7,10 @@ import { getDataSubscriptionClientId } from "./clientChannel";
 import { contentCategoriesStore } from "./content-categories/store";
 import { createSelectorHooks } from "./createSelectorHooks";
 import { feedCategoriesStore } from "./feed-categories/store";
+import {
+  applyFeedItemPageRetention,
+  getPersistedFeedItemRetentionState,
+} from "./feed-page-retention";
 import { mergeFeedItem } from "./feed-items/mergeFeedItem";
 import { hasFeedItemListProjectionChanged } from "./feed-items/listProjection";
 import { clearPendingFeedItemOverrides } from "./feed-items/pendingMutations";
@@ -23,6 +27,10 @@ import {
 } from "./scopeMembership";
 import { viewFeedsStore } from "./view-feeds/store";
 import { viewsStore } from "./views/store";
+import type {
+  RetainedFeedPage,
+  RetainFeedItemPageInput,
+} from "./feed-page-retention";
 import type { VisibilityFilter } from "./atoms";
 import type { FetchFeedsStatus } from "~/server/rss/fetchFeeds";
 import type { ApplicationFeedItem } from "~/server/db/schema";
@@ -125,10 +133,17 @@ export type ApplicationStore = {
   feedItemsDict: Record<string, ApplicationFeedItem>;
   feedItemProjectionRevision: number;
   scopeFeedItemIds: Record<string, string[]>;
+  retainedFeedPages: Record<string, RetainedFeedPage[]>;
+  retainedFeedPageBytes: number;
+  pageOwnedFeedItemIds: Record<string, true>;
+  retainFeedItemPage: (input: RetainFeedItemPageInput) => void;
   feedStatusDict: Record<number, FetchFeedsStatus>;
   setFeedItemsDict: (itemsDict: Record<string, ApplicationFeedItem>) => void;
   setFeedItem: (id: string, item: ApplicationFeedItem) => void;
-  setFeedItems: (items: ApplicationFeedItem[]) => void;
+  setFeedItems: (
+    items: ApplicationFeedItem[],
+    retention?: RetainFeedItemPageInput,
+  ) => void;
   fetchFeedItemsForFeed: (feedId: number) => Promise<void>;
   fetchNewData: () => Promise<void>;
   revalidateView: (viewId: number) => Promise<void>;
@@ -205,6 +220,17 @@ export type ApplicationStore = {
   scheduleFulltextFetch: () => void;
 };
 
+function getPersistedApplicationState(state: ApplicationStore) {
+  const retainedState = getPersistedFeedItemRetentionState(state);
+  return {
+    ...retainedState,
+    currentViewId: state.currentViewId,
+    viewFeedIds: state.viewFeedIds,
+    hasInitialData: state.hasInitialData,
+    fetchFeedItemsLastFetchedAt: state.fetchFeedItemsLastFetchedAt,
+  };
+}
+
 const vanillaApplicationStore = createStore<ApplicationStore>()(
   persist(
     (set, get) => ({
@@ -215,6 +241,9 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           feedItemsDict: {},
           feedItemProjectionRevision: get().feedItemProjectionRevision + 1,
           scopeFeedItemIds: {},
+          retainedFeedPages: {},
+          retainedFeedPageBytes: 0,
+          pageOwnedFeedItemIds: {},
           feedStatusDict: {},
           fetchFeedItemsLastFetchedAt: null,
           hasInitialData: false,
@@ -238,6 +267,11 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
       feedItemsDict: {},
       feedItemProjectionRevision: 0,
       scopeFeedItemIds: {},
+      retainedFeedPages: {},
+      retainedFeedPageBytes: 0,
+      pageOwnedFeedItemIds: {},
+      retainFeedItemPage: (input) =>
+        set(applyFeedItemPageRetention(get(), input)),
       feedStatusDict: {},
       setFeedItemsDict: (itemsDict) =>
         set({
@@ -267,7 +301,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             : state.scopeFeedItemIds,
         });
       },
-      setFeedItems: (items) => {
+      setFeedItems: (items, retention) => {
         if (items.length === 0) return;
 
         const state = get();
@@ -283,20 +317,30 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           feedItemsDict[item.id] = item;
         }
 
-        set({
+        const scopeFeedItemIds =
+          projectionChangedItems.length > 0
+            ? reconcileScopeMembershipsForItems(
+                state.scopeFeedItemIds,
+                projectionChangedItems,
+              )
+            : state.scopeFeedItemIds;
+        const projectionState = {
+          ...state,
           feedItemsDict,
           feedItemProjectionRevision:
             projectionChangedItems.length > 0
               ? state.feedItemProjectionRevision + 1
               : state.feedItemProjectionRevision,
-          scopeFeedItemIds:
-            projectionChangedItems.length > 0
-              ? reconcileScopeMembershipsForItems(
-                  state.scopeFeedItemIds,
-                  projectionChangedItems,
-                )
-              : state.scopeFeedItemIds,
-        });
+          scopeFeedItemIds,
+        };
+        set(
+          retention
+            ? {
+                ...projectionState,
+                ...applyFeedItemPageRetention(projectionState, retention),
+              }
+            : projectionState,
+        );
       },
       fetchFeedItemsLastFetchedAt: null,
       hasInitialData: false,
@@ -457,6 +501,13 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 },
               },
             });
+            get().retainFeedItemPage({
+              scopeKey: getFeedItemScopeKey("view", viewId, visibilityFilter),
+              itemIds: chunk.feedItems.map((item) => item.id),
+              requestCursor: null,
+              nextCursor: chunk.nextCursor,
+              replacesScope: chunk.replacesScope === true,
+            });
           }
 
           // Mark visibility filter as fetched
@@ -588,6 +639,13 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                   },
                 },
               },
+            });
+            get().retainFeedItemPage({
+              scopeKey: getFeedItemScopeKey("view", viewId, visibilityFilter),
+              itemIds: chunk.feedItems.map((item) => item.id),
+              requestCursor: paginationState.cursor,
+              nextCursor: chunk.nextCursor,
+              replacesScope: chunk.replacesScope === true,
             });
           }
         } catch (error) {
@@ -1239,6 +1297,15 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 }
 
                 set(updates);
+                if (viewId !== undefined) {
+                  get().retainFeedItemPage({
+                    scopeKey: getFeedItemScopeKey("view", viewId, vf),
+                    itemIds: getServerItemIdsFromDiff(initialChunk.diff),
+                    requestCursor: null,
+                    nextCursor: initialChunk.cursor,
+                    replacesScope: true,
+                  });
+                }
                 break;
               }
 
@@ -1332,6 +1399,13 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 }
 
                 set(updates);
+                get().retainFeedItemPage({
+                  scopeKey: getFeedItemScopeKey("view", viewId, vf),
+                  itemIds: initialChunk.items.map((item) => item.id),
+                  requestCursor: null,
+                  nextCursor: initialChunk.cursor,
+                  replacesScope: true,
+                });
 
                 // Schedule a debounced fulltext fetch
                 if (hasNewPending) {
@@ -1455,6 +1529,10 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 isFetching: false,
               };
               const scopeKey = getFeedItemScopeKey("view", chunk.viewId, vf);
+              const requestCursor =
+                chunk.replacesScope === true
+                  ? null
+                  : get().viewPaginationState[chunk.viewId]?.[vf]?.cursor;
 
               set({
                 feedItemsDict,
@@ -1482,6 +1560,13 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                   ]),
                 },
               });
+              get().retainFeedItemPage({
+                scopeKey,
+                itemIds: getServerItemIdsFromDiff(chunk.diff),
+                requestCursor,
+                nextCursor: chunk.cursor,
+                replacesScope: chunk.replacesScope === true,
+              });
               break;
             }
 
@@ -1491,14 +1576,20 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
 
               const visibilityFilter =
                 chunk.visibilityFilter as VisibilityFilter;
+              const scopeKey = getFeedItemScopeKey(
+                "view",
+                chunk.viewId,
+                visibilityFilter,
+              );
+              const requestCursor =
+                chunk.replacesScope === true
+                  ? null
+                  : get().viewPaginationState[chunk.viewId]?.[visibilityFilter]
+                      ?.cursor;
               set({
                 scopeFeedItemIds: applyMergedScopeMembershipUpdate({
                   scopeFeedItemIds: get().scopeFeedItemIds,
-                  scopeKey: getFeedItemScopeKey(
-                    "view",
-                    chunk.viewId,
-                    visibilityFilter,
-                  ),
+                  scopeKey,
                   itemIds: chunk.feedItems.map((item) => item.id),
                   replace: chunk.replacesScope === true,
                   feedItemsDict: get().feedItemsDict,
@@ -1523,6 +1614,13 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                   ]),
                 },
               });
+              get().retainFeedItemPage({
+                scopeKey,
+                itemIds: chunk.feedItems.map((item) => item.id),
+                requestCursor,
+                nextCursor: chunk.nextCursor,
+                replacesScope: chunk.replacesScope === true,
+              });
             }
             break;
           }
@@ -1538,14 +1636,20 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
 
             // Update pagination state for this feed/visibility filter
             const visibilityFilter = chunk.visibilityFilter as VisibilityFilter;
+            const scopeKey = getFeedItemScopeKey(
+              "feed",
+              chunk.feedId,
+              visibilityFilter,
+            );
+            const requestCursor =
+              chunk.replacesScope === true
+                ? null
+                : get().feedPaginationState[chunk.feedId]?.[visibilityFilter]
+                    ?.cursor;
             set({
               scopeFeedItemIds: applyMergedScopeMembershipUpdate({
                 scopeFeedItemIds: get().scopeFeedItemIds,
-                scopeKey: getFeedItemScopeKey(
-                  "feed",
-                  chunk.feedId,
-                  visibilityFilter,
-                ),
+                scopeKey,
                 itemIds: chunk.feedItems.map((item) => item.id),
                 replace: chunk.replacesScope === true,
                 feedItemsDict: get().feedItemsDict,
@@ -1570,6 +1674,13 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 ]),
               },
             });
+            get().retainFeedItemPage({
+              scopeKey,
+              itemIds: chunk.feedItems.map((item) => item.id),
+              requestCursor,
+              nextCursor: chunk.nextCursor,
+              replacesScope: chunk.replacesScope === true,
+            });
             break;
           }
 
@@ -1584,14 +1695,21 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
 
             // Update pagination state for this category/visibility filter
             const visibilityFilter = chunk.visibilityFilter as VisibilityFilter;
+            const scopeKey = getFeedItemScopeKey(
+              "category",
+              chunk.categoryId,
+              visibilityFilter,
+            );
+            const requestCursor =
+              chunk.replacesScope === true
+                ? null
+                : get().categoryPaginationState[chunk.categoryId]?.[
+                    visibilityFilter
+                  ]?.cursor;
             set({
               scopeFeedItemIds: applyMergedScopeMembershipUpdate({
                 scopeFeedItemIds: get().scopeFeedItemIds,
-                scopeKey: getFeedItemScopeKey(
-                  "category",
-                  chunk.categoryId,
-                  visibilityFilter,
-                ),
+                scopeKey,
                 itemIds: chunk.feedItems.map((item) => item.id),
                 replace: chunk.replacesScope === true,
                 feedItemsDict: get().feedItemsDict,
@@ -1615,6 +1733,13 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                   visibilityFilter,
                 ]),
               },
+            });
+            get().retainFeedItemPage({
+              scopeKey,
+              itemIds: chunk.feedItems.map((item) => item.id),
+              requestCursor,
+              nextCursor: chunk.nextCursor,
+              replacesScope: chunk.replacesScope === true,
             });
             break;
           }
@@ -1740,6 +1865,22 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             }
 
             set(updates);
+            for (const payload of pendingInitialViewDiffs) {
+              const chunk = payload.chunk;
+              const visibilityFilter =
+                chunk.visibilityFilter as VisibilityFilter;
+              get().retainFeedItemPage({
+                scopeKey: getFeedItemScopeKey(
+                  "view",
+                  chunk.viewId,
+                  visibilityFilter,
+                ),
+                itemIds: getServerItemIdsFromDiff(chunk.diff),
+                requestCursor: null,
+                nextCursor: chunk.cursor,
+                replacesScope: true,
+              });
+            }
             pendingInitialViewDiffs = [];
           }
 
@@ -1908,17 +2049,17 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
         arrayFields: ["feedItemsOrder"],
       }),
       version: 1,
-      partialize: (state) => ({
-        feedItemsDict: state.feedItemsDict,
-        feedItemsOrder: state.feedItemsOrder,
-        currentViewId: state.currentViewId,
-        viewFeedIds: state.viewFeedIds,
-        hasInitialData: state.hasInitialData,
-        fetchFeedItemsLastFetchedAt: state.fetchFeedItemsLastFetchedAt,
-      }),
+      partialize: getPersistedApplicationState,
       merge: (persisted, current) => {
         const persistedState = persisted as Partial<ApplicationStore>;
-        const merged = { ...current, ...persistedState };
+        const merged = {
+          ...current,
+          ...persistedState,
+          scopeFeedItemIds: persistedState.scopeFeedItemIds ?? {},
+          retainedFeedPages: persistedState.retainedFeedPages ?? {},
+          retainedFeedPageBytes: persistedState.retainedFeedPageBytes ?? 0,
+          pageOwnedFeedItemIds: persistedState.pageOwnedFeedItemIds ?? {},
+        };
 
         // Cross-reference hydrated feed items against the feeds store's
         // cached feed list. If a feed was deleted on another client and that

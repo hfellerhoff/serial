@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "generatedAt": "2026-07-31",
   "scope": "All client/shared routes, components, hooks, state, subscription, persistence, rendering, styles, and browser entry code under apps/app/src.",
-  "files": 312,
+  "files": 316,
   "findings": { "CL-01": 6, "CL-02": 4, "CL-03": 8, "CL-04": 6, "CL-05": 5 },
   "coverage": [
     {
@@ -104,7 +104,7 @@
     {
       "file": "src/app/_app.read.$id.tsx",
       "classification": "route",
-      "lines": 299,
+      "lines": 301,
       "status": "finding",
       "findings": ["CL-05"],
       "result": "Reviewed; contributes to CL-05."
@@ -136,7 +136,7 @@
     {
       "file": "src/app/_app.watch.$id.tsx",
       "classification": "route",
-      "lines": 74,
+      "lines": 76,
       "status": "clean",
       "findings": [],
       "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
@@ -1848,7 +1848,15 @@
     {
       "file": "src/lib/data/feed-items/pendingMutations.ts",
       "classification": "state-sync-persistence",
-      "lines": 100,
+      "lines": 111,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/feed-page-retention.ts",
+      "classification": "state-sync-persistence",
+      "lines": 179,
       "status": "clean",
       "findings": [],
       "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
@@ -1936,7 +1944,15 @@
     {
       "file": "src/lib/data/mixed-content/mutations.ts",
       "classification": "state-sync-persistence",
-      "lines": 86,
+      "lines": 100,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/mixed-content/page-retention.ts",
+      "classification": "state-sync-persistence",
+      "lines": 204,
       "status": "clean",
       "findings": [],
       "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
@@ -1944,7 +1960,7 @@
     {
       "file": "src/lib/data/mixed-content/store.ts",
       "classification": "state-sync-persistence",
-      "lines": 325,
+      "lines": 378,
       "status": "finding",
       "findings": ["CL-01", "CL-02", "CL-04"],
       "result": "Reviewed; contributes to CL-01, CL-02, CL-04."
@@ -1953,6 +1969,14 @@
       "file": "src/lib/data/normalized-idb-storage.ts",
       "classification": "state-sync-persistence",
       "lines": 382,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/data/page-retention.ts",
+      "classification": "state-sync-persistence",
+      "lines": 180,
       "status": "clean",
       "findings": [],
       "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
@@ -1976,7 +2000,7 @@
     {
       "file": "src/lib/data/store.ts",
       "classification": "state-sync-persistence",
-      "lines": 2021,
+      "lines": 2162,
       "status": "finding",
       "findings": ["CL-02", "CL-03", "CL-04"],
       "result": "Reviewed; contributes to CL-02, CL-03, CL-04."
@@ -1992,7 +2016,7 @@
     {
       "file": "src/lib/data/subscriptionCoordinator.ts",
       "classification": "state-sync-persistence",
-      "lines": 109,
+      "lines": 120,
       "status": "finding",
       "findings": ["CL-01"],
       "result": "Reviewed; contributes to CL-01."
@@ -2200,7 +2224,7 @@
     {
       "file": "src/lib/hooks/useItemWindow.ts",
       "classification": "hook",
-      "lines": 53,
+      "lines": 59,
       "status": "finding",
       "findings": ["CL-04"],
       "result": "Reviewed; contributes to CL-04."
@@ -2241,6 +2265,14 @@
       "file": "src/lib/hooks/useRefreshFeedItem.ts",
       "classification": "hook",
       "lines": 38,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/hooks/useRetentionPin.ts",
+      "classification": "hook",
+      "lines": 24,
       "status": "clean",
       "findings": [],
       "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."

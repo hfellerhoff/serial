@@ -2,6 +2,10 @@ import { setBulkWatchedValue } from "../feed-items/mutations";
 import { bookmarksStore } from "../bookmarks/store";
 import { feedItemsStore } from "../store";
 import { viewsStore } from "../views/store";
+import {
+  clearRetainedEntityPins,
+  setRetainedEntityPins,
+} from "../page-retention";
 import { mixedContentStore } from "./store";
 import type { MixedContentReference } from "~/server/mixed-content/projection";
 import { orpcRouterClient } from "~/lib/orpc";
@@ -33,6 +37,12 @@ export async function setMixedReadValue(input: {
     .map((id) => bookmarksStore.getState().getBookmark(id))
     .filter((bookmark) => bookmark !== undefined);
   const now = new Date();
+
+  for (const bookmarkId of targets.bookmarkIds) {
+    setRetainedEntityPins(`optimistic:bookmark:${bookmarkId}`, {
+      bookmarkIds: [bookmarkId],
+    });
+  }
 
   for (const bookmark of previousBookmarks) {
     const optimisticBookmark = {
@@ -79,6 +89,10 @@ export async function setMixedReadValue(input: {
       });
     }
     throw error;
+  } finally {
+    for (const bookmarkId of targets.bookmarkIds) {
+      clearRetainedEntityPins(`optimistic:bookmark:${bookmarkId}`);
+    }
   }
 
   return targets;

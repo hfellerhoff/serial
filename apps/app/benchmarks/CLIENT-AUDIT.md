@@ -82,6 +82,32 @@ Heap deltas are diagnostic only because garbage collection may occur inside a
 sample; payload size, notification count, refill count, and synchronous duration
 are the deterministic evidence.
 
+## CL-04 retention remediation evidence
+
+Cursor-loaded Feed-item and mixed-content pages now have deterministic retention
+instead of accumulating for the lifetime of the client. Each scope keeps at most
+eight in-memory pages or 8 MiB, including the current page and a two-page
+navigation buffer. IndexedDB keeps at most the newest six complete pages or
+4 MiB. Visible list entities, open-reader entities, and pending optimistic
+entities are pinned; distant pages and unreferenced Feed entities are evicted and
+remain reloadable from their cursor.
+
+The deterministic pagination scenario reaches the same plateau after 12 and 24
+pages at every fixture scale:
+
+| Pagination point | Memory pages | Feed entities / scope refs | Retained heap model | IndexedDB pages / bytes | Mounted items |
+| ---------------- | -----------: | -------------------------: | ------------------: | ----------------------: | ------------: |
+| After 12 pages   |            8 |                  240 / 240 |              130 KB |             6 / 90.0 KB |           180 |
+| After 24 pages   |            8 |                  240 / 240 |              130 KB |             6 / 90.1 KB |           180 |
+
+The full-library payload row above remains the original CL-02/CL-04 baseline:
+that fixture deliberately seeds whole dictionaries directly. The pagination
+plateau exercises the production page-retention boundary and is the relevant
+post-remediation evidence. Store integration coverage also verifies that an
+evicted page cannot collect an entity pinned by the reader or an optimistic
+mutation, and the list window includes keyboard-selected entities without
+exceeding its mounted-item cap.
+
 The representative Chromium run recorded:
 
 | Scenario             | Usable / observed time |  Long task |            React work |               IndexedDB | RPC requests / bytes |

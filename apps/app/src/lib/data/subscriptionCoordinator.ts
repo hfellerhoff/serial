@@ -1,6 +1,6 @@
 import { bookmarksStore } from "./bookmarks/store";
 import { feedItemsStore } from "./store";
-import { mixedContentStore } from "./mixed-content/store";
+import { getMixedScopeKey, mixedContentStore } from "./mixed-content/store";
 import { viewsStore } from "./views/store";
 import type { LoadedMixedScope } from "./mixed-content/store";
 import type { PublishedChunk } from "~/server/api/publisher";
@@ -57,8 +57,19 @@ export function processPublishedChunks(payloads: PublishedChunk[]) {
   for (const payload of payloads) {
     if (payload.source === "mixed") {
       const { chunk } = payload;
+      const scopeKey = getMixedScopeKey(chunk.scope, chunk.visibility);
+      const requestCursor =
+        chunk.replacesScope === true
+          ? null
+          : mixedContentStore.getState().scopes[scopeKey]?.cursor;
       bookmarksStore.getState().upsertMany(chunk.page.bookmarks);
-      feedItemsStore.getState().setFeedItems(chunk.page.feedItems);
+      feedItemsStore.getState().setFeedItems(chunk.page.feedItems, {
+        scopeKey: `mixed:${scopeKey}`,
+        itemIds: chunk.page.feedItems.map((item) => item.id),
+        requestCursor,
+        nextCursor: chunk.page.cursor,
+        replacesScope: chunk.replacesScope,
+      });
       mixedContentStore.getState().applyPage({
         scope: chunk.scope,
         visibility: chunk.visibility,
