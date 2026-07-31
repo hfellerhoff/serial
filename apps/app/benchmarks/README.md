@@ -186,6 +186,13 @@ Capture fetching, RSS parsing, Redis/KV access, browser rendering, and publisher
 delivery remain in the repository-wide inventory even when they are not SQL page
 pairs. Their audit evidence uses the environment/tool division above.
 
+## Client and synchronization audit
+
+The retained client audit, executable profiles, per-file coverage ledger, and
+prioritized findings are documented in [CLIENT-AUDIT.md](CLIENT-AUDIT.md).
+
+## Server and database audit
+
 The repository-wide server/database review, prioritized findings, and named
 coverage ledger are retained in
 [`server-database-audit.md`](server-database-audit.md).
