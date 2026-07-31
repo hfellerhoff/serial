@@ -1,0 +1,433 @@
+{
+  "generatedAt": "2026-07-31T19:28:08.585Z",
+  "environment": "local-self-hosted-chromium",
+  "profile": "representative",
+  "coldLoad": {
+    "durationMs": 2852.0999999940395,
+    "usableContentMs": 648.2000000029802,
+    "longTasks": [70, 65, 62, 77],
+    "commits": [
+      {
+        "actualDuration": 19.299999997019768,
+        "baseDuration": 17.599999964237213
+      },
+      {
+        "actualDuration": 12.299999982118607,
+        "baseDuration": 20.89999994635582
+      },
+      {
+        "actualDuration": 0.4000000059604645,
+        "baseDuration": 20.799999952316284
+      },
+      {
+        "actualDuration": 5.5,
+        "baseDuration": 20.89999996125698
+      },
+      {
+        "actualDuration": 0,
+        "baseDuration": 20.89999996125698
+      },
+      {
+        "actualDuration": 5.000000014901161,
+        "baseDuration": 20.299999967217445
+      },
+      {
+        "actualDuration": 14.600000008940697,
+        "baseDuration": 26.600000008940697
+      },
+      {
+        "actualDuration": 10.100000023841858,
+        "baseDuration": 27.100000023841858
+      },
+      {
+        "actualDuration": 7.200000002980232,
+        "baseDuration": 31.400000020861626
+      },
+      {
+        "actualDuration": 39.19999998807907,
+        "baseDuration": 47.900000005960464
+      },
+      {
+        "actualDuration": 8.599999994039536,
+        "baseDuration": 32.5
+      },
+      {
+        "actualDuration": 22.299999997019768,
+        "baseDuration": 34.8999999910593
+      },
+      {
+        "actualDuration": 1.7000000029802322,
+        "baseDuration": 34.900000005960464
+      },
+      {
+        "actualDuration": 0,
+        "baseDuration": 34.900000005960464
+      },
+      {
+        "actualDuration": 0,
+        "baseDuration": 34.900000005960464
+      },
+      {
+        "actualDuration": 29.69999998807907,
+        "baseDuration": 43.99999998509884
+      },
+      {
+        "actualDuration": 2,
+        "baseDuration": 43.900000005960464
+      },
+      {
+        "actualDuration": 22.99999998509884,
+        "baseDuration": 55.79999999701977
+      },
+      {
+        "actualDuration": 0.4000000059604645,
+        "baseDuration": 55.80000002682209
+      },
+      {
+        "actualDuration": 21.099999994039536,
+        "baseDuration": 54.1000000089407
+      },
+      {
+        "actualDuration": 68.2999999821186,
+        "baseDuration": 83.29999999701977
+      },
+      {
+        "actualDuration": 5.800000011920929,
+        "baseDuration": 82.59999999403954
+      },
+      {
+        "actualDuration": 2.7999999970197678,
+        "baseDuration": 82.59999999403954
+      },
+      {
+        "actualDuration": 28.700000002980232,
+        "baseDuration": 43.69999998807907
+      },
+      {
+        "actualDuration": 1.5999999940395355,
+        "baseDuration": 38.79999999701977
+      },
+      {
+        "actualDuration": 0.3999999910593033,
+        "baseDuration": 38.3999999910593
+      },
+      {
+        "actualDuration": 0,
+        "baseDuration": 38.3999999910593
+      },
+      {
+        "actualDuration": 0.09999999403953552,
+        "baseDuration": 38.3999999910593
+      }
+    ],
+    "indexedDb": {
+      "reads": 8,
+      "writes": 7
+    },
+    "requests": 615,
+    "transferBytes": 1936203,
+    "rpcRequests": 7,
+    "rpcTransferBytes": 1554595,
+    "heapBytes": 103000000
+  },
+  "warmHydration": {
+    "durationMs": 2819.9000000059605,
+    "usableContentMs": 614.4000000059605,
+    "longTasks": [234, 56, 62],
+    "commits": [
+      {
+        "actualDuration": 106.79999999701977,
+        "baseDuration": 99.40000003576279
+      },
+      {
+        "actualDuration": 40.79999999701977,
+        "baseDuration": 51.8999999910593
+      },
+      {
+        "actualDuration": 2.7999999970197678,
+        "baseDuration": 50.99999998509884
+      },
+      {
+        "actualDuration": 12.400000005960464,
+        "baseDuration": 37.5
+      },
+      {
+        "actualDuration": 0,
+        "baseDuration": 37.5
+      },
+      {
+        "actualDuration": 31.100000008940697,
+        "baseDuration": 36.20000001788139
+      },
+      {
+        "actualDuration": 26.600000008940697,
+        "baseDuration": 37.400000005960464
+      },
+      {
+        "actualDuration": 1.7000000178813934,
+        "baseDuration": 36.80000001192093
+      },
+      {
+        "actualDuration": 25.99999998509884,
+        "baseDuration": 31.099999964237213
+      },
+      {
+        "actualDuration": 1.5999999940395355,
+        "baseDuration": 30.799999967217445
+      },
+      {
+        "actualDuration": 0,
+        "baseDuration": 30.799999967217445
+      },
+      {
+        "actualDuration": 1.199999988079071,
+        "baseDuration": 30.699999943375587
+      },
+      {
+        "actualDuration": 24.399999976158142,
+        "baseDuration": 30.499999955296516
+      },
+      {
+        "actualDuration": 1.7999999970197678,
+        "baseDuration": 30.39999994635582
+      },
+      {
+        "actualDuration": 26.200000002980232,
+        "baseDuration": 46.3999999910593
+      },
+      {
+        "actualDuration": 0.3999999910593033,
+        "baseDuration": 46.19999997317791
+      },
+      {
+        "actualDuration": 25.19999997317791,
+        "baseDuration": 45.39999996125698
+      },
+      {
+        "actualDuration": 3.3999999910593033,
+        "baseDuration": 47.19999997317791
+      },
+      {
+        "actualDuration": 1.0999999940395355,
+        "baseDuration": 47.499999955296516
+      }
+    ],
+    "indexedDb": {
+      "reads": 8,
+      "writes": 7
+    },
+    "requests": 614,
+    "transferBytes": 793463,
+    "rpcRequests": 6,
+    "rpcTransferBytes": 411855,
+    "heapBytes": 103000000
+  },
+  "reconnect": {
+    "durationMs": 3009.2000000029802,
+    "usableContentMs": null,
+    "longTasks": [87, 55, 51],
+    "commits": [
+      {
+        "actualDuration": 4.799999997019768,
+        "baseDuration": 51.09999996423721
+      },
+      {
+        "actualDuration": 4.9000000059604645,
+        "baseDuration": 51.19999997317791
+      },
+      {
+        "actualDuration": 75.39999996125698,
+        "baseDuration": 84.69999992847443
+      },
+      {
+        "actualDuration": 51.400000005960464,
+        "baseDuration": 68.49999998509884
+      },
+      {
+        "actualDuration": 21.200000017881393,
+        "baseDuration": 33.50000001490116
+      },
+      {
+        "actualDuration": 1.7000000029802322,
+        "baseDuration": 33.400000020861626
+      },
+      {
+        "actualDuration": 19.299999982118607,
+        "baseDuration": 31.599999949336052
+      },
+      {
+        "actualDuration": 1.5999999940395355,
+        "baseDuration": 31.39999996125698
+      },
+      {
+        "actualDuration": 21.30000001192093,
+        "baseDuration": 33.50000002980232
+      },
+      {
+        "actualDuration": 1.8999999910593033,
+        "baseDuration": 33.80000001192093
+      },
+      {
+        "actualDuration": 20.69999998807907,
+        "baseDuration": 32.89999997615814
+      },
+      {
+        "actualDuration": 1.5999999940395355,
+        "baseDuration": 32.99999997019768
+      },
+      {
+        "actualDuration": 0,
+        "baseDuration": 32.99999997019768
+      },
+      {
+        "actualDuration": 1.2999999970197678,
+        "baseDuration": 33.19999997317791
+      },
+      {
+        "actualDuration": 22.700000002980232,
+        "baseDuration": 46.49999998509884
+      },
+      {
+        "actualDuration": 21.900000005960464,
+        "baseDuration": 45.69999998807907
+      },
+      {
+        "actualDuration": 2.9000000059604645,
+        "baseDuration": 46.70000000298023
+      },
+      {
+        "actualDuration": 35.29999998211861,
+        "baseDuration": 71.49999998509884
+      },
+      {
+        "actualDuration": 6,
+        "baseDuration": 70.49999998509884
+      },
+      {
+        "actualDuration": 1,
+        "baseDuration": 70.49999998509884
+      },
+      {
+        "actualDuration": 1,
+        "baseDuration": 70.49999998509884
+      }
+    ],
+    "indexedDb": {
+      "reads": 0,
+      "writes": 7
+    },
+    "requests": 7,
+    "transferBytes": 412631,
+    "rpcRequests": 6,
+    "rpcTransferBytes": 411855,
+    "heapBytes": 103000000
+  },
+  "pagination": {
+    "durationMs": 2010.300000011921,
+    "usableContentMs": null,
+    "longTasks": [119],
+    "commits": [
+      {
+        "actualDuration": 25.099999994039536,
+        "baseDuration": 70.50000001490116
+      },
+      {
+        "actualDuration": 0.5,
+        "baseDuration": 70.40000002086163
+      },
+      {
+        "actualDuration": 25,
+        "baseDuration": 69.70000000298023
+      },
+      {
+        "actualDuration": 63.79999999701977,
+        "baseDuration": 75.79999999701977
+      },
+      {
+        "actualDuration": 21.600000008940697,
+        "baseDuration": 33.6000000089407
+      },
+      {
+        "actualDuration": 14.899999976158142,
+        "baseDuration": 26.899999976158142
+      },
+      {
+        "actualDuration": 7,
+        "baseDuration": 26.599999994039536
+      },
+      {
+        "actualDuration": 14.600000008940697,
+        "baseDuration": 33.19999997317791
+      },
+      {
+        "actualDuration": 0,
+        "baseDuration": 33.19999997317791
+      },
+      {
+        "actualDuration": 0.8999999910593033,
+        "baseDuration": 33.09999996423721
+      },
+      {
+        "actualDuration": 1.2000000029802322,
+        "baseDuration": 33.29999998211861
+      }
+    ],
+    "indexedDb": {
+      "reads": 0,
+      "writes": 0
+    },
+    "requests": 3,
+    "transferBytes": 23992,
+    "rpcRequests": 1,
+    "rpcTransferBytes": 22497,
+    "heapBytes": 103000000
+  },
+  "reader": {
+    "durationMs": 201.90000000596046,
+    "usableContentMs": null,
+    "longTasks": [182],
+    "commits": [
+      {
+        "actualDuration": 82.59999999403954,
+        "baseDuration": 103.2999999821186
+      },
+      {
+        "actualDuration": 71.7999999821186,
+        "baseDuration": 74.09999996423721
+      },
+      {
+        "actualDuration": 0.699999988079071,
+        "baseDuration": 71.39999996125698
+      },
+      {
+        "actualDuration": 0,
+        "baseDuration": 71.39999996125698
+      },
+      {
+        "actualDuration": 2.800000011920929,
+        "baseDuration": 30.19999998807907
+      },
+      {
+        "actualDuration": 0.5,
+        "baseDuration": 28.099999979138374
+      },
+      {
+        "actualDuration": 0,
+        "baseDuration": 28.099999979138374
+      },
+      {
+        "actualDuration": 0,
+        "baseDuration": 28.099999979138374
+      }
+    ],
+    "indexedDb": {
+      "reads": 0,
+      "writes": 1
+    },
+    "requests": 2,
+    "transferBytes": 0,
+    "rpcRequests": 2,
+    "rpcTransferBytes": 0,
+    "heapBytes": 103000000
+  }
+}
