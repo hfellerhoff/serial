@@ -1,0 +1,3878 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-31T18:59:28.344Z",
+  "git": {
+    "commit": "44b2c4e2c0487c573778332690c4e0a8a8d1d306",
+    "branch": "audit-app-server-database-performance",
+    "workingTreeDirty": true,
+    "preBookmarkProductionRef": "090d075f"
+  },
+  "target": { "protocol": "file", "externallyManaged": false },
+  "profile": {
+    "name": "representative",
+    "feedItems": 10000,
+    "bookmarks": 1000,
+    "views": 10,
+    "warmups": 3,
+    "repetitions": 15
+  },
+  "fixture": {
+    "userId": "serial-benchmark-bed04cad-3492-4fc5-82c7-f9b6aab60fab",
+    "allContentViewId": 1,
+    "feedItems": 10000,
+    "bookmarks": 1000,
+    "views": 10,
+    "tags": 10,
+    "canonicalCollisions": 200
+  },
+  "method": {
+    "pageLimit": 30,
+    "cacheProfiles": ["warm", "cold"],
+    "warmups": 3,
+    "repetitions": 15,
+    "pairing": "interleaved with alternating first operation",
+    "latencyGate": "candidate median and p95 <= baseline * 1.5",
+    "structuralGate": "candidate maximum materialized rows <= baseline maximum + page limit + sentinel"
+  },
+  "comparisons": [
+    {
+      "cache": "warm",
+      "visibility": "unread",
+      "baseline": {
+        "operation": "feed-view-page",
+        "samples": 15,
+        "fullDurationMs": {
+          "minimum": 3.103374999999687,
+          "median": 3.5233330000000933,
+          "p95": 3.917167000000063,
+          "maximum": 3.917167000000063
+        },
+        "databaseDurationMs": {
+          "minimum": 3.676998999999796,
+          "median": 4.0533349999991515,
+          "p95": 4.404875000000629,
+          "maximum": 4.404875000000629
+        },
+        "databaseWallMs": {
+          "minimum": 2.955583999999817,
+          "median": 3.3412499999999454,
+          "p95": 3.62566599999991,
+          "maximum": 3.62566599999991
+        },
+        "statementCount": { "minimum": 8, "median": 8, "p95": 8, "maximum": 8 },
+        "materializedRows": {
+          "minimum": 167,
+          "median": 167,
+          "p95": 167,
+          "maximum": 167
+        },
+        "resultBytes": {
+          "minimum": 18686,
+          "median": 18686,
+          "p95": 18686,
+          "maximum": 18686
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": 1250128,
+          "median": 1281816,
+          "p95": 1352040,
+          "maximum": 1352040
+        },
+        "rssDeltaBytes": {
+          "minimum": 16384,
+          "median": 81920,
+          "p95": 344064,
+          "maximum": 344064
+        }
+      },
+      "candidate": {
+        "operation": "mixed-view-page",
+        "samples": 15,
+        "fullDurationMs": {
+          "minimum": 229.7510000000002,
+          "median": 232.5062499999999,
+          "p95": 247.58375000000024,
+          "maximum": 247.58375000000024
+        },
+        "databaseDurationMs": {
+          "minimum": 292.66816500000004,
+          "median": 295.8707929999996,
+          "p95": 311.95245699999987,
+          "maximum": 311.95245699999987
+        },
+        "databaseWallMs": {
+          "minimum": 220.4532079999999,
+          "median": 222.77037500000006,
+          "p95": 236.9626659999999,
+          "maximum": 236.9626659999999
+        },
+        "statementCount": {
+          "minimum": 10,
+          "median": 10,
+          "p95": 10,
+          "maximum": 10
+        },
+        "materializedRows": {
+          "minimum": 11680,
+          "median": 11680,
+          "p95": 11680,
+          "maximum": 11680
+        },
+        "resultBytes": {
+          "minimum": 26422,
+          "median": 26422,
+          "p95": 26422,
+          "maximum": 26422
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": -194886008,
+          "median": 47368808,
+          "p95": 48504928,
+          "maximum": 48504928
+        },
+        "rssDeltaBytes": {
+          "minimum": 196608,
+          "median": 442368,
+          "p95": 47874048,
+          "maximum": 47874048
+        }
+      },
+      "gate": {
+        "latencyMedianRatio": 65.99042724601783,
+        "latencyP95Ratio": 63.204798263642125,
+        "latencyCeiling": 1.5,
+        "latencyPassed": false,
+        "structuralRowBudget": 198,
+        "structuralRowsObserved": 11680,
+        "structuralPassed": false,
+        "passed": false
+      }
+    },
+    {
+      "cache": "warm",
+      "visibility": "read",
+      "baseline": {
+        "operation": "feed-view-page",
+        "samples": 15,
+        "fullDurationMs": {
+          "minimum": 3.1778749999994034,
+          "median": 3.5379999999986467,
+          "p95": 4.571625000000495,
+          "maximum": 4.571625000000495
+        },
+        "databaseDurationMs": {
+          "minimum": 3.763541999998779,
+          "median": 4.125374000002921,
+          "p95": 6.105833000003258,
+          "maximum": 6.105833000003258
+        },
+        "databaseWallMs": {
+          "minimum": 3.0289580000007845,
+          "median": 3.3766670000004524,
+          "p95": 4.405625000001237,
+          "maximum": 4.405625000001237
+        },
+        "statementCount": { "minimum": 8, "median": 8, "p95": 8, "maximum": 8 },
+        "materializedRows": {
+          "minimum": 167,
+          "median": 167,
+          "p95": 167,
+          "maximum": 167
+        },
+        "resultBytes": {
+          "minimum": 19300,
+          "median": 19300,
+          "p95": 19300,
+          "maximum": 19300
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": -24821120,
+          "median": 1256984,
+          "p95": 1349000,
+          "maximum": 1349000
+        },
+        "rssDeltaBytes": {
+          "minimum": 16384,
+          "median": 81920,
+          "p95": 114688,
+          "maximum": 114688
+        }
+      },
+      "candidate": {
+        "operation": "mixed-view-page",
+        "samples": 15,
+        "fullDurationMs": {
+          "minimum": 229.06124999999884,
+          "median": 232.2742500000004,
+          "p95": 245.71729099999993,
+          "maximum": 245.71729099999993
+        },
+        "databaseDurationMs": {
+          "minimum": 293.03320899999835,
+          "median": 296.81958300000133,
+          "p95": 311.5694999999987,
+          "maximum": 311.5694999999987
+        },
+        "databaseWallMs": {
+          "minimum": 219.86387500000092,
+          "median": 222.9350829999994,
+          "p95": 236.3416249999991,
+          "maximum": 236.3416249999991
+        },
+        "statementCount": {
+          "minimum": 10,
+          "median": 10,
+          "p95": 10,
+          "maximum": 10
+        },
+        "materializedRows": {
+          "minimum": 11680,
+          "median": 11680,
+          "p95": 11680,
+          "maximum": 11680
+        },
+        "resultBytes": {
+          "minimum": 26775,
+          "median": 26775,
+          "p95": 26775,
+          "maximum": 26775
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": -177224384,
+          "median": 47725264,
+          "p95": 48345288,
+          "maximum": 48345288
+        },
+        "rssDeltaBytes": {
+          "minimum": 278528,
+          "median": 524288,
+          "p95": 8208384,
+          "maximum": 8208384
+        }
+      },
+      "gate": {
+        "latencyMedianRatio": 65.65128603733444,
+        "latencyP95Ratio": 53.748347906920046,
+        "latencyCeiling": 1.5,
+        "latencyPassed": false,
+        "structuralRowBudget": 198,
+        "structuralRowsObserved": 11680,
+        "structuralPassed": false,
+        "passed": false
+      }
+    },
+    {
+      "cache": "warm",
+      "visibility": "later",
+      "baseline": {
+        "operation": "feed-view-page",
+        "samples": 15,
+        "fullDurationMs": {
+          "minimum": 2.6575420000008307,
+          "median": 3.03125,
+          "p95": 3.432749999999942,
+          "maximum": 3.432749999999942
+        },
+        "databaseDurationMs": {
+          "minimum": 3.2436670000024606,
+          "median": 3.591915999999401,
+          "p95": 3.8596659999966505,
+          "maximum": 3.8596659999966505
+        },
+        "databaseWallMs": {
+          "minimum": 2.520541999998386,
+          "median": 2.8737079999991693,
+          "p95": 3.1584169999987353,
+          "maximum": 3.1584169999987353
+        },
+        "statementCount": { "minimum": 8, "median": 8, "p95": 8, "maximum": 8 },
+        "materializedRows": {
+          "minimum": 167,
+          "median": 167,
+          "p95": 167,
+          "maximum": 167
+        },
+        "resultBytes": {
+          "minimum": 19357,
+          "median": 19357,
+          "p95": 19357,
+          "maximum": 19357
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": 1230976,
+          "median": 1249848,
+          "p95": 1318736,
+          "maximum": 1318736
+        },
+        "rssDeltaBytes": {
+          "minimum": 16384,
+          "median": 49152,
+          "p95": 147456,
+          "maximum": 147456
+        }
+      },
+      "candidate": {
+        "operation": "mixed-view-page",
+        "samples": 15,
+        "fullDurationMs": {
+          "minimum": 228.5262500000008,
+          "median": 230.31187499999942,
+          "p95": 246.2596250000006,
+          "maximum": 246.2596250000006
+        },
+        "databaseDurationMs": {
+          "minimum": 292.4314989999966,
+          "median": 296.46379199999683,
+          "p95": 314.14300000000003,
+          "maximum": 314.14300000000003
+        },
+        "databaseWallMs": {
+          "minimum": 219.86841699999968,
+          "median": 222.22129200000018,
+          "p95": 236.95891699999993,
+          "maximum": 236.95891699999993
+        },
+        "statementCount": {
+          "minimum": 10,
+          "median": 10,
+          "p95": 10,
+          "maximum": 10
+        },
+        "materializedRows": {
+          "minimum": 11680,
+          "median": 11680,
+          "p95": 11680,
+          "maximum": 11680
+        },
+        "resultBytes": {
+          "minimum": 26858,
+          "median": 26858,
+          "p95": 26858,
+          "maximum": 26858
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": -194290144,
+          "median": 45449888,
+          "p95": 46112696,
+          "maximum": 46112696
+        },
+        "rssDeltaBytes": {
+          "minimum": -71843840,
+          "median": 589824,
+          "p95": 44417024,
+          "maximum": 44417024
+        }
+      },
+      "gate": {
+        "latencyMedianRatio": 75.97917525773177,
+        "latencyP95Ratio": 71.73829291384598,
+        "latencyCeiling": 1.5,
+        "latencyPassed": false,
+        "structuralRowBudget": 198,
+        "structuralRowsObserved": 11680,
+        "structuralPassed": false,
+        "passed": false
+      }
+    },
+    {
+      "cache": "cold",
+      "visibility": "unread",
+      "baseline": {
+        "operation": "feed-view-page",
+        "samples": 15,
+        "fullDurationMs": {
+          "minimum": 3.521832999998878,
+          "median": 3.6914170000018203,
+          "p95": 4.111249999999927,
+          "maximum": 4.111249999999927
+        },
+        "databaseDurationMs": {
+          "minimum": 4.086665999995603,
+          "median": 4.233958000000712,
+          "p95": 4.529418000001897,
+          "maximum": 4.529418000001897
+        },
+        "databaseWallMs": {
+          "minimum": 3.378082999999606,
+          "median": 3.5192079999978887,
+          "p95": 3.8282909999998083,
+          "maximum": 3.8282909999998083
+        },
+        "statementCount": { "minimum": 8, "median": 8, "p95": 8, "maximum": 8 },
+        "materializedRows": {
+          "minimum": 167,
+          "median": 167,
+          "p95": 167,
+          "maximum": 167
+        },
+        "resultBytes": {
+          "minimum": 18686,
+          "median": 18686,
+          "p95": 18686,
+          "maximum": 18686
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": 1003960,
+          "median": 1249224,
+          "p95": 1318448,
+          "maximum": 1318448
+        },
+        "rssDeltaBytes": {
+          "minimum": 2441216,
+          "median": 2539520,
+          "p95": 2670592,
+          "maximum": 2670592
+        }
+      },
+      "candidate": {
+        "operation": "mixed-view-page",
+        "samples": 15,
+        "fullDurationMs": {
+          "minimum": 230.19133400000283,
+          "median": 231.6111669999991,
+          "p95": 244.98545800000284,
+          "maximum": 244.98545800000284
+        },
+        "databaseDurationMs": {
+          "minimum": 293.2445439999974,
+          "median": 297.1647929999963,
+          "p95": 308.10395699998844,
+          "maximum": 308.10395699998844
+        },
+        "databaseWallMs": {
+          "minimum": 220.961041999999,
+          "median": 223.3577089999999,
+          "p95": 235.3522499999999,
+          "maximum": 235.3522499999999
+        },
+        "statementCount": {
+          "minimum": 10,
+          "median": 10,
+          "p95": 10,
+          "maximum": 10
+        },
+        "materializedRows": {
+          "minimum": 11680,
+          "median": 11680,
+          "p95": 11680,
+          "maximum": 11680
+        },
+        "resultBytes": {
+          "minimum": 26422,
+          "median": 26422,
+          "p95": 26422,
+          "maximum": 26422
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": -169351224,
+          "median": 47446448,
+          "p95": 48435216,
+          "maximum": 48435216
+        },
+        "rssDeltaBytes": {
+          "minimum": 2867200,
+          "median": 3276800,
+          "p95": 4964352,
+          "maximum": 4964352
+        }
+      },
+      "gate": {
+        "latencyMedianRatio": 62.74315987597308,
+        "latencyP95Ratio": 59.58904420796769,
+        "latencyCeiling": 1.5,
+        "latencyPassed": false,
+        "structuralRowBudget": 198,
+        "structuralRowsObserved": 11680,
+        "structuralPassed": false,
+        "passed": false
+      }
+    },
+    {
+      "cache": "cold",
+      "visibility": "read",
+      "baseline": {
+        "operation": "feed-view-page",
+        "samples": 15,
+        "fullDurationMs": {
+          "minimum": 3.603500000001077,
+          "median": 3.8455829999984417,
+          "p95": 5.101167000000714,
+          "maximum": 5.101167000000714
+        },
+        "databaseDurationMs": {
+          "minimum": 4.159625999993295,
+          "median": 4.38670799999818,
+          "p95": 5.529707999998209,
+          "maximum": 5.529707999998209
+        },
+        "databaseWallMs": {
+          "minimum": 3.4565419999998994,
+          "median": 3.6847500000003492,
+          "p95": 4.842124999999214,
+          "maximum": 4.842124999999214
+        },
+        "statementCount": { "minimum": 8, "median": 8, "p95": 8, "maximum": 8 },
+        "materializedRows": {
+          "minimum": 167,
+          "median": 167,
+          "p95": 167,
+          "maximum": 167
+        },
+        "resultBytes": {
+          "minimum": 19300,
+          "median": 19300,
+          "p95": 19300,
+          "maximum": 19300
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": -24935072,
+          "median": 1237736,
+          "p95": 1329104,
+          "maximum": 1329104
+        },
+        "rssDeltaBytes": {
+          "minimum": 2473984,
+          "median": 2555904,
+          "p95": 2686976,
+          "maximum": 2686976
+        }
+      },
+      "candidate": {
+        "operation": "mixed-view-page",
+        "samples": 15,
+        "fullDurationMs": {
+          "minimum": 230.14345799999865,
+          "median": 232.35995800000092,
+          "p95": 245.02529200000208,
+          "maximum": 245.02529200000208
+        },
+        "databaseDurationMs": {
+          "minimum": 293.3698339999937,
+          "median": 296.8589570000004,
+          "p95": 311.9092490000039,
+          "maximum": 311.9092490000039
+        },
+        "databaseWallMs": {
+          "minimum": 220.81850000000122,
+          "median": 223.69733300000007,
+          "p95": 236.05808400000024,
+          "maximum": 236.05808400000024
+        },
+        "statementCount": {
+          "minimum": 10,
+          "median": 10,
+          "p95": 10,
+          "maximum": 10
+        },
+        "materializedRows": {
+          "minimum": 11680,
+          "median": 11680,
+          "p95": 11680,
+          "maximum": 11680
+        },
+        "resultBytes": {
+          "minimum": 26775,
+          "median": 26775,
+          "p95": 26775,
+          "maximum": 26775
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": -171415888,
+          "median": 47508960,
+          "p95": 48804200,
+          "maximum": 48804200
+        },
+        "rssDeltaBytes": {
+          "minimum": 2998272,
+          "median": 3276800,
+          "p95": 6455296,
+          "maximum": 6455296
+        }
+      },
+      "gate": {
+        "latencyMedianRatio": 60.42255699593406,
+        "latencyP95Ratio": 48.0331837793132,
+        "latencyCeiling": 1.5,
+        "latencyPassed": false,
+        "structuralRowBudget": 198,
+        "structuralRowsObserved": 11680,
+        "structuralPassed": false,
+        "passed": false
+      }
+    },
+    {
+      "cache": "cold",
+      "visibility": "later",
+      "baseline": {
+        "operation": "feed-view-page",
+        "samples": 15,
+        "fullDurationMs": {
+          "minimum": 3.1607920000024023,
+          "median": 3.472208999999566,
+          "p95": 3.653874999999971,
+          "maximum": 3.653874999999971
+        },
+        "databaseDurationMs": {
+          "minimum": 3.707499000003736,
+          "median": 3.9969160000000556,
+          "p95": 4.131959000002098,
+          "maximum": 4.131959000002098
+        },
+        "databaseWallMs": {
+          "minimum": 3.0195000000021537,
+          "median": 3.296749999997701,
+          "p95": 3.4154170000001614,
+          "maximum": 3.4154170000001614
+        },
+        "statementCount": { "minimum": 8, "median": 8, "p95": 8, "maximum": 8 },
+        "materializedRows": {
+          "minimum": 167,
+          "median": 167,
+          "p95": 167,
+          "maximum": 167
+        },
+        "resultBytes": {
+          "minimum": 19357,
+          "median": 19357,
+          "p95": 19357,
+          "maximum": 19357
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": 1208064,
+          "median": 1226832,
+          "p95": 1293984,
+          "maximum": 1293984
+        },
+        "rssDeltaBytes": {
+          "minimum": 2490368,
+          "median": 2555904,
+          "p95": 2654208,
+          "maximum": 2654208
+        }
+      },
+      "candidate": {
+        "operation": "mixed-view-page",
+        "samples": 15,
+        "fullDurationMs": {
+          "minimum": 229.70141700000022,
+          "median": 231.0303750000021,
+          "p95": 246.01962500000081,
+          "maximum": 246.01962500000081
+        },
+        "databaseDurationMs": {
+          "minimum": 294.39129299999695,
+          "median": 297.244625000003,
+          "p95": 310.257711000002,
+          "maximum": 310.257711000002
+        },
+        "databaseWallMs": {
+          "minimum": 221.34216699999888,
+          "median": 222.9617500000022,
+          "p95": 236.71737500000017,
+          "maximum": 236.71737500000017
+        },
+        "statementCount": {
+          "minimum": 10,
+          "median": 10,
+          "p95": 10,
+          "maximum": 10
+        },
+        "materializedRows": {
+          "minimum": 11680,
+          "median": 11680,
+          "p95": 11680,
+          "maximum": 11680
+        },
+        "resultBytes": {
+          "minimum": 26858,
+          "median": 26858,
+          "p95": 26858,
+          "maximum": 26858
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": -205963624,
+          "median": 44946832,
+          "p95": 46082920,
+          "maximum": 46082920
+        },
+        "rssDeltaBytes": {
+          "minimum": -74989568,
+          "median": 3342336,
+          "p95": 49463296,
+          "maximum": 49463296
+        }
+      },
+      "gate": {
+        "latencyMedianRatio": 66.53700137291015,
+        "latencyP95Ratio": 67.33115528035381,
+        "latencyCeiling": 1.5,
+        "latencyPassed": false,
+        "structuralRowBudget": 198,
+        "structuralRowsObserved": 11680,
+        "structuralPassed": false,
+        "passed": false
+      }
+    }
+  ],
+  "rawSamples": [
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 247.58375000000024,
+      "databaseDurationMs": 311.95245699999987,
+      "databaseWallMs": 236.9626659999999,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": -102485408,
+      "rssDeltaBytes": 5980160
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 3.917167000000063,
+      "databaseDurationMs": 4.404875000000629,
+      "databaseWallMs": 3.62566599999991,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1351248,
+      "rssDeltaBytes": 344064
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 3.3133339999999407,
+      "databaseDurationMs": 3.9789599999994607,
+      "databaseWallMs": 3.1564579999999296,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1327496,
+      "rssDeltaBytes": 81920
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 232.77270799999997,
+      "databaseDurationMs": 296.9968759999997,
+      "databaseWallMs": 223.05662500000017,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47161264,
+      "rssDeltaBytes": 278528
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 232.27883299999985,
+      "databaseDurationMs": 295.8582500000007,
+      "databaseWallMs": 222.74841700000025,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 48504928,
+      "rssDeltaBytes": 393216
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 3.5233330000000933,
+      "databaseDurationMs": 4.0533349999991515,
+      "databaseWallMs": 3.3412499999999454,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1278672,
+      "rssDeltaBytes": 16384
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 3.190875000000233,
+      "databaseDurationMs": 3.7452090000006137,
+      "databaseWallMs": 3.031167000000096,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1278872,
+      "rssDeltaBytes": 81920
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 237.45274999999992,
+      "databaseDurationMs": 294.73129199999903,
+      "databaseWallMs": 227.0241249999999,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": -110095504,
+      "rssDeltaBytes": 17448960
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 235.29887499999995,
+      "databaseDurationMs": 300.85458200000085,
+      "databaseWallMs": 225.7844580000001,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 48038968,
+      "rssDeltaBytes": 442368
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 3.6954169999999067,
+      "databaseDurationMs": 4.152168000000074,
+      "databaseWallMs": 3.4187919999999394,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1352040,
+      "rssDeltaBytes": 49152
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 3.2863750000001346,
+      "databaseDurationMs": 3.8470839999999953,
+      "databaseWallMs": 3.10345899999993,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1289064,
+      "rssDeltaBytes": 114688
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 231.74508300000025,
+      "databaseDurationMs": 295.8707929999996,
+      "databaseWallMs": 222.39733399999977,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47942376,
+      "rssDeltaBytes": 475136
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 231.39308400000027,
+      "databaseDurationMs": 294.88595699999996,
+      "databaseWallMs": 221.94925000000012,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 48498128,
+      "rssDeltaBytes": 2572288
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 3.5626250000000255,
+      "databaseDurationMs": 4.105374000000211,
+      "databaseWallMs": 3.378958000000239,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1281816,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 3.103374999999687,
+      "databaseDurationMs": 3.676998999999796,
+      "databaseWallMs": 2.955583999999817,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1280040,
+      "rssDeltaBytes": 98304
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 232.5062499999999,
+      "databaseDurationMs": 294.9220440000013,
+      "databaseWallMs": 222.77037500000006,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47752224,
+      "rssDeltaBytes": 47874048
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 245.6662080000001,
+      "databaseDurationMs": 307.5254560000003,
+      "databaseWallMs": 235.03504199999952,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": -194886008,
+      "rssDeltaBytes": 26214400
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 3.785208000000239,
+      "databaseDurationMs": 4.209666000000652,
+      "databaseWallMs": 3.51366599999983,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1347880,
+      "rssDeltaBytes": 81920
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 3.4184580000001006,
+      "databaseDurationMs": 4.024832999999489,
+      "databaseWallMs": 3.2556249999997817,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1297408,
+      "rssDeltaBytes": 245760
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 232.68545799999993,
+      "databaseDurationMs": 298.3797059999988,
+      "databaseWallMs": 224.33100000000013,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47368808,
+      "rssDeltaBytes": 1933312
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 230.93112500000007,
+      "databaseDurationMs": 296.9923749999998,
+      "databaseWallMs": 222.42270800000006,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47805032,
+      "rssDeltaBytes": 294912
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 3.5999999999994543,
+      "databaseDurationMs": 4.307791999999608,
+      "databaseWallMs": 3.4259170000004815,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1250952,
+      "rssDeltaBytes": 49152
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 3.1310419999999795,
+      "databaseDurationMs": 3.7974569999996675,
+      "databaseWallMs": 2.98766599999999,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1251960,
+      "rssDeltaBytes": 49152
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 229.75604100000055,
+      "databaseDurationMs": 295.69312600000103,
+      "databaseWallMs": 221.4583330000005,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47165920,
+      "rssDeltaBytes": 393216
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 245.00274999999965,
+      "databaseDurationMs": 308.7529990000003,
+      "databaseWallMs": 234.77887499999997,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": -157552360,
+      "rssDeltaBytes": 196608
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 3.7725839999993696,
+      "databaseDurationMs": 4.2057900000027075,
+      "databaseWallMs": 3.4943330000005517,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1323896,
+      "rssDeltaBytes": 49152
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 3.1860829999995985,
+      "databaseDurationMs": 3.761123999999654,
+      "databaseWallMs": 3.03387500000008,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1250128,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 230.4602079999995,
+      "databaseDurationMs": 292.66816500000004,
+      "databaseWallMs": 221.2280409999994,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47243952,
+      "rssDeltaBytes": 278528
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 229.7510000000002,
+      "databaseDurationMs": 293.09754200000043,
+      "databaseWallMs": 220.4532079999999,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47838112,
+      "rssDeltaBytes": 311296
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 3.598084000000199,
+      "databaseDurationMs": 4.176041000000623,
+      "databaseWallMs": 3.421041999999943,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1250456,
+      "rssDeltaBytes": 81920
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 233.14858400000048,
+      "databaseDurationMs": 298.18716700000095,
+      "databaseWallMs": 223.64841700000034,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 48345288,
+      "rssDeltaBytes": 311296
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 3.5559579999999187,
+      "databaseDurationMs": 4.146832999998878,
+      "databaseWallMs": 3.3837499999999636,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1239536,
+      "rssDeltaBytes": 81920
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 3.208082999999533,
+      "databaseDurationMs": 3.778497999999672,
+      "databaseWallMs": 3.0624159999997573,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1239360,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 229.96691699999974,
+      "databaseDurationMs": 293.03320899999835,
+      "databaseWallMs": 220.30529099999967,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 47727928,
+      "rssDeltaBytes": 557056
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 233.84079199999996,
+      "databaseDurationMs": 294.1747919999998,
+      "databaseWallMs": 222.9350829999994,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 22080800,
+      "rssDeltaBytes": 753664
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 3.6351669999994556,
+      "databaseDurationMs": 4.224874999999884,
+      "databaseWallMs": 3.4473330000000715,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1239088,
+      "rssDeltaBytes": 81920
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 3.2616250000000946,
+      "databaseDurationMs": 3.828539999998611,
+      "databaseWallMs": 3.1160839999993186,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1239528,
+      "rssDeltaBytes": 81920
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 245.71729099999993,
+      "databaseDurationMs": 311.5694999999987,
+      "databaseWallMs": 236.3416249999991,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": -177224384,
+      "rssDeltaBytes": 8208384
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 232.2742500000004,
+      "databaseDurationMs": 296.56687500000044,
+      "databaseWallMs": 223.12095800000043,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 48124296,
+      "rssDeltaBytes": 901120
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 3.816250000000764,
+      "databaseDurationMs": 4.35146000000077,
+      "databaseWallMs": 3.536250000000109,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1349000,
+      "rssDeltaBytes": 114688
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 3.227375000000393,
+      "databaseDurationMs": 3.7830850000000282,
+      "databaseWallMs": 3.0706669999999576,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1266920,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 231.17766699999993,
+      "databaseDurationMs": 296.81958300000133,
+      "databaseWallMs": 221.6799170000004,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 47290000,
+      "rssDeltaBytes": 524288
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 230.66162499999973,
+      "databaseDurationMs": 296.8574180000005,
+      "databaseWallMs": 222.32504199999948,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 47758336,
+      "rssDeltaBytes": 1867776
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 3.8377919999993537,
+      "databaseDurationMs": 4.378625999999713,
+      "databaseWallMs": 3.6651670000001104,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1265384,
+      "rssDeltaBytes": 114688
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 3.409332999999606,
+      "databaseDurationMs": 3.995499000001473,
+      "databaseWallMs": 3.2539159999996627,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1270744,
+      "rssDeltaBytes": 49152
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 245.2373750000006,
+      "databaseDurationMs": 310.8346259999962,
+      "databaseWallMs": 235.66779199999928,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": -156875288,
+      "rssDeltaBytes": 376832
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 230.79683399999885,
+      "databaseDurationMs": 293.12579099999857,
+      "databaseWallMs": 221.56987499999923,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 47918736,
+      "rssDeltaBytes": 344064
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 3.850916999999754,
+      "databaseDurationMs": 4.327248999999938,
+      "databaseWallMs": 3.569166999999652,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1310872,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 3.2413329999999405,
+      "databaseDurationMs": 3.8138319999998203,
+      "databaseWallMs": 3.091833000000406,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1256984,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 229.06124999999884,
+      "databaseDurationMs": 295.2854600000046,
+      "databaseWallMs": 219.86387500000092,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 47059536,
+      "rssDeltaBytes": 360448
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 232.58287500000006,
+      "databaseDurationMs": 302.8868340000008,
+      "databaseWallMs": 224.45495799999844,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 47725264,
+      "rssDeltaBytes": 278528
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 3.5379999999986467,
+      "databaseDurationMs": 4.125374000002921,
+      "databaseWallMs": 3.3766670000004524,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1238168,
+      "rssDeltaBytes": 98304
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 3.1778749999994034,
+      "databaseDurationMs": 3.763541999998779,
+      "databaseWallMs": 3.0289580000007845,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1238168,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 244.15516699999898,
+      "databaseDurationMs": 310.16450099999565,
+      "databaseWallMs": 234.79991699999846,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": -132936456,
+      "rssDeltaBytes": 458752
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 235.5266670000001,
+      "databaseDurationMs": 300.317583,
+      "databaseWallMs": 226.48612499999945,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 48228064,
+      "rssDeltaBytes": 425984
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 3.9467920000006416,
+      "databaseDurationMs": 4.476666999995359,
+      "databaseWallMs": 3.6792919999988953,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1332768,
+      "rssDeltaBytes": 16384
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 3.2191660000007687,
+      "databaseDurationMs": 3.829834000000119,
+      "databaseWallMs": 3.076042000000598,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1256984,
+      "rssDeltaBytes": 98304
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 230.28541700000096,
+      "databaseDurationMs": 294.1779590000024,
+      "databaseWallMs": 221.6149170000008,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 47629712,
+      "rssDeltaBytes": 557056
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 229.72104099999888,
+      "databaseDurationMs": 293.8650830000024,
+      "databaseWallMs": 221.03591699999924,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 48105256,
+      "rssDeltaBytes": 589824
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 4.571625000000495,
+      "databaseDurationMs": 6.105833000003258,
+      "databaseWallMs": 4.405625000001237,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": -24821120,
+      "rssDeltaBytes": 98304
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 230.31187499999942,
+      "databaseDurationMs": 296.2679580000058,
+      "databaseWallMs": 222.20679100000052,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 45743288,
+      "rssDeltaBytes": 704512
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 3.044832999999926,
+      "databaseDurationMs": 3.6093740000014805,
+      "databaseWallMs": 2.8861660000002303,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1231840,
+      "rssDeltaBytes": 49152
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 2.6575420000008307,
+      "databaseDurationMs": 3.2436670000024606,
+      "databaseWallMs": 2.520541999998386,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1230976,
+      "rssDeltaBytes": 114688
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 229.92195899999933,
+      "databaseDurationMs": 297.0382090000039,
+      "databaseWallMs": 221.70695800000067,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 44970888,
+      "rssDeltaBytes": 589824
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 246.2596250000006,
+      "databaseDurationMs": 314.14300000000003,
+      "databaseWallMs": 236.95891699999993,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": -132559736,
+      "rssDeltaBytes": 638976
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 3.432749999999942,
+      "databaseDurationMs": 3.8596659999966505,
+      "databaseWallMs": 3.1584169999987353,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1317256,
+      "rssDeltaBytes": 16384
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 2.7229999999999563,
+      "databaseDurationMs": 3.303667999995014,
+      "databaseWallMs": 2.579374999999345,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1250880,
+      "rssDeltaBytes": 16384
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 230.12704200000007,
+      "databaseDurationMs": 292.9648750000015,
+      "databaseWallMs": 221.49391699999978,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 45640328,
+      "rssDeltaBytes": 393216
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 230.94254199999887,
+      "databaseDurationMs": 296.46379199999683,
+      "databaseWallMs": 222.38483300000007,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 46112696,
+      "rssDeltaBytes": 573440
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 3.135791999999128,
+      "databaseDurationMs": 3.676790000001347,
+      "databaseWallMs": 2.9564160000008997,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1250696,
+      "rssDeltaBytes": 98304
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 2.7705000000005384,
+      "databaseDurationMs": 3.3708760000026814,
+      "databaseWallMs": 2.6257910000003903,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1249768,
+      "rssDeltaBytes": 49152
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 231.28795900000114,
+      "databaseDurationMs": 294.51787499999955,
+      "databaseWallMs": 222.62045799999942,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 45655008,
+      "rssDeltaBytes": -71843840
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 237.93124999999964,
+      "databaseDurationMs": 297.90420800000174,
+      "databaseWallMs": 228.82204199999978,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": -155868232,
+      "rssDeltaBytes": 44417024
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 3.2993750000005093,
+      "databaseDurationMs": 3.7323750000014115,
+      "databaseWallMs": 3.003000000000611,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1318736,
+      "rssDeltaBytes": 32768
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 2.785082999998849,
+      "databaseDurationMs": 3.378248999999414,
+      "databaseWallMs": 2.634874999999738,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1250136,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 233.64550000000054,
+      "databaseDurationMs": 301.7739980000042,
+      "databaseWallMs": 225.45179100000132,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 45322544,
+      "rssDeltaBytes": 901120
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 229.92962499999885,
+      "databaseDurationMs": 297.281251000004,
+      "databaseWallMs": 222.22129200000018,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 45578024,
+      "rssDeltaBytes": 475136
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 3.1531250000007276,
+      "databaseDurationMs": 3.696999000001597,
+      "databaseWallMs": 2.981999999999971,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1249896,
+      "rssDeltaBytes": 32768
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 2.7501659999998083,
+      "databaseDurationMs": 3.36687300000267,
+      "databaseWallMs": 2.605999999999767,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1249848,
+      "rssDeltaBytes": 147456
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 231.31574999999975,
+      "databaseDurationMs": 298.3694579999974,
+      "databaseWallMs": 223.45000000000073,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 45464032,
+      "rssDeltaBytes": 327680
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 229.53737499999988,
+      "databaseDurationMs": 296.36362400000144,
+      "databaseWallMs": 221.63025000000016,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 45513032,
+      "rssDeltaBytes": 376832
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 3.03125,
+      "databaseDurationMs": 3.591915999999401,
+      "databaseWallMs": 2.8737079999991693,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1231456,
+      "rssDeltaBytes": 114688
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 2.8505000000004657,
+      "databaseDurationMs": 3.4387919999990118,
+      "databaseWallMs": 2.70983299999898,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1231376,
+      "rssDeltaBytes": 32768
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 244.25170900000012,
+      "databaseDurationMs": 308.18924999999945,
+      "databaseWallMs": 235.20195799999965,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": -194290144,
+      "rssDeltaBytes": 20676608
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 230.0528749999994,
+      "databaseDurationMs": 293.0891249999968,
+      "databaseWallMs": 221.31179200000042,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 45449888,
+      "rssDeltaBytes": 458752
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 3.2849999999998545,
+      "databaseDurationMs": 3.7044170000026497,
+      "databaseWallMs": 3.019750000001295,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1314672,
+      "rssDeltaBytes": 81920
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 2.747292000000016,
+      "databaseDurationMs": 3.3102899999976216,
+      "databaseWallMs": 2.6069580000003043,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1246008,
+      "rssDeltaBytes": 98304
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 229.41166599999997,
+      "databaseDurationMs": 294.2814989999988,
+      "databaseWallMs": 220.91733299999942,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 45141424,
+      "rssDeltaBytes": 802816
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 228.5262500000008,
+      "databaseDurationMs": 292.4314989999966,
+      "databaseWallMs": 219.86841699999968,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 45315864,
+      "rssDeltaBytes": 606208
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 3.112375000000611,
+      "databaseDurationMs": 3.698207999994338,
+      "databaseWallMs": 2.9415829999998095,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1245776,
+      "rssDeltaBytes": 49152
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 231.3330419999984,
+      "databaseDurationMs": 295.83987400000115,
+      "databaseWallMs": 221.85425000000032,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47868104,
+      "rssDeltaBytes": 3080192
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 3.948959000001196,
+      "databaseDurationMs": 4.507085000001098,
+      "databaseWallMs": 3.7666669999998703,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1248664,
+      "rssDeltaBytes": 2539520
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 3.5800840000010794,
+      "databaseDurationMs": 4.16979099999844,
+      "databaseWallMs": 3.433042000000569,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1003960,
+      "rssDeltaBytes": 2670592
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 230.38162499999999,
+      "databaseDurationMs": 293.2445439999974,
+      "databaseWallMs": 220.961041999999,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47488752,
+      "rssDeltaBytes": 3457024
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 242.2440000000006,
+      "databaseDurationMs": 304.71637599999667,
+      "databaseWallMs": 233.79945899999984,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": -169351224,
+      "rssDeltaBytes": 4964352
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 4.111249999999927,
+      "databaseDurationMs": 4.529418000001897,
+      "databaseWallMs": 3.8282909999998083,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1317512,
+      "rssDeltaBytes": 2457600
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 3.581000000000131,
+      "databaseDurationMs": 4.115041999999448,
+      "databaseWallMs": 3.4305420000000595,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1249328,
+      "rssDeltaBytes": 2621440
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 231.79262500000004,
+      "databaseDurationMs": 296.78012599999965,
+      "databaseWallMs": 223.3577089999999,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47246168,
+      "rssDeltaBytes": 3276800
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 232.60233300000073,
+      "databaseDurationMs": 298.56733299999723,
+      "databaseWallMs": 224.136833999999,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 48435216,
+      "rssDeltaBytes": 2867200
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 3.8431669999990845,
+      "databaseDurationMs": 4.396873000003325,
+      "databaseWallMs": 3.6683329999996204,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1254368,
+      "rssDeltaBytes": 2457600
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 3.5450000000000728,
+      "databaseDurationMs": 4.106208000001061,
+      "databaseWallMs": 3.400791999998546,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1248576,
+      "rssDeltaBytes": 2506752
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 231.6111669999991,
+      "databaseDurationMs": 297.1203330000026,
+      "databaseWallMs": 223.11995900000147,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47758648,
+      "rssDeltaBytes": 3244032
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 244.98545800000284,
+      "databaseDurationMs": 308.10395699998844,
+      "databaseWallMs": 235.3522499999999,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": -155914944,
+      "rssDeltaBytes": 3358720
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 4.0121670000007725,
+      "databaseDurationMs": 4.453166999999667,
+      "databaseWallMs": 3.7358340000027965,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1315784,
+      "rssDeltaBytes": 2457600
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 3.5644589999974414,
+      "databaseDurationMs": 4.090790999995079,
+      "databaseWallMs": 3.407415999998193,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1248440,
+      "rssDeltaBytes": 2654208
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 232.1837919999998,
+      "databaseDurationMs": 297.0727929999921,
+      "databaseWallMs": 224.01279199999772,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47709856,
+      "rssDeltaBytes": 3227648
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 231.50625000000218,
+      "databaseDurationMs": 298.5441239999964,
+      "databaseWallMs": 223.36616700000013,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47928544,
+      "rssDeltaBytes": 3194880
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 3.6914170000018203,
+      "databaseDurationMs": 4.233958000000712,
+      "databaseWallMs": 3.5192079999978887,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1250784,
+      "rssDeltaBytes": 2539520
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 3.534958000000188,
+      "databaseDurationMs": 4.091541000001598,
+      "databaseWallMs": 3.3929580000003625,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1249224,
+      "rssDeltaBytes": 2670592
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 230.89766699999745,
+      "databaseDurationMs": 297.35391599999275,
+      "databaseWallMs": 222.6269170000014,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47218056,
+      "rssDeltaBytes": 3276800
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 243.61695900000268,
+      "databaseDurationMs": 307.72916799999075,
+      "databaseWallMs": 233.79925000000003,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": -157283584,
+      "rssDeltaBytes": 3342336
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 3.9558340000003227,
+      "databaseDurationMs": 4.39041599999473,
+      "databaseWallMs": 3.6805829999975685,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1318448,
+      "rssDeltaBytes": 2441216
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 3.654333000002225,
+      "databaseDurationMs": 4.176082999998471,
+      "databaseWallMs": 3.491249999999127,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1248792,
+      "rssDeltaBytes": 2588672
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 231.52170800000022,
+      "databaseDurationMs": 294.5942920000016,
+      "databaseWallMs": 222.35575000000244,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47394160,
+      "rssDeltaBytes": 3358720
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 230.72312500000044,
+      "databaseDurationMs": 294.7157519999964,
+      "databaseWallMs": 221.30354199999783,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47810104,
+      "rssDeltaBytes": 3096576
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 3.853624999999738,
+      "databaseDurationMs": 4.450916000005236,
+      "databaseWallMs": 3.680958000000828,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1229856,
+      "rssDeltaBytes": 2572288
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 3.521832999998878,
+      "databaseDurationMs": 4.086665999995603,
+      "databaseWallMs": 3.378082999999606,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1234888,
+      "rssDeltaBytes": 2637824
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 230.19133400000283,
+      "databaseDurationMs": 297.21454200000153,
+      "databaseWallMs": 220.9685419999987,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": 47446448,
+      "rssDeltaBytes": 3194880
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 236.31612499999756,
+      "databaseDurationMs": 297.1647929999963,
+      "databaseWallMs": 225.45329100000163,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26422,
+      "resultRows": 30,
+      "heapDeltaBytes": -157029656,
+      "rssDeltaBytes": 3391488
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 4.041000000001077,
+      "databaseDurationMs": 4.510168000000704,
+      "databaseWallMs": 3.767166999998153,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 18686,
+      "resultRows": 30,
+      "heapDeltaBytes": 1317704,
+      "rssDeltaBytes": 2473984
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 231.26341700000194,
+      "databaseDurationMs": 300.08545899999444,
+      "databaseWallMs": 223.1755839999969,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 48456608,
+      "rssDeltaBytes": 3276800
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 4.048542000000452,
+      "databaseDurationMs": 4.675459999998566,
+      "databaseWallMs": 3.874791999998706,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1256632,
+      "rssDeltaBytes": 2506752
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 3.691291999999521,
+      "databaseDurationMs": 4.257290999998077,
+      "databaseWallMs": 3.542874999999185,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1256544,
+      "rssDeltaBytes": 2686976
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 244.74112500000047,
+      "databaseDurationMs": 311.9092490000039,
+      "databaseWallMs": 236.05808400000024,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": -171415888,
+      "rssDeltaBytes": 6455296
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 232.35995800000092,
+      "databaseDurationMs": 296.2143739999992,
+      "databaseWallMs": 223.69733300000007,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 48349192,
+      "rssDeltaBytes": 2998272
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 4.037249999997584,
+      "databaseDurationMs": 4.507166999999754,
+      "databaseWallMs": 3.793083000000479,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1329104,
+      "rssDeltaBytes": 2555904
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 3.603500000001077,
+      "databaseDurationMs": 4.159625999993295,
+      "databaseWallMs": 3.4565419999998994,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1256824,
+      "rssDeltaBytes": 2555904
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 231.80595900000117,
+      "databaseDurationMs": 295.25021099999867,
+      "databaseWallMs": 222.18766699999833,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 21216208,
+      "rssDeltaBytes": 3506176
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 231.10000000000218,
+      "databaseDurationMs": 294.95558399999936,
+      "databaseWallMs": 221.58587500000067,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 47731816,
+      "rssDeltaBytes": 3063808
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 3.9592499999998836,
+      "databaseDurationMs": 4.550414999997884,
+      "databaseWallMs": 3.790791999999783,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1237600,
+      "rssDeltaBytes": 2539520
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 3.625458999998955,
+      "databaseDurationMs": 4.18658200000209,
+      "databaseWallMs": 3.481833000001643,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1237736,
+      "rssDeltaBytes": 2621440
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 234.91387499999837,
+      "databaseDurationMs": 293.3698339999937,
+      "databaseWallMs": 225.2860409999994,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": -130923560,
+      "rssDeltaBytes": 3391488
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 234.9320829999997,
+      "databaseDurationMs": 300.5146679999998,
+      "databaseWallMs": 226.08304200000202,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 48804200,
+      "rssDeltaBytes": 3129344
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 5.101167000000714,
+      "databaseDurationMs": 5.529707999998209,
+      "databaseWallMs": 4.842124999999214,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": -24935072,
+      "rssDeltaBytes": 2539520
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 3.8037080000030983,
+      "databaseDurationMs": 4.373749999998836,
+      "databaseWallMs": 3.6321659999994154,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1256552,
+      "rssDeltaBytes": 2555904
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 230.8493750000016,
+      "databaseDurationMs": 295.0299159999995,
+      "databaseWallMs": 221.40058399999907,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 47508960,
+      "rssDeltaBytes": 3260416
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 230.14345799999865,
+      "databaseDurationMs": 293.84537499999715,
+      "databaseWallMs": 220.81850000000122,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 47872888,
+      "rssDeltaBytes": 3129344
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 3.8455829999984417,
+      "databaseDurationMs": 4.38670799999818,
+      "databaseWallMs": 3.6847500000003492,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1233328,
+      "rssDeltaBytes": 2572288
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 3.6627499999995052,
+      "databaseDurationMs": 4.199040999999852,
+      "databaseWallMs": 3.5153749999990396,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1233312,
+      "rssDeltaBytes": 2555904
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 230.55295900000056,
+      "databaseDurationMs": 296.45016600000235,
+      "databaseWallMs": 221.26570899999933,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 47387352,
+      "rssDeltaBytes": 3407872
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 244.500208999998,
+      "databaseDurationMs": 307.9261649999935,
+      "databaseWallMs": 235.95170900000085,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": -169638016,
+      "rssDeltaBytes": 3407872
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 4.070458000001963,
+      "databaseDurationMs": 4.556125000002794,
+      "databaseWallMs": 3.804583000001003,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1300800,
+      "rssDeltaBytes": 2490368
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 3.641542000001209,
+      "databaseDurationMs": 4.181792000003043,
+      "databaseWallMs": 3.489792000000307,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1233344,
+      "rssDeltaBytes": 2572288
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 233.0419580000016,
+      "databaseDurationMs": 296.8589570000004,
+      "databaseWallMs": 224.19874999999956,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 47237736,
+      "rssDeltaBytes": 3260416
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 234.54154200000266,
+      "databaseDurationMs": 297.38825100000395,
+      "databaseWallMs": 226.09108399999968,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 48227208,
+      "rssDeltaBytes": 3244032
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 3.9939999999987776,
+      "databaseDurationMs": 4.538502000003064,
+      "databaseWallMs": 3.830375000001368,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1233112,
+      "rssDeltaBytes": 2506752
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 3.6687910000000556,
+      "databaseDurationMs": 4.206041000001278,
+      "databaseWallMs": 3.5192500000011933,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1233200,
+      "rssDeltaBytes": 2637824
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 231.36220899999898,
+      "databaseDurationMs": 297.8320839999906,
+      "databaseWallMs": 222.8064579999991,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": 47628872,
+      "rssDeltaBytes": 3342336
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 245.02529200000208,
+      "databaseDurationMs": 308.31308499999795,
+      "databaseWallMs": 235.0149580000034,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26775,
+      "resultRows": 30,
+      "heapDeltaBytes": -155901024,
+      "rssDeltaBytes": 3325952
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 4.150832999999693,
+      "databaseDurationMs": 4.640831999997317,
+      "databaseWallMs": 3.876624999997148,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19300,
+      "resultRows": 30,
+      "heapDeltaBytes": 1300720,
+      "rssDeltaBytes": 2473984
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 243.8695000000007,
+      "databaseDurationMs": 310.257711000002,
+      "databaseWallMs": 235.23183400000198,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": -133383960,
+      "rssDeltaBytes": 3407872
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 3.6126250000015716,
+      "databaseDurationMs": 4.079333000001498,
+      "databaseWallMs": 3.3629999999975553,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1293896,
+      "rssDeltaBytes": 2490368
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 3.214583999997558,
+      "databaseDurationMs": 3.791583999998693,
+      "databaseWallMs": 3.064750000001368,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1229120,
+      "rssDeltaBytes": 2605056
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 232.19187500000044,
+      "databaseDurationMs": 297.08333300000595,
+      "databaseWallMs": 224.29762499999924,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 45353336,
+      "rssDeltaBytes": 3211264
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 230.84954199999993,
+      "databaseDurationMs": 296.4061230000043,
+      "databaseWallMs": 222.9617500000022,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 46015400,
+      "rssDeltaBytes": -74989568
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 3.473958999999013,
+      "databaseDurationMs": 3.9969160000000556,
+      "databaseWallMs": 3.296749999997701,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1226832,
+      "rssDeltaBytes": 2490368
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 3.226834000000963,
+      "databaseDurationMs": 3.7869990000071994,
+      "databaseWallMs": 3.0816670000021986,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1226728,
+      "rssDeltaBytes": 2637824
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 231.0303750000021,
+      "databaseDurationMs": 295.13312499999665,
+      "databaseWallMs": 223.01858300000094,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 45354600,
+      "rssDeltaBytes": 14516224
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 232.50612499999988,
+      "databaseDurationMs": 298.1857489999966,
+      "databaseWallMs": 224.27920799999993,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 46082920,
+      "rssDeltaBytes": 49463296
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 3.572250000001077,
+      "databaseDurationMs": 4.12341600000218,
+      "databaseWallMs": 3.4154170000001614,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1208216,
+      "rssDeltaBytes": 2539520
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 3.1989170000015292,
+      "databaseDurationMs": 3.7533330000005662,
+      "databaseWallMs": 3.0617500000007567,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1208064,
+      "rssDeltaBytes": 2637824
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 246.01962500000081,
+      "databaseDurationMs": 310.1837079999932,
+      "databaseWallMs": 236.71737500000017,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": -205963624,
+      "rssDeltaBytes": 32456704
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 231.32408399999986,
+      "databaseDurationMs": 294.39129299999695,
+      "databaseWallMs": 222.55062499999985,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 45439376,
+      "rssDeltaBytes": 3031040
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 3.653874999999971,
+      "databaseDurationMs": 4.1163329999981215,
+      "databaseWallMs": 3.390665999999328,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1293824,
+      "rssDeltaBytes": 2490368
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 3.2409579999985,
+      "databaseDurationMs": 3.825457999999344,
+      "databaseWallMs": 3.0964590000003227,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1227656,
+      "rssDeltaBytes": 2637824
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 230.0219160000015,
+      "databaseDurationMs": 297.244625000003,
+      "databaseWallMs": 221.34216699999888,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 44946832,
+      "rssDeltaBytes": 3391488
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 230.03462500000023,
+      "databaseDurationMs": 297.4449999999997,
+      "databaseWallMs": 221.40787499999715,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 45535848,
+      "rssDeltaBytes": 3145728
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 3.568834000001516,
+      "databaseDurationMs": 4.131959000002098,
+      "databaseWallMs": 3.4073329999991984,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1222488,
+      "rssDeltaBytes": 2588672
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 3.313584000003175,
+      "databaseDurationMs": 3.9053339999954915,
+      "databaseWallMs": 3.1691659999996773,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1223888,
+      "rssDeltaBytes": 2555904
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 230.76454100000046,
+      "databaseDurationMs": 296.7014190000009,
+      "databaseWallMs": 222.14679199999955,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 44896584,
+      "rssDeltaBytes": 3342336
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 242.25612499999988,
+      "databaseDurationMs": 306.69091899999694,
+      "databaseWallMs": 234.3139999999985,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": -176640976,
+      "rssDeltaBytes": 3342336
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 3.559500000003027,
+      "databaseDurationMs": 4.010082000000693,
+      "databaseWallMs": 3.313332999998238,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1293984,
+      "rssDeltaBytes": 2490368
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 3.3097080000006827,
+      "databaseDurationMs": 3.8542899999956717,
+      "databaseWallMs": 3.15691599999991,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1231088,
+      "rssDeltaBytes": 2621440
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 230.58633399999962,
+      "databaseDurationMs": 296.1137909999961,
+      "databaseWallMs": 222.95858299999963,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 44684360,
+      "rssDeltaBytes": 3293184
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 229.70141700000022,
+      "databaseDurationMs": 297.1175830000029,
+      "databaseWallMs": 222.17354200000045,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 45572584,
+      "rssDeltaBytes": 3112960
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 3.472208999999566,
+      "databaseDurationMs": 4.031334000002971,
+      "databaseWallMs": 3.3138340000004973,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1225568,
+      "rssDeltaBytes": 2523136
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 3.1607920000024023,
+      "databaseDurationMs": 3.707499000003736,
+      "databaseWallMs": 3.0195000000021537,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1225752,
+      "rssDeltaBytes": 2654208
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 230.2083330000023,
+      "databaseDurationMs": 297.3472489999949,
+      "databaseWallMs": 222.3886249999996,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": 44776784,
+      "rssDeltaBytes": 3211264
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 242.64383299999827,
+      "databaseDurationMs": 307.30770900000425,
+      "databaseWallMs": 233.99108400000114,
+      "statementCount": 10,
+      "materializedRows": 11680,
+      "resultBytes": 26858,
+      "resultRows": 30,
+      "heapDeltaBytes": -131266376,
+      "rssDeltaBytes": 3391488
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 3.6326659999976982,
+      "databaseDurationMs": 4.1076260000008915,
+      "databaseWallMs": 3.390917000000627,
+      "statementCount": 8,
+      "materializedRows": 167,
+      "resultBytes": 19357,
+      "resultRows": 30,
+      "heapDeltaBytes": 1275992,
+      "rssDeltaBytes": 2490368
+    }
+  ],
+  "statementObservations": [
+    {
+      "cache": "warm",
+      "visibility": "unread",
+      "operation": "feed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.6210000000000946,
+          "rows": 10
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"url\", \"image_url\", \"platform\", \"open_location\", \"created_at\", \"updated_at\", \"last_fetched_at\", \"next_fetch_at\", \"is_active\", \"etag\", \"last_modified_header\" from \"serial_feed\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 0.4222500000000764,
+          "rows": 40
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ? order by \"serial_content_categories\".\"name\" asc",
+          "durationMs": 0.06566699999984849,
+          "rows": 10
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"category_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.40095800000017334,
+          "rows": 40
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.28766600000017206,
+          "rows": 9
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.22108399999979156,
+          "rows": 9
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.12637500000028012,
+          "rows": 18
+        },
+        {
+          "sql": "select \"id\", \"feed_id\", \"content_id\", \"title\", \"author\", \"url\", \"thumbnail\", \"content\", \"content_snippet\", \"is_watched\", \"is_watched_updated_at\", \"is_watch_later\", \"is_watch_later_updated_at\", \"progress\", \"duration\", \"orientation\", \"posted_at\", \"created_at\", \"updated_at\", \"content_hash\" from \"serial_feed_item\" where (\"serial_feed_item\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) and (\"serial_feed_item\".\"is_watched\" = ? and \"serial_feed_item\".\"is_watch_later\" = ?)) order by \"serial_feed_item\".\"posted_at\" desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 2.259875000000193,
+          "rows": 31
+        }
+      ]
+    },
+    {
+      "cache": "warm",
+      "visibility": "unread",
+      "operation": "mixed-view-page",
+      "statements": [
+        {
+          "sql": "select \"serial_bookmark\".\"id\", \"serial_bookmark\".\"user_id\", \"serial_bookmark\".\"source_url\", \"serial_bookmark\".\"canonical_url\", \"serial_bookmark\".\"is_saved\", \"serial_bookmark\".\"is_read\", \"serial_bookmark\".\"progress\", \"serial_bookmark\".\"duration\", \"serial_bookmark\".\"saved_updated_at\", \"serial_bookmark\".\"read_updated_at\", \"serial_bookmark\".\"progress_updated_at\", \"serial_bookmark\".\"created_at\", \"serial_bookmark\".\"updated_at\", \"serial_page_capture\".\"bookmark_id\", \"serial_page_capture\".\"title\", \"serial_page_capture\".\"author\", \"serial_page_capture\".\"published_at\", \"serial_page_capture\".\"content_html\", \"serial_page_capture\".\"effective_url\", \"serial_page_capture\".\"icon_url\", \"serial_page_capture\".\"representative_image_url\", \"serial_page_capture\".\"content_hash\", \"serial_page_capture\".\"capture_source\", \"serial_page_capture\".\"extractor_version\", \"serial_page_capture\".\"sanitizer_policy_version\", \"serial_page_capture\".\"captured_at\" from \"serial_bookmark\" left join \"serial_page_capture\" on \"serial_page_capture\".\"bookmark_id\" = \"serial_bookmark\".\"id\" where \"serial_bookmark\".\"user_id\" = ?",
+          "durationMs": 159.0077080000001,
+          "rows": 1000
+        },
+        {
+          "sql": "select \"serial_feed_item\".\"id\", \"serial_feed_item\".\"feed_id\", \"serial_feed_item\".\"content_id\", \"serial_feed_item\".\"title\", \"serial_feed_item\".\"author\", \"serial_feed_item\".\"url\", \"serial_feed_item\".\"thumbnail\", \"serial_feed_item\".\"content\", \"serial_feed_item\".\"content_snippet\", \"serial_feed_item\".\"is_watched\", \"serial_feed_item\".\"is_watch_later\", \"serial_feed_item\".\"progress\", \"serial_feed_item\".\"duration\", \"serial_feed_item\".\"orientation\", \"serial_feed_item\".\"posted_at\", \"serial_feed_item\".\"created_at\", \"serial_feed_item\".\"updated_at\", \"serial_feed_item\".\"is_watched_updated_at\", \"serial_feed_item\".\"is_watch_later_updated_at\", \"serial_feed_item\".\"content_hash\", \"serial_feed\".\"id\", \"serial_feed\".\"user_id\", \"serial_feed\".\"name\", \"serial_feed\".\"url\", \"serial_feed\".\"image_url\", \"serial_feed\".\"platform\", \"serial_feed\".\"open_location\", \"serial_feed\".\"created_at\", \"serial_feed\".\"updated_at\", \"serial_feed\".\"last_fetched_at\", \"serial_feed\".\"next_fetch_at\", \"serial_feed\".\"is_active\", \"serial_feed\".\"etag\", \"serial_feed\".\"last_modified_header\" from \"serial_feed_item\" inner join \"serial_feed\" on \"serial_feed_item\".\"feed_id\" = \"serial_feed\".\"id\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 147.1489160000001,
+          "rows": 10000
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.3310420000002523,
+          "rows": 10
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ?",
+          "durationMs": 0.0852919999997539,
+          "rows": 10
+        },
+        {
+          "sql": "select \"bookmark_id\", \"view_id\" from \"serial_bookmark_view\" where \"serial_bookmark_view\".\"bookmark_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 3.162249999999858,
+          "rows": 250
+        },
+        {
+          "sql": "select \"bookmark_id\", \"tag_id\" from \"serial_bookmark_tag\" where \"serial_bookmark_tag\".\"bookmark_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 1.086583000000246,
+          "rows": 334
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.4572499999999309,
+          "rows": 40
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.311916999999994,
+          "rows": 9
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.2354579999996531,
+          "rows": 9
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.12604099999998652,
+          "rows": 18
+        }
+      ]
+    },
+    {
+      "cache": "warm",
+      "visibility": "read",
+      "operation": "feed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.5702080000000933,
+          "rows": 10
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"url\", \"image_url\", \"platform\", \"open_location\", \"created_at\", \"updated_at\", \"last_fetched_at\", \"next_fetch_at\", \"is_active\", \"etag\", \"last_modified_header\" from \"serial_feed\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 0.3925419999995938,
+          "rows": 40
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ? order by \"serial_content_categories\".\"name\" asc",
+          "durationMs": 0.06524999999965075,
+          "rows": 10
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"category_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.3764579999997295,
+          "rows": 40
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.2701250000000073,
+          "rows": 9
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.20837500000016007,
+          "rows": 9
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.12758299999950395,
+          "rows": 18
+        },
+        {
+          "sql": "select \"id\", \"feed_id\", \"content_id\", \"title\", \"author\", \"url\", \"thumbnail\", \"content\", \"content_snippet\", \"is_watched\", \"is_watched_updated_at\", \"is_watch_later\", \"is_watch_later_updated_at\", \"progress\", \"duration\", \"orientation\", \"posted_at\", \"created_at\", \"updated_at\", \"content_hash\" from \"serial_feed_item\" where (\"serial_feed_item\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) and (\"serial_feed_item\".\"is_watched\" = ? and \"serial_feed_item\".\"is_watch_later\" = ?)) order by \"serial_feed_item\".\"is_watched_updated_at\" desc, \"serial_feed_item\".\"posted_at\" desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 2.1362920000001395,
+          "rows": 31
+        }
+      ]
+    },
+    {
+      "cache": "warm",
+      "visibility": "read",
+      "operation": "mixed-view-page",
+      "statements": [
+        {
+          "sql": "select \"serial_bookmark\".\"id\", \"serial_bookmark\".\"user_id\", \"serial_bookmark\".\"source_url\", \"serial_bookmark\".\"canonical_url\", \"serial_bookmark\".\"is_saved\", \"serial_bookmark\".\"is_read\", \"serial_bookmark\".\"progress\", \"serial_bookmark\".\"duration\", \"serial_bookmark\".\"saved_updated_at\", \"serial_bookmark\".\"read_updated_at\", \"serial_bookmark\".\"progress_updated_at\", \"serial_bookmark\".\"created_at\", \"serial_bookmark\".\"updated_at\", \"serial_page_capture\".\"bookmark_id\", \"serial_page_capture\".\"title\", \"serial_page_capture\".\"author\", \"serial_page_capture\".\"published_at\", \"serial_page_capture\".\"content_html\", \"serial_page_capture\".\"effective_url\", \"serial_page_capture\".\"icon_url\", \"serial_page_capture\".\"representative_image_url\", \"serial_page_capture\".\"content_hash\", \"serial_page_capture\".\"capture_source\", \"serial_page_capture\".\"extractor_version\", \"serial_page_capture\".\"sanitizer_policy_version\", \"serial_page_capture\".\"captured_at\" from \"serial_bookmark\" left join \"serial_page_capture\" on \"serial_page_capture\".\"bookmark_id\" = \"serial_bookmark\".\"id\" where \"serial_bookmark\".\"user_id\" = ?",
+          "durationMs": 152.86516699999993,
+          "rows": 1000
+        },
+        {
+          "sql": "select \"serial_feed_item\".\"id\", \"serial_feed_item\".\"feed_id\", \"serial_feed_item\".\"content_id\", \"serial_feed_item\".\"title\", \"serial_feed_item\".\"author\", \"serial_feed_item\".\"url\", \"serial_feed_item\".\"thumbnail\", \"serial_feed_item\".\"content\", \"serial_feed_item\".\"content_snippet\", \"serial_feed_item\".\"is_watched\", \"serial_feed_item\".\"is_watch_later\", \"serial_feed_item\".\"progress\", \"serial_feed_item\".\"duration\", \"serial_feed_item\".\"orientation\", \"serial_feed_item\".\"posted_at\", \"serial_feed_item\".\"created_at\", \"serial_feed_item\".\"updated_at\", \"serial_feed_item\".\"is_watched_updated_at\", \"serial_feed_item\".\"is_watch_later_updated_at\", \"serial_feed_item\".\"content_hash\", \"serial_feed\".\"id\", \"serial_feed\".\"user_id\", \"serial_feed\".\"name\", \"serial_feed\".\"url\", \"serial_feed\".\"image_url\", \"serial_feed\".\"platform\", \"serial_feed\".\"open_location\", \"serial_feed\".\"created_at\", \"serial_feed\".\"updated_at\", \"serial_feed\".\"last_fetched_at\", \"serial_feed\".\"next_fetch_at\", \"serial_feed\".\"is_active\", \"serial_feed\".\"etag\", \"serial_feed\".\"last_modified_header\" from \"serial_feed_item\" inner join \"serial_feed\" on \"serial_feed_item\".\"feed_id\" = \"serial_feed\".\"id\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 139.8442500000001,
+          "rows": 10000
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.32920800000010786,
+          "rows": 10
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ?",
+          "durationMs": 0.07862500000010186,
+          "rows": 10
+        },
+        {
+          "sql": "select \"bookmark_id\", \"view_id\" from \"serial_bookmark_view\" where \"serial_bookmark_view\".\"bookmark_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 3.0007079999995767,
+          "rows": 250
+        },
+        {
+          "sql": "select \"bookmark_id\", \"tag_id\" from \"serial_bookmark_tag\" where \"serial_bookmark_tag\".\"bookmark_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 1.0588330000000497,
+          "rows": 334
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.4116249999997308,
+          "rows": 40
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.27570900000046095,
+          "rows": 9
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.20191700000032142,
+          "rows": 9
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.1211250000005748,
+          "rows": 18
+        }
+      ]
+    },
+    {
+      "cache": "warm",
+      "visibility": "later",
+      "operation": "feed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.5479160000013508,
+          "rows": 10
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"url\", \"image_url\", \"platform\", \"open_location\", \"created_at\", \"updated_at\", \"last_fetched_at\", \"next_fetch_at\", \"is_active\", \"etag\", \"last_modified_header\" from \"serial_feed\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 0.3759169999993901,
+          "rows": 40
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ? order by \"serial_content_categories\".\"name\" asc",
+          "durationMs": 0.058624999999665306,
+          "rows": 10
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"category_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.3602499999997235,
+          "rows": 40
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.2512910000004922,
+          "rows": 9
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.1947920000002341,
+          "rows": 9
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.1220420000008744,
+          "rows": 18
+        },
+        {
+          "sql": "select \"id\", \"feed_id\", \"content_id\", \"title\", \"author\", \"url\", \"thumbnail\", \"content\", \"content_snippet\", \"is_watched\", \"is_watched_updated_at\", \"is_watch_later\", \"is_watch_later_updated_at\", \"progress\", \"duration\", \"orientation\", \"posted_at\", \"created_at\", \"updated_at\", \"content_hash\" from \"serial_feed_item\" where (\"serial_feed_item\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) and \"serial_feed_item\".\"is_watch_later\" = ?) order by \"serial_feed_item\".\"is_watch_later_updated_at\" desc, \"serial_feed_item\".\"posted_at\" desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 1.69854099999975,
+          "rows": 31
+        }
+      ]
+    },
+    {
+      "cache": "warm",
+      "visibility": "later",
+      "operation": "mixed-view-page",
+      "statements": [
+        {
+          "sql": "select \"serial_bookmark\".\"id\", \"serial_bookmark\".\"user_id\", \"serial_bookmark\".\"source_url\", \"serial_bookmark\".\"canonical_url\", \"serial_bookmark\".\"is_saved\", \"serial_bookmark\".\"is_read\", \"serial_bookmark\".\"progress\", \"serial_bookmark\".\"duration\", \"serial_bookmark\".\"saved_updated_at\", \"serial_bookmark\".\"read_updated_at\", \"serial_bookmark\".\"progress_updated_at\", \"serial_bookmark\".\"created_at\", \"serial_bookmark\".\"updated_at\", \"serial_page_capture\".\"bookmark_id\", \"serial_page_capture\".\"title\", \"serial_page_capture\".\"author\", \"serial_page_capture\".\"published_at\", \"serial_page_capture\".\"content_html\", \"serial_page_capture\".\"effective_url\", \"serial_page_capture\".\"icon_url\", \"serial_page_capture\".\"representative_image_url\", \"serial_page_capture\".\"content_hash\", \"serial_page_capture\".\"capture_source\", \"serial_page_capture\".\"extractor_version\", \"serial_page_capture\".\"sanitizer_policy_version\", \"serial_page_capture\".\"captured_at\" from \"serial_bookmark\" left join \"serial_page_capture\" on \"serial_page_capture\".\"bookmark_id\" = \"serial_bookmark\".\"id\" where \"serial_bookmark\".\"user_id\" = ?",
+          "durationMs": 151.44033300000046,
+          "rows": 1000
+        },
+        {
+          "sql": "select \"serial_feed_item\".\"id\", \"serial_feed_item\".\"feed_id\", \"serial_feed_item\".\"content_id\", \"serial_feed_item\".\"title\", \"serial_feed_item\".\"author\", \"serial_feed_item\".\"url\", \"serial_feed_item\".\"thumbnail\", \"serial_feed_item\".\"content\", \"serial_feed_item\".\"content_snippet\", \"serial_feed_item\".\"is_watched\", \"serial_feed_item\".\"is_watch_later\", \"serial_feed_item\".\"progress\", \"serial_feed_item\".\"duration\", \"serial_feed_item\".\"orientation\", \"serial_feed_item\".\"posted_at\", \"serial_feed_item\".\"created_at\", \"serial_feed_item\".\"updated_at\", \"serial_feed_item\".\"is_watched_updated_at\", \"serial_feed_item\".\"is_watch_later_updated_at\", \"serial_feed_item\".\"content_hash\", \"serial_feed\".\"id\", \"serial_feed\".\"user_id\", \"serial_feed\".\"name\", \"serial_feed\".\"url\", \"serial_feed\".\"image_url\", \"serial_feed\".\"platform\", \"serial_feed\".\"open_location\", \"serial_feed\".\"created_at\", \"serial_feed\".\"updated_at\", \"serial_feed\".\"last_fetched_at\", \"serial_feed\".\"next_fetch_at\", \"serial_feed\".\"is_active\", \"serial_feed\".\"etag\", \"serial_feed\".\"last_modified_header\" from \"serial_feed_item\" inner join \"serial_feed\" on \"serial_feed_item\".\"feed_id\" = \"serial_feed\".\"id\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 139.1937080000007,
+          "rows": 10000
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.2987090000005992,
+          "rows": 10
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ?",
+          "durationMs": 0.07437500000014552,
+          "rows": 10
+        },
+        {
+          "sql": "select \"bookmark_id\", \"view_id\" from \"serial_bookmark_view\" where \"serial_bookmark_view\".\"bookmark_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 3.1635000000005675,
+          "rows": 250
+        },
+        {
+          "sql": "select \"bookmark_id\", \"tag_id\" from \"serial_bookmark_tag\" where \"serial_bookmark_tag\".\"bookmark_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 1.1230000000014115,
+          "rows": 334
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.4019590000007156,
+          "rows": 40
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.2601670000003651,
+          "rows": 9
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.19454100000075414,
+          "rows": 9
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.1176660000000993,
+          "rows": 18
+        }
+      ]
+    },
+    {
+      "cache": "cold",
+      "visibility": "unread",
+      "operation": "feed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.7806670000009035,
+          "rows": 10
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"url\", \"image_url\", \"platform\", \"open_location\", \"created_at\", \"updated_at\", \"last_fetched_at\", \"next_fetch_at\", \"is_active\", \"etag\", \"last_modified_header\" from \"serial_feed\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 0.4001250000001164,
+          "rows": 40
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ? order by \"serial_content_categories\".\"name\" asc",
+          "durationMs": 0.06483399999888206,
+          "rows": 10
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"category_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.38233299999956216,
+          "rows": 40
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.26837500000146974,
+          "rows": 9
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.20499999999992724,
+          "rows": 9
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.12208400000054098,
+          "rows": 18
+        },
+        {
+          "sql": "select \"id\", \"feed_id\", \"content_id\", \"title\", \"author\", \"url\", \"thumbnail\", \"content\", \"content_snippet\", \"is_watched\", \"is_watched_updated_at\", \"is_watch_later\", \"is_watch_later_updated_at\", \"progress\", \"duration\", \"orientation\", \"posted_at\", \"created_at\", \"updated_at\", \"content_hash\" from \"serial_feed_item\" where (\"serial_feed_item\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) and (\"serial_feed_item\".\"is_watched\" = ? and \"serial_feed_item\".\"is_watch_later\" = ?)) order by \"serial_feed_item\".\"posted_at\" desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 2.2836669999996957,
+          "rows": 31
+        }
+      ]
+    },
+    {
+      "cache": "cold",
+      "visibility": "unread",
+      "operation": "mixed-view-page",
+      "statements": [
+        {
+          "sql": "select \"serial_bookmark\".\"id\", \"serial_bookmark\".\"user_id\", \"serial_bookmark\".\"source_url\", \"serial_bookmark\".\"canonical_url\", \"serial_bookmark\".\"is_saved\", \"serial_bookmark\".\"is_read\", \"serial_bookmark\".\"progress\", \"serial_bookmark\".\"duration\", \"serial_bookmark\".\"saved_updated_at\", \"serial_bookmark\".\"read_updated_at\", \"serial_bookmark\".\"progress_updated_at\", \"serial_bookmark\".\"created_at\", \"serial_bookmark\".\"updated_at\", \"serial_page_capture\".\"bookmark_id\", \"serial_page_capture\".\"title\", \"serial_page_capture\".\"author\", \"serial_page_capture\".\"published_at\", \"serial_page_capture\".\"content_html\", \"serial_page_capture\".\"effective_url\", \"serial_page_capture\".\"icon_url\", \"serial_page_capture\".\"representative_image_url\", \"serial_page_capture\".\"content_hash\", \"serial_page_capture\".\"capture_source\", \"serial_page_capture\".\"extractor_version\", \"serial_page_capture\".\"sanitizer_policy_version\", \"serial_page_capture\".\"captured_at\" from \"serial_bookmark\" left join \"serial_page_capture\" on \"serial_page_capture\".\"bookmark_id\" = \"serial_bookmark\".\"id\" where \"serial_bookmark\".\"user_id\" = ?",
+          "durationMs": 151.0605830000004,
+          "rows": 1000
+        },
+        {
+          "sql": "select \"serial_feed_item\".\"id\", \"serial_feed_item\".\"feed_id\", \"serial_feed_item\".\"content_id\", \"serial_feed_item\".\"title\", \"serial_feed_item\".\"author\", \"serial_feed_item\".\"url\", \"serial_feed_item\".\"thumbnail\", \"serial_feed_item\".\"content\", \"serial_feed_item\".\"content_snippet\", \"serial_feed_item\".\"is_watched\", \"serial_feed_item\".\"is_watch_later\", \"serial_feed_item\".\"progress\", \"serial_feed_item\".\"duration\", \"serial_feed_item\".\"orientation\", \"serial_feed_item\".\"posted_at\", \"serial_feed_item\".\"created_at\", \"serial_feed_item\".\"updated_at\", \"serial_feed_item\".\"is_watched_updated_at\", \"serial_feed_item\".\"is_watch_later_updated_at\", \"serial_feed_item\".\"content_hash\", \"serial_feed\".\"id\", \"serial_feed\".\"user_id\", \"serial_feed\".\"name\", \"serial_feed\".\"url\", \"serial_feed\".\"image_url\", \"serial_feed\".\"platform\", \"serial_feed\".\"open_location\", \"serial_feed\".\"created_at\", \"serial_feed\".\"updated_at\", \"serial_feed\".\"last_fetched_at\", \"serial_feed\".\"next_fetch_at\", \"serial_feed\".\"is_active\", \"serial_feed\".\"etag\", \"serial_feed\".\"last_modified_header\" from \"serial_feed_item\" inner join \"serial_feed\" on \"serial_feed_item\".\"feed_id\" = \"serial_feed\".\"id\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 139.14949999999953,
+          "rows": 10000
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.270541999998386,
+          "rows": 10
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ?",
+          "durationMs": 0.06954100000075414,
+          "rows": 10
+        },
+        {
+          "sql": "select \"bookmark_id\", \"view_id\" from \"serial_bookmark_view\" where \"serial_bookmark_view\".\"bookmark_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 3.1616249999988213,
+          "rows": 250
+        },
+        {
+          "sql": "select \"bookmark_id\", \"tag_id\" from \"serial_bookmark_tag\" where \"serial_bookmark_tag\".\"bookmark_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 1.084833000000799,
+          "rows": 334
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.43712500000037835,
+          "rows": 40
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.2861250000005384,
+          "rows": 9
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.20337500000096043,
+          "rows": 9
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.11662500000056752,
+          "rows": 18
+        }
+      ]
+    },
+    {
+      "cache": "cold",
+      "visibility": "read",
+      "operation": "feed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.7523750000000291,
+          "rows": 10
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"url\", \"image_url\", \"platform\", \"open_location\", \"created_at\", \"updated_at\", \"last_fetched_at\", \"next_fetch_at\", \"is_active\", \"etag\", \"last_modified_header\" from \"serial_feed\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 0.3983749999970314,
+          "rows": 40
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ? order by \"serial_content_categories\".\"name\" asc",
+          "durationMs": 0.06541700000161654,
+          "rows": 10
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"category_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.4009170000026643,
+          "rows": 40
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.2873749999998836,
+          "rows": 9
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.2244589999972959,
+          "rows": 9
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.1314170000005106,
+          "rows": 18
+        },
+        {
+          "sql": "select \"id\", \"feed_id\", \"content_id\", \"title\", \"author\", \"url\", \"thumbnail\", \"content\", \"content_snippet\", \"is_watched\", \"is_watched_updated_at\", \"is_watch_later\", \"is_watch_later_updated_at\", \"progress\", \"duration\", \"orientation\", \"posted_at\", \"created_at\", \"updated_at\", \"content_hash\" from \"serial_feed_item\" where (\"serial_feed_item\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) and (\"serial_feed_item\".\"is_watched\" = ? and \"serial_feed_item\".\"is_watch_later\" = ?)) order by \"serial_feed_item\".\"is_watched_updated_at\" desc, \"serial_feed_item\".\"posted_at\" desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 2.4151249999995343,
+          "rows": 31
+        }
+      ]
+    },
+    {
+      "cache": "cold",
+      "visibility": "read",
+      "operation": "mixed-view-page",
+      "statements": [
+        {
+          "sql": "select \"serial_bookmark\".\"id\", \"serial_bookmark\".\"user_id\", \"serial_bookmark\".\"source_url\", \"serial_bookmark\".\"canonical_url\", \"serial_bookmark\".\"is_saved\", \"serial_bookmark\".\"is_read\", \"serial_bookmark\".\"progress\", \"serial_bookmark\".\"duration\", \"serial_bookmark\".\"saved_updated_at\", \"serial_bookmark\".\"read_updated_at\", \"serial_bookmark\".\"progress_updated_at\", \"serial_bookmark\".\"created_at\", \"serial_bookmark\".\"updated_at\", \"serial_page_capture\".\"bookmark_id\", \"serial_page_capture\".\"title\", \"serial_page_capture\".\"author\", \"serial_page_capture\".\"published_at\", \"serial_page_capture\".\"content_html\", \"serial_page_capture\".\"effective_url\", \"serial_page_capture\".\"icon_url\", \"serial_page_capture\".\"representative_image_url\", \"serial_page_capture\".\"content_hash\", \"serial_page_capture\".\"capture_source\", \"serial_page_capture\".\"extractor_version\", \"serial_page_capture\".\"sanitizer_policy_version\", \"serial_page_capture\".\"captured_at\" from \"serial_bookmark\" left join \"serial_page_capture\" on \"serial_page_capture\".\"bookmark_id\" = \"serial_bookmark\".\"id\" where \"serial_bookmark\".\"user_id\" = ?",
+          "durationMs": 152.57079199999862,
+          "rows": 1000
+        },
+        {
+          "sql": "select \"serial_feed_item\".\"id\", \"serial_feed_item\".\"feed_id\", \"serial_feed_item\".\"content_id\", \"serial_feed_item\".\"title\", \"serial_feed_item\".\"author\", \"serial_feed_item\".\"url\", \"serial_feed_item\".\"thumbnail\", \"serial_feed_item\".\"content\", \"serial_feed_item\".\"content_snippet\", \"serial_feed_item\".\"is_watched\", \"serial_feed_item\".\"is_watch_later\", \"serial_feed_item\".\"progress\", \"serial_feed_item\".\"duration\", \"serial_feed_item\".\"orientation\", \"serial_feed_item\".\"posted_at\", \"serial_feed_item\".\"created_at\", \"serial_feed_item\".\"updated_at\", \"serial_feed_item\".\"is_watched_updated_at\", \"serial_feed_item\".\"is_watch_later_updated_at\", \"serial_feed_item\".\"content_hash\", \"serial_feed\".\"id\", \"serial_feed\".\"user_id\", \"serial_feed\".\"name\", \"serial_feed\".\"url\", \"serial_feed\".\"image_url\", \"serial_feed\".\"platform\", \"serial_feed\".\"open_location\", \"serial_feed\".\"created_at\", \"serial_feed\".\"updated_at\", \"serial_feed\".\"last_fetched_at\", \"serial_feed\".\"next_fetch_at\", \"serial_feed\".\"is_active\", \"serial_feed\".\"etag\", \"serial_feed\".\"last_modified_header\" from \"serial_feed_item\" inner join \"serial_feed\" on \"serial_feed_item\".\"feed_id\" = \"serial_feed\".\"id\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 140.6070409999993,
+          "rows": 10000
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.26900000000023283,
+          "rows": 10
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ?",
+          "durationMs": 0.06699999999909778,
+          "rows": 10
+        },
+        {
+          "sql": "select \"bookmark_id\", \"view_id\" from \"serial_bookmark_view\" where \"serial_bookmark_view\".\"bookmark_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 4.387542000000394,
+          "rows": 250
+        },
+        {
+          "sql": "select \"bookmark_id\", \"tag_id\" from \"serial_bookmark_tag\" where \"serial_bookmark_tag\".\"bookmark_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 1.1864580000001297,
+          "rows": 334
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.4063749999986612,
+          "rows": 40
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.27408399999694666,
+          "rows": 9
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.2002920000013546,
+          "rows": 9
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.11687499999970896,
+          "rows": 18
+        }
+      ]
+    },
+    {
+      "cache": "cold",
+      "visibility": "later",
+      "operation": "feed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.742207999999664,
+          "rows": 10
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"url\", \"image_url\", \"platform\", \"open_location\", \"created_at\", \"updated_at\", \"last_fetched_at\", \"next_fetch_at\", \"is_active\", \"etag\", \"last_modified_header\" from \"serial_feed\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 0.3880410000019765,
+          "rows": 40
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ? order by \"serial_content_categories\".\"name\" asc",
+          "durationMs": 0.0641250000007858,
+          "rows": 10
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"category_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.36808299999756855,
+          "rows": 40
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.2625420000003942,
+          "rows": 9
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.2015830000018468,
+          "rows": 9
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.11995899999965332,
+          "rows": 18
+        },
+        {
+          "sql": "select \"id\", \"feed_id\", \"content_id\", \"title\", \"author\", \"url\", \"thumbnail\", \"content\", \"content_snippet\", \"is_watched\", \"is_watched_updated_at\", \"is_watch_later\", \"is_watch_later_updated_at\", \"progress\", \"duration\", \"orientation\", \"posted_at\", \"created_at\", \"updated_at\", \"content_hash\" from \"serial_feed_item\" where (\"serial_feed_item\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) and \"serial_feed_item\".\"is_watch_later\" = ?) order by \"serial_feed_item\".\"is_watch_later_updated_at\" desc, \"serial_feed_item\".\"posted_at\" desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 1.9327919999996084,
+          "rows": 31
+        }
+      ]
+    },
+    {
+      "cache": "cold",
+      "visibility": "later",
+      "operation": "mixed-view-page",
+      "statements": [
+        {
+          "sql": "select \"serial_bookmark\".\"id\", \"serial_bookmark\".\"user_id\", \"serial_bookmark\".\"source_url\", \"serial_bookmark\".\"canonical_url\", \"serial_bookmark\".\"is_saved\", \"serial_bookmark\".\"is_read\", \"serial_bookmark\".\"progress\", \"serial_bookmark\".\"duration\", \"serial_bookmark\".\"saved_updated_at\", \"serial_bookmark\".\"read_updated_at\", \"serial_bookmark\".\"progress_updated_at\", \"serial_bookmark\".\"created_at\", \"serial_bookmark\".\"updated_at\", \"serial_page_capture\".\"bookmark_id\", \"serial_page_capture\".\"title\", \"serial_page_capture\".\"author\", \"serial_page_capture\".\"published_at\", \"serial_page_capture\".\"content_html\", \"serial_page_capture\".\"effective_url\", \"serial_page_capture\".\"icon_url\", \"serial_page_capture\".\"representative_image_url\", \"serial_page_capture\".\"content_hash\", \"serial_page_capture\".\"capture_source\", \"serial_page_capture\".\"extractor_version\", \"serial_page_capture\".\"sanitizer_policy_version\", \"serial_page_capture\".\"captured_at\" from \"serial_bookmark\" left join \"serial_page_capture\" on \"serial_page_capture\".\"bookmark_id\" = \"serial_bookmark\".\"id\" where \"serial_bookmark\".\"user_id\" = ?",
+          "durationMs": 158.30920900000274,
+          "rows": 1000
+        },
+        {
+          "sql": "select \"serial_feed_item\".\"id\", \"serial_feed_item\".\"feed_id\", \"serial_feed_item\".\"content_id\", \"serial_feed_item\".\"title\", \"serial_feed_item\".\"author\", \"serial_feed_item\".\"url\", \"serial_feed_item\".\"thumbnail\", \"serial_feed_item\".\"content\", \"serial_feed_item\".\"content_snippet\", \"serial_feed_item\".\"is_watched\", \"serial_feed_item\".\"is_watch_later\", \"serial_feed_item\".\"progress\", \"serial_feed_item\".\"duration\", \"serial_feed_item\".\"orientation\", \"serial_feed_item\".\"posted_at\", \"serial_feed_item\".\"created_at\", \"serial_feed_item\".\"updated_at\", \"serial_feed_item\".\"is_watched_updated_at\", \"serial_feed_item\".\"is_watch_later_updated_at\", \"serial_feed_item\".\"content_hash\", \"serial_feed\".\"id\", \"serial_feed\".\"user_id\", \"serial_feed\".\"name\", \"serial_feed\".\"url\", \"serial_feed\".\"image_url\", \"serial_feed\".\"platform\", \"serial_feed\".\"open_location\", \"serial_feed\".\"created_at\", \"serial_feed\".\"updated_at\", \"serial_feed\".\"last_fetched_at\", \"serial_feed\".\"next_fetch_at\", \"serial_feed\".\"is_active\", \"serial_feed\".\"etag\", \"serial_feed\".\"last_modified_header\" from \"serial_feed_item\" inner join \"serial_feed\" on \"serial_feed_item\".\"feed_id\" = \"serial_feed\".\"id\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 146.2777500000011,
+          "rows": 10000
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.28849999999874854,
+          "rows": 10
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ?",
+          "durationMs": 0.07225000000107684,
+          "rows": 10
+        },
+        {
+          "sql": "select \"bookmark_id\", \"view_id\" from \"serial_bookmark_view\" where \"serial_bookmark_view\".\"bookmark_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 3.2552920000016456,
+          "rows": 250
+        },
+        {
+          "sql": "select \"bookmark_id\", \"tag_id\" from \"serial_bookmark_tag\" where \"serial_bookmark_tag\".\"bookmark_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 1.0542089999980817,
+          "rows": 334
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.40662499999962165,
+          "rows": 40
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.2727500000000873,
+          "rows": 9
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.2009169999982987,
+          "rows": 9
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "durationMs": 0.12020900000061374,
+          "rows": 18
+        }
+      ]
+    }
+  ],
+  "passed": false
+}
