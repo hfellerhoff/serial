@@ -3,6 +3,11 @@
 import { useAtomValue } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { selectedItemIdAtom } from "~/lib/data/atoms";
+import {
+  clearRetainedEntityPins,
+  getBoundedItemWindow,
+  setRetainedEntityPins,
+} from "~/lib/data/page-retention";
 import { getSavedHomeRenderedItemCount } from "~/lib/scroll";
 import { ITEMS_PER_PAGE } from "~/server/api/constants";
 
@@ -29,24 +34,25 @@ export function useItemWindow(itemIds: string[], listKey: string) {
     }
   }, [itemIds, listKey]);
 
-  const visibleItems = itemIds.slice(0, renderCount);
-
   // Auto-expand window if keyboard navigation selects an item outside the
   // visible range so scroll-to-item always finds a DOM node.
   const selectedItemId = useAtomValue(selectedItemIdAtom);
+  const itemWindow = getBoundedItemWindow({
+    itemIds,
+    renderEnd: renderCount,
+    selectedItemId,
+  });
+  const visibleItems = itemWindow.itemIds;
+
   useEffect(() => {
-    if (!selectedItemId) return;
-    const index = itemIds.indexOf(selectedItemId);
-    if (index >= 0 && index >= renderCount) {
-      setRenderCount((prev) =>
-        Math.min(Math.max(prev, index + ITEMS_PER_PAGE), itemIds.length),
-      );
-    }
-  }, [selectedItemId, itemIds, renderCount]);
+    const owner = `visible-list:${listKey}`;
+    setRetainedEntityPins(owner, { feedItemIds: visibleItems });
+    return () => clearRetainedEntityPins(owner);
+  }, [listKey, visibleItems]);
 
   const expandWindow = useCallback((itemCount: number) => {
     setRenderCount((prev) => Math.min(prev + ITEMS_PER_PAGE, itemCount));
   }, []);
 
-  return { visibleItems, expandWindow, renderCount };
+  return { visibleItems, expandWindow, renderCount: itemWindow.end };
 }

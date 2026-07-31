@@ -10,8 +10,8 @@
   "persistedPayloadBytes": {
     "application": 25403859,
     "bookmarks": 2664299,
-    "mixedContent": 240894,
-    "total": 28309052
+    "mixedContent": 376209,
+    "total": 28444367
   },
   "synchronizationBytes": {
     "request": 2743,
@@ -20,13 +20,42 @@
     "responseBudget": 262144
   },
   "persistenceMutationBytes": {
-    "measured": 9173,
+    "measured": 10881,
     "budget": 524288
+  },
+  "retention": {
+    "budgets": {
+      "memoryPages": 8,
+      "memoryBytes": 8388608,
+      "indexedDbPages": 6,
+      "indexedDbBytes": 4194304,
+      "mountedItems": 180
+    },
+    "afterTwelvePages": {
+      "pages": 8,
+      "entities": 240,
+      "scopeReferences": 240,
+      "retainedBytes": 144790,
+      "retainedHeapBytes": 130203,
+      "persistedPages": 6,
+      "persistedBytes": 90038,
+      "mountedItems": 180
+    },
+    "afterTwentyFourPages": {
+      "pages": 8,
+      "entities": 240,
+      "scopeReferences": 240,
+      "retainedBytes": 144773,
+      "retainedHeapBytes": 130248,
+      "persistedPages": 6,
+      "persistedBytes": 90070,
+      "mountedItems": 180
+    }
   },
   "operations": {
     "bookmarkSave": {
-      "durationMs": 0.7185829999998532,
-      "heapDeltaBytes": 133296,
+      "durationMs": 1.4760000000001128,
+      "heapDeltaBytes": 1063152,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -35,7 +64,7 @@
       "authoritativeRefills": 1
     },
     "bookmarkProgressEvent": {
-      "durationMs": 0.09129200000006676,
+      "durationMs": 0.12641700000017408,
       "heapDeltaBytes": 4624,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
@@ -45,8 +74,8 @@
       "authoritativeRefills": 0
     },
     "bookmarkCaptureEvent": {
-      "durationMs": 0.0812909999999647,
-      "heapDeltaBytes": 3816,
+      "durationMs": 0.09487500000000182,
+      "heapDeltaBytes": 12896,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -55,8 +84,8 @@
       "authoritativeRefills": 0
     },
     "bookmarkOrganizationChange": {
-      "durationMs": 0.2792909999998301,
-      "heapDeltaBytes": 155768,
+      "durationMs": 0.818000000000211,
+      "heapDeltaBytes": 1061848,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -65,8 +94,8 @@
       "authoritativeRefills": 2
     },
     "bookmarkDelete": {
-      "durationMs": 0.26516700000001947,
-      "heapDeltaBytes": 62216,
+      "durationMs": 0.8116250000000491,
+      "heapDeltaBytes": 961776,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -75,8 +104,8 @@
       "authoritativeRefills": 1
     },
     "feedProgressEvent": {
-      "durationMs": 0.12745799999993324,
-      "heapDeltaBytes": 6672,
+      "durationMs": 23.847917000000052,
+      "heapDeltaBytes": 16876160,
       "bookmarkStoreNotifications": 0,
       "feedItemStoreNotifications": 1,
       "feedItemProjectionNotifications": 0,
@@ -85,8 +114,8 @@
       "authoritativeRefills": 0
     },
     "feedProgressBurst": {
-      "durationMs": 0.18170800000007148,
-      "heapDeltaBytes": 143384,
+      "durationMs": 2280.053208,
+      "heapDeltaBytes": 113311240,
       "bookmarkStoreNotifications": 0,
       "feedItemStoreNotifications": 100,
       "feedItemProjectionNotifications": 0,
@@ -95,8 +124,8 @@
       "authoritativeRefills": 0
     },
     "bookmarkBurstSingleFrame": {
-      "durationMs": 0.13512500000001637,
-      "heapDeltaBytes": 164480,
+      "durationMs": 0.14233299999978044,
+      "heapDeltaBytes": 164496,
       "bookmarkStoreNotifications": 100,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -105,8 +134,8 @@
       "authoritativeRefills": 0
     },
     "bookmarkBurstSeparateFrames": {
-      "durationMs": 0.20570800000018608,
-      "heapDeltaBytes": 522376,
+      "durationMs": 0.2281250000005457,
+      "heapDeltaBytes": 560384,
       "bookmarkStoreNotifications": 100,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -115,8 +144,8 @@
       "authoritativeRefills": 0
     },
     "coldSynchronization": {
-      "durationMs": 1.0486249999999018,
-      "heapDeltaBytes": -32652360,
+      "durationMs": 0.7432079999998678,
+      "heapDeltaBytes": 717448,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -125,8 +154,8 @@
       "authoritativeRefills": 0
     },
     "warmSynchronization": {
-      "durationMs": 18.72708300000022,
-      "heapDeltaBytes": 10261224,
+      "durationMs": 17.73308300000008,
+      "heapDeltaBytes": 10501992,
       "bookmarkStoreNotifications": 0,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -135,8 +164,8 @@
       "authoritativeRefills": 0
     },
     "normalizedPersistenceMutation": {
-      "durationMs": 9.912874999999985,
-      "heapDeltaBytes": 3873088,
+      "durationMs": 9.34625000000051,
+      "heapDeltaBytes": 3878344,
       "bookmarkStoreNotifications": 0,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,

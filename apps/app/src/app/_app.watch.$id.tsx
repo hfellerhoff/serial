@@ -10,6 +10,7 @@ import useIsInactive from "~/lib/hooks/useIsInactive";
 import { useFeedItemValue } from "~/lib/data/store";
 import { useOpenOriginalShortcut } from "~/lib/hooks/useOpenOriginalShortcut";
 import { useRefreshFeedItem } from "~/lib/hooks/useRefreshFeedItem";
+import { useRetentionPin } from "~/lib/hooks/useRetentionPin";
 
 export const Route = createFileRoute("/_app/watch/$id")({
   component: WatchVideoPage,
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/_app/watch/$id")({
 
 function WatchVideoPage() {
   const params = Route.useParams();
+  useRetentionPin("feed-item", params.id);
 
   const { view } = useView();
   const { zoom, isVertical } = useZoom();
