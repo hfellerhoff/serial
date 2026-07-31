@@ -553,7 +553,7 @@ export async function deleteBookmark(input: {
         eq(bookmarks.userId, input.userId),
       ),
     )
-    .returning({ id: bookmarks.id })
+    .returning({ id: bookmarks.id, canonicalUrl: bookmarks.canonicalUrl })
     .get();
   if (!deleted) throw new BookmarkNotFoundError("Bookmark not found");
   return deleted;

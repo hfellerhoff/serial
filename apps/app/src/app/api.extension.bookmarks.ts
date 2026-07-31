@@ -14,6 +14,10 @@ import { InvalidBookmarkUrlError } from "~/server/bookmarks/url";
 import { findExtensionSession } from "~/server/auth/extension";
 import { db } from "~/server/db";
 import { user } from "~/server/db/schema";
+import {
+  publishBookmarkDeletion,
+  publishBookmarkUpsert,
+} from "~/server/mixed-content/sync";
 
 const RESPONSE_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -84,11 +88,29 @@ async function authenticatedExtensionUser(request: Request) {
 type ExtensionBookmarkRouteDependencies = {
   authenticate: typeof authenticatedExtensionUser;
   save: typeof saveBookmarkFromExtension;
+  notify?: (
+    userId: string,
+    result: Awaited<ReturnType<typeof saveBookmarkFromExtension>>,
+  ) => Promise<void>;
 };
 
 const DEFAULT_ROUTE_DEPENDENCIES: ExtensionBookmarkRouteDependencies = {
   authenticate: authenticatedExtensionUser,
   save: saveBookmarkFromExtension,
+  notify: async (userId, result) => {
+    if (result.removedBookmarkId) {
+      await publishBookmarkDeletion({
+        userId,
+        id: result.removedBookmarkId,
+        canonicalUrl: result.bookmark.canonicalUrl,
+      });
+    }
+    await publishBookmarkUpsert({
+      database: db,
+      userId,
+      bookmarkId: result.bookmark.id,
+    });
+  },
 };
 
 export async function saveExtensionBookmark(
@@ -164,6 +186,7 @@ export async function saveExtensionBookmark(
           ? "invalid_capture"
           : undefined,
     });
+    await dependencies.notify?.(authenticatedUser.id, result);
     return jsonResponse(result, result.disposition === "created" ? 201 : 200);
   } catch (error) {
     if (error instanceof RangeError) {

@@ -6,7 +6,8 @@ import { orpcRouterClient } from "../orpc";
 import { getDataSubscriptionClientId } from "./clientChannel";
 import { combineAbortSignals } from "./combineAbortSignals";
 import { loadingActor } from "./loading-machine";
-import { feedItemsStore } from "./store";
+import { bookmarksStore } from "./bookmarks/store";
+import { processPublishedChunks } from "./subscriptionCoordinator";
 import { shouldAlwaysKeepSSEConnectionAlive } from "./atoms";
 import type { PublishedChunk } from "~/server/api/publisher";
 import type { VisibilityFilter } from "./atoms";
@@ -63,8 +64,16 @@ export function useDataSubscription() {
     const chunks = chunkBufferRef.current;
     if (chunks.length === 0) return;
     chunkBufferRef.current = [];
-    feedItemsStore.getState().processChunks(chunks);
-  }, []);
+    const affectedScopes = processPublishedChunks(chunks);
+    for (const scope of affectedScopes) {
+      void orpcRouterClient.mixedContent.requestPage({
+        clientId,
+        scope: scope.scope,
+        visibility: scope.visibility,
+        cursor: null,
+      });
+    }
+  }, [clientId]);
 
   // Cleanup aborts the stream and removes both direct subscriptions. The
   // subscription loop also combines its connection signal with this abort.
@@ -112,9 +121,13 @@ export function useDataSubscription() {
           // refresh if the cooldown elapsed while the tab was hidden.
           if (visibilityReconnect) {
             visibilityReconnect = false;
-            void orpcRouterClient.initial.requestInitialData({
-              clientId,
-            });
+            void Promise.all([
+              orpcRouterClient.initial.requestInitialData({ clientId }),
+              orpcRouterClient.mixedContent.synchronize({
+                clientId,
+                bookmarkManifest: bookmarksStore.getState().manifest(),
+              }),
+            ]);
           }
 
           for await (const payload of iterator as AsyncIterable<PublishedChunk>) {
@@ -211,7 +224,7 @@ export function useDataSubscription() {
       }
       // Flush remaining chunks synchronously on unmount
       if (chunkBufferRef.current.length > 0) {
-        feedItemsStore.getState().processChunks(chunkBufferRef.current);
+        processPublishedChunks(chunkBufferRef.current);
         chunkBufferRef.current = [];
       }
     };
@@ -219,9 +232,13 @@ export function useDataSubscription() {
 
   // Request methods that trigger data fetching via the publisher
   const requestInitialData = useCallback(() => {
-    return orpcRouterClient.initial.requestInitialData({
-      clientId,
-    });
+    return Promise.all([
+      orpcRouterClient.initial.requestInitialData({ clientId }),
+      orpcRouterClient.mixedContent.synchronize({
+        clientId,
+        bookmarkManifest: bookmarksStore.getState().manifest(),
+      }),
+    ]);
   }, [clientId]);
 
   const requestFullTextForItems = useCallback(
@@ -305,10 +322,32 @@ export function useDataSubscription() {
  */
 export const dataSubscriptionActions = {
   requestInitialData: () => {
-    return orpcRouterClient.initial.requestInitialData({
-      clientId: getDataSubscriptionClientId(),
-    });
+    const clientId = getDataSubscriptionClientId();
+    return Promise.all([
+      orpcRouterClient.initial.requestInitialData({ clientId }),
+      orpcRouterClient.mixedContent.synchronize({
+        clientId,
+        bookmarkManifest: bookmarksStore.getState().manifest(),
+      }),
+    ]);
   },
+  requestMixedContentPage: (
+    scope: Parameters<
+      typeof orpcRouterClient.mixedContent.requestPage
+    >[0]["scope"],
+    visibility: VisibilityFilter,
+    cursor?: Parameters<
+      typeof orpcRouterClient.mixedContent.requestPage
+    >[0]["cursor"],
+    limit?: number,
+  ) =>
+    orpcRouterClient.mixedContent.requestPage({
+      clientId: getDataSubscriptionClientId(),
+      scope,
+      visibility,
+      cursor,
+      limit,
+    }),
   requestFullTextForItems: (itemIds: string[]) => {
     return orpcRouterClient.initial.requestFullTextForItems({
       itemIds,

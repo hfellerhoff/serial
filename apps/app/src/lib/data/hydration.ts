@@ -5,6 +5,8 @@ import { viewFeedsStore } from "./view-feeds/store";
 import { contentCategoriesStore } from "./content-categories/store";
 import { feedCategoriesStore } from "./feed-categories/store";
 import { createHydrationHook } from "./useStoreHydration";
+import { bookmarksStore } from "./bookmarks/store";
+import { mixedContentStore } from "./mixed-content/store";
 
 /**
  * Returns `true` once every persisted Zustand store has finished rehydrating
@@ -18,4 +20,6 @@ export const useStoresHydrated = createHydrationHook(
   viewFeedsStore,
   contentCategoriesStore,
   feedCategoriesStore,
+  bookmarksStore,
+  mixedContentStore,
 );
