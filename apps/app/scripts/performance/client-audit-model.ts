@@ -35,6 +35,8 @@ export type ClientAuditOperation = {
   heapDeltaBytes: number;
   bookmarkStoreNotifications: number;
   feedItemStoreNotifications: number;
+  feedItemProjectionNotifications: number;
+  feedItemScopeNotifications: number;
   mixedStoreNotifications: number;
   authoritativeRefills: number;
 };
@@ -71,6 +73,7 @@ export type ClientAuditResult = {
     bookmarkOrganizationChange: ClientAuditOperation;
     bookmarkDelete: ClientAuditOperation;
     feedProgressEvent: ClientAuditOperation;
+    feedProgressBurst: ClientAuditOperation;
     bookmarkBurstSingleFrame: ClientAuditOperation;
     bookmarkBurstSeparateFrames: ClientAuditOperation;
     coldSynchronization: ClientAuditOperation;
@@ -203,6 +206,7 @@ function seedClientFixture(profileName: BenchmarkProfileName) {
   feedItemsStore.setState({
     feedItemsDict,
     feedItemsOrder: feedItems.map((item) => item.id),
+    feedItemProjectionRevision: 0,
     hasInitialData: true,
   });
 
@@ -261,10 +265,25 @@ function seedClientFixture(profileName: BenchmarkProfileName) {
 function measure(operation: () => number): ClientAuditOperation {
   let bookmarkStoreNotifications = 0;
   let feedItemStoreNotifications = 0;
+  let feedItemProjectionNotifications = 0;
+  let feedItemScopeNotifications = 0;
   let mixedStoreNotifications = 0;
+  let previousProjectionRevision =
+    feedItemsStore.getState().feedItemProjectionRevision;
+  let previousScopeFeedItemIds = feedItemsStore.getState().scopeFeedItemIds;
   const unsubscribers = [
     bookmarksStore.subscribe(() => bookmarkStoreNotifications++),
-    feedItemsStore.subscribe(() => feedItemStoreNotifications++),
+    feedItemsStore.subscribe((state) => {
+      feedItemStoreNotifications++;
+      if (state.feedItemProjectionRevision !== previousProjectionRevision) {
+        feedItemProjectionNotifications++;
+        previousProjectionRevision = state.feedItemProjectionRevision;
+      }
+      if (state.scopeFeedItemIds !== previousScopeFeedItemIds) {
+        feedItemScopeNotifications++;
+        previousScopeFeedItemIds = state.scopeFeedItemIds;
+      }
+    }),
     mixedContentStore.subscribe(() => mixedStoreNotifications++),
   ];
   const heapBefore = process.memoryUsage().heapUsed;
@@ -278,6 +297,8 @@ function measure(operation: () => number): ClientAuditOperation {
     heapDeltaBytes,
     bookmarkStoreNotifications,
     feedItemStoreNotifications,
+    feedItemProjectionNotifications,
+    feedItemScopeNotifications,
     mixedStoreNotifications,
     authoritativeRefills,
   };
@@ -422,6 +443,17 @@ export function runClientAuditProfile(
   });
 
   fixture = seedClientFixture(profileName);
+  const feedProgressBurst = measure(() => {
+    for (const item of fixture.feedItems.slice(0, 100)) {
+      feedItemsStore.getState().setFeedItem(item.id, {
+        ...item,
+        progress: (item.progress ?? 0) + 1,
+      });
+    }
+    return 0;
+  });
+
+  fixture = seedClientFixture(profileName);
   const bookmarkBurst = Array.from({ length: 100 }, (_, index) =>
     bookmarkUpsertPayload(
       updatedBookmark(
@@ -513,6 +545,7 @@ export function runClientAuditProfile(
       bookmarkOrganizationChange,
       bookmarkDelete,
       feedProgressEvent,
+      feedProgressBurst,
       bookmarkBurstSingleFrame,
       bookmarkBurstSeparateFrames,
       coldSynchronization,

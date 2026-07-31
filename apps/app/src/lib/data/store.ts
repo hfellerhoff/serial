@@ -1,4 +1,5 @@
 import { createStore, useStore } from "zustand";
+import { useMemo } from "react";
 import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/react/shallow";
 import { orpcRouterClient } from "../orpc";
@@ -7,6 +8,7 @@ import { contentCategoriesStore } from "./content-categories/store";
 import { createSelectorHooks } from "./createSelectorHooks";
 import { feedCategoriesStore } from "./feed-categories/store";
 import { mergeFeedItem } from "./feed-items/mergeFeedItem";
+import { hasFeedItemListProjectionChanged } from "./feed-items/listProjection";
 import { clearPendingFeedItemOverrides } from "./feed-items/pendingMutations";
 import { feedsStore } from "./feeds/store";
 import { createNormalizedIDBStorage } from "./normalized-idb-storage";
@@ -121,6 +123,7 @@ export type ApplicationStore = {
   feedItemsOrder: string[];
   setFeedItemsOrder: (itemsOrder: string[]) => void;
   feedItemsDict: Record<string, ApplicationFeedItem>;
+  feedItemProjectionRevision: number;
   scopeFeedItemIds: Record<string, string[]>;
   feedStatusDict: Record<number, FetchFeedsStatus>;
   setFeedItemsDict: (itemsDict: Record<string, ApplicationFeedItem>) => void;
@@ -210,6 +213,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
         set({
           feedItemsOrder: [],
           feedItemsDict: {},
+          feedItemProjectionRevision: get().feedItemProjectionRevision + 1,
           scopeFeedItemIds: {},
           feedStatusDict: {},
           fetchFeedItemsLastFetchedAt: null,
@@ -232,30 +236,66 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
       feedItemsOrder: [],
       setFeedItemsOrder: (itemsOrder) => set({ feedItemsOrder: itemsOrder }),
       feedItemsDict: {},
+      feedItemProjectionRevision: 0,
       scopeFeedItemIds: {},
       feedStatusDict: {},
-      setFeedItemsDict: (itemsDict) => set({ feedItemsDict: itemsDict }),
-      setFeedItem: (id, item) =>
+      setFeedItemsDict: (itemsDict) =>
         set({
-          feedItemsDict: {
-            ...get().feedItemsDict,
-            [id]: item,
-          },
-          scopeFeedItemIds: reconcileScopeMembershipsForItem(
-            get().scopeFeedItemIds,
-            item,
-          ),
+          feedItemsDict: itemsDict,
+          feedItemProjectionRevision: get().feedItemProjectionRevision + 1,
         }),
+      setFeedItem: (id, item) => {
+        const state = get();
+        const previousItem = state.feedItemsDict[id];
+        const projectionChanged = hasFeedItemListProjectionChanged(
+          previousItem,
+          item,
+        );
+
+        // Feed-item entities are normalized by id. Replacing just this entry
+        // keeps progress and full-text patches O(1), while Zustand's item
+        // selector still observes the new entity object.
+        state.feedItemsDict[id] = item;
+
+        set({
+          feedItemsDict: state.feedItemsDict,
+          feedItemProjectionRevision: projectionChanged
+            ? state.feedItemProjectionRevision + 1
+            : state.feedItemProjectionRevision,
+          scopeFeedItemIds: projectionChanged
+            ? reconcileScopeMembershipsForItem(state.scopeFeedItemIds, item)
+            : state.scopeFeedItemIds,
+        });
+      },
       setFeedItems: (items) => {
         if (items.length === 0) return;
-        const feedItemsDict = { ...get().feedItemsDict };
-        for (const item of items) feedItemsDict[item.id] = item;
+
+        const state = get();
+        const feedItemsDict = { ...state.feedItemsDict };
+        const projectionChangedItems: ApplicationFeedItem[] = [];
+
+        for (const item of items) {
+          if (
+            hasFeedItemListProjectionChanged(state.feedItemsDict[item.id], item)
+          ) {
+            projectionChangedItems.push(item);
+          }
+          feedItemsDict[item.id] = item;
+        }
+
         set({
           feedItemsDict,
-          scopeFeedItemIds: reconcileScopeMembershipsForItems(
-            get().scopeFeedItemIds,
-            items,
-          ),
+          feedItemProjectionRevision:
+            projectionChangedItems.length > 0
+              ? state.feedItemProjectionRevision + 1
+              : state.feedItemProjectionRevision,
+          scopeFeedItemIds:
+            projectionChangedItems.length > 0
+              ? reconcileScopeMembershipsForItems(
+                  state.scopeFeedItemIds,
+                  projectionChangedItems,
+                )
+              : state.scopeFeedItemIds,
         });
       },
       fetchFeedItemsLastFetchedAt: null,
@@ -1302,7 +1342,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               }
 
               case "fulltext-items": {
-                const feedItemsDict = { ...get().feedItemsDict };
+                const feedItemsDict = get().feedItemsDict;
                 const pendingFulltext = new Set(get().pendingFulltextItems);
 
                 for (const item of initialChunk.items) {
@@ -1927,8 +1967,22 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
 
 export const feedItemsStore = createSelectorHooks(vanillaApplicationStore);
 
+export const useFeedItemsListProjection = () => {
+  const revision = useStore(
+    feedItemsStore,
+    (store) => store.feedItemProjectionRevision,
+  );
+
+  return useMemo(
+    () => ({
+      revision,
+      getItems: () => feedItemsStore.getState().feedItemsDict,
+    }),
+    [revision],
+  );
+};
+
 export const {
-  useFeedItemsDict,
   useFeedItemsOrder,
   useScopeFeedItemIds,
   useFeedStatusDict,

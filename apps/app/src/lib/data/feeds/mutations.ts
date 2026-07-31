@@ -3,12 +3,7 @@ import { toast } from "sonner";
 import { useFetchFeedCategories } from "../feed-categories/store";
 import { useFetchViewFeeds } from "../view-feeds/store";
 import { useFetchViews, useRemoveFeedReferences } from "../views/store";
-import {
-  feedItemsStore,
-  useFeedItemsDict,
-  useFeedItemsOrder,
-  useFetchFeedItemsForFeed,
-} from "../store";
+import { feedItemsStore, useFetchFeedItemsForFeed } from "../store";
 import {
   useAddFeed,
   useFetchFeeds,
@@ -56,9 +51,6 @@ export function useCreateFeedMutation() {
 }
 
 export function useDeleteFeedMutation() {
-  const feedItemsOrder = useFeedItemsOrder();
-  const feedItemsDict = useFeedItemsDict();
-
   const setFeedItemsOrder = feedItemsStore.useSetFeedItemsOrder();
   const setFeedItemsDict = feedItemsStore.useSetFeedItemsDict();
 
@@ -70,6 +62,7 @@ export function useDeleteFeedMutation() {
       onSuccess: (_, feedId) => {
         removeFeed(feedId);
         removeFeedReferences([feedId]);
+        const { feedItemsDict, feedItemsOrder } = feedItemsStore.getState();
 
         const [updatedFeedItemsOrder, removedFeedItems] = feedItemsOrder.reduce(
           ([partialKeptItems, partialRemovedItems], feedItemContentId) => {
@@ -122,9 +115,6 @@ export function useEditFeedMutation() {
 }
 
 export function useBulkDeleteFeedsMutation() {
-  const feedItemsOrder = useFeedItemsOrder();
-  const feedItemsDict = useFeedItemsDict();
-
   const setFeedItemsOrder = feedItemsStore.useSetFeedItemsOrder();
   const setFeedItemsDict = feedItemsStore.useSetFeedItemsDict();
 
@@ -136,6 +126,7 @@ export function useBulkDeleteFeedsMutation() {
     orpc.feed.bulkDelete.mutationOptions({
       onSuccess: (_, { feedIds }) => {
         removeFeedReferences(feedIds);
+        const { feedItemsDict, feedItemsOrder } = feedItemsStore.getState();
 
         // Remove feed items belonging to deleted feeds
         const feedIdSet = new Set(feedIds);

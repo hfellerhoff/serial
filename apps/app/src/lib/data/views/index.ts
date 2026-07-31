@@ -10,10 +10,13 @@ import {
   visibilityFilterAtom,
 } from "../atoms";
 import { useFeedCategories } from "../feed-categories";
-import { doesFeedItemPassFilters } from "../feed-items";
+import {
+  createFeedItemFilterIndex,
+  createFeedItemFilterPredicate,
+} from "../feed-items";
 import {
   getFeedItemScopeKey,
-  useFeedItemsDict,
+  useFeedItemsListProjection,
   useFeedItemsOrder,
   useScopeFeedItemIds,
 } from "../store";
@@ -58,12 +61,15 @@ export function useUpdateViewFilter() {
 
 export function useCheckFilteredFeedItemsForView() {
   const feedItemsOrder = useFeedItemsOrder();
-  const feedItemsDict = useFeedItemsDict();
+  const feedItemsProjection = useFeedItemsListProjection();
   const scopeFeedItemIds = useScopeFeedItemIds();
   const { feedCategories } = useFeedCategories();
   const { views } = useViews();
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
-  const { customViewCategoryIds, customViewFeedIds } = useCustomViewsData();
+  const filterIndex = useMemo(
+    () => createFeedItemFilterIndex(feedCategories, views),
+    [feedCategories, views],
+  );
 
   return useCallback(
     (viewId: number) => {
@@ -71,31 +77,26 @@ export function useCheckFilteredFeedItemsForView() {
       const scopeKey = getFeedItemScopeKey("view", viewId, visibilityFilter);
       const scopedFeedItemsOrder = scopeFeedItemIds[scopeKey];
       const baseFeedItemsOrder = scopedFeedItemsOrder ?? feedItemsOrder;
+      const feedItemsDict = feedItemsProjection.getItems();
+      const doesFeedItemPassFilters = createFeedItemFilterPredicate({
+        visibilityFilter,
+        categoryFilter: -1,
+        feedFilter: -1,
+        viewFilter,
+        filterIndex,
+      });
 
-      return baseFeedItemsOrder.filter(
-        (item) =>
-          feedItemsDict[item] &&
-          doesFeedItemPassFilters({
-            item: feedItemsDict[item],
-            visibilityFilter,
-            categoryFilter: -1,
-            feedCategories,
-            feedFilter: -1,
-            viewFilter,
-            customViewCategoryIds,
-            customViews: undefined,
-            customViewFeedIds,
-          }),
-      );
+      return baseFeedItemsOrder.filter((item) => {
+        const feedItem = feedItemsDict[item];
+        return !!feedItem && doesFeedItemPassFilters(feedItem);
+      });
     },
     [
       feedItemsOrder,
       scopeFeedItemIds,
-      feedItemsDict,
-      feedCategories,
+      feedItemsProjection,
+      filterIndex,
       views,
-      customViewCategoryIds,
-      customViewFeedIds,
       visibilityFilter,
     ],
   );

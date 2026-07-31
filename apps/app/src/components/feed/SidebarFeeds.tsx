@@ -9,7 +9,7 @@ import {
   PlusIcon,
   SettingsIcon,
 } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Skeleton } from "../ui/skeleton";
 import { useDialogStore } from "./dialogStore";
 import type { ApplicationFeed } from "~/server/db/schema";
@@ -36,10 +36,13 @@ import {
   visibilityFilterAtom,
 } from "~/lib/data/atoms";
 import { useFeedCategories } from "~/lib/data/feed-categories";
-import { doesFeedItemPassFilters } from "~/lib/data/feed-items";
+import {
+  createFeedItemFilterIndex,
+  createFeedItemFilterPredicate,
+} from "~/lib/data/feed-items";
 import { useFeeds } from "~/lib/data/feeds";
 import {
-  useFeedItemsDict,
+  useFeedItemsListProjection,
   useFeedItemsOrder,
   useFeedStatusDict,
   useHasInitialData,
@@ -50,43 +53,47 @@ import { useCustomViewsData } from "~/lib/data/views";
 
 function useCheckFilteredFeedItemsForFeed() {
   const feedItemsOrder = useFeedItemsOrder();
-  const feedItemsDict = useFeedItemsDict();
+  const feedItemsProjection = useFeedItemsListProjection();
   const { feedCategories } = useFeedCategories();
 
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
   const categoryFilter = useAtomValue(categoryFilterAtom);
   const viewFilter = useAtomValue(viewFilterAtom);
-  const { customViews, customViewCategoryIds, customViewFeedIds } =
-    useCustomViewsData();
+  const { customViews } = useCustomViewsData();
+  const filterIndex = useMemo(
+    () =>
+      createFeedItemFilterIndex(
+        feedCategories,
+        viewFilter && !customViews.some((view) => view.id === viewFilter.id)
+          ? [...customViews, viewFilter]
+          : customViews,
+      ),
+    [customViews, feedCategories, viewFilter],
+  );
 
   return useCallback(
     (feed: number) => {
-      return feedItemsOrder.filter(
-        (item) =>
-          feedItemsDict[item] &&
-          doesFeedItemPassFilters({
-            item: feedItemsDict[item],
-            visibilityFilter,
-            categoryFilter,
-            feedCategories,
-            feedFilter: feed,
-            viewFilter,
-            customViewCategoryIds,
-            customViews,
-            customViewFeedIds,
-          }),
-      );
+      const feedItemsDict = feedItemsProjection.getItems();
+      const doesFeedItemPassFilters = createFeedItemFilterPredicate({
+        visibilityFilter,
+        categoryFilter,
+        feedFilter: feed,
+        viewFilter,
+        filterIndex,
+      });
+
+      return feedItemsOrder.some((itemId) => {
+        const item = feedItemsDict[itemId];
+        return !!item && doesFeedItemPassFilters(item);
+      });
     },
     [
       feedItemsOrder,
-      feedItemsDict,
+      feedItemsProjection,
       visibilityFilter,
       categoryFilter,
-      feedCategories,
+      filterIndex,
       viewFilter,
-      customViewCategoryIds,
-      customViews,
-      customViewFeedIds,
     ],
   );
 }
@@ -185,9 +192,7 @@ export function SidebarFeeds() {
 
   const feedOptions = feeds.map((feed) => ({
     ...feed,
-    hasEntries: feed.isActive
-      ? !!checkFilteredFeedItemsForFeed(feed.id).length
-      : false,
+    hasEntries: feed.isActive ? checkFilteredFeedItemsForFeed(feed.id) : false,
   }));
 
   const {
@@ -270,7 +275,7 @@ export function SidebarFeeds() {
     ...preferredFeedOptionsWithoutEntries,
   ];
 
-  const hasAnyItems = !!checkFilteredFeedItemsForFeed(-1).length;
+  const hasAnyItems = checkFilteredFeedItemsForFeed(-1);
 
   return (
     <>

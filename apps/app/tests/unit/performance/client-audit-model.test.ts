@@ -50,6 +50,21 @@ describe("client performance audit model", () => {
     expect(result.operations.feedProgressEvent.feedItemStoreNotifications).toBe(
       1,
     );
+    expect(
+      result.operations.feedProgressEvent.feedItemProjectionNotifications,
+    ).toBe(0);
+    expect(result.operations.feedProgressEvent.feedItemScopeNotifications).toBe(
+      0,
+    );
+    expect(result.operations.feedProgressBurst.feedItemStoreNotifications).toBe(
+      100,
+    );
+    expect(
+      result.operations.feedProgressBurst.feedItemProjectionNotifications,
+    ).toBe(0);
+    expect(result.operations.feedProgressBurst.feedItemScopeNotifications).toBe(
+      0,
+    );
   });
 
   it("keeps synchronization pages and normalized persistence mutations within explicit budgets", () => {

@@ -4,7 +4,8 @@ import { useMemo } from "react";
 import type { ApplicationView } from "~/server/db/schema";
 import type { ViewLayout } from "~/server/db/constants";
 import { useFeedCategories } from "~/lib/data/feed-categories";
-import { feedItemsStore } from "~/lib/data/store";
+import { useFeedItemsListProjection } from "~/lib/data/store";
+import { createFeedItemFilterIndex } from "~/lib/data/feed-items";
 import { useContentCategories } from "~/lib/data/content-categories";
 import { useFeeds } from "~/lib/data/feeds";
 import {
@@ -30,8 +31,12 @@ export function useViewSections(
 ) {
   const { feeds } = useFeeds();
   const { contentCategories } = useContentCategories();
-  const feedItemsDict = feedItemsStore.useFeedItemsDict();
+  const feedItemsProjection = useFeedItemsListProjection();
   const feedCategories = useFeedCategories();
+  const filterIndex = useMemo(
+    () => createFeedItemFilterIndex(feedCategories.feedCategories, []),
+    [feedCategories.feedCategories],
+  );
 
   const isUncategorized = currentView?.id === INBOX_VIEW_ID;
 
@@ -59,16 +64,7 @@ export function useViewSections(
       ] as ViewSection[];
     }
 
-    const feedIdToCategories = new Map<number, number[]>();
-    for (const fc of feedCategories.feedCategories) {
-      const existing = feedIdToCategories.get(fc.feedId);
-      if (existing) {
-        existing.push(fc.categoryId);
-      } else {
-        feedIdToCategories.set(fc.feedId, [fc.categoryId]);
-      }
-    }
-
+    const feedItemsDict = feedItemsProjection.getItems();
     const assignedItemIds = new Set<string>();
     const feedIdsInFeedSections = new Set<number>();
     const feedNameById = new Map(feeds.map((feed) => [feed.id, feed.name]));
@@ -100,9 +96,9 @@ export function useViewSections(
           return false;
         }
         if (li.itemType === VIEW_LAYOUT_ITEM_TYPE.TAG) {
-          const cats = feedIdToCategories.get(item.feedId) ?? [];
+          const categoryIds = filterIndex.categoryIdsByFeedId.get(item.feedId);
           if (
-            cats.includes(li.itemId) &&
+            categoryIds?.has(li.itemId) &&
             !feedIdsInFeedSections.has(item.feedId)
           ) {
             assignedItemIds.add(itemId);
@@ -154,8 +150,8 @@ export function useViewSections(
     feeds,
     contentCategories,
     baseLayout,
-    feedItemsDict,
-    feedCategories,
+    feedItemsProjection,
+    filterIndex,
   ]);
 
   const flatItems = useMemo(() => {
