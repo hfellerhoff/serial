@@ -418,8 +418,9 @@ export function collisionScopeKeys(
   indexes: ProjectionIndexes,
 ) {
   const keys = new Set<string>();
-  for (const feedItemId of
-    indexes.feedItemIdsByCanonical[canonicalize(canonicalUrl)] ?? []) {
+  for (const feedItemId of indexes.feedItemIdsByCanonical[
+    canonicalize(canonicalUrl)
+  ] ?? []) {
     for (const key of indexes.feedItemScopeKeys[feedItemId] ?? [])
       keys.add(key);
   }

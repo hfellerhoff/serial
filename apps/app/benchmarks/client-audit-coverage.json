@@ -1928,7 +1928,7 @@
     {
       "file": "src/lib/data/mixed-content/bookmarkProjection.ts",
       "classification": "state-sync-persistence",
-      "lines": 428,
+      "lines": 429,
       "status": "finding",
       "findings": ["CL-01"],
       "result": "Reviewed; contributes to CL-01."
