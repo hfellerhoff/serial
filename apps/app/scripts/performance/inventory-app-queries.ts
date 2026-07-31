@@ -36,7 +36,11 @@ function areaFor(file: string) {
   if (file.includes("/auth/") || file.includes("api/extension-auth")) {
     return "authentication";
   }
-  if (file.includes("/rss/") || file.includes("/server/scripts/")) {
+  if (
+    file.includes("/rss/") ||
+    file.includes("/server/scripts/") ||
+    file.includes("/server/tasks/")
+  ) {
     return "background and maintenance tasks";
   }
   if (file.includes("mixed-content")) return "synchronization and projection";
@@ -116,6 +120,7 @@ function buildInventory() {
     [
       "--files",
       "src",
+      "server",
       "tests",
       "scripts",
       "-g",
@@ -149,7 +154,12 @@ function buildInventory() {
   );
   return {
     schemaVersion: 1,
-    scope: ["src/**/*.ts(x)", "tests/**/*.ts(x)", "scripts/**/*.ts(x)"],
+    scope: [
+      "src/**/*.ts(x)",
+      "server/**/*.ts(x)",
+      "tests/**/*.ts(x)",
+      "scripts/**/*.ts(x)",
+    ],
     exclusions: ["node_modules", "src/server/db/migrations"],
     accessCount: entries.length,
     areas,
