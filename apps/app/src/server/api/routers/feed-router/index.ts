@@ -32,6 +32,11 @@ import {
 } from "~/server/subscriptions/helpers";
 import { getEffectivePlanConfig } from "~/server/subscriptions/plans";
 import { VIEW_LAYOUT_ITEM_TYPE } from "~/server/db/constants";
+import {
+  boundedNumberIdsSchema,
+  boundedStringsSchema,
+  MAX_BULK_MUTATION_ITEMS,
+} from "~/lib/schemas/bulk";
 
 type BulkImportFromFileSuccess = {
   feedUrl: string;
@@ -50,8 +55,8 @@ export const create = protectedProcedure
   .input(
     z.object({
       url: z.string().min(5),
-      categoryIds: z.number().array(),
-      viewIds: z.number().array().optional(),
+      categoryIds: boundedNumberIdsSchema,
+      viewIds: boundedNumberIdsSchema.optional(),
     }),
   )
   .handler(async ({ context, input }) => {
@@ -168,9 +173,10 @@ export const createFromSubscriptionImport = protectedProcedure
       feeds: z
         .object({
           feedUrl: z.string(),
-          categories: z.string().array(),
+          categories: boundedStringsSchema,
         })
-        .array(),
+        .array()
+        .max(MAX_BULK_MUTATION_ITEMS),
     }),
   )
   .handler(async ({ context, input }): Promise<BulkImportFromFileResult[]> => {
@@ -387,8 +393,8 @@ export const update = protectedProcedure
   .input(
     z.object({
       feedId: z.number(),
-      categoryIds: z.number().array(),
-      viewIds: z.number().array().optional(),
+      categoryIds: boundedNumberIdsSchema,
+      viewIds: boundedNumberIdsSchema.optional(),
       openLocation: openLocationSchema,
       name: z.string().min(1).max(256),
     }),
@@ -443,17 +449,17 @@ export const update = protectedProcedure
           ),
         );
 
-      await Promise.all(
-        input.categoryIds.map(async (categoryId) => {
-          await tx
-            .insert(feedCategories)
-            .values({
+      if (input.categoryIds.length > 0) {
+        await tx
+          .insert(feedCategories)
+          .values(
+            input.categoryIds.map((categoryId) => ({
               feedId: input.feedId,
               categoryId,
-            })
-            .onConflictDoNothing();
-        }),
-      );
+            })),
+          )
+          .onConflictDoNothing();
+      }
 
       // View feeds - sync direct view assignments
       if (input.viewIds !== undefined) {
@@ -527,7 +533,7 @@ async function discoverYouTubeFeeds(url: string) {
 }
 
 export const bulkDelete = protectedProcedure
-  .input(z.object({ feedIds: z.number().array() }))
+  .input(z.object({ feedIds: boundedNumberIdsSchema }))
   .handler(async ({ context, input }) => {
     if (input.feedIds.length === 0) return;
 
@@ -602,7 +608,7 @@ export const setActive = protectedProcedure
   });
 
 export const bulkSetActive = protectedProcedure
-  .input(z.object({ feedIds: z.number().array(), isActive: z.boolean() }))
+  .input(z.object({ feedIds: boundedNumberIdsSchema, isActive: z.boolean() }))
   .handler(async ({ context, input }) => {
     if (input.feedIds.length === 0) return;
 
