@@ -6,6 +6,10 @@ import type {
   GetItemsByVisibilityChunk,
   RevalidateViewChunk,
 } from "./routers/initialRouter";
+import type {
+  BookmarkSyncChunk,
+  MixedContentChunk,
+} from "~/server/mixed-content/sync";
 import { env } from "~/env";
 import { logError, logMessage } from "~/server/logger";
 
@@ -14,7 +18,9 @@ export type PublishedChunk =
   | { source: "revalidate"; chunk: RevalidateViewChunk }
   | { source: "visibility"; chunk: GetItemsByVisibilityChunk }
   | { source: "feed"; chunk: GetItemsByFeedChunk }
-  | { source: "category"; chunk: GetItemsByCategoryIdChunk };
+  | { source: "category"; chunk: GetItemsByCategoryIdChunk }
+  | { source: "bookmark"; chunk: BookmarkSyncChunk }
+  | { source: "mixed"; chunk: MixedContentChunk };
 
 const RESUME_RETENTION_SECONDS = 60 * 2;
 const REDIS_KEY_PREFIX = "serial:pub:";
