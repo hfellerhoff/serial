@@ -8,7 +8,10 @@ import type {
   DatabaseFeedCategory,
   FeedPlatform,
 } from "~/server/db/schema";
-import { doesFeedItemPassFilters } from "~/lib/data/feed-items";
+import {
+  createFeedItemFilterIndex,
+  createFeedItemFilterPredicate,
+} from "~/lib/data/feed-items";
 import {
   buildViewCategoryFilter,
   isFeedCompatibleWithContentType,
@@ -105,14 +108,6 @@ function makeView(
 
 const inboxView = makeView(INBOX_VIEW_ID);
 
-function customViewFeedIdsFor(views: ApplicationView[]): Set<number> {
-  return new Set(views.flatMap((v) => v.feedIds));
-}
-
-function customViewCategoryIdsFor(views: ApplicationView[]): Set<number> {
-  return new Set(views.flatMap((v) => v.categoryIds));
-}
-
 // Convenience wrapper that supplies sensible defaults for the production
 // filter. Callers may still pass `feeds` for fixture clarity (e.g. to make
 // the test setup self-documenting), but the production filter no longer
@@ -127,25 +122,21 @@ function passes(
   } = {},
 ): boolean {
   const feedCategories = opts.feedCategories ?? [];
-  const customViews = opts.customViews;
-  const customViewCategoryIds = customViews
-    ? customViewCategoryIdsFor(customViews)
-    : undefined;
-  const customViewFeedIds = customViews
-    ? customViewFeedIdsFor(customViews)
-    : undefined;
-
-  return doesFeedItemPassFilters({
-    item,
+  const customViews = opts.customViews ?? [];
+  const views =
+    viewFilter && !customViews.some((view) => view.id === viewFilter.id)
+      ? [...customViews, viewFilter]
+      : customViews;
+  const filterIndex = createFeedItemFilterIndex(feedCategories, views);
+  const doesFeedItemPassFilters = createFeedItemFilterPredicate({
     visibilityFilter: "unread",
     categoryFilter: -1,
-    feedCategories,
     feedFilter: -1,
     viewFilter,
-    customViewCategoryIds,
-    customViews,
-    customViewFeedIds,
+    filterIndex,
   });
+
+  return doesFeedItemPassFilters(item);
 }
 
 // ---------- isFeedCompatibleWithContentType ----------

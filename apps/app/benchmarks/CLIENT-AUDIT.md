@@ -58,6 +58,8 @@ Retained evidence:
 | Feed items / Bookmarks / Views       |     1,000 / 100 / 3 | 10,000 / 1,000 / 10 | 50,000 / 5,000 / 25 |
 | Loaded mixed scopes                  |                  12 |                  33 |                  78 |
 | Persisted client payload             |             0.58 MB |             5.60 MB |            28.31 MB |
+| One Feed-item progress event         |  0.08 ms / 0 scopes |  0.15 ms / 0 scopes |  0.13 ms / 0 scopes |
+| 100 Feed-item progress updates       |  0.75 ms / 0 scopes |  0.14 ms / 0 scopes |  0.18 ms / 0 scopes |
 | One Bookmark progress event          | 0.05 ms / 0 refills | 0.08 ms / 0 refills | 0.12 ms / 0 refills |
 | One Bookmark capture event           | 0.03 ms / 0 refills | 0.07 ms / 0 refills | 0.09 ms / 0 refills |
 | 100 Bookmark events, one frame       | 0.15 ms / 0 refills | 0.15 ms / 0 refills | 0.21 ms / 0 refills |
@@ -144,9 +146,9 @@ mutation writes no order chunks. The retained stress mutation fixture clones
 8.92 KiB in 9.54 ms against a 512 KiB per-mutation budget instead of cloning the
 whole 28.31 MB cache.
 
-### CL-03 — High: list-neutral Feed-item updates still scan scope and list metadata
+### CL-03 — Remediated: Feed-item state is isolated from list projection
 
-`setFeedItem` always reconciles the item against every loaded Feed scope.
+Before remediation, `setFeedItem` always reconciled the item against every loaded Feed scope.
 `doesFeedItemPassFilters` repeatedly rebuilds category/View sets and scans View
 metadata inside those loops. List and sidebar selectors subscribe to whole
 dictionaries, so progress and full-text patches can re-filter/re-sort active
@@ -154,10 +156,20 @@ lists and recompute presence for every View, Feed, and Tag even when ordering an
 membership cannot change. A single stress progress update takes 13.7 ms before
 React rendering or persistence.
 
-Remediation direction: split entity fields from projection fields, use per-item
-selectors for progress/content, pre-index Feed/Tag/View membership, and only
-reconcile or sort when visibility, placement, normalized ordering time, or scope
-membership changes.
+The remediation replaces only the normalized entity entry for progress,
+duration, full-text, title, and other list-neutral patches. Those patches do not
+advance the list-projection revision or reconcile scope membership, so list and
+sidebar subscriptions remain idle while reader and visible-item subscriptions
+observe the changed entity. Visibility, placement, platform/orientation, and
+ordering-time changes still advance the projection and reconcile loaded scopes.
+
+Feed, Tag, and View membership are now compiled into one reusable index per
+metadata state or reconciliation batch. The retained deterministic profiles add
+one progress update and a 100-item burst at every fixture size. At stress scale
+they complete in 0.11 ms and 0.15 ms respectively, with zero list-projection
+invalidations, zero scope invalidations, and zero authoritative refills. The
+100-item burst publishes 100 entity notifications; because consumers select by
+item and list DOM is windowed, only mounted changed entities can render.
 
 ### CL-04 — High: windowed DOM does not bound memory or persistence growth
 

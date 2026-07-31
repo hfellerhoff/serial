@@ -1,6 +1,8 @@
-import { doesFeedItemPassFilters } from "./feed-items/clientFilters";
+import {
+  createFeedItemFilterIndex,
+  createFeedItemFilterPredicate,
+} from "./feed-items/listProjection";
 import { feedCategoriesStore } from "./feed-categories/store";
-import { INBOX_VIEW_ID } from "./views/constants";
 import { viewsStore } from "./views/store";
 import type { VisibilityFilter } from "./atoms";
 import type { DiffEntry } from "~/server/api/routers/initialRouter";
@@ -89,84 +91,76 @@ function parseFeedItemScopeKey(scopeKey: string):
   return { scopeType, scopeId, visibilityFilter };
 }
 
-function doesItemBelongToScope(
-  item: ApplicationFeedItem,
-  scope: {
-    scopeType: FeedItemScopeType;
-    scopeId: number;
-    visibilityFilter: VisibilityFilter;
-  },
+function reconcileScopeMemberships(
+  scopeFeedItemIds: Record<string, string[]>,
+  items: readonly ApplicationFeedItem[],
 ) {
-  const views = viewsStore.getState().views;
-  const customViews = views.filter((view) => view.id !== INBOX_VIEW_ID);
-  const customViewCategoryIds = new Set(
-    customViews.flatMap((view) => view.categoryIds),
+  if (items.length === 0) return scopeFeedItemIds;
+
+  const viewsState = viewsStore.getState();
+  const filterIndex = createFeedItemFilterIndex(
+    feedCategoriesStore.getState().feedCategories,
+    viewsState.views,
   );
-  const customViewFeedIds = new Set(
-    customViews.flatMap((view) => view.feedIds),
-  );
+  let nextScopeFeedItemIds: Record<string, string[]> | undefined;
 
-  const viewFilter =
-    scope.scopeType === "view"
-      ? (viewsStore.getState().viewsDict[scope.scopeId] ?? null)
-      : null;
+  for (const [scopeKey, scopedItemIds] of Object.entries(scopeFeedItemIds)) {
+    const scope = parseFeedItemScopeKey(scopeKey);
+    if (!scope) continue;
 
-  if (scope.scopeType === "view" && !viewFilter) return false;
+    const viewFilter =
+      scope.scopeType === "view"
+        ? (viewsState.viewsDict[scope.scopeId] ?? null)
+        : null;
+    if (scope.scopeType === "view" && !viewFilter) continue;
 
-  return doesFeedItemPassFilters({
-    item,
-    visibilityFilter: scope.visibilityFilter,
-    categoryFilter: scope.scopeType === "category" ? scope.scopeId : -1,
-    feedCategories: feedCategoriesStore.getState().feedCategories,
-    feedFilter: scope.scopeType === "feed" ? scope.scopeId : -1,
-    viewFilter,
-    customViewCategoryIds,
-    customViews,
-    customViewFeedIds,
-  });
+    const doesItemBelongToScope = createFeedItemFilterPredicate({
+      visibilityFilter: scope.visibilityFilter,
+      categoryFilter: scope.scopeType === "category" ? scope.scopeId : -1,
+      feedFilter: scope.scopeType === "feed" ? scope.scopeId : -1,
+      viewFilter,
+      filterIndex,
+    });
+    const scopedItemIdSet = new Set(scopedItemIds);
+    let nextScopedItemIds: string[] | undefined;
+
+    for (const item of items) {
+      const itemIsInScope = scopedItemIdSet.has(item.id);
+      const itemBelongsToScope = doesItemBelongToScope(item);
+
+      if (itemBelongsToScope === itemIsInScope) continue;
+
+      nextScopedItemIds ??= [...scopedItemIds];
+
+      if (itemBelongsToScope) {
+        nextScopedItemIds.push(item.id);
+        scopedItemIdSet.add(item.id);
+      } else {
+        const itemIndex = nextScopedItemIds.indexOf(item.id);
+        if (itemIndex >= 0) nextScopedItemIds.splice(itemIndex, 1);
+        scopedItemIdSet.delete(item.id);
+      }
+    }
+
+    if (nextScopedItemIds) {
+      nextScopeFeedItemIds ??= { ...scopeFeedItemIds };
+      nextScopeFeedItemIds[scopeKey] = nextScopedItemIds;
+    }
+  }
+
+  return nextScopeFeedItemIds ?? scopeFeedItemIds;
 }
 
 export function reconcileScopeMembershipsForItem(
   scopeFeedItemIds: Record<string, string[]>,
   item: ApplicationFeedItem,
 ) {
-  let nextScopeFeedItemIds = scopeFeedItemIds;
-
-  for (const [scopeKey, scopedItemIds] of Object.entries(scopeFeedItemIds)) {
-    const scope = parseFeedItemScopeKey(scopeKey);
-    if (!scope) continue;
-
-    const itemIsInScope = scopedItemIds.includes(item.id);
-    const itemBelongsToScope = doesItemBelongToScope(item, scope);
-
-    if (itemBelongsToScope && !itemIsInScope) {
-      nextScopeFeedItemIds = applyScopeMembershipUpdate({
-        scopeFeedItemIds: nextScopeFeedItemIds,
-        scopeKey,
-        itemIds: [item.id],
-        replace: false,
-      });
-      continue;
-    }
-
-    if (!itemBelongsToScope && itemIsInScope) {
-      nextScopeFeedItemIds = {
-        ...nextScopeFeedItemIds,
-        [scopeKey]: scopedItemIds.filter((itemId) => itemId !== item.id),
-      };
-    }
-  }
-
-  return nextScopeFeedItemIds;
+  return reconcileScopeMemberships(scopeFeedItemIds, [item]);
 }
 
 export function reconcileScopeMembershipsForItems(
   scopeFeedItemIds: Record<string, string[]>,
-  items: ApplicationFeedItem[],
+  items: readonly ApplicationFeedItem[],
 ) {
-  return items.reduce(
-    (nextScopeFeedItemIds, item) =>
-      reconcileScopeMembershipsForItem(nextScopeFeedItemIds, item),
-    scopeFeedItemIds,
-  );
+  return reconcileScopeMemberships(scopeFeedItemIds, items);
 }

@@ -104,7 +104,6 @@ function SectionHeading({
 }) {
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
   const selectedItemId = useAtomValue(selectedItemIdAtom);
-  const feedItemsDict = feedItemsStore.useFeedItemsDict();
   const [isLoading, setIsLoading] = useState(false);
   const [isStuck, setIsStuck] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -125,6 +124,7 @@ function SectionHeading({
 
     setIsLoading(true);
     try {
+      const feedItemsDict = feedItemsStore.getState().feedItemsDict;
       const items = sectionItems
         .map((id) => ({
           id,

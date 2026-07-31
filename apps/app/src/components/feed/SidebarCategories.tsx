@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { CircleSmall, Edit2Icon, PlusIcon, SettingsIcon } from "lucide-react";
@@ -22,33 +22,44 @@ import {
 } from "~/lib/data/atoms";
 import { useContentCategories } from "~/lib/data/content-categories";
 import { useFeedCategories } from "~/lib/data/feed-categories";
-import { doesFeedItemPassFilters } from "~/lib/data/feed-items";
+import {
+  createFeedItemFilterIndex,
+  createFeedItemFilterPredicate,
+} from "~/lib/data/feed-items";
 import { useDeselectViewFilter } from "~/lib/data/views";
-import { useFeedItemsDict, useFeedItemsOrder } from "~/lib/data/store";
+import {
+  useFeedItemsListProjection,
+  useFeedItemsOrder,
+} from "~/lib/data/store";
 
 function useCheckFilteredFeedItemsForCategory() {
   const feedItemsOrder = useFeedItemsOrder();
-  const feedItemsMap = useFeedItemsDict();
+  const feedItemsProjection = useFeedItemsListProjection();
   const { feedCategories } = useFeedCategories();
+  const filterIndex = useMemo(
+    () => createFeedItemFilterIndex(feedCategories, []),
+    [feedCategories],
+  );
 
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
 
   return useCallback(
     (category: number) => {
-      return feedItemsOrder.filter(
-        (item) =>
-          feedItemsMap[item] &&
-          doesFeedItemPassFilters({
-            item: feedItemsMap[item],
-            visibilityFilter,
-            categoryFilter: category,
-            feedCategories,
-            feedFilter: -1,
-            viewFilter: null,
-          }),
-      );
+      const feedItemsDict = feedItemsProjection.getItems();
+      const doesFeedItemPassFilters = createFeedItemFilterPredicate({
+        visibilityFilter,
+        categoryFilter: category,
+        feedFilter: -1,
+        viewFilter: null,
+        filterIndex,
+      });
+
+      return feedItemsOrder.some((itemId) => {
+        const item = feedItemsDict[itemId];
+        return !!item && doesFeedItemPassFilters(item);
+      });
     },
-    [feedItemsOrder, feedItemsMap, visibilityFilter, feedCategories],
+    [feedItemsOrder, feedItemsProjection, filterIndex, visibilityFilter],
   );
 }
 
@@ -72,10 +83,10 @@ export function SidebarCategories() {
 
   const categoryOptions = contentCategories.map((category) => ({
     ...category,
-    hasEntries: !!checkFilteredFeedItemsForCategory(category.id).length,
+    hasEntries: checkFilteredFeedItemsForCategory(category.id),
   }));
 
-  const hasAnyItems = !!checkFilteredFeedItemsForCategory(-1).length;
+  const hasAnyItems = checkFilteredFeedItemsForCategory(-1);
 
   const updateCategoryFilter = (category: number) => {
     setFeedFilter(-1);
