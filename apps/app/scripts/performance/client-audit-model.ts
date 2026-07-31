@@ -14,10 +14,21 @@ import { feedItemsStore } from "~/lib/data/store";
 import { mixedContentStore } from "~/lib/data/mixed-content/store";
 import { processPublishedChunks } from "~/lib/data/subscriptionCoordinator";
 import { viewsStore } from "~/lib/data/views/store";
+import {
+  BOOKMARK_SYNC_REQUEST_BUDGET_BYTES,
+  BOOKMARK_SYNC_RESPONSE_BUDGET_BYTES,
+  buildBookmarkSyncManifest,
+} from "~/lib/data/bookmarks/manifest";
+import {
+  buildBookmarkSyncPages,
+  computeChangedBookmarkSyncBuckets,
+} from "~/server/mixed-content/sync";
+import { NORMALIZED_ARRAY_CHUNK_SIZE } from "~/lib/data/normalized-idb-storage";
 
 const PAGE_SIZE = 30;
 const VISIBILITIES: VisibilityFilter[] = ["unread", "read", "later"];
 const FIXTURE_TIME = new Date("2026-01-15T12:00:00.000Z");
+const NORMALIZED_PERSISTENCE_MUTATION_BUDGET_BYTES = 512 * 1_024;
 
 export type ClientAuditOperation = {
   durationMs: number;
@@ -43,6 +54,16 @@ export type ClientAuditResult = {
     mixedContent: number;
     total: number;
   };
+  synchronizationBytes: {
+    request: number;
+    maximumResponsePage: number;
+    requestBudget: number;
+    responseBudget: number;
+  };
+  persistenceMutationBytes: {
+    measured: number;
+    budget: number;
+  };
   operations: {
     bookmarkSave: ClientAuditOperation;
     bookmarkProgressEvent: ClientAuditOperation;
@@ -52,7 +73,8 @@ export type ClientAuditResult = {
     bookmarkBurstSingleFrame: ClientAuditOperation;
     bookmarkBurstSeparateFrames: ClientAuditOperation;
     coldSynchronization: ClientAuditOperation;
-    persistenceStructuredClone: ClientAuditOperation;
+    warmSynchronization: ClientAuditOperation;
+    normalizedPersistenceMutation: ClientAuditOperation;
   };
 };
 
@@ -250,21 +272,20 @@ function updatedBookmark(bookmark: ApplicationBookmark, progress: number) {
   };
 }
 
-function measurePersistenceClone() {
+function normalizedPersistenceMutationPayload() {
+  return {
+    feedItem: Object.values(feedItemsStore.getState().feedItemsDict)[0],
+    bookmark: Object.values(bookmarksStore.getState().bookmarksDict)[0],
+    mixedScope: Object.values(mixedContentStore.getState().scopes)[0],
+    orderChunk: feedItemsStore
+      .getState()
+      .feedItemsOrder.slice(0, NORMALIZED_ARRAY_CHUNK_SIZE),
+  };
+}
+
+function measureNormalizedPersistenceMutation() {
   return measure(() => {
-    structuredClone({
-      application: {
-        feedItemsDict: feedItemsStore.getState().feedItemsDict,
-        feedItemsOrder: feedItemsStore.getState().feedItemsOrder,
-      },
-      bookmarks: {
-        bookmarksDict: bookmarksStore.getState().bookmarksDict,
-      },
-      mixedContent: {
-        scopes: mixedContentStore.getState().scopes,
-        suppressedReferences: mixedContentStore.getState().suppressedReferences,
-      },
-    });
+    structuredClone(normalizedPersistenceMutationPayload());
     return 0;
   });
 }
@@ -374,40 +395,14 @@ export function runClientAuditProfile(
   });
 
   fixture = seedClientFixture(profileName);
-  const coldSynchronizationPayloads: PublishedChunk[] = [
-    {
-      source: "bookmark",
-      chunk: {
-        type: "bookmark-diff",
-        diff: fixture.bookmarks.map((bookmark) => ({
-          status: "new" as const,
-          bookmark,
-        })),
-      },
-    },
-    ...Object.values(mixedContentStore.getState().scopes).map(
-      (scope): PublishedChunk => ({
-        source: "mixed",
-        chunk: {
-          type: "mixed-content-page",
-          scope: scope.scope,
-          visibility: scope.visibility,
-          page: {
-            references: scope.references,
-            bookmarks: [],
-            feedItems: scope.references.flatMap((reference) => {
-              const item =
-                feedItemsStore.getState().feedItemsDict[reference.entityId];
-              return item ? [item] : [];
-            }),
-            cursor: null,
-            hasMore: true,
-          },
-          replacesScope: true,
-        },
-      }),
-    ),
-  ];
+  const changedBuckets = computeChangedBookmarkSyncBuckets(
+    fixture.bookmarks,
+    [],
+  );
+  const bookmarkSyncPages = changedBuckets.flatMap(buildBookmarkSyncPages);
+  const coldSynchronizationPayloads: PublishedChunk[] = bookmarkSyncPages.map(
+    (chunk) => ({ source: "bookmark", chunk }),
+  );
   resetStores();
   viewsStore.setState({
     views: fixture.views,
@@ -420,8 +415,27 @@ export function runClientAuditProfile(
   });
 
   fixture = seedClientFixture(profileName);
+  const requestManifest = buildBookmarkSyncManifest(fixture.bookmarks);
+  const warmSynchronization = measure(() => {
+    const unchangedBuckets = computeChangedBookmarkSyncBuckets(
+      fixture.bookmarks,
+      requestManifest,
+    );
+    processPublishedChunks(
+      unchangedBuckets
+        .flatMap(buildBookmarkSyncPages)
+        .map((chunk) => ({ source: "bookmark" as const, chunk })),
+    );
+    return 0;
+  });
   const payloadBytes = persistedPayloadBytes();
-  const persistenceStructuredClone = measurePersistenceClone();
+  const normalizedPersistenceMutation = measureNormalizedPersistenceMutation();
+  const persistenceMutationBytes = serialize(
+    normalizedPersistenceMutationPayload(),
+  ).byteLength;
+  const responsePageBytes = bookmarkSyncPages.map((page) =>
+    Buffer.byteLength(JSON.stringify(page)),
+  );
 
   return {
     profile: profileName,
@@ -433,6 +447,16 @@ export function runClientAuditProfile(
       referencesPerScope: PAGE_SIZE,
     },
     persistedPayloadBytes: payloadBytes,
+    synchronizationBytes: {
+      request: Buffer.byteLength(JSON.stringify(requestManifest)),
+      maximumResponsePage: Math.max(0, ...responsePageBytes),
+      requestBudget: BOOKMARK_SYNC_REQUEST_BUDGET_BYTES,
+      responseBudget: BOOKMARK_SYNC_RESPONSE_BUDGET_BYTES,
+    },
+    persistenceMutationBytes: {
+      measured: persistenceMutationBytes,
+      budget: NORMALIZED_PERSISTENCE_MUTATION_BUDGET_BYTES,
+    },
     operations: {
       bookmarkSave,
       bookmarkProgressEvent,
@@ -442,7 +466,8 @@ export function runClientAuditProfile(
       bookmarkBurstSingleFrame,
       bookmarkBurstSeparateFrames,
       coldSynchronization,
-      persistenceStructuredClone,
+      warmSynchronization,
+      normalizedPersistenceMutation,
     },
   };
 }

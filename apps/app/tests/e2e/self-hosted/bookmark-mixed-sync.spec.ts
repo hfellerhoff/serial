@@ -11,7 +11,7 @@ import {
 import { signIn } from "../fixtures/auth";
 import type { Page } from "@playwright/test";
 
-async function persistedStore(page: Page, key: string) {
+async function persistedValue(page: Page, key: string) {
   return page.evaluate(async (storeKey) => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open("keyval-store");
@@ -31,6 +31,26 @@ async function persistedStore(page: Page, key: string) {
   }, key);
 }
 
+async function persistedKeys(page: Page) {
+  return page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("keyval-store");
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+    });
+    try {
+      return await new Promise<IDBValidKey[]>((resolve, reject) => {
+        const transaction = database.transaction("keyval", "readonly");
+        const request = transaction.objectStore("keyval").getAllKeys();
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+      });
+    } finally {
+      database.close();
+    }
+  });
+}
+
 test.describe("Bookmark mixed-content synchronization", () => {
   let testEmail: string;
 
@@ -38,7 +58,7 @@ test.describe("Bookmark mixed-content synchronization", () => {
     if (testEmail) await cleanupUser(SELF_HOSTED_TURSO_PORT, testEmail);
   });
 
-  test("hydrates separate Bookmark and mixed caches with canonical suppression", async ({
+  test("hydrates normalized Bookmarks without eagerly refilling every mixed scope", async ({
     page,
   }) => {
     const { email, password, feedItemId } = await seedArticleData(
@@ -57,49 +77,22 @@ test.describe("Bookmark mixed-content synchronization", () => {
     await expect
       .poll(
         async () => {
-          const bookmarkCache = (await persistedStore(
+          const bookmarkCache = (await persistedValue(
             page,
-            "serial-bookmarks-store",
-          )) as {
-            state?: { bookmarksDict?: Record<string, { captureHash: string }> };
-          } | null;
-          return bookmarkCache?.state?.bookmarksDict?.[bookmarkId]?.captureHash;
+            `serial-bookmarks-store::normalized:v1::record:bookmarksDict:${encodeURIComponent(bookmarkId)}`,
+          )) as { captureHash?: string } | null;
+          return bookmarkCache?.captureHash;
         },
         { timeout: 30_000 },
       )
       .toBe(`hash-${bookmarkId}`);
 
-    await expect
-      .poll(
-        async () => {
-          const mixedCache = (await persistedStore(
-            page,
-            "serial-mixed-content-store",
-          )) as {
-            state?: {
-              scopes?: Record<
-                string,
-                { references: Array<{ entityKind: string; entityId: string }> }
-              >;
-            };
-          } | null;
-          const scopes = mixedCache?.state?.scopes;
-          return {
-            saved:
-              scopes?.[`view:${viewId}:later`]?.references.map(
-                ({ entityKind, entityId }) => ({ entityKind, entityId }),
-              ) ?? null,
-            unread:
-              scopes?.[`view:${viewId}:unread`]?.references.map(
-                ({ entityKind, entityId }) => ({ entityKind, entityId }),
-              ) ?? null,
-          };
-        },
-        { timeout: 30_000 },
-      )
-      .toEqual({
-        saved: [{ entityKind: "bookmark", entityId: bookmarkId }],
-        unread: [],
-      });
+    const mixedScopePrefix =
+      "serial-mixed-content-store::normalized:v1::record:scopes:";
+    const mixedScopeKeys = (await persistedKeys(page)).filter(
+      (key) => typeof key === "string" && key.startsWith(mixedScopePrefix),
+    );
+    expect(mixedScopeKeys).toEqual([]);
+    expect(viewId).toBeGreaterThan(0);
   });
 });

@@ -1,21 +1,21 @@
 import { createStore } from "zustand";
 import { persist } from "zustand/middleware";
-import { createIDBStorage } from "../idb-storage";
+import { createNormalizedIDBStorage } from "../normalized-idb-storage";
 import { createSelectorHooks } from "../createSelectorHooks";
-import { bookmarkManifestValue } from "./manifest";
+import { buildBookmarkSyncManifest, getBookmarkSyncBucket } from "./manifest";
 import type { ApplicationBookmark } from "~/server/mixed-content/projection";
-import type {
-  BookmarkDiffEntry,
-  BookmarkManifestEntry,
-} from "~/server/mixed-content/sync";
+import type { BookmarkSyncBucketPage } from "~/server/mixed-content/sync";
+import type { BookmarkSyncManifestEntry } from "./manifest";
 
 type BookmarkStore = {
   bookmarksDict: Record<string, ApplicationBookmark>;
   reset: () => void;
   upsert: (bookmark: ApplicationBookmark) => void;
+  upsertMany: (bookmarks: ApplicationBookmark[]) => void;
   remove: (id: string) => void;
-  applyDiff: (diff: BookmarkDiffEntry[]) => void;
-  manifest: () => BookmarkManifestEntry[];
+  applySyncPage: (page: BookmarkSyncBucketPage) => void;
+  applySyncPages: (pages: BookmarkSyncBucketPage[]) => void;
+  manifest: () => BookmarkSyncManifestEntry[];
 };
 
 const vanillaBookmarkStore = createStore<BookmarkStore>()(
@@ -30,31 +30,52 @@ const vanillaBookmarkStore = createStore<BookmarkStore>()(
             [bookmark.id]: bookmark,
           },
         }),
+      upsertMany: (bookmarks) => {
+        if (bookmarks.length === 0) return;
+        const bookmarksDict = { ...get().bookmarksDict };
+        for (const bookmark of bookmarks) {
+          bookmarksDict[bookmark.id] = bookmark;
+        }
+        set({ bookmarksDict });
+      },
       remove: (id) => {
         const { [id]: _removed, ...bookmarksDict } = get().bookmarksDict;
         void _removed;
         set({ bookmarksDict });
       },
-      applyDiff: (diff) => {
+      applySyncPage: (page) => {
+        get().applySyncPages([page]);
+      },
+      applySyncPages: (pages) => {
+        if (pages.length === 0) return;
         const bookmarksDict = { ...get().bookmarksDict };
-        for (const entry of diff) {
-          if (entry.status === "new" || entry.status === "updated") {
-            bookmarksDict[entry.bookmark.id] = entry.bookmark;
-          } else if (entry.status === "deleted") {
-            delete bookmarksDict[entry.id];
+        const replacedBuckets = new Set(
+          pages
+            .filter((page) => page.replacesBucket)
+            .map((page) => page.bucket),
+        );
+        if (replacedBuckets.size > 0) {
+          for (const bookmark of Object.values(bookmarksDict)) {
+            if (replacedBuckets.has(getBookmarkSyncBucket(bookmark.id))) {
+              delete bookmarksDict[bookmark.id];
+            }
+          }
+        }
+        for (const page of pages) {
+          for (const bookmark of page.bookmarks) {
+            bookmarksDict[bookmark.id] = bookmark;
           }
         }
         set({ bookmarksDict });
       },
       manifest: () =>
-        Object.values(get().bookmarksDict).map((bookmark) => ({
-          id: bookmark.id,
-          version: bookmarkManifestValue(bookmark),
-        })),
+        buildBookmarkSyncManifest(Object.values(get().bookmarksDict)),
     }),
     {
       name: "serial-bookmarks-store",
-      storage: createIDBStorage(),
+      storage: createNormalizedIDBStorage({
+        recordFields: ["bookmarksDict"],
+      }),
       partialize: (state) => ({ bookmarksDict: state.bookmarksDict }),
     },
   ),

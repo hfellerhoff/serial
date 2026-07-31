@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "generatedAt": "2026-07-31",
   "scope": "All client/shared routes, components, hooks, state, subscription, persistence, rendering, styles, and browser entry code under apps/app/src.",
-  "files": 309,
+  "files": 311,
   "findings": { "CL-01": 5, "CL-02": 4, "CL-03": 8, "CL-04": 6, "CL-05": 5 },
   "coverage": [
     {
@@ -1696,7 +1696,7 @@
     {
       "file": "src/lib/data/bookmarks/manifest.ts",
       "classification": "state-sync-persistence",
-      "lines": 15,
+      "lines": 70,
       "status": "finding",
       "findings": ["CL-01"],
       "result": "Reviewed; contributes to CL-01."
@@ -1704,7 +1704,7 @@
     {
       "file": "src/lib/data/bookmarks/store.ts",
       "classification": "state-sync-persistence",
-      "lines": 64,
+      "lines": 85,
       "status": "finding",
       "findings": ["CL-01", "CL-02", "CL-04"],
       "result": "Reviewed; contributes to CL-01, CL-02, CL-04."
@@ -1936,10 +1936,18 @@
     {
       "file": "src/lib/data/mixed-content/store.ts",
       "classification": "state-sync-persistence",
-      "lines": 292,
+      "lines": 294,
       "status": "finding",
       "findings": ["CL-01", "CL-02", "CL-04"],
       "result": "Reviewed; contributes to CL-01, CL-02, CL-04."
+    },
+    {
+      "file": "src/lib/data/normalized-idb-storage.ts",
+      "classification": "state-sync-persistence",
+      "lines": 382,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
     },
     {
       "file": "src/lib/data/plan-success.ts",
@@ -1960,7 +1968,7 @@
     {
       "file": "src/lib/data/store.ts",
       "classification": "state-sync-persistence",
-      "lines": 2029,
+      "lines": 1967,
       "status": "finding",
       "findings": ["CL-02", "CL-03", "CL-04"],
       "result": "Reviewed; contributes to CL-02, CL-03, CL-04."
@@ -1976,7 +1984,7 @@
     {
       "file": "src/lib/data/subscriptionCoordinator.ts",
       "classification": "state-sync-persistence",
-      "lines": 65,
+      "lines": 101,
       "status": "finding",
       "findings": ["CL-01"],
       "result": "Reviewed; contributes to CL-01."
@@ -2321,6 +2329,14 @@
       "file": "src/lib/query-provider.tsx",
       "classification": "client-shared",
       "lines": 19,
+      "status": "clean",
+      "findings": [],
+      "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
+    },
+    {
+      "file": "src/lib/schemas/bulk.ts",
+      "classification": "client-shared",
+      "lines": 23,
       "status": "clean",
       "findings": [],
       "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."

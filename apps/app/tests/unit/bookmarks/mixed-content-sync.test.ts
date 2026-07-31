@@ -17,8 +17,17 @@ import {
   partitionMixedReadTargets,
   setMixedReadValue,
 } from "~/lib/data/mixed-content/mutations";
-import { bookmarkManifestValue } from "~/lib/data/bookmarks/manifest";
-import { computeBookmarkDiff } from "~/server/mixed-content/sync";
+import {
+  BOOKMARK_SYNC_BUCKET_COUNT,
+  BOOKMARK_SYNC_REQUEST_BUDGET_BYTES,
+  BOOKMARK_SYNC_RESPONSE_BUDGET_BYTES,
+  buildBookmarkSyncManifest,
+  getBookmarkSyncBucket,
+} from "~/lib/data/bookmarks/manifest";
+import {
+  buildBookmarkSyncPages,
+  computeChangedBookmarkSyncBuckets,
+} from "~/server/mixed-content/sync";
 
 const NOW = new Date("2026-07-30T12:00:00.000Z");
 
@@ -172,6 +181,45 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
     ).toHaveLength(2);
   });
 
+  it("commits every incoming mixed page with one entity-store notification", () => {
+    const bookmarks = Array.from({ length: 30 }, (_, index) =>
+      bookmark({ id: `bookmark-${index}` }),
+    );
+    const items = Array.from({ length: 30 }, (_, index) =>
+      feedItem(`feed-${index}`, `https://example.com/feed-${index}`),
+    );
+    let bookmarkNotifications = 0;
+    let feedNotifications = 0;
+    const unsubscribeBookmarks = bookmarksStore.subscribe(
+      () => bookmarkNotifications++,
+    );
+    const unsubscribeFeedItems = feedItemsStore.subscribe(
+      () => feedNotifications++,
+    );
+
+    processPublishedChunks([
+      {
+        source: "mixed",
+        chunk: {
+          type: "mixed-content-page",
+          scope: { type: "view", viewId: 10 },
+          visibility: "later",
+          page: {
+            ...page([]),
+            bookmarks,
+            feedItems: items,
+          },
+          replacesScope: true,
+        },
+      },
+    ]);
+
+    unsubscribeBookmarks();
+    unsubscribeFeedItems();
+    expect(bookmarkNotifications).toBe(1);
+    expect(feedNotifications).toBe(1);
+  });
+
   it("suppresses matching Feed items immediately, moves Bookmark visibility, restores on deletion, and reports scopes for refill", () => {
     const matchingOne = feedItem(
       "feed-match-one",
@@ -252,7 +300,7 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
     ]);
   });
 
-  it("reconciles entity, state, organization, progress, and capture metadata through the manifest", () => {
+  it("uses a constant-size bucket manifest and returns only changed authoritative buckets", () => {
     const cached = bookmark();
     const updated = bookmark({
       progress: 8,
@@ -263,24 +311,107 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
       capturedAt: new Date("2026-07-30T12:02:00Z"),
       updatedAt: new Date("2026-07-30T12:02:00Z"),
     });
+    const unchangedManifest = buildBookmarkSyncManifest([cached]);
+    expect(unchangedManifest).toHaveLength(BOOKMARK_SYNC_BUCKET_COUNT);
+    expect(JSON.stringify(unchangedManifest).length).toBeLessThan(
+      BOOKMARK_SYNC_REQUEST_BUDGET_BYTES,
+    );
     expect(
-      computeBookmarkDiff(
-        [cached],
-        [{ id: cached.id, version: bookmarkManifestValue(cached) }],
-      ),
-    ).toEqual([{ status: "unchanged", id: cached.id }]);
-    expect(
-      computeBookmarkDiff(
-        [updated],
-        [
-          { id: cached.id, version: bookmarkManifestValue(cached) },
-          { id: "deleted-offline", version: "old" },
-        ],
-      ),
-    ).toEqual([
-      { status: "updated", bookmark: updated },
-      { status: "deleted", id: "deleted-offline" },
+      computeChangedBookmarkSyncBuckets([cached], unchangedManifest),
+    ).toEqual([]);
+
+    const changed = computeChangedBookmarkSyncBuckets(
+      [updated],
+      unchangedManifest,
+    );
+    expect(changed).toHaveLength(1);
+    expect(changed[0]).toMatchObject({
+      bucket: getBookmarkSyncBucket(cached.id),
+      bookmarks: [updated],
+    });
+    const pages = buildBookmarkSyncPages(changed[0]!);
+    expect(pages).toHaveLength(1);
+    expect(JSON.stringify(pages[0]).length).toBeLessThan(
+      BOOKMARK_SYNC_RESPONSE_BUDGET_BYTES,
+    );
+  });
+
+  it("replaces one changed bucket without deleting cached entities in unchanged buckets", () => {
+    const first = bookmark({ id: "bucket-source" });
+    let secondIndex = 0;
+    let second = bookmark({ id: `other-${secondIndex}` });
+    while (
+      getBookmarkSyncBucket(second.id) === getBookmarkSyncBucket(first.id)
+    ) {
+      secondIndex++;
+      second = bookmark({ id: `other-${secondIndex}` });
+    }
+    bookmarksStore.getState().upsertMany([first, second]);
+    const updated = bookmark({
+      id: first.id,
+      title: "Updated title",
+      updatedAt: new Date(NOW.getTime() + 1),
+    });
+    const [syncPage] = buildBookmarkSyncPages({
+      bucket: getBookmarkSyncBucket(first.id),
+      version: "changed-version",
+      bookmarks: [updated],
+    });
+    bookmarksStore.getState().applySyncPage(syncPage!);
+
+    expect(bookmarksStore.getState().bookmarksDict).toEqual({
+      [updated.id]: updated,
+      [second.id]: second,
+    });
+  });
+
+  it("commits a changed sync bucket only after its final bounded page arrives", () => {
+    const bucket = getBookmarkSyncBucket("paged-bookmark");
+    const first = bookmark({ id: "paged-bookmark" });
+    let secondIndex = 0;
+    let second = bookmark({ id: `paged-bookmark-${secondIndex}` });
+    while (getBookmarkSyncBucket(second.id) !== bucket) {
+      secondIndex++;
+      second = bookmark({ id: `paged-bookmark-${secondIndex}` });
+    }
+    let notifications = 0;
+    const unsubscribe = bookmarksStore.subscribe(() => notifications++);
+
+    processPublishedChunks([
+      {
+        source: "bookmark",
+        chunk: {
+          type: "bookmark-sync-bucket",
+          bucket,
+          version: "paged-version",
+          bookmarks: [first],
+          replacesBucket: true,
+          completesBucket: false,
+        },
+      },
     ]);
+    expect(notifications).toBe(0);
+
+    processPublishedChunks([
+      {
+        source: "bookmark",
+        chunk: {
+          type: "bookmark-sync-bucket",
+          bucket,
+          version: "paged-version",
+          bookmarks: [second],
+          replacesBucket: false,
+          completesBucket: true,
+        },
+      },
+    ]);
+    unsubscribe();
+
+    expect(notifications).toBe(1);
+    expect(bookmarksStore.getState().bookmarksDict).toMatchObject({
+      [first.id]: first,
+      [second.id]: second,
+    });
   });
 
   it("marks mixed and section-level references read and supports undo", async () => {
