@@ -29,6 +29,10 @@ import {
   viewLayoutSchema,
   viewReadStatusSchema,
 } from "./constants";
+import {
+  boundedNumberIdsSchema,
+  MAX_BULK_MUTATION_ITEMS,
+} from "~/lib/schemas/bulk";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -707,20 +711,26 @@ export const createViewSchema = createInsertSchema(views)
       layout: viewLayoutSchema.optional(),
       daysWindow: z.number().lte(30).optional(),
       placement: z.number().gte(-1).optional(),
-      categoryIds: z.array(z.number()).optional(),
-      feedIds: z.array(z.number()).optional(),
-      viewSections: z.array(viewSectionInputSchema).optional(),
+      categoryIds: boundedNumberIdsSchema.optional(),
+      feedIds: boundedNumberIdsSchema.optional(),
+      viewSections: z
+        .array(viewSectionInputSchema)
+        .max(MAX_BULK_MUTATION_ITEMS)
+        .optional(),
     }),
   );
 
 export const updateViewSchema = createUpdateSchema(views).merge(
   z.object({
     id: z.number(),
-    categoryIds: z.array(z.number()),
-    feedIds: z.array(z.number()),
+    categoryIds: boundedNumberIdsSchema,
+    feedIds: boundedNumberIdsSchema,
     contentType: viewContentTypeSchema.optional(),
     layout: viewLayoutSchema.optional(),
-    viewSections: z.array(viewSectionInputSchema).optional(),
+    viewSections: z
+      .array(viewSectionInputSchema)
+      .max(MAX_BULK_MUTATION_ITEMS)
+      .optional(),
   }),
 );
 

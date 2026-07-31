@@ -38,6 +38,8 @@ const LAST_MODIFIED_V2 = "Sun, 06 Apr 2026 18:00:00 GMT";
 let currentContent = FIRESHIP_OLD_XML;
 let currentEtag = ETAG_V1;
 let currentLastModified = LAST_MODIFIED_V1;
+let activeFeedRequests = 0;
+let maximumActiveFeedRequests = 0;
 
 let server: Server;
 let baseUrl: string;
@@ -56,6 +58,20 @@ function setServerContent(version: "v1" | "v2") {
 
 beforeAll(async () => {
   server = createServer((req, res) => {
+    if (req.url?.startsWith("/slow/")) {
+      activeFeedRequests++;
+      maximumActiveFeedRequests = Math.max(
+        maximumActiveFeedRequests,
+        activeFeedRequests,
+      );
+      setTimeout(() => {
+        res.writeHead(200, { "Content-Type": "application/atom+xml" });
+        res.end(currentContent);
+        activeFeedRequests--;
+      }, 20);
+      return;
+    }
+
     const ifNoneMatch = req.headers["if-none-match"];
     const ifModifiedSince = req.headers["if-modified-since"];
 
@@ -486,5 +502,30 @@ describe("fetchAndInsertFeedData content diffing", () => {
     // it's being upserted with the fresh content hash (not the stale one).
     expect(upserted[0]!.url).toBe(staleItemUrl);
     expect(upserted[0]!.contentHash).toBe(freshHash);
+  });
+});
+
+describe("fetchAndInsertFeedData resource bounds", () => {
+  it("keeps remote fetch, parse, and write work within four workers", async () => {
+    activeFeedRequests = 0;
+    maximumActiveFeedRequests = 0;
+    const { db } = createMockDb();
+    const feeds = Array.from({ length: 10 }, (_, index) =>
+      makeFeed({
+        id: index + 1,
+        url: `${baseUrl}/slow/${index + 1}`,
+      }),
+    );
+
+    const results = [];
+    for await (const result of fetchAndInsertFeedData(
+      { db: db as any },
+      feeds,
+    )) {
+      results.push(result);
+    }
+
+    expect(results).toHaveLength(10);
+    expect(maximumActiveFeedRequests).toBeLessThanOrEqual(4);
   });
 });

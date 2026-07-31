@@ -1,9 +1,13 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { verifyFeedsOwnedByUser } from "./feed-router/utils";
 import { protectedProcedure } from "~/server/orpc/base";
 import { contentCategories, feedCategories } from "~/server/db/schema";
+import {
+  deduplicateByLastValue,
+  MAX_BULK_MUTATION_ITEMS,
+} from "~/lib/schemas/bulk";
 
 const categoryNameSchema = z.string().min(2);
 const feedCategorizationSchema = z.object({
@@ -14,7 +18,13 @@ export type FeedCategorization = Required<
   z.infer<typeof feedCategorizationSchema>
 >;
 
-const feedCategorizationsSchema = z.array(feedCategorizationSchema).optional();
+const feedCategorizationsSchema = z
+  .array(feedCategorizationSchema)
+  .max(MAX_BULK_MUTATION_ITEMS)
+  .transform((values) =>
+    deduplicateByLastValue(values, (value) => value.feedId),
+  )
+  .optional();
 
 export const create = protectedProcedure
   .input(
@@ -56,13 +66,11 @@ export const create = protectedProcedure
       if (!category) return null;
 
       if (feedIdsToCategorize.length > 0) {
-        await Promise.all(
-          feedIdsToCategorize.map(async (feedId) => {
-            return await tx.insert(feedCategories).values({
-              categoryId: category.id,
-              feedId,
-            });
-          }),
+        await tx.insert(feedCategories).values(
+          feedIdsToCategorize.map((feedId) => ({
+            categoryId: category.id,
+            feedId,
+          })),
         );
       }
 
@@ -131,32 +139,26 @@ export const update = protectedProcedure
         .map((categorization) => categorization.feedId);
 
       if (feedIdsToCategorize.length > 0) {
-        await Promise.all(
-          feedIdsToCategorize.map(async (feedId) => {
-            return await tx
-              .insert(feedCategories)
-              .values({
-                categoryId: category.id,
-                feedId,
-              })
-              .onConflictDoNothing();
-          }),
-        );
+        await tx
+          .insert(feedCategories)
+          .values(
+            feedIdsToCategorize.map((feedId) => ({
+              categoryId: category.id,
+              feedId,
+            })),
+          )
+          .onConflictDoNothing();
       }
 
       if (feedIdsToDecategorize.length > 0) {
-        await Promise.all(
-          feedIdsToDecategorize.map(async (feedId) => {
-            return await tx
-              .delete(feedCategories)
-              .where(
-                and(
-                  eq(feedCategories.feedId, feedId),
-                  eq(feedCategories.categoryId, input.id),
-                ),
-              );
-          }),
-        );
+        await tx
+          .delete(feedCategories)
+          .where(
+            and(
+              inArray(feedCategories.feedId, feedIdsToDecategorize),
+              eq(feedCategories.categoryId, input.id),
+            ),
+          );
       }
     });
   });
