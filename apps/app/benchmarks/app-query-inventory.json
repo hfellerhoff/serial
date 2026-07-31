@@ -7,7 +7,7 @@
     "scripts/**/*.ts(x)"
   ],
   "exclusions": ["node_modules", "src/server/db/migrations"],
-  "accessCount": 412,
+  "accessCount": 443,
   "areas": {
     "Bookmark and capture": 21,
     "administration": 33,
@@ -15,9 +15,9 @@
     "authentication": 17,
     "background and maintenance tasks": 18,
     "database infrastructure": 3,
-    "request procedures": 155,
+    "request procedures": 163,
     "synchronization and projection": 10,
-    "test-only infrastructure": 113
+    "test-only infrastructure": 136
   },
   "entries": [
     {
@@ -583,8 +583,16 @@
     {
       "file": "src/server/api/routers/contentCategoriesRouter.ts",
       "area": "request procedures",
+      "symbol": "update",
+      "line": 100,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/contentCategoriesRouter.ts",
+      "area": "request procedures",
       "symbol": "categories",
-      "line": 109,
+      "line": 117,
       "method": "update",
       "expression": "tx\n        .update"
     },
@@ -592,23 +600,23 @@
       "file": "src/server/api/routers/contentCategoriesRouter.ts",
       "area": "request procedures",
       "symbol": "update",
-      "line": 136,
+      "line": 142,
       "method": "insert",
-      "expression": "tx\n              .insert"
+      "expression": "tx\n          .insert"
     },
     {
       "file": "src/server/api/routers/contentCategoriesRouter.ts",
       "area": "request procedures",
       "symbol": "update",
-      "line": 150,
+      "line": 154,
       "method": "delete",
-      "expression": "tx\n              .delete"
+      "expression": "tx\n          .delete"
     },
     {
       "file": "src/server/api/routers/contentCategoriesRouter.ts",
       "area": "request procedures",
       "symbol": "deleteCategory",
-      "line": 168,
+      "line": 170,
       "method": "delete",
       "expression": "context.db\n      .delete"
     },
@@ -616,7 +624,7 @@
       "file": "src/server/api/routers/contentCategoriesRouter.ts",
       "area": "request procedures",
       "symbol": "create",
-      "line": 27,
+      "line": 37,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -624,7 +632,7 @@
       "file": "src/server/api/routers/contentCategoriesRouter.ts",
       "area": "request procedures",
       "symbol": "categories",
-      "line": 47,
+      "line": 57,
       "method": "insert",
       "expression": "tx\n        .insert"
     },
@@ -632,7 +640,7 @@
       "file": "src/server/api/routers/contentCategoriesRouter.ts",
       "area": "request procedures",
       "symbol": "create",
-      "line": 61,
+      "line": 69,
       "method": "insert",
       "expression": "tx.insert"
     },
@@ -640,23 +648,15 @@
       "file": "src/server/api/routers/contentCategoriesRouter.ts",
       "area": "request procedures",
       "symbol": "contentCategoriesList",
-      "line": 74,
+      "line": 82,
       "method": "select",
       "expression": "context.db\n    .select"
-    },
-    {
-      "file": "src/server/api/routers/contentCategoriesRouter.ts",
-      "area": "request procedures",
-      "symbol": "update",
-      "line": 92,
-      "method": "transaction",
-      "expression": "context.db.transaction"
     },
     {
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "insertedFeeds",
-      "line": 109,
+      "line": 114,
       "method": "insert",
       "expression": "tx\n            .insert"
     },
@@ -664,7 +664,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "results",
-      "line": 122,
+      "line": 127,
       "method": "insert",
       "expression": "tx.insert"
     },
@@ -672,7 +672,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "results",
-      "line": 131,
+      "line": 136,
       "method": "insert",
       "expression": "tx.insert"
     },
@@ -680,7 +680,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "promiseResults",
-      "line": 203,
+      "line": 209,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -688,7 +688,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "newFeeds",
-      "line": 229,
+      "line": 235,
       "method": "insert",
       "expression": "tx\n                .insert"
     },
@@ -696,7 +696,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "matchingCategories",
-      "line": 249,
+      "line": 255,
       "method": "select",
       "expression": "tx\n                .select"
     },
@@ -704,7 +704,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "matchingCategoryPromises",
-      "line": 272,
+      "line": 278,
       "method": "insert",
       "expression": "tx.insert"
     },
@@ -712,7 +712,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "newContentCategoryList",
-      "line": 281,
+      "line": 287,
       "method": "insert",
       "expression": "tx\n                    .insert"
     },
@@ -720,7 +720,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "nonMatchingCategoryPromises",
-      "line": 292,
+      "line": 298,
       "method": "insert",
       "expression": "tx.insert"
     },
@@ -728,7 +728,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "deleteFeed",
-      "line": 343,
+      "line": 349,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -736,7 +736,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "deletedFeeds",
-      "line": 344,
+      "line": 350,
       "method": "delete",
       "expression": "tx\n        .delete"
     },
@@ -744,7 +744,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "userViews",
-      "line": 351,
+      "line": 357,
       "method": "select",
       "expression": "tx\n        .select"
     },
@@ -752,7 +752,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "deleteFeed",
-      "line": 357,
+      "line": 363,
       "method": "delete",
       "expression": "tx.delete"
     },
@@ -760,7 +760,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "feedsList",
-      "line": 373,
+      "line": 379,
       "method": "findMany",
       "expression": "context.db.query.feeds.findMany"
     },
@@ -768,7 +768,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "update",
-      "line": 397,
+      "line": 403,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -776,7 +776,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "updatedFeeds",
-      "line": 422,
+      "line": 428,
       "method": "update",
       "expression": "tx\n        .update"
     },
@@ -784,7 +784,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "update",
-      "line": 437,
+      "line": 443,
       "method": "delete",
       "expression": "tx\n        .delete"
     },
@@ -792,15 +792,15 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "update",
-      "line": 448,
+      "line": 453,
       "method": "insert",
-      "expression": "tx\n            .insert"
+      "expression": "tx\n          .insert"
     },
     {
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "update",
-      "line": 461,
+      "line": 467,
       "method": "delete",
       "expression": "tx.delete"
     },
@@ -808,7 +808,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "update",
-      "line": 463,
+      "line": 469,
       "method": "delete",
       "expression": "tx\n            .delete"
     },
@@ -816,7 +816,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "update",
-      "line": 472,
+      "line": 478,
       "method": "insert",
       "expression": "tx\n            .insert"
     },
@@ -824,7 +824,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "bulkDelete",
-      "line": 534,
+      "line": 540,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -832,7 +832,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "deletedFeeds",
-      "line": 535,
+      "line": 541,
       "method": "delete",
       "expression": "tx\n        .delete"
     },
@@ -840,7 +840,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "userViews",
-      "line": 547,
+      "line": 553,
       "method": "select",
       "expression": "tx\n        .select"
     },
@@ -848,7 +848,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "bulkDelete",
-      "line": 553,
+      "line": 559,
       "method": "delete",
       "expression": "tx.delete"
     },
@@ -856,7 +856,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "feed",
-      "line": 574,
+      "line": 580,
       "method": "findFirst",
       "expression": "context.db.query.feeds.findFirst"
     },
@@ -864,7 +864,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "updatedFeeds",
-      "line": 592,
+      "line": 598,
       "method": "update",
       "expression": "context.db\n      .update"
     },
@@ -872,7 +872,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "bulkSetActive",
-      "line": 616,
+      "line": 622,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -880,7 +880,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "activeCountResult",
-      "line": 620,
+      "line": 626,
       "method": "select",
       "expression": "tx\n          .select"
     },
@@ -888,7 +888,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "currentFeeds",
-      "line": 634,
+      "line": 640,
       "method": "findMany",
       "expression": "tx.query.feeds.findMany"
     },
@@ -896,7 +896,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "bulkSetActive",
-      "line": 650,
+      "line": 656,
       "method": "update",
       "expression": "tx\n        .update"
     },
@@ -904,7 +904,7 @@
       "file": "src/server/api/routers/feed-router/index.ts",
       "area": "request procedures",
       "symbol": "results",
-      "line": 69,
+      "line": 74,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -975,8 +975,16 @@
     {
       "file": "src/server/api/routers/feedCategoriesRouter.ts",
       "area": "request procedures",
+      "symbol": "contentCategoriesList",
+      "line": 10,
+      "method": "select",
+      "expression": "context.db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/feedCategoriesRouter.ts",
+      "area": "request procedures",
       "symbol": "bulkRemoveFromFeeds",
-      "line": 110,
+      "line": 109,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -984,7 +992,7 @@
       "file": "src/server/api/routers/feedCategoriesRouter.ts",
       "area": "request procedures",
       "symbol": "bulkRemoveFromFeeds",
-      "line": 123,
+      "line": 122,
       "method": "delete",
       "expression": "tx\n        .delete"
     },
@@ -992,7 +1000,7 @@
       "file": "src/server/api/routers/feedCategoriesRouter.ts",
       "area": "request procedures",
       "symbol": "feedCategoriesList",
-      "line": 18,
+      "line": 19,
       "method": "select",
       "expression": "context.db\n    .select"
     },
@@ -1000,7 +1008,7 @@
       "file": "src/server/api/routers/feedCategoriesRouter.ts",
       "area": "request procedures",
       "symbol": "assignToFeed",
-      "line": 30,
+      "line": 31,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -1008,7 +1016,7 @@
       "file": "src/server/api/routers/feedCategoriesRouter.ts",
       "area": "request procedures",
       "symbol": "assignToFeed",
-      "line": 41,
+      "line": 42,
       "method": "insert",
       "expression": "tx.insert"
     },
@@ -1016,7 +1024,7 @@
       "file": "src/server/api/routers/feedCategoriesRouter.ts",
       "area": "request procedures",
       "symbol": "removeFromFeed",
-      "line": 51,
+      "line": 52,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -1024,7 +1032,7 @@
       "file": "src/server/api/routers/feedCategoriesRouter.ts",
       "area": "request procedures",
       "symbol": "removeFromFeed",
-      "line": 62,
+      "line": 63,
       "method": "delete",
       "expression": "tx\n        .delete"
     },
@@ -1032,55 +1040,23 @@
       "file": "src/server/api/routers/feedCategoriesRouter.ts",
       "area": "request procedures",
       "symbol": "bulkAssignToFeeds",
-      "line": 78,
+      "line": 79,
       "method": "transaction",
       "expression": "context.db.transaction"
-    },
-    {
-      "file": "src/server/api/routers/feedCategoriesRouter.ts",
-      "area": "request procedures",
-      "symbol": "contentCategoriesList",
-      "line": 9,
-      "method": "select",
-      "expression": "context.db\n    .select"
     },
     {
       "file": "src/server/api/routers/feedCategoriesRouter.ts",
       "area": "request procedures",
       "symbol": "bulkAssignToFeeds",
-      "line": 93,
+      "line": 92,
       "method": "insert",
-      "expression": "tx\n            .insert"
+      "expression": "tx\n        .insert"
     },
     {
       "file": "src/server/api/routers/feedItemRouter.ts",
       "area": "request procedures",
-      "symbol": "result",
-      "line": 137,
-      "method": "transaction",
-      "expression": "context.db.transaction"
-    },
-    {
-      "file": "src/server/api/routers/feedItemRouter.ts",
-      "area": "request procedures",
-      "symbol": "result",
+      "symbol": "setBulkWatchedValue",
       "line": 148,
-      "method": "update",
-      "expression": "tx\n        .update"
-    },
-    {
-      "file": "src/server/api/routers/feedItemRouter.ts",
-      "area": "request procedures",
-      "symbol": "setWatchedValue",
-      "line": 188,
-      "method": "select",
-      "expression": "context.db\n        .select"
-    },
-    {
-      "file": "src/server/api/routers/feedItemRouter.ts",
-      "area": "request procedures",
-      "symbol": "setBulkWatchedValue",
-      "line": 235,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -1088,7 +1064,7 @@
       "file": "src/server/api/routers/feedItemRouter.ts",
       "area": "request procedures",
       "symbol": "setBulkWatchedValue",
-      "line": 253,
+      "line": 166,
       "method": "update",
       "expression": "tx\n        .update"
     },
@@ -1096,7 +1072,7 @@
       "file": "src/server/api/routers/feedItemRouter.ts",
       "area": "request procedures",
       "symbol": "result",
-      "line": 281,
+      "line": 194,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -1104,39 +1080,23 @@
       "file": "src/server/api/routers/feedItemRouter.ts",
       "area": "request procedures",
       "symbol": "result",
-      "line": 292,
+      "line": 205,
       "method": "update",
       "expression": "tx\n        .update"
-    },
-    {
-      "file": "src/server/api/routers/feedItemRouter.ts",
-      "area": "request procedures",
-      "symbol": "feedsList",
-      "line": 31,
-      "method": "findMany",
-      "expression": "context.db.query.feeds.findMany"
     },
     {
       "file": "src/server/api/routers/feedItemRouter.ts",
       "area": "request procedures",
       "symbol": "setWatchLaterValue",
-      "line": 332,
+      "line": 245,
       "method": "select",
       "expression": "context.db\n        .select"
     },
     {
       "file": "src/server/api/routers/feedItemRouter.ts",
       "area": "request procedures",
-      "symbol": "itemsData",
-      "line": 36,
-      "method": "findMany",
-      "expression": "context.db.query.feedItems.findMany"
-    },
-    {
-      "file": "src/server/api/routers/feedItemRouter.ts",
-      "area": "request procedures",
       "symbol": "setProgress",
-      "line": 373,
+      "line": 286,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -1144,7 +1104,7 @@
       "file": "src/server/api/routers/feedItemRouter.ts",
       "area": "request procedures",
       "symbol": "setProgress",
-      "line": 384,
+      "line": 297,
       "method": "update",
       "expression": "tx\n        .update"
     },
@@ -1152,7 +1112,7 @@
       "file": "src/server/api/routers/feedItemRouter.ts",
       "area": "request procedures",
       "symbol": "item",
-      "line": 400,
+      "line": 313,
       "method": "findFirst",
       "expression": "context.db.query.feedItems.findFirst"
     },
@@ -1160,7 +1120,7 @@
       "file": "src/server/api/routers/feedItemRouter.ts",
       "area": "request procedures",
       "symbol": "feed",
-      "line": 408,
+      "line": 321,
       "method": "findFirst",
       "expression": "context.db.query.feeds.findFirst"
     },
@@ -1168,7 +1128,7 @@
       "file": "src/server/api/routers/feedItemRouter.ts",
       "area": "request procedures",
       "symbol": "feed",
-      "line": 428,
+      "line": 349,
       "method": "findFirst",
       "expression": "context.db.query.feeds.findFirst"
     },
@@ -1176,7 +1136,55 @@
       "file": "src/server/api/routers/feedItemRouter.ts",
       "area": "request procedures",
       "symbol": "itemsData",
-      "line": 436,
+      "line": 367,
+      "method": "findMany",
+      "expression": "context.db.query.feedItems.findMany"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "result",
+      "line": 42,
+      "method": "transaction",
+      "expression": "context.db.transaction"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "result",
+      "line": 53,
+      "method": "update",
+      "expression": "tx\n        .update"
+    },
+    {
+      "file": "src/server/api/routers/feedItemRouter.ts",
+      "area": "request procedures",
+      "symbol": "setWatchedValue",
+      "line": 93,
+      "method": "select",
+      "expression": "context.db\n        .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "queryLightweightItemsForView",
+      "line": 1109,
+      "method": "select",
+      "expression": "context.db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "queryLightweightItemsForView",
+      "line": 1116,
+      "method": "select",
+      "expression": "context.db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "queryFeedItemsForView",
+      "line": 1281,
       "method": "findMany",
       "expression": "context.db.query.feedItems.findMany"
     },
@@ -1184,15 +1192,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "queryFeedItemsForView",
-      "line": 1093,
-      "method": "findMany",
-      "expression": "context.db.query.feedItems.findMany"
-    },
-    {
-      "file": "src/server/api/routers/initialRouter.ts",
-      "area": "request procedures",
-      "symbol": "queryFeedItemsForView",
-      "line": 1099,
+      "line": 1287,
       "method": "select",
       "expression": "context.db\n      .select"
     },
@@ -1200,7 +1200,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "insertResult",
-      "line": 1870,
+      "line": 2062,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -1208,7 +1208,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "streamingImport",
-      "line": 2010,
+      "line": 2202,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -1216,7 +1216,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "existingViews",
-      "line": 2012,
+      "line": 2204,
       "method": "select",
       "expression": "tx\n            .select"
     },
@@ -1224,7 +1224,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "inserted",
-      "line": 2023,
+      "line": 2215,
       "method": "insert",
       "expression": "tx\n              .insert"
     },
@@ -1232,7 +1232,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "existingCategories",
-      "line": 2047,
+      "line": 2239,
       "method": "select",
       "expression": "tx\n                  .select"
     },
@@ -1240,7 +1240,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "insertedCategories",
-      "line": 2065,
+      "line": 2257,
       "method": "insert",
       "expression": "tx\n              .insert"
     },
@@ -1248,7 +1248,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "existingViewSections",
-      "line": 2083,
+      "line": 2275,
       "method": "select",
       "expression": "tx\n                  .select"
     },
@@ -1256,7 +1256,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "streamingImport",
-      "line": 2193,
+      "line": 2385,
       "method": "insert",
       "expression": "tx\n              .insert"
     },
@@ -1264,7 +1264,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "streamingImport",
-      "line": 2200,
+      "line": 2392,
       "method": "insert",
       "expression": "tx\n              .insert"
     },
@@ -1272,7 +1272,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "streamingImport",
-      "line": 2207,
+      "line": 2399,
       "method": "insert",
       "expression": "tx.insert"
     },
@@ -1280,7 +1280,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "feed",
-      "line": 2591,
+      "line": 2768,
       "method": "findFirst",
       "expression": "context.db.query.feeds.findFirst"
     },
@@ -1288,7 +1288,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "itemsData",
-      "line": 2615,
+      "line": 2792,
       "method": "findMany",
       "expression": "context.db.query.feedItems.findMany"
     },
@@ -1296,7 +1296,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "category",
-      "line": 2707,
+      "line": 2884,
       "method": "findFirst",
       "expression": "context.db.query.contentCategories.findFirst"
     },
@@ -1304,7 +1304,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "categoryFeedLinks",
-      "line": 2727,
+      "line": 2904,
       "method": "select",
       "expression": "context.db\n      .select"
     },
@@ -1312,7 +1312,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "feedsList",
-      "line": 2751,
+      "line": 2928,
       "method": "findMany",
       "expression": "context.db.query.feeds.findMany"
     },
@@ -1320,49 +1320,17 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "itemsData",
-      "line": 2768,
+      "line": 2945,
       "method": "findMany",
       "expression": "context.db.query.feedItems.findMany"
-    },
-    {
-      "file": "src/server/api/routers/initialRouter.ts",
-      "area": "request procedures",
-      "symbol": "getItemsByVisibility",
-      "line": 3247,
-      "method": "findMany",
-      "expression": "context.db.query.feedItems.findMany"
-    },
-    {
-      "file": "src/server/api/routers/initialRouter.ts",
-      "area": "request procedures",
-      "symbol": "getItemsByVisibility",
-      "line": 3253,
-      "method": "select",
-      "expression": "context.db\n          .select"
     },
     {
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "items",
-      "line": 3332,
+      "line": 3295,
       "method": "select",
       "expression": "context.db\n        .select"
-    },
-    {
-      "file": "src/server/api/routers/initialRouter.ts",
-      "area": "request procedures",
-      "symbol": "fetchUserPrerequisiteData",
-      "line": 568,
-      "method": "select",
-      "expression": "context.db\n      .select"
-    },
-    {
-      "file": "src/server/api/routers/initialRouter.ts",
-      "area": "request procedures",
-      "symbol": "fetchUserPrerequisiteData",
-      "line": 573,
-      "method": "findMany",
-      "expression": "context.db.query.feeds.findMany"
     },
     {
       "file": "src/server/api/routers/initialRouter.ts",
@@ -1376,49 +1344,145 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "fetchUserPrerequisiteData",
-      "line": 594,
-      "method": "select",
-      "expression": "context.db\n          .select"
+      "line": 581,
+      "method": "findMany",
+      "expression": "context.db.query.feeds.findMany"
     },
     {
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "fetchUserPrerequisiteData",
-      "line": 600,
-      "method": "select",
-      "expression": "context.db\n          .select"
-    },
-    {
-      "file": "src/server/api/routers/initialRouter.ts",
-      "area": "request procedures",
-      "symbol": "fetchUserPrerequisiteData",
-      "line": 606,
-      "method": "select",
-      "expression": "context.db\n          .select"
-    },
-    {
-      "file": "src/server/api/routers/initialRouter.ts",
-      "area": "request procedures",
-      "symbol": "fetchUserPrerequisiteData",
-      "line": 612,
-      "method": "select",
-      "expression": "context.db\n          .select"
-    },
-    {
-      "file": "src/server/api/routers/initialRouter.ts",
-      "area": "request procedures",
-      "symbol": "queryLightweightItemsForView",
-      "line": 924,
+      "line": 584,
       "method": "select",
       "expression": "context.db\n      .select"
     },
     {
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
-      "symbol": "queryLightweightItemsForView",
-      "line": 931,
+      "symbol": "fetchUserPrerequisiteData",
+      "line": 602,
+      "method": "select",
+      "expression": "context.db\n          .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "fetchUserPrerequisiteData",
+      "line": 608,
+      "method": "select",
+      "expression": "context.db\n          .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "fetchUserPrerequisiteData",
+      "line": 614,
+      "method": "select",
+      "expression": "context.db\n          .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "fetchUserPrerequisiteData",
+      "line": 620,
+      "method": "select",
+      "expression": "context.db\n          .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "directlyAssignedToCompatibleView",
+      "line": 671,
       "method": "select",
       "expression": "context.db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "taggedIntoCompatibleView",
+      "line": 681,
+      "method": "select",
+      "expression": "context.db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "includedByUnfilteredCompatibleView",
+      "line": 695,
+      "method": "select",
+      "expression": "context.db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "includedByUnfilteredCompatibleView",
+      "line": 704,
+      "method": "select",
+      "expression": "context.db\n                .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "includedByUnfilteredCompatibleView",
+      "line": 712,
+      "method": "select",
+      "expression": "context.db\n                .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "feedsList",
+      "line": 721,
+      "method": "select",
+      "expression": "context.db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "fetchScopedViewPageData",
+      "line": 748,
+      "method": "select",
+      "expression": "context.db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "fetchScopedViewPageData",
+      "line": 756,
+      "method": "select",
+      "expression": "context.db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "fetchScopedViewPageData",
+      "line": 760,
+      "method": "select",
+      "expression": "context.db.select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "fetchScopedViewPageData",
+      "line": 761,
+      "method": "select",
+      "expression": "context.db\n      .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "taggedFeedFilter",
+      "line": 774,
+      "method": "select",
+      "expression": "context.db\n            .select"
+    },
+    {
+      "file": "src/server/api/routers/initialRouter.ts",
+      "area": "request procedures",
+      "symbol": "feedsList",
+      "line": 792,
+      "method": "select",
+      "expression": "context.db\n    .select"
     },
     {
       "file": "src/server/api/routers/instapaperRouter.ts",
@@ -1560,31 +1624,31 @@
       "file": "src/server/api/routers/viewFeedsRouter.ts",
       "area": "request procedures",
       "symbol": "bulkAssignToView",
-      "line": 100,
+      "line": 101,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
     {
       "file": "src/server/api/routers/viewFeedsRouter.ts",
       "area": "request procedures",
-      "symbol": "userViews",
-      "line": 12,
-      "method": "select",
-      "expression": "context.db\n    .select"
-    },
-    {
-      "file": "src/server/api/routers/viewFeedsRouter.ts",
-      "area": "request procedures",
       "symbol": "bulkAssignToView",
-      "line": 123,
+      "line": 124,
       "method": "insert",
       "expression": "tx\n        .insert"
     },
     {
       "file": "src/server/api/routers/viewFeedsRouter.ts",
       "area": "request procedures",
+      "symbol": "userViews",
+      "line": 13,
+      "method": "select",
+      "expression": "context.db\n    .select"
+    },
+    {
+      "file": "src/server/api/routers/viewFeedsRouter.ts",
+      "area": "request procedures",
       "symbol": "bulkRemoveFromView",
-      "line": 140,
+      "line": 141,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -1592,7 +1656,7 @@
       "file": "src/server/api/routers/viewFeedsRouter.ts",
       "area": "request procedures",
       "symbol": "bulkRemoveFromView",
-      "line": 163,
+      "line": 164,
       "method": "delete",
       "expression": "tx\n        .delete"
     },
@@ -1600,7 +1664,7 @@
       "file": "src/server/api/routers/viewFeedsRouter.ts",
       "area": "request procedures",
       "symbol": "getAll",
-      "line": 20,
+      "line": 21,
       "method": "select",
       "expression": "context.db\n    .select"
     },
@@ -1608,7 +1672,7 @@
       "file": "src/server/api/routers/viewFeedsRouter.ts",
       "area": "request procedures",
       "symbol": "assignToView",
-      "line": 29,
+      "line": 30,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -1616,7 +1680,7 @@
       "file": "src/server/api/routers/viewFeedsRouter.ts",
       "area": "request procedures",
       "symbol": "assignToView",
-      "line": 50,
+      "line": 51,
       "method": "insert",
       "expression": "tx\n        .insert"
     },
@@ -1624,7 +1688,7 @@
       "file": "src/server/api/routers/viewFeedsRouter.ts",
       "area": "request procedures",
       "symbol": "removeFromView",
-      "line": 63,
+      "line": 64,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -1632,7 +1696,7 @@
       "file": "src/server/api/routers/viewFeedsRouter.ts",
       "area": "request procedures",
       "symbol": "removeFromView",
-      "line": 84,
+      "line": 85,
       "method": "delete",
       "expression": "tx\n        .delete"
     },
@@ -1640,7 +1704,7 @@
       "file": "src/server/api/routers/viewRouter.ts",
       "area": "request procedures",
       "symbol": "update",
-      "line": 107,
+      "line": 111,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -1648,17 +1712,9 @@
       "file": "src/server/api/routers/viewRouter.ts",
       "area": "request procedures",
       "symbol": "viewsResult",
-      "line": 132,
+      "line": 136,
       "method": "update",
       "expression": "tx\n        .update"
-    },
-    {
-      "file": "src/server/api/routers/viewRouter.ts",
-      "area": "request procedures",
-      "symbol": "update",
-      "line": 152,
-      "method": "delete",
-      "expression": "tx\n          .delete"
     },
     {
       "file": "src/server/api/routers/viewRouter.ts",
@@ -1672,23 +1728,7 @@
       "file": "src/server/api/routers/viewRouter.ts",
       "area": "request procedures",
       "symbol": "update",
-      "line": 165,
-      "method": "insert",
-      "expression": "tx\n          .insert"
-    },
-    {
-      "file": "src/server/api/routers/viewRouter.ts",
-      "area": "request procedures",
-      "symbol": "update",
-      "line": 178,
-      "method": "delete",
-      "expression": "tx.delete"
-    },
-    {
-      "file": "src/server/api/routers/viewRouter.ts",
-      "area": "request procedures",
-      "symbol": "update",
-      "line": 180,
+      "line": 160,
       "method": "delete",
       "expression": "tx\n          .delete"
     },
@@ -1696,7 +1736,7 @@
       "file": "src/server/api/routers/viewRouter.ts",
       "area": "request procedures",
       "symbol": "update",
-      "line": 189,
+      "line": 169,
       "method": "insert",
       "expression": "tx\n          .insert"
     },
@@ -1704,7 +1744,7 @@
       "file": "src/server/api/routers/viewRouter.ts",
       "area": "request procedures",
       "symbol": "update",
-      "line": 202,
+      "line": 182,
       "method": "delete",
       "expression": "tx.delete"
     },
@@ -1712,7 +1752,31 @@
       "file": "src/server/api/routers/viewRouter.ts",
       "area": "request procedures",
       "symbol": "update",
-      "line": 205,
+      "line": 184,
+      "method": "delete",
+      "expression": "tx\n          .delete"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 193,
+      "method": "insert",
+      "expression": "tx\n          .insert"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 206,
+      "method": "delete",
+      "expression": "tx.delete"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "update",
+      "line": 209,
       "method": "insert",
       "expression": "tx.insert"
     },
@@ -1720,7 +1784,7 @@
       "file": "src/server/api/routers/viewRouter.ts",
       "area": "request procedures",
       "symbol": "updatePlacement",
-      "line": 231,
+      "line": 242,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -1728,15 +1792,15 @@
       "file": "src/server/api/routers/viewRouter.ts",
       "area": "request procedures",
       "symbol": "updatePlacement",
-      "line": 234,
+      "line": 246,
       "method": "update",
-      "expression": "tx\n            .update"
+      "expression": "tx\n        .update"
     },
     {
       "file": "src/server/api/routers/viewRouter.ts",
       "area": "request procedures",
       "symbol": "deleteView",
-      "line": 250,
+      "line": 266,
       "method": "delete",
       "expression": "context.db\n      .delete"
     },
@@ -1744,7 +1808,7 @@
       "file": "src/server/api/routers/viewRouter.ts",
       "area": "request procedures",
       "symbol": "getAll",
-      "line": 257,
+      "line": 273,
       "method": "select",
       "expression": "context.db\n      .select"
     },
@@ -1752,47 +1816,47 @@
       "file": "src/server/api/routers/viewRouter.ts",
       "area": "request procedures",
       "symbol": "getAll",
-      "line": 262,
+      "line": 278,
       "method": "select",
       "expression": "context.db\n      .select"
     },
     {
       "file": "src/server/api/routers/viewRouter.ts",
       "area": "request procedures",
+      "symbol": "getAll",
+      "line": 289,
+      "method": "select",
+      "expression": "context.db\n            .select"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "getAll",
+      "line": 293,
+      "method": "select",
+      "expression": "context.db\n            .select"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
+      "symbol": "getAll",
+      "line": 297,
+      "method": "select",
+      "expression": "context.db\n            .select"
+    },
+    {
+      "file": "src/server/api/routers/viewRouter.ts",
+      "area": "request procedures",
       "symbol": "create",
-      "line": 27,
+      "line": 31,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
     {
       "file": "src/server/api/routers/viewRouter.ts",
       "area": "request procedures",
-      "symbol": "getAll",
-      "line": 273,
-      "method": "select",
-      "expression": "context.db\n            .select"
-    },
-    {
-      "file": "src/server/api/routers/viewRouter.ts",
-      "area": "request procedures",
-      "symbol": "getAll",
-      "line": 277,
-      "method": "select",
-      "expression": "context.db\n            .select"
-    },
-    {
-      "file": "src/server/api/routers/viewRouter.ts",
-      "area": "request procedures",
-      "symbol": "getAll",
-      "line": 281,
-      "method": "select",
-      "expression": "context.db\n            .select"
-    },
-    {
-      "file": "src/server/api/routers/viewRouter.ts",
-      "area": "request procedures",
       "symbol": "viewsResult",
-      "line": 52,
+      "line": 56,
       "method": "insert",
       "expression": "tx\n        .insert"
     },
@@ -1800,7 +1864,7 @@
       "file": "src/server/api/routers/viewRouter.ts",
       "area": "request procedures",
       "symbol": "create",
-      "line": 71,
+      "line": 75,
       "method": "insert",
       "expression": "tx.insert"
     },
@@ -1808,7 +1872,7 @@
       "file": "src/server/api/routers/viewRouter.ts",
       "area": "request procedures",
       "symbol": "create",
-      "line": 80,
+      "line": 84,
       "method": "insert",
       "expression": "tx.insert"
     },
@@ -1816,7 +1880,7 @@
       "file": "src/server/api/routers/viewRouter.ts",
       "area": "request procedures",
       "symbol": "create",
-      "line": 89,
+      "line": 93,
       "method": "insert",
       "expression": "tx.insert"
     },
@@ -3315,6 +3379,190 @@
       "line": 36,
       "method": "transaction",
       "expression": "session.database.transaction"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "measureLaterPage",
+      "line": 120,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "measureLaterPage",
+      "line": 128,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "measureLaterPage",
+      "line": 137,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "measureLaterPage",
+      "line": 144,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "measureLaterPage",
+      "line": 154,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "measureLaterPage",
+      "line": 160,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "measureLaterPage",
+      "line": 166,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "measureLaterPage",
+      "line": 172,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "measureLaterPage",
+      "line": 180,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 259,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 267,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 276,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 286,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 292,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 300,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 509,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 521,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 530,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 534,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 538,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 54,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 62,
+      "method": "insert",
+      "expression": "session.database.insert"
+    },
+    {
+      "file": "tests/unit/performance/legacy-organization-workloads.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 69,
+      "method": "insert",
+      "expression": "session.database.insert"
     }
   ]
 }
