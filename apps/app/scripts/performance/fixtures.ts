@@ -65,6 +65,8 @@ export async function seedBenchmarkFixture(input: {
       openLocation: "serial" as const,
       createdAt: BASE_TIME,
       updatedAt: BASE_TIME,
+      lastFetchedAt: BASE_TIME,
+      nextFetchAt: new Date("2099-01-01T00:00:00.000Z"),
       isActive: true,
     })),
     (chunk) => database.insert(feeds).values(chunk),
