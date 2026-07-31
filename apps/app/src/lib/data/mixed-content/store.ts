@@ -1,6 +1,6 @@
 import { createStore } from "zustand";
 import { persist } from "zustand/middleware";
-import { createIDBStorage } from "../idb-storage";
+import { createNormalizedIDBStorage } from "../normalized-idb-storage";
 import { createSelectorHooks } from "../createSelectorHooks";
 import {
   bookmarkReference,
@@ -298,7 +298,9 @@ const vanillaMixedContentStore = createStore<MixedContentStore>()(
     }),
     {
       name: "serial-mixed-content-store",
-      storage: createIDBStorage(),
+      storage: createNormalizedIDBStorage({
+        recordFields: ["scopes", "suppressedReferences"],
+      }),
       partialize: (state) => ({
         scopes: state.scopes,
         suppressedReferences: state.suppressedReferences,
