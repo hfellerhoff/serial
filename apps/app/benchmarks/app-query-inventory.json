@@ -1264,7 +1264,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "feed",
-      "line": 2771,
+      "line": 2774,
       "method": "findFirst",
       "expression": "context.db.query.feeds.findFirst"
     },
@@ -1272,7 +1272,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "itemsData",
-      "line": 2795,
+      "line": 2798,
       "method": "findMany",
       "expression": "context.db.query.feedItems.findMany"
     },
@@ -1280,7 +1280,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "category",
-      "line": 2887,
+      "line": 2890,
       "method": "findFirst",
       "expression": "context.db.query.contentCategories.findFirst"
     },
@@ -1288,7 +1288,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "categoryFeedLinks",
-      "line": 2907,
+      "line": 2910,
       "method": "select",
       "expression": "context.db\n      .select"
     },
@@ -1296,7 +1296,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "feedsList",
-      "line": 2931,
+      "line": 2934,
       "method": "findMany",
       "expression": "context.db.query.feeds.findMany"
     },
@@ -1304,7 +1304,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "itemsData",
-      "line": 2948,
+      "line": 2951,
       "method": "findMany",
       "expression": "context.db.query.feedItems.findMany"
     },
@@ -1312,7 +1312,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "items",
-      "line": 3298,
+      "line": 3303,
       "method": "select",
       "expression": "context.db\n        .select"
     },

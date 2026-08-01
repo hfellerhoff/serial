@@ -1,379 +1,396 @@
 {
-  "generatedAt": "2026-08-01T00:20:21.543Z",
+  "generatedAt": "2026-08-01T03:56:40.803Z",
   "environment": "local-self-hosted-production-chromium",
   "profile": "representative",
   "coldLoad": {
-    "durationMs": 3312.4000000059605,
-    "usableContentMs": 1103.5,
+    "durationMs": 3314.300000011921,
+    "usableContentMs": 1107.5,
     "longTasks": [],
     "commits": [
       {
-        "actualDuration": 2.1000000089406967,
-        "baseDuration": 1.9000000208616257
-      },
-      {
-        "actualDuration": 0.09999999403953552,
-        "baseDuration": 1.800000011920929
-      },
-      {
-        "actualDuration": 0.3999999910593033,
-        "baseDuration": 1.7999999970197678
-      },
-      { "actualDuration": 0.7000000029802322, "baseDuration": 2 },
-      {
-        "actualDuration": 2.500000014901161,
-        "baseDuration": 3.2999999672174454
-      },
-      {
-        "actualDuration": 1.4000000059604645,
-        "baseDuration": 2.7000000178813934
-      },
-      { "actualDuration": 1.2999999970197678, "baseDuration": 3.5 },
-      {
-        "actualDuration": 0.5999999940395355,
-        "baseDuration": 3.300000011920929
-      },
-      { "actualDuration": 1.0999999940395355, "baseDuration": 3 },
-      { "actualDuration": 0.5, "baseDuration": 3 },
-      {
-        "actualDuration": 1.7000000029802322,
-        "baseDuration": 3.2999999672174454
-      },
-      {
-        "actualDuration": 0.5999999940395355,
-        "baseDuration": 3.1999999582767487
-      },
-      { "actualDuration": 7, "baseDuration": 6.799999997019768 },
-      {
-        "actualDuration": 2.7999999970197678,
-        "baseDuration": 5.099999979138374
-      },
-      { "actualDuration": 6.5, "baseDuration": 7 },
-      {
-        "actualDuration": 0.5999999940395355,
-        "baseDuration": 6.699999988079071
-      },
-      { "actualDuration": 0, "baseDuration": 6.699999988079071 },
-      {
-        "actualDuration": 4.600000038743019,
-        "baseDuration": 6.200000047683716
+        "actualDuration": 2.0999999940395355,
+        "baseDuration": 1.9000000059604645
       },
       {
         "actualDuration": 0.4000000059604645,
-        "baseDuration": 6.100000038743019
+        "baseDuration": 1.800000011920929
       },
       {
-        "actualDuration": 5.699999988079071,
-        "baseDuration": 6.999999985098839
+        "actualDuration": 0.29999999701976776,
+        "baseDuration": 1.5000000149011612
       },
-      { "actualDuration": 0.5, "baseDuration": 6.699999988079071 },
-      { "actualDuration": 5.0999999940395355, "baseDuration": 6.5 },
       {
         "actualDuration": 0.5999999940395355,
-        "baseDuration": 6.5999999940395355
+        "baseDuration": 1.6000000089406967
       },
       {
-        "actualDuration": 1.699999988079071,
-        "baseDuration": 6.499999985098839
+        "actualDuration": 2.5999999940395355,
+        "baseDuration": 2.7999999970197678
+      },
+      { "actualDuration": 1.3999999910593033, "baseDuration": 2.5 },
+      {
+        "actualDuration": 1.2000000029802322,
+        "baseDuration": 3.0999999940395355
       },
       {
-        "actualDuration": 0.10000000894069672,
-        "baseDuration": 6.5999999940395355
+        "actualDuration": 0.9999999850988388,
+        "baseDuration": 2.7999999821186066
+      },
+      { "actualDuration": 0.5, "baseDuration": 2.699999988079071 },
+      {
+        "actualDuration": 1.300000011920929,
+        "baseDuration": 2.4000000208616257
       },
       {
-        "actualDuration": 0.30000001192092896,
-        "baseDuration": 6.5999999940395355
+        "actualDuration": 0.3999999910593033,
+        "baseDuration": 2.2000000178813934
       },
       {
-        "actualDuration": 1.4999999850988388,
+        "actualDuration": 6.700000002980232,
+        "baseDuration": 6.500000059604645
+      },
+      {
+        "actualDuration": 3.1000000089406967,
+        "baseDuration": 4.800000041723251
+      },
+      {
+        "actualDuration": 6.200000002980232,
+        "baseDuration": 5.800000011920929
+      },
+      {
+        "actualDuration": 0.7000000029802322,
+        "baseDuration": 5.9000000059604645
+      },
+      {
+        "actualDuration": 0.09999999403953552,
+        "baseDuration": 5.9000000059604645
+      },
+      { "actualDuration": 0, "baseDuration": 5.9000000059604645 },
+      {
+        "actualDuration": 3.9000000059604645,
+        "baseDuration": 6.500000014901161
+      },
+      {
+        "actualDuration": 0.6000000089406967,
+        "baseDuration": 6.30000002682209
+      },
+      {
+        "actualDuration": 3.2000000029802322,
+        "baseDuration": 5.700000017881393
+      },
+      {
+        "actualDuration": 0.3999999910593033,
+        "baseDuration": 5.500000014901161
+      },
+      {
+        "actualDuration": 5.399999991059303,
+        "baseDuration": 6.499999970197678
+      },
+      {
+        "actualDuration": 0.6000000089406967,
         "baseDuration": 6.299999967217445
       },
       {
-        "actualDuration": 0.30000001192092896,
-        "baseDuration": 6.399999991059303
+        "actualDuration": 5.999999985098839,
+        "baseDuration": 6.899999961256981
+      },
+      { "actualDuration": 0.5, "baseDuration": 6.799999967217445 },
+      {
+        "actualDuration": 5.600000008940697,
+        "baseDuration": 7.0999999940395355
+      },
+      { "actualDuration": 0.6000000089406967, "baseDuration": 7 },
+      {
+        "actualDuration": 1.4000000059604645,
+        "baseDuration": 6.4000000059604645
+      },
+      {
+        "actualDuration": 0.10000000894069672,
+        "baseDuration": 6.200000017881393
+      },
+      {
+        "actualDuration": 0.20000001788139343,
+        "baseDuration": 6.30000002682209
       },
       {
         "actualDuration": 0.20000000298023224,
-        "baseDuration": 6.299999982118607
+        "baseDuration": 6.400000020861626
       }
     ],
     "indexedDb": { "reads": 11, "writes": 1348 },
     "requests": 97,
-    "transferBytes": 2139723,
+    "transferBytes": 2140051,
     "rpcRequests": 7,
-    "rpcTransferBytes": 1537908,
-    "heapBytes": 44700000,
-    "storageBytes": 4713127
+    "rpcTransferBytes": 1538154,
+    "heapBytes": 47400000,
+    "storageBytes": 4714609
   },
   "warmHydration": {
-    "durationMs": 2396.7000000029802,
-    "usableContentMs": 192,
+    "durationMs": 2403.7000000029802,
+    "usableContentMs": 196.70000000298023,
     "longTasks": [],
     "commits": [
       {
-        "actualDuration": 2.7999999970197678,
-        "baseDuration": 2.2999999821186066
-      },
-      {
-        "actualDuration": 0.5999999940395355,
-        "baseDuration": 1.5999999642372131
-      },
-      {
-        "actualDuration": 1.7000000029802322,
-        "baseDuration": 2.099999964237213
-      },
-      {
-        "actualDuration": 0.6000000089406967,
-        "baseDuration": 1.9999999701976776
-      },
-      { "actualDuration": 3, "baseDuration": 4.599999964237213 },
-      {
-        "actualDuration": 9.80000002682209,
-        "baseDuration": 10.100000023841858
-      },
-      { "actualDuration": 3, "baseDuration": 8.899999991059303 },
-      { "actualDuration": 0, "baseDuration": 8.899999991059303 },
-      {
-        "actualDuration": 2.300000011920929,
-        "baseDuration": 9.000000014901161
-      },
-      { "actualDuration": 0, "baseDuration": 9.000000014901161 },
-      {
-        "actualDuration": 2.7999999970197678,
-        "baseDuration": 8.199999988079071
-      },
-      { "actualDuration": 0, "baseDuration": 8.199999988079071 },
-      {
-        "actualDuration": 5.800000011920929,
-        "baseDuration": 10.599999979138374
-      },
-      {
-        "actualDuration": 0.6000000089406967,
-        "baseDuration": 10.499999985098839
-      },
-      {
-        "actualDuration": 5.200000017881393,
-        "baseDuration": 5.899999991059303
-      },
-      {
-        "actualDuration": 3.7999999970197678,
-        "baseDuration": 5.199999958276749
-      },
-      {
-        "actualDuration": 4.700000002980232,
-        "baseDuration": 6.399999976158142
-      },
-      {
-        "actualDuration": 0.5999999940395355,
-        "baseDuration": 5.499999970197678
-      },
-      { "actualDuration": 3.5, "baseDuration": 4.999999985098839 },
-      { "actualDuration": 0.5, "baseDuration": 4.899999976158142 },
-      {
-        "actualDuration": 3.199999988079071,
-        "baseDuration": 4.899999961256981
-      },
-      {
-        "actualDuration": 0.5000000149011612,
-        "baseDuration": 4.899999976158142
-      },
-      {
-        "actualDuration": 6.000000014901161,
-        "baseDuration": 6.799999967217445
-      },
-      { "actualDuration": 0.5, "baseDuration": 6.69999997317791 },
-      { "actualDuration": 0, "baseDuration": 6.69999997317791 },
-      {
-        "actualDuration": 3.7999999970197678,
-        "baseDuration": 7.199999958276749
-      },
-      { "actualDuration": 0.5, "baseDuration": 6.999999955296516 },
-      {
-        "actualDuration": 3.2999999970197678,
-        "baseDuration": 6.699999958276749
-      },
-      { "actualDuration": 0.5, "baseDuration": 6.599999949336052 },
-      {
-        "actualDuration": 3.7000000178813934,
-        "baseDuration": 6.999999970197678
-      },
-      { "actualDuration": 0.5, "baseDuration": 6.799999967217445 },
-      {
         "actualDuration": 3.2000000029802322,
-        "baseDuration": 6.499999970197678
-      },
-      { "actualDuration": 0.5, "baseDuration": 6.599999964237213 },
-      {
-        "actualDuration": 5.700000002980232,
-        "baseDuration": 7.299999967217445
+        "baseDuration": 2.5000000298023224
       },
       {
-        "actualDuration": 0.5999999940395355,
-        "baseDuration": 7.39999994635582
+        "actualDuration": 0.7999999970197678,
+        "baseDuration": 2.1000000089406967
       },
       {
-        "actualDuration": 0.19999998807907104,
-        "baseDuration": 7.299999937415123
+        "actualDuration": 4.099999979138374,
+        "baseDuration": 4.799999997019768
       },
       {
-        "actualDuration": 1.2999999821186066,
-        "baseDuration": 6.999999940395355
+        "actualDuration": 0.4999999850988388,
+        "baseDuration": 2.2999999970197678
       },
       {
-        "actualDuration": 0.20000000298023224,
-        "baseDuration": 7.099999949336052
+        "actualDuration": 0.3999999910593033,
+        "baseDuration": 2.2999999970197678
       },
       {
-        "actualDuration": 0.20000000298023224,
-        "baseDuration": 7.099999949336052
+        "actualDuration": 10.100000008940697,
+        "baseDuration": 8.200000032782555
+      },
+      {
+        "actualDuration": 2.8999999910593033,
+        "baseDuration": 6.500000029802322
+      },
+      { "actualDuration": 0, "baseDuration": 6.500000029802322 },
+      {
+        "actualDuration": 2.3999999910593033,
+        "baseDuration": 7.000000014901161
+      },
+      { "actualDuration": 0, "baseDuration": 7.000000014901161 },
+      {
+        "actualDuration": 2.4000000059604645,
+        "baseDuration": 5.600000038743019
+      },
+      { "actualDuration": 0, "baseDuration": 5.600000038743019 },
+      {
+        "actualDuration": 3.0999999791383743,
+        "baseDuration": 5.200000002980232
+      },
+      { "actualDuration": 0.5, "baseDuration": 5 },
+      { "actualDuration": 5, "baseDuration": 5.500000014901161 },
+      { "actualDuration": 3.7999999821186066, "baseDuration": 5 },
+      { "actualDuration": 0.5, "baseDuration": 5 },
+      { "actualDuration": 4.100000008940697, "baseDuration": 5.80000002682209 },
+      { "actualDuration": 0.5, "baseDuration": 5.400000020861626 },
+      {
+        "actualDuration": 6.700000017881393,
+        "baseDuration": 7.300000011920929
+      },
+      {
+        "actualDuration": 0.6000000089406967,
+        "baseDuration": 7.200000017881393
+      },
+      { "actualDuration": 0, "baseDuration": 7.200000017881393 },
+      {
+        "actualDuration": 4.000000014901161,
+        "baseDuration": 7.600000008940697
+      },
+      { "actualDuration": 0.5, "baseDuration": 7.5 },
+      {
+        "actualDuration": 3.4999999701976776,
+        "baseDuration": 7.099999964237213
+      },
+      {
+        "actualDuration": 0.3999999910593033,
+        "baseDuration": 6.89999994635582
+      },
+      { "actualDuration": 4.700000002980232, "baseDuration": 6.30000002682209 },
+      { "actualDuration": 0.5, "baseDuration": 6.300000041723251 },
+      {
+        "actualDuration": 4.399999991059303,
+        "baseDuration": 6.0999999940395355
+      },
+      {
+        "actualDuration": 0.6000000089406967,
+        "baseDuration": 6.000000014901161
+      },
+      {
+        "actualDuration": 0.29999999701976776,
+        "baseDuration": 6.100000008940697
+      },
+      {
+        "actualDuration": 0.29999999701976776,
+        "baseDuration": 6.100000008940697
       }
     ],
     "indexedDb": { "reads": 1350, "writes": 345 },
     "requests": 97,
-    "transferBytes": 331880,
+    "transferBytes": 263029,
     "rpcRequests": 7,
-    "rpcTransferBytes": 329616,
-    "heapBytes": 44700000,
-    "storageBytes": 4853332
+    "rpcTransferBytes": 260765,
+    "heapBytes": 47400000,
+    "storageBytes": 4875664
   },
   "reconnect": {
-    "durationMs": 3005.2999999970198,
+    "durationMs": 3005.1000000089407,
     "usableContentMs": null,
     "longTasks": [],
     "commits": [
+      { "actualDuration": 0.5, "baseDuration": 6.400000020861626 },
       {
         "actualDuration": 0.4000000059604645,
-        "baseDuration": 6.999999955296516
+        "baseDuration": 6.30000002682209
       },
       {
-        "actualDuration": 0.5999999940395355,
-        "baseDuration": 7.1999999433755875
+        "actualDuration": 5.999999970197678,
+        "baseDuration": 7.099999979138374
       },
       {
-        "actualDuration": 6.100000008940697,
-        "baseDuration": 7.199999988079071
-      },
-      {
-        "actualDuration": 5.0999999940395355,
-        "baseDuration": 6.19999997317791
-      },
-      {
-        "actualDuration": 2.9000000059604645,
-        "baseDuration": 5.899999991059303
-      },
-      {
-        "actualDuration": 0.4000000059604645,
-        "baseDuration": 5.899999991059303
+        "actualDuration": 4.899999961256981,
+        "baseDuration": 5.899999961256981
       },
       {
         "actualDuration": 3.5999999940395355,
-        "baseDuration": 6.699999988079071
+        "baseDuration": 6.299999997019768
       },
       {
-        "actualDuration": 0.5999999940395355,
-        "baseDuration": 6.5999999940395355
+        "actualDuration": 0.5000000149011612,
+        "baseDuration": 6.300000011920929
+      },
+      { "actualDuration": 3.5, "baseDuration": 6.299999997019768 },
+      { "actualDuration": 0.5, "baseDuration": 6.299999997019768 },
+      {
+        "actualDuration": 3.2999999970197678,
+        "baseDuration": 6.0999999940395355
+      },
+      { "actualDuration": 0.5, "baseDuration": 6.0999999940395355 },
+      {
+        "actualDuration": 3.0999999940395355,
+        "baseDuration": 5.599999979138374
+      },
+      {
+        "actualDuration": 0.3999999910593033,
+        "baseDuration": 5.599999979138374
       },
       {
         "actualDuration": 3.2999999970197678,
-        "baseDuration": 6.399999991059303
+        "baseDuration": 5.799999997019768
       },
-      { "actualDuration": 0.5, "baseDuration": 6.499999985098839 },
-      { "actualDuration": 3.2999999970197678, "baseDuration": 6.5 },
+      { "actualDuration": 0.5, "baseDuration": 5.5999999940395355 },
       {
-        "actualDuration": 0.3999999910593033,
-        "baseDuration": 6.299999997019768
+        "actualDuration": 3.300000011920929,
+        "baseDuration": 5.9000000059604645
       },
       {
-        "actualDuration": 3.2000000029802322,
-        "baseDuration": 6.200000017881393
+        "actualDuration": 0.5999999940395355,
+        "baseDuration": 5.899999991059303
       },
-      { "actualDuration": 0.5, "baseDuration": 6.100000023841858 },
       {
-        "actualDuration": 3.1000000089406967,
-        "baseDuration": 6.299999997019768
+        "actualDuration": 3.3999999910593033,
+        "baseDuration": 5.999999985098839
+      },
+      {
+        "actualDuration": 0.5999999940395355,
+        "baseDuration": 6.099999979138374
+      },
+      {
+        "actualDuration": 3.199999988079071,
+        "baseDuration": 5.399999991059303
       },
       {
         "actualDuration": 0.4000000059604645,
-        "baseDuration": 6.200000002980232
-      },
-      {
-        "actualDuration": 5.500000014901161,
-        "baseDuration": 7.000000029802322
-      },
-      { "actualDuration": 0.5, "baseDuration": 7.200000032782555 },
-      {
-        "actualDuration": 3.7999999672174454,
-        "baseDuration": 5.499999970197678
-      },
-      {
-        "actualDuration": 0.3999999910593033,
-        "baseDuration": 5.599999964237213
-      },
-      {
-        "actualDuration": 0.09999999403953552,
-        "baseDuration": 5.499999955296516
-      },
-      { "actualDuration": 0, "baseDuration": 5.499999955296516 },
-      {
-        "actualDuration": 0.29999999701976776,
-        "baseDuration": 5.6999999433755875
+        "baseDuration": 5.200000002980232
       },
       {
         "actualDuration": 0.20000000298023224,
-        "baseDuration": 5.599999949336052
+        "baseDuration": 5.4000000059604645
       },
       {
-        "actualDuration": 0.29999999701976776,
-        "baseDuration": 5.6999999433755875
+        "actualDuration": 2.800000011920929,
+        "baseDuration": 5.300000011920929
+      },
+      {
+        "actualDuration": 0.3999999910593033,
+        "baseDuration": 5.300000011920929
+      },
+      {
+        "actualDuration": 3.3999999910593033,
+        "baseDuration": 5.999999985098839
+      },
+      { "actualDuration": 0.5, "baseDuration": 5.999999985098839 },
+      {
+        "actualDuration": 4.300000011920929,
+        "baseDuration": 5.199999988079071
+      },
+      {
+        "actualDuration": 0.4000000059604645,
+        "baseDuration": 4.999999985098839
+      },
+      {
+        "actualDuration": 1.2999999970197678,
+        "baseDuration": 5.099999964237213
+      },
+      { "actualDuration": 0, "baseDuration": 5.099999964237213 },
+      {
+        "actualDuration": 0.3999999910593033,
+        "baseDuration": 5.399999961256981
+      },
+      {
+        "actualDuration": 0.30000001192092896,
+        "baseDuration": 5.299999982118607
+      },
+      {
+        "actualDuration": 0.20000000298023224,
+        "baseDuration": 5.19999997317791
       }
     ],
     "indexedDb": { "reads": 0, "writes": 345 },
     "requests": 7,
-    "transferBytes": 281287,
+    "transferBytes": 327416,
     "rpcRequests": 6,
-    "rpcTransferBytes": 280520,
-    "heapBytes": 44700000,
-    "storageBytes": 4880776
+    "rpcTransferBytes": 326649,
+    "heapBytes": 47400000,
+    "storageBytes": 4854746
   },
   "pagination": {
-    "durationMs": 2009.9000000059605,
+    "durationMs": 2009.5,
     "usableContentMs": null,
     "longTasks": [],
     "commits": [
+      { "actualDuration": 2.5, "baseDuration": 5.399999991059303 },
       {
-        "actualDuration": 2.3999999910593033,
-        "baseDuration": 5.999999970197678
+        "actualDuration": 0.09999999403953552,
+        "baseDuration": 5.299999997019768
       },
       {
-        "actualDuration": 2.2000000029802322,
-        "baseDuration": 5.899999976158142
+        "actualDuration": 2.7000000029802322,
+        "baseDuration": 5.499999985098839
       },
       {
-        "actualDuration": 2.0999999940395355,
-        "baseDuration": 5.69999997317791
-      },
-      { "actualDuration": 5, "baseDuration": 6.599999964237213 },
-      { "actualDuration": 5, "baseDuration": 6.499999985098839 },
-      {
-        "actualDuration": 5.099999979138374,
-        "baseDuration": 6.499999955296516
+        "actualDuration": 5.599999979138374,
+        "baseDuration": 6.799999997019768
       },
       {
-        "actualDuration": 2.4000000059604645,
-        "baseDuration": 6.399999976158142
+        "actualDuration": 6.0999999940395355,
+        "baseDuration": 7.300000011920929
       },
       {
-        "actualDuration": 5.699999988079071,
-        "baseDuration": 8.599999964237213
+        "actualDuration": 4.899999991059303,
+        "baseDuration": 6.000000014901161
       },
-      { "actualDuration": 0, "baseDuration": 8.599999964237213 },
+      {
+        "actualDuration": 2.7999999970197678,
+        "baseDuration": 6.200000002980232
+      },
+      {
+        "actualDuration": 5.799999997019768,
+        "baseDuration": 8.600000023841858
+      },
+      { "actualDuration": 0, "baseDuration": 8.600000023841858 },
       {
         "actualDuration": 0.20000000298023224,
-        "baseDuration": 8.499999970197678
+        "baseDuration": 8.600000023841858
       },
       {
         "actualDuration": 0.20000000298023224,
-        "baseDuration": 8.399999976158142
+        "baseDuration": 8.600000023841858
       }
     ],
     "indexedDb": { "reads": 0, "writes": 0 },
@@ -381,94 +398,79 @@
     "transferBytes": 1506,
     "rpcRequests": 1,
     "rpcTransferBytes": 9,
-    "heapBytes": 44700000,
-    "storageBytes": 4880776
+    "heapBytes": 47400000,
+    "storageBytes": 4854746
   },
   "reader": {
-    "durationMs": 54.5,
-    "usableContentMs": 53.69999998807907,
+    "durationMs": 58,
+    "usableContentMs": 57.099999994039536,
     "longTasks": [],
     "commits": [
       {
-        "actualDuration": 4.200000002980232,
-        "baseDuration": 8.199999988079071
+        "actualDuration": 3.899999976158142,
+        "baseDuration": 7.899999991059303
       },
       {
-        "actualDuration": 8.200000017881393,
-        "baseDuration": 8.700000032782555
+        "actualDuration": 7.899999991059303,
+        "baseDuration": 8.099999994039536
       },
       {
-        "actualDuration": 0.20000000298023224,
-        "baseDuration": 8.30000002682209
+        "actualDuration": 0.29999999701976776,
+        "baseDuration": 7.899999991059303
       },
-      { "actualDuration": 0, "baseDuration": 8.30000002682209 },
+      { "actualDuration": 0, "baseDuration": 7.899999991059303 },
       {
-        "actualDuration": 1.7000000029802322,
-        "baseDuration": 4.9000000059604645
-      },
-      {
-        "actualDuration": 0.3999999910593033,
-        "baseDuration": 3.7999999970197678
+        "actualDuration": 1.6000000089406967,
+        "baseDuration": 4.900000020861626
       },
       {
-        "actualDuration": 0.09999999403953552,
-        "baseDuration": 3.7999999821186066
+        "actualDuration": 0.4000000059604645,
+        "baseDuration": 3.9000000208616257
       },
-      { "actualDuration": 0, "baseDuration": 3.699999988079071 }
+      { "actualDuration": 0, "baseDuration": 3.9000000208616257 },
+      { "actualDuration": 0, "baseDuration": 3.9000000208616257 }
     ],
     "indexedDb": { "reads": 0, "writes": 32 },
     "requests": 1,
     "transferBytes": 0,
     "rpcRequests": 1,
     "rpcTransferBytes": 0,
-    "heapBytes": 44700000,
-    "storageBytes": 4810500
+    "heapBytes": 47400000,
+    "storageBytes": 4826301
   },
   "pageCaptureReader": {
-    "durationMs": 69.40000000596046,
-    "usableContentMs": 68.40000000596046,
+    "durationMs": 69.29999999701977,
+    "usableContentMs": 67.59999999403954,
     "longTasks": [],
     "commits": [
       {
-        "actualDuration": 2.2999999821186066,
-        "baseDuration": 5.600000023841858
+        "actualDuration": 2.3999999910593033,
+        "baseDuration": 5.799999952316284
       },
-      {
-        "actualDuration": 5.999999985098839,
-        "baseDuration": 5.999999985098839
-      },
-      {
-        "actualDuration": 0.29999999701976776,
-        "baseDuration": 6.199999988079071
-      },
-      { "actualDuration": 0, "baseDuration": 6.199999988079071 },
-      {
-        "actualDuration": 2.9000000059604645,
-        "baseDuration": 6.099999979138374
-      },
-      {
-        "actualDuration": 2.5999999940395355,
-        "baseDuration": 6.099999979138374
-      },
-      {
-        "actualDuration": 0.5999999940395355,
-        "baseDuration": 6.299999967217445
-      },
-      {
-        "actualDuration": 0.10000000894069672,
-        "baseDuration": 6.199999988079071
-      },
+      { "actualDuration": 6, "baseDuration": 6.499999970197678 },
       {
         "actualDuration": 0.20000000298023224,
-        "baseDuration": 6.19999997317791
-      }
+        "baseDuration": 6.299999982118607
+      },
+      { "actualDuration": 0, "baseDuration": 6.299999982118607 },
+      { "actualDuration": 3, "baseDuration": 6.0999999940395355 },
+      {
+        "actualDuration": 1.7000000029802322,
+        "baseDuration": 5.299999982118607
+      },
+      { "actualDuration": 0.5, "baseDuration": 5.499999985098839 },
+      {
+        "actualDuration": 0.19999998807907104,
+        "baseDuration": 5.399999976158142
+      },
+      { "actualDuration": 0, "baseDuration": 5.299999982118607 }
     ],
     "indexedDb": { "reads": 0, "writes": 0 },
     "requests": 4,
     "transferBytes": 0,
     "rpcRequests": 1,
     "rpcTransferBytes": 0,
-    "heapBytes": 44700000,
-    "storageBytes": 4852267
+    "heapBytes": 47400000,
+    "storageBytes": 4852635
   }
 }

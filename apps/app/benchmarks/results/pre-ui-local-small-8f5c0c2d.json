@@ -1,0 +1,2414 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-01T03:53:18.610Z",
+  "git": {
+    "commit": "8f5c0c2df17b648531037232056e9270adb34c93",
+    "branch": "perf/pre-ui-app-performance-gate",
+    "workingTreeDirty": false,
+    "preBookmarkProductionRef": "090d075f"
+  },
+  "target": { "protocol": "file", "externallyManaged": false },
+  "profile": {
+    "name": "small",
+    "feedItems": 1000,
+    "bookmarks": 100,
+    "views": 3,
+    "warmups": 2,
+    "repetitions": 7
+  },
+  "fixture": {
+    "userId": "serial-benchmark-457239cd-af84-43c2-9d8e-cdd54c7c96bc",
+    "allContentViewId": 1,
+    "feedItems": 1000,
+    "bookmarks": 100,
+    "views": 3,
+    "tags": 3,
+    "canonicalCollisions": 20
+  },
+  "method": {
+    "pageLimit": 30,
+    "cacheProfiles": ["warm", "cold"],
+    "warmups": 2,
+    "repetitions": 7,
+    "pairing": "interleaved with alternating first operation",
+    "latencyGate": "candidate median and p95 <= baseline * 1.5",
+    "structuralGate": "candidate maximum materialized rows <= baseline maximum + page limit + sentinel"
+  },
+  "comparisons": [
+    {
+      "cache": "warm",
+      "visibility": "unread",
+      "baseline": {
+        "operation": "feed-view-page",
+        "samples": 7,
+        "fullDurationMs": {
+          "minimum": 1.9777090000000044,
+          "median": 2.0239159999999856,
+          "p95": 2.0523749999999836,
+          "maximum": 2.0523749999999836
+        },
+        "databaseDurationMs": {
+          "minimum": 1.9337500000001455,
+          "median": 1.9926679999999806,
+          "p95": 2.029331999999613,
+          "maximum": 2.029331999999613
+        },
+        "databaseWallMs": {
+          "minimum": 1.5359999999999445,
+          "median": 1.568125000000009,
+          "p95": 1.5972909999999274,
+          "maximum": 1.5972909999999274
+        },
+        "statementCount": { "minimum": 8, "median": 8, "p95": 8, "maximum": 8 },
+        "materializedRows": {
+          "minimum": 69,
+          "median": 69,
+          "p95": 69,
+          "maximum": 69
+        },
+        "resultBytes": {
+          "minimum": 18666,
+          "median": 18666,
+          "p95": 18666,
+          "maximum": 18666
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": 1309104,
+          "median": 1316096,
+          "p95": 1327264,
+          "maximum": 1327264
+        },
+        "rssDeltaBytes": {
+          "minimum": 65536,
+          "median": 81920,
+          "p95": 98304,
+          "maximum": 98304
+        }
+      },
+      "candidate": {
+        "operation": "mixed-view-page",
+        "samples": 7,
+        "fullDurationMs": {
+          "minimum": 2.6342090000000553,
+          "median": 2.714291000000003,
+          "p95": 2.862124999999992,
+          "maximum": 2.862124999999992
+        },
+        "databaseDurationMs": {
+          "minimum": 2.595791999999733,
+          "median": 2.6723340000000917,
+          "p95": 2.7862089999999853,
+          "maximum": 2.7862089999999853
+        },
+        "databaseWallMs": {
+          "minimum": 2.3423329999999396,
+          "median": 2.4008329999999205,
+          "p95": 2.516124999999988,
+          "maximum": 2.516124999999988
+        },
+        "statementCount": { "minimum": 7, "median": 7, "p95": 7, "maximum": 7 },
+        "materializedRows": {
+          "minimum": 73,
+          "median": 73,
+          "p95": 73,
+          "maximum": 73
+        },
+        "resultBytes": {
+          "minimum": 26034,
+          "median": 26034,
+          "p95": 26034,
+          "maximum": 26034
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": 1990544,
+          "median": 2000032,
+          "p95": 2052392,
+          "maximum": 2052392
+        },
+        "rssDeltaBytes": {
+          "minimum": 32768,
+          "median": 65536,
+          "p95": 98304,
+          "maximum": 98304
+        }
+      },
+      "gate": {
+        "latencyMedianRatio": 1.3411085242668284,
+        "latencyP95Ratio": 1.3945429076070477,
+        "latencyCeiling": 1.5,
+        "latencyPassed": true,
+        "structuralRowBudget": 100,
+        "structuralRowsObserved": 73,
+        "structuralPassed": true,
+        "passed": true
+      }
+    },
+    {
+      "cache": "warm",
+      "visibility": "read",
+      "baseline": {
+        "operation": "feed-view-page",
+        "samples": 7,
+        "fullDurationMs": {
+          "minimum": 1.9171249999999418,
+          "median": 1.9735420000000659,
+          "p95": 2.219208000000094,
+          "maximum": 2.219208000000094
+        },
+        "databaseDurationMs": {
+          "minimum": 1.896207000000004,
+          "median": 1.9430830000000014,
+          "p95": 2.1045420000001513,
+          "maximum": 2.1045420000001513
+        },
+        "databaseWallMs": {
+          "minimum": 1.490583000000015,
+          "median": 1.5433340000000726,
+          "p95": 1.6922499999999445,
+          "maximum": 1.6922499999999445
+        },
+        "statementCount": { "minimum": 8, "median": 8, "p95": 8, "maximum": 8 },
+        "materializedRows": {
+          "minimum": 69,
+          "median": 69,
+          "p95": 69,
+          "maximum": 69
+        },
+        "resultBytes": {
+          "minimum": 19281,
+          "median": 19281,
+          "p95": 19281,
+          "maximum": 19281
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": 1281136,
+          "median": 1293704,
+          "p95": 1324032,
+          "maximum": 1324032
+        },
+        "rssDeltaBytes": {
+          "minimum": 32768,
+          "median": 98304,
+          "p95": 114688,
+          "maximum": 114688
+        }
+      },
+      "candidate": {
+        "operation": "mixed-view-page",
+        "samples": 7,
+        "fullDurationMs": {
+          "minimum": 2.511041999999975,
+          "median": 2.571125000000052,
+          "p95": 2.6310419999999795,
+          "maximum": 2.6310419999999795
+        },
+        "databaseDurationMs": {
+          "minimum": 2.5222909999999956,
+          "median": 2.5802909999999883,
+          "p95": 2.673000000000229,
+          "maximum": 2.673000000000229
+        },
+        "databaseWallMs": {
+          "minimum": 2.257791999999995,
+          "median": 2.3074169999999867,
+          "p95": 2.3374160000000757,
+          "maximum": 2.3374160000000757
+        },
+        "statementCount": { "minimum": 7, "median": 7, "p95": 7, "maximum": 7 },
+        "materializedRows": {
+          "minimum": 71,
+          "median": 71,
+          "p95": 71,
+          "maximum": 71
+        },
+        "resultBytes": {
+          "minimum": 26084,
+          "median": 26084,
+          "p95": 26084,
+          "maximum": 26084
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": 1880104,
+          "median": 1888240,
+          "p95": 1942472,
+          "maximum": 1942472
+        },
+        "rssDeltaBytes": {
+          "minimum": 16384,
+          "median": 32768,
+          "p95": 98304,
+          "maximum": 98304
+        }
+      },
+      "gate": {
+        "latencyMedianRatio": 1.302797204214537,
+        "latencyP95Ratio": 1.1855770166653454,
+        "latencyCeiling": 1.5,
+        "latencyPassed": true,
+        "structuralRowBudget": 100,
+        "structuralRowsObserved": 71,
+        "structuralPassed": true,
+        "passed": true
+      }
+    },
+    {
+      "cache": "warm",
+      "visibility": "later",
+      "baseline": {
+        "operation": "feed-view-page",
+        "samples": 7,
+        "fullDurationMs": {
+          "minimum": 1.8641670000000659,
+          "median": 1.9024590000000217,
+          "p95": 2.0944999999999254,
+          "maximum": 2.0944999999999254
+        },
+        "databaseDurationMs": {
+          "minimum": 1.839874000000009,
+          "median": 1.9036260000000311,
+          "p95": 2.0494179999998323,
+          "maximum": 2.0494179999998323
+        },
+        "databaseWallMs": {
+          "minimum": 1.4368329999999787,
+          "median": 1.4751249999999345,
+          "p95": 1.6242089999999507,
+          "maximum": 1.6242089999999507
+        },
+        "statementCount": { "minimum": 8, "median": 8, "p95": 8, "maximum": 8 },
+        "materializedRows": {
+          "minimum": 69,
+          "median": 69,
+          "p95": 69,
+          "maximum": 69
+        },
+        "resultBytes": {
+          "minimum": 19341,
+          "median": 19341,
+          "p95": 19341,
+          "maximum": 19341
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": 1277416,
+          "median": 1277416,
+          "p95": 1281504,
+          "maximum": 1281504
+        },
+        "rssDeltaBytes": {
+          "minimum": 32768,
+          "median": 81920,
+          "p95": 114688,
+          "maximum": 114688
+        }
+      },
+      "candidate": {
+        "operation": "mixed-view-page",
+        "samples": 7,
+        "fullDurationMs": {
+          "minimum": 2.3812500000000227,
+          "median": 2.4745000000000346,
+          "p95": 2.6490420000000086,
+          "maximum": 2.6490420000000086
+        },
+        "databaseDurationMs": {
+          "minimum": 2.3333339999999225,
+          "median": 2.4228349999999637,
+          "p95": 2.579747999999995,
+          "maximum": 2.579747999999995
+        },
+        "databaseWallMs": {
+          "minimum": 2.1134170000000267,
+          "median": 2.2089160000000447,
+          "p95": 2.333665999999994,
+          "maximum": 2.333665999999994
+        },
+        "statementCount": { "minimum": 7, "median": 7, "p95": 7, "maximum": 7 },
+        "materializedRows": {
+          "minimum": 61,
+          "median": 61,
+          "p95": 61,
+          "maximum": 61
+        },
+        "resultBytes": {
+          "minimum": 26318,
+          "median": 26318,
+          "p95": 26318,
+          "maximum": 26318
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": 1868728,
+          "median": 1869704,
+          "p95": 1882192,
+          "maximum": 1882192
+        },
+        "rssDeltaBytes": {
+          "minimum": 32768,
+          "median": 65536,
+          "p95": 98304,
+          "maximum": 98304
+        }
+      },
+      "gate": {
+        "latencyMedianRatio": 1.3006850607555833,
+        "latencyP95Ratio": 1.2647610408212475,
+        "latencyCeiling": 1.5,
+        "latencyPassed": true,
+        "structuralRowBudget": 100,
+        "structuralRowsObserved": 61,
+        "structuralPassed": true,
+        "passed": true
+      }
+    },
+    {
+      "cache": "cold",
+      "visibility": "unread",
+      "baseline": {
+        "operation": "feed-view-page",
+        "samples": 7,
+        "fullDurationMs": {
+          "minimum": 2.191874999999982,
+          "median": 2.224292000000105,
+          "p95": 2.405708000000004,
+          "maximum": 2.405708000000004
+        },
+        "databaseDurationMs": {
+          "minimum": 2.181209000000308,
+          "median": 2.2173750000001746,
+          "p95": 2.3554999999998927,
+          "maximum": 2.3554999999998927
+        },
+        "databaseWallMs": {
+          "minimum": 1.768041999999923,
+          "median": 1.8006249999998545,
+          "p95": 1.9448749999999109,
+          "maximum": 1.9448749999999109
+        },
+        "statementCount": { "minimum": 8, "median": 8, "p95": 8, "maximum": 8 },
+        "materializedRows": {
+          "minimum": 69,
+          "median": 69,
+          "p95": 69,
+          "maximum": 69
+        },
+        "resultBytes": {
+          "minimum": 18666,
+          "median": 18666,
+          "p95": 18666,
+          "maximum": 18666
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": 1247504,
+          "median": 1276680,
+          "p95": 1296168,
+          "maximum": 1296168
+        },
+        "rssDeltaBytes": {
+          "minimum": 442368,
+          "median": 507904,
+          "p95": 589824,
+          "maximum": 589824
+        }
+      },
+      "candidate": {
+        "operation": "mixed-view-page",
+        "samples": 7,
+        "fullDurationMs": {
+          "minimum": 2.8395409999998265,
+          "median": 2.887583000000177,
+          "p95": 3.0915829999999005,
+          "maximum": 3.0915829999999005
+        },
+        "databaseDurationMs": {
+          "minimum": 2.892583000000286,
+          "median": 2.968083000000206,
+          "p95": 3.166502000000037,
+          "maximum": 3.166502000000037
+        },
+        "databaseWallMs": {
+          "minimum": 2.551832999999988,
+          "median": 2.603207999999995,
+          "p95": 2.8047500000000127,
+          "maximum": 2.8047500000000127
+        },
+        "statementCount": { "minimum": 7, "median": 7, "p95": 7, "maximum": 7 },
+        "materializedRows": {
+          "minimum": 73,
+          "median": 73,
+          "p95": 73,
+          "maximum": 73
+        },
+        "resultBytes": {
+          "minimum": 26034,
+          "median": 26034,
+          "p95": 26034,
+          "maximum": 26034
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": 1871408,
+          "median": 1937480,
+          "p95": 1991048,
+          "maximum": 1991048
+        },
+        "rssDeltaBytes": {
+          "minimum": 475136,
+          "median": 507904,
+          "p95": 770048,
+          "maximum": 770048
+        }
+      },
+      "gate": {
+        "latencyMedianRatio": 1.2982032035362447,
+        "latencyP95Ratio": 1.2851031796044636,
+        "latencyCeiling": 1.5,
+        "latencyPassed": true,
+        "structuralRowBudget": 100,
+        "structuralRowsObserved": 73,
+        "structuralPassed": true,
+        "passed": true
+      }
+    },
+    {
+      "cache": "cold",
+      "visibility": "read",
+      "baseline": {
+        "operation": "feed-view-page",
+        "samples": 7,
+        "fullDurationMs": {
+          "minimum": 2.1358329999998205,
+          "median": 2.2035419999999704,
+          "p95": 2.4282909999999447,
+          "maximum": 2.4282909999999447
+        },
+        "databaseDurationMs": {
+          "minimum": 2.127832000000353,
+          "median": 2.1861249999999472,
+          "p95": 2.4499180000002525,
+          "maximum": 2.4499180000002525
+        },
+        "databaseWallMs": {
+          "minimum": 1.7312500000000455,
+          "median": 1.780958000000055,
+          "p95": 2.0054170000000795,
+          "maximum": 2.0054170000000795
+        },
+        "statementCount": { "minimum": 8, "median": 8, "p95": 8, "maximum": 8 },
+        "materializedRows": {
+          "minimum": 69,
+          "median": 69,
+          "p95": 69,
+          "maximum": 69
+        },
+        "resultBytes": {
+          "minimum": 19281,
+          "median": 19281,
+          "p95": 19281,
+          "maximum": 19281
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": 1252176,
+          "median": 1256176,
+          "p95": 1259568,
+          "maximum": 1259568
+        },
+        "rssDeltaBytes": {
+          "minimum": 491520,
+          "median": 557056,
+          "p95": 606208,
+          "maximum": 606208
+        }
+      },
+      "candidate": {
+        "operation": "mixed-view-page",
+        "samples": 7,
+        "fullDurationMs": {
+          "minimum": 2.84375,
+          "median": 2.8551249999998163,
+          "p95": 3.069500000000062,
+          "maximum": 3.069500000000062
+        },
+        "databaseDurationMs": {
+          "minimum": 2.9357900000002246,
+          "median": 2.9601259999997183,
+          "p95": 3.192083000000139,
+          "maximum": 3.192083000000139
+        },
+        "databaseWallMs": {
+          "minimum": 2.5815419999998994,
+          "median": 2.6048749999999927,
+          "p95": 2.7891250000000127,
+          "maximum": 2.7891250000000127
+        },
+        "statementCount": { "minimum": 7, "median": 7, "p95": 7, "maximum": 7 },
+        "materializedRows": {
+          "minimum": 71,
+          "median": 71,
+          "p95": 71,
+          "maximum": 71
+        },
+        "resultBytes": {
+          "minimum": 26084,
+          "median": 26084,
+          "p95": 26084,
+          "maximum": 26084
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": 1829896,
+          "median": 1832504,
+          "p95": 1847200,
+          "maximum": 1847200
+        },
+        "rssDeltaBytes": {
+          "minimum": 475136,
+          "median": 557056,
+          "p95": 638976,
+          "maximum": 638976
+        }
+      },
+      "gate": {
+        "latencyMedianRatio": 1.2956980171014914,
+        "latencyP95Ratio": 1.2640577261951438,
+        "latencyCeiling": 1.5,
+        "latencyPassed": true,
+        "structuralRowBudget": 100,
+        "structuralRowsObserved": 71,
+        "structuralPassed": true,
+        "passed": true
+      }
+    },
+    {
+      "cache": "cold",
+      "visibility": "later",
+      "baseline": {
+        "operation": "feed-view-page",
+        "samples": 7,
+        "fullDurationMs": {
+          "minimum": 2.1354590000000826,
+          "median": 2.2130409999999756,
+          "p95": 2.5384169999999813,
+          "maximum": 2.5384169999999813
+        },
+        "databaseDurationMs": {
+          "minimum": 2.0864579999999933,
+          "median": 2.1810820000000604,
+          "p95": 2.4551250000004075,
+          "maximum": 2.4551250000004075
+        },
+        "databaseWallMs": {
+          "minimum": 1.6809160000000247,
+          "median": 1.7459999999998672,
+          "p95": 2.0254580000000715,
+          "maximum": 2.0254580000000715
+        },
+        "statementCount": { "minimum": 8, "median": 8, "p95": 8, "maximum": 8 },
+        "materializedRows": {
+          "minimum": 69,
+          "median": 69,
+          "p95": 69,
+          "maximum": 69
+        },
+        "resultBytes": {
+          "minimum": 19341,
+          "median": 19341,
+          "p95": 19341,
+          "maximum": 19341
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": 1248160,
+          "median": 1248160,
+          "p95": 1250640,
+          "maximum": 1250640
+        },
+        "rssDeltaBytes": {
+          "minimum": 425984,
+          "median": 507904,
+          "p95": 540672,
+          "maximum": 540672
+        }
+      },
+      "candidate": {
+        "operation": "mixed-view-page",
+        "samples": 7,
+        "fullDurationMs": {
+          "minimum": 2.7165840000000117,
+          "median": 2.792167000000063,
+          "p95": 3.00974999999994,
+          "maximum": 3.00974999999994
+        },
+        "databaseDurationMs": {
+          "minimum": 2.731127000000015,
+          "median": 2.794749999999567,
+          "p95": 3.012040999999954,
+          "maximum": 3.012040999999954
+        },
+        "databaseWallMs": {
+          "minimum": 2.423375000000078,
+          "median": 2.4895420000000286,
+          "p95": 2.6814580000000205,
+          "maximum": 2.6814580000000205
+        },
+        "statementCount": { "minimum": 7, "median": 7, "p95": 7, "maximum": 7 },
+        "materializedRows": {
+          "minimum": 61,
+          "median": 61,
+          "p95": 61,
+          "maximum": 61
+        },
+        "resultBytes": {
+          "minimum": 26318,
+          "median": 26318,
+          "p95": 26318,
+          "maximum": 26318
+        },
+        "resultRows": { "minimum": 30, "median": 30, "p95": 30, "maximum": 30 },
+        "heapDeltaBytes": {
+          "minimum": 1812968,
+          "median": 1812968,
+          "p95": 1824248,
+          "maximum": 1824248
+        },
+        "rssDeltaBytes": {
+          "minimum": 475136,
+          "median": 524288,
+          "p95": 557056,
+          "maximum": 557056
+        }
+      },
+      "gate": {
+        "latencyMedianRatio": 1.2616878765463875,
+        "latencyP95Ratio": 1.1856798942017652,
+        "latencyCeiling": 1.5,
+        "latencyPassed": true,
+        "structuralRowBudget": 100,
+        "structuralRowsObserved": 61,
+        "structuralPassed": true,
+        "passed": true
+      }
+    }
+  ],
+  "rawSamples": [
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 2.0266249999999673,
+      "databaseDurationMs": 1.9926679999999806,
+      "databaseWallMs": 1.580500000000029,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 18666,
+      "resultRows": 30,
+      "heapDeltaBytes": 1327264,
+      "rssDeltaBytes": 98304
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 2.8419580000000906,
+      "databaseDurationMs": 2.7862089999999853,
+      "databaseWallMs": 2.502542000000062,
+      "statementCount": 7,
+      "materializedRows": 73,
+      "resultBytes": 26034,
+      "resultRows": 30,
+      "heapDeltaBytes": 2000032,
+      "rssDeltaBytes": 98304
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 2.862124999999992,
+      "databaseDurationMs": 2.749999000000116,
+      "databaseWallMs": 2.5142080000000533,
+      "statementCount": 7,
+      "materializedRows": 73,
+      "resultBytes": 26034,
+      "resultRows": 30,
+      "heapDeltaBytes": 2014272,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 2.0294170000000804,
+      "databaseDurationMs": 2.0014580000000706,
+      "databaseWallMs": 1.5795420000000604,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 18666,
+      "resultRows": 30,
+      "heapDeltaBytes": 1322560,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 2.0523749999999836,
+      "databaseDurationMs": 2.029331999999613,
+      "databaseWallMs": 1.5972909999999274,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 18666,
+      "resultRows": 30,
+      "heapDeltaBytes": 1325640,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 2.817874999999958,
+      "databaseDurationMs": 2.7131680000002234,
+      "databaseWallMs": 2.516124999999988,
+      "statementCount": 7,
+      "materializedRows": 73,
+      "resultBytes": 26034,
+      "resultRows": 30,
+      "heapDeltaBytes": 2047456,
+      "rssDeltaBytes": 32768
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 2.6593749999999545,
+      "databaseDurationMs": 2.605333000000087,
+      "databaseWallMs": 2.3433750000000373,
+      "statementCount": 7,
+      "materializedRows": 73,
+      "resultBytes": 26034,
+      "resultRows": 30,
+      "heapDeltaBytes": 1992960,
+      "rssDeltaBytes": 49152
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 2.0239159999999856,
+      "databaseDurationMs": 2.013041999999814,
+      "databaseWallMs": 1.568125000000009,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 18666,
+      "resultRows": 30,
+      "heapDeltaBytes": 1309104,
+      "rssDeltaBytes": 81920
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 1.9926249999999754,
+      "databaseDurationMs": 1.9337500000001455,
+      "databaseWallMs": 1.5486250000000155,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 18666,
+      "resultRows": 30,
+      "heapDeltaBytes": 1311376,
+      "rssDeltaBytes": 98304
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 2.6342090000000553,
+      "databaseDurationMs": 2.595791999999733,
+      "databaseWallMs": 2.3423329999999396,
+      "statementCount": 7,
+      "materializedRows": 73,
+      "resultBytes": 26034,
+      "resultRows": 30,
+      "heapDeltaBytes": 1990544,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 2.714291000000003,
+      "databaseDurationMs": 2.6723340000000917,
+      "databaseWallMs": 2.4008329999999205,
+      "statementCount": 7,
+      "materializedRows": 73,
+      "resultBytes": 26034,
+      "resultRows": 30,
+      "heapDeltaBytes": 1990544,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 1.9777090000000044,
+      "databaseDurationMs": 1.9463340000000926,
+      "databaseWallMs": 1.5359999999999445,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 18666,
+      "resultRows": 30,
+      "heapDeltaBytes": 1316096,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 1.9965000000000828,
+      "databaseDurationMs": 1.9672899999999345,
+      "databaseWallMs": 1.5402500000000146,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 18666,
+      "resultRows": 30,
+      "heapDeltaBytes": 1312896,
+      "rssDeltaBytes": 98304
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "unread",
+      "fullDurationMs": 2.665124999999989,
+      "databaseDurationMs": 2.619831999999974,
+      "databaseWallMs": 2.369874999999979,
+      "statementCount": 7,
+      "materializedRows": 73,
+      "resultBytes": 26034,
+      "resultRows": 30,
+      "heapDeltaBytes": 2052392,
+      "rssDeltaBytes": 81920
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 1.9735420000000659,
+      "databaseDurationMs": 1.9430830000000014,
+      "databaseWallMs": 1.5433340000000726,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19281,
+      "resultRows": 30,
+      "heapDeltaBytes": 1318128,
+      "rssDeltaBytes": 98304
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 2.6310419999999795,
+      "databaseDurationMs": 2.636292000000026,
+      "databaseWallMs": 2.3359159999999974,
+      "statementCount": 7,
+      "materializedRows": 71,
+      "resultBytes": 26084,
+      "resultRows": 30,
+      "heapDeltaBytes": 1942472,
+      "rssDeltaBytes": 32768
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 2.52054099999998,
+      "databaseDurationMs": 2.5452499999997826,
+      "databaseWallMs": 2.257791999999995,
+      "statementCount": 7,
+      "materializedRows": 71,
+      "resultBytes": 26084,
+      "resultRows": 30,
+      "heapDeltaBytes": 1939888,
+      "rssDeltaBytes": 16384
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 2.219208000000094,
+      "databaseDurationMs": 2.1045420000001513,
+      "databaseWallMs": 1.6922499999999445,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19281,
+      "resultRows": 30,
+      "heapDeltaBytes": 1324032,
+      "rssDeltaBytes": 114688
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 2.0508330000000115,
+      "databaseDurationMs": 2.048999999999978,
+      "databaseWallMs": 1.6062499999999318,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19281,
+      "resultRows": 30,
+      "heapDeltaBytes": 1310960,
+      "rssDeltaBytes": 32768
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 2.571125000000052,
+      "databaseDurationMs": 2.5802909999999883,
+      "databaseWallMs": 2.31574999999998,
+      "statementCount": 7,
+      "materializedRows": 71,
+      "resultBytes": 26084,
+      "resultRows": 30,
+      "heapDeltaBytes": 1904904,
+      "rssDeltaBytes": 98304
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 2.511041999999975,
+      "databaseDurationMs": 2.5222909999999956,
+      "databaseWallMs": 2.2583340000001044,
+      "statementCount": 7,
+      "materializedRows": 71,
+      "resultBytes": 26084,
+      "resultRows": 30,
+      "heapDeltaBytes": 1887360,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 1.9375830000000178,
+      "databaseDurationMs": 1.8969159999999192,
+      "databaseWallMs": 1.5038749999999936,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19281,
+      "resultRows": 30,
+      "heapDeltaBytes": 1293704,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 1.9171249999999418,
+      "databaseDurationMs": 1.896207000000004,
+      "databaseWallMs": 1.490583000000015,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19281,
+      "resultRows": 30,
+      "heapDeltaBytes": 1281136,
+      "rssDeltaBytes": 98304
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 2.6283750000000055,
+      "databaseDurationMs": 2.673000000000229,
+      "databaseWallMs": 2.3374160000000757,
+      "statementCount": 7,
+      "materializedRows": 71,
+      "resultBytes": 26084,
+      "resultRows": 30,
+      "heapDeltaBytes": 1880104,
+      "rssDeltaBytes": 32768
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 2.5544170000000577,
+      "databaseDurationMs": 2.5708770000002232,
+      "databaseWallMs": 2.2902500000000146,
+      "statementCount": 7,
+      "materializedRows": 71,
+      "resultBytes": 26084,
+      "resultRows": 30,
+      "heapDeltaBytes": 1886560,
+      "rssDeltaBytes": 32768
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 2.044499999999971,
+      "databaseDurationMs": 1.9880830000000742,
+      "databaseWallMs": 1.5700830000000678,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19281,
+      "resultRows": 30,
+      "heapDeltaBytes": 1287336,
+      "rssDeltaBytes": 98304
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 1.958582999999976,
+      "databaseDurationMs": 1.9309600000000273,
+      "databaseWallMs": 1.5259999999999536,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19281,
+      "resultRows": 30,
+      "heapDeltaBytes": 1286032,
+      "rssDeltaBytes": 98304
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "read",
+      "fullDurationMs": 2.5779159999999592,
+      "databaseDurationMs": 2.5818340000000717,
+      "databaseWallMs": 2.3074169999999867,
+      "statementCount": 7,
+      "materializedRows": 71,
+      "resultBytes": 26084,
+      "resultRows": 30,
+      "heapDeltaBytes": 1888240,
+      "rssDeltaBytes": 49152
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 1.9024590000000217,
+      "databaseDurationMs": 1.9036260000000311,
+      "databaseWallMs": 1.4657499999999573,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19341,
+      "resultRows": 30,
+      "heapDeltaBytes": 1277600,
+      "rssDeltaBytes": 32768
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 2.3812500000000227,
+      "databaseDurationMs": 2.3333339999999225,
+      "databaseWallMs": 2.1134170000000267,
+      "statementCount": 7,
+      "materializedRows": 61,
+      "resultBytes": 26318,
+      "resultRows": 30,
+      "heapDeltaBytes": 1868840,
+      "rssDeltaBytes": 32768
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 2.6490420000000086,
+      "databaseDurationMs": 2.579747999999995,
+      "databaseWallMs": 2.333665999999994,
+      "statementCount": 7,
+      "materializedRows": 61,
+      "resultBytes": 26318,
+      "resultRows": 30,
+      "heapDeltaBytes": 1882192,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 1.9007500000000164,
+      "databaseDurationMs": 1.9237509999996973,
+      "databaseWallMs": 1.4751249999999345,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19341,
+      "resultRows": 30,
+      "heapDeltaBytes": 1281504,
+      "rssDeltaBytes": 81920
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 1.955000000000041,
+      "databaseDurationMs": 1.942208000000278,
+      "databaseWallMs": 1.509999999999991,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19341,
+      "resultRows": 30,
+      "heapDeltaBytes": 1277416,
+      "rssDeltaBytes": 114688
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 2.4541249999999764,
+      "databaseDurationMs": 2.414041999999995,
+      "databaseWallMs": 2.2154999999999063,
+      "statementCount": 7,
+      "materializedRows": 61,
+      "resultBytes": 26318,
+      "resultRows": 30,
+      "heapDeltaBytes": 1880536,
+      "rssDeltaBytes": 98304
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 2.498625000000061,
+      "databaseDurationMs": 2.4369570000000067,
+      "databaseWallMs": 2.2089160000000447,
+      "statementCount": 7,
+      "materializedRows": 61,
+      "resultBytes": 26318,
+      "resultRows": 30,
+      "heapDeltaBytes": 1869704,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 1.8641670000000659,
+      "databaseDurationMs": 1.839874000000009,
+      "databaseWallMs": 1.4368329999999787,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19341,
+      "resultRows": 30,
+      "heapDeltaBytes": 1277416,
+      "rssDeltaBytes": 49152
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 1.878832999999986,
+      "databaseDurationMs": 1.872584000000188,
+      "databaseWallMs": 1.4531670000000076,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19341,
+      "resultRows": 30,
+      "heapDeltaBytes": 1277416,
+      "rssDeltaBytes": 81920
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 2.4745000000000346,
+      "databaseDurationMs": 2.4228349999999637,
+      "databaseWallMs": 2.193916999999942,
+      "statementCount": 7,
+      "materializedRows": 61,
+      "resultBytes": 26318,
+      "resultRows": 30,
+      "heapDeltaBytes": 1868728,
+      "rssDeltaBytes": 65536
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 2.433708000000024,
+      "databaseDurationMs": 2.3663340000000517,
+      "databaseWallMs": 2.149958999999967,
+      "statementCount": 7,
+      "materializedRows": 61,
+      "resultBytes": 26318,
+      "resultRows": 30,
+      "heapDeltaBytes": 1870968,
+      "rssDeltaBytes": 49152
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 2.0944999999999254,
+      "databaseDurationMs": 2.0494179999998323,
+      "databaseWallMs": 1.6242089999999507,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19341,
+      "resultRows": 30,
+      "heapDeltaBytes": 1277416,
+      "rssDeltaBytes": 81920
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 1.909917000000064,
+      "databaseDurationMs": 1.88508499999989,
+      "databaseWallMs": 1.477916999999934,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19341,
+      "resultRows": 30,
+      "heapDeltaBytes": 1278880,
+      "rssDeltaBytes": 32768
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "warm",
+      "visibility": "later",
+      "fullDurationMs": 2.5265830000000733,
+      "databaseDurationMs": 2.484457999999904,
+      "databaseWallMs": 2.2227499999999054,
+      "statementCount": 7,
+      "materializedRows": 61,
+      "resultBytes": 26318,
+      "resultRows": 30,
+      "heapDeltaBytes": 1869440,
+      "rssDeltaBytes": 49152
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 2.200208999999859,
+      "databaseDurationMs": 2.181209000000308,
+      "databaseWallMs": 1.7775000000001455,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 18666,
+      "resultRows": 30,
+      "heapDeltaBytes": 1276992,
+      "rssDeltaBytes": 507904
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 2.8752909999998337,
+      "databaseDurationMs": 2.8993780000000697,
+      "databaseWallMs": 2.5791249999999764,
+      "statementCount": 7,
+      "materializedRows": 73,
+      "resultBytes": 26034,
+      "resultRows": 30,
+      "heapDeltaBytes": 1937480,
+      "rssDeltaBytes": 475136
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 2.887583000000177,
+      "databaseDurationMs": 2.973833999999897,
+      "databaseWallMs": 2.603207999999995,
+      "statementCount": 7,
+      "materializedRows": 73,
+      "resultBytes": 26034,
+      "resultRows": 30,
+      "heapDeltaBytes": 1940872,
+      "rssDeltaBytes": 507904
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 2.240041999999903,
+      "databaseDurationMs": 2.2173750000001746,
+      "databaseWallMs": 1.8185420000002068,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 18666,
+      "resultRows": 30,
+      "heapDeltaBytes": 1272600,
+      "rssDeltaBytes": 524288
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 2.191874999999982,
+      "databaseDurationMs": 2.1817520000001878,
+      "databaseWallMs": 1.768041999999923,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 18666,
+      "resultRows": 30,
+      "heapDeltaBytes": 1277072,
+      "rssDeltaBytes": 458752
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 2.945167000000083,
+      "databaseDurationMs": 3.061082999999826,
+      "databaseWallMs": 2.698374999999942,
+      "statementCount": 7,
+      "materializedRows": 73,
+      "resultBytes": 26034,
+      "resultRows": 30,
+      "heapDeltaBytes": 1991048,
+      "rssDeltaBytes": 524288
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 2.8395409999998265,
+      "databaseDurationMs": 2.892583000000286,
+      "databaseWallMs": 2.551832999999988,
+      "statementCount": 7,
+      "materializedRows": 73,
+      "resultBytes": 26034,
+      "resultRows": 30,
+      "heapDeltaBytes": 1927992,
+      "rssDeltaBytes": 507904
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 2.224292000000105,
+      "databaseDurationMs": 2.2423319999995783,
+      "databaseWallMs": 1.8006249999998545,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 18666,
+      "resultRows": 30,
+      "heapDeltaBytes": 1296168,
+      "rssDeltaBytes": 507904
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 2.206416999999874,
+      "databaseDurationMs": 2.1979169999999613,
+      "databaseWallMs": 1.7797920000000431,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 18666,
+      "resultRows": 30,
+      "heapDeltaBytes": 1276680,
+      "rssDeltaBytes": 524288
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 3.0915829999999005,
+      "databaseDurationMs": 3.166502000000037,
+      "databaseWallMs": 2.8047500000000127,
+      "statementCount": 7,
+      "materializedRows": 73,
+      "resultBytes": 26034,
+      "resultRows": 30,
+      "heapDeltaBytes": 1929752,
+      "rssDeltaBytes": 507904
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 2.916500000000042,
+      "databaseDurationMs": 2.968083000000206,
+      "databaseWallMs": 2.6345000000001164,
+      "statementCount": 7,
+      "materializedRows": 73,
+      "resultBytes": 26034,
+      "resultRows": 30,
+      "heapDeltaBytes": 1940448,
+      "rssDeltaBytes": 770048
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 2.405708000000004,
+      "databaseDurationMs": 2.3554999999998927,
+      "databaseWallMs": 1.9448749999999109,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 18666,
+      "resultRows": 30,
+      "heapDeltaBytes": 1273824,
+      "rssDeltaBytes": 589824
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 2.256417000000056,
+      "databaseDurationMs": 2.222416999999723,
+      "databaseWallMs": 1.8129170000001977,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 18666,
+      "resultRows": 30,
+      "heapDeltaBytes": 1247504,
+      "rssDeltaBytes": 442368
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "unread",
+      "fullDurationMs": 2.855208000000175,
+      "databaseDurationMs": 2.9191649999997935,
+      "databaseWallMs": 2.569874999999911,
+      "statementCount": 7,
+      "materializedRows": 73,
+      "resultBytes": 26034,
+      "resultRows": 30,
+      "heapDeltaBytes": 1871408,
+      "rssDeltaBytes": 606208
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 2.4282909999999447,
+      "databaseDurationMs": 2.4499180000002525,
+      "databaseWallMs": 2.0054170000000795,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19281,
+      "resultRows": 30,
+      "heapDeltaBytes": 1256176,
+      "rssDeltaBytes": 573440
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 2.852374999999938,
+      "databaseDurationMs": 2.94595900000013,
+      "databaseWallMs": 2.5865420000000086,
+      "statementCount": 7,
+      "materializedRows": 71,
+      "resultBytes": 26084,
+      "resultRows": 30,
+      "heapDeltaBytes": 1832104,
+      "rssDeltaBytes": 606208
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 2.84375,
+      "databaseDurationMs": 2.9637079999997695,
+      "databaseWallMs": 2.59050000000002,
+      "statementCount": 7,
+      "materializedRows": 71,
+      "resultBytes": 26084,
+      "resultRows": 30,
+      "heapDeltaBytes": 1832504,
+      "rssDeltaBytes": 606208
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 2.16595899999993,
+      "databaseDurationMs": 2.1570819999997184,
+      "databaseWallMs": 1.7569579999999405,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19281,
+      "resultRows": 30,
+      "heapDeltaBytes": 1252176,
+      "rssDeltaBytes": 606208
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 2.1358329999998205,
+      "databaseDurationMs": 2.127832000000353,
+      "databaseWallMs": 1.7312500000000455,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19281,
+      "resultRows": 30,
+      "heapDeltaBytes": 1252176,
+      "rssDeltaBytes": 557056
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 2.852290999999923,
+      "databaseDurationMs": 2.9357900000002246,
+      "databaseWallMs": 2.6048749999999927,
+      "statementCount": 7,
+      "materializedRows": 71,
+      "resultBytes": 26084,
+      "resultRows": 30,
+      "heapDeltaBytes": 1841176,
+      "rssDeltaBytes": 557056
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 2.9680419999999685,
+      "databaseDurationMs": 2.9692489999997633,
+      "databaseWallMs": 2.682207999999946,
+      "statementCount": 7,
+      "materializedRows": 71,
+      "resultBytes": 26084,
+      "resultRows": 30,
+      "heapDeltaBytes": 1829896,
+      "rssDeltaBytes": 638976
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 2.2929579999999987,
+      "databaseDurationMs": 2.2690840000000208,
+      "databaseWallMs": 1.8409590000001117,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19281,
+      "resultRows": 30,
+      "heapDeltaBytes": 1256176,
+      "rssDeltaBytes": 573440
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 2.246832999999924,
+      "databaseDurationMs": 2.1861249999999472,
+      "databaseWallMs": 1.8056249999999636,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19281,
+      "resultRows": 30,
+      "heapDeltaBytes": 1259568,
+      "rssDeltaBytes": 557056
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 3.069500000000062,
+      "databaseDurationMs": 3.192083000000139,
+      "databaseWallMs": 2.7891250000000127,
+      "statementCount": 7,
+      "materializedRows": 71,
+      "resultBytes": 26084,
+      "resultRows": 30,
+      "heapDeltaBytes": 1829896,
+      "rssDeltaBytes": 475136
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 2.8551249999998163,
+      "databaseDurationMs": 2.95579100000009,
+      "databaseWallMs": 2.5815419999998994,
+      "statementCount": 7,
+      "materializedRows": 71,
+      "resultBytes": 26084,
+      "resultRows": 30,
+      "heapDeltaBytes": 1834328,
+      "rssDeltaBytes": 557056
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 2.2035419999999704,
+      "databaseDurationMs": 2.1900410000000647,
+      "databaseWallMs": 1.780958000000055,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19281,
+      "resultRows": 30,
+      "heapDeltaBytes": 1256176,
+      "rssDeltaBytes": 491520
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 2.173958000000084,
+      "databaseDurationMs": 2.1574999999998,
+      "databaseWallMs": 1.7613329999999223,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19281,
+      "resultRows": 30,
+      "heapDeltaBytes": 1256176,
+      "rssDeltaBytes": 491520
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "read",
+      "fullDurationMs": 2.887666999999965,
+      "databaseDurationMs": 2.9601259999997183,
+      "databaseWallMs": 2.618332999999893,
+      "statementCount": 7,
+      "materializedRows": 71,
+      "resultBytes": 26084,
+      "resultRows": 30,
+      "heapDeltaBytes": 1847200,
+      "rssDeltaBytes": 491520
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 2.150624999999991,
+      "databaseDurationMs": 2.104585000000043,
+      "databaseWallMs": 1.6912090000000717,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19341,
+      "resultRows": 30,
+      "heapDeltaBytes": 1248160,
+      "rssDeltaBytes": 425984
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 2.7165840000000117,
+      "databaseDurationMs": 2.7432079999998678,
+      "databaseWallMs": 2.423375000000078,
+      "statementCount": 7,
+      "materializedRows": 61,
+      "resultBytes": 26318,
+      "resultRows": 30,
+      "heapDeltaBytes": 1812968,
+      "rssDeltaBytes": 540672
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 2.8902499999999236,
+      "databaseDurationMs": 2.892833000000337,
+      "databaseWallMs": 2.5895000000000437,
+      "statementCount": 7,
+      "materializedRows": 61,
+      "resultBytes": 26318,
+      "resultRows": 30,
+      "heapDeltaBytes": 1812968,
+      "rssDeltaBytes": 540672
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 2.3345409999999447,
+      "databaseDurationMs": 2.2756660000002285,
+      "databaseWallMs": 1.8506250000000364,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19341,
+      "resultRows": 30,
+      "heapDeltaBytes": 1248160,
+      "rssDeltaBytes": 524288
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 2.165292000000136,
+      "databaseDurationMs": 2.1220420000001923,
+      "databaseWallMs": 1.7117080000000442,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19341,
+      "resultRows": 30,
+      "heapDeltaBytes": 1248160,
+      "rssDeltaBytes": 507904
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 2.7709160000001702,
+      "databaseDurationMs": 2.769626000000244,
+      "databaseWallMs": 2.4895420000000286,
+      "statementCount": 7,
+      "materializedRows": 61,
+      "resultBytes": 26318,
+      "resultRows": 30,
+      "heapDeltaBytes": 1824248,
+      "rssDeltaBytes": 491520
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 3.00974999999994,
+      "databaseDurationMs": 3.012040999999954,
+      "databaseWallMs": 2.6814580000000205,
+      "statementCount": 7,
+      "materializedRows": 61,
+      "resultBytes": 26318,
+      "resultRows": 30,
+      "heapDeltaBytes": 1812968,
+      "rssDeltaBytes": 491520
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 2.282124999999951,
+      "databaseDurationMs": 2.3154590000001463,
+      "databaseWallMs": 1.8231249999998909,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19341,
+      "resultRows": 30,
+      "heapDeltaBytes": 1250640,
+      "rssDeltaBytes": 540672
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 2.2130409999999756,
+      "databaseDurationMs": 2.1810820000000604,
+      "databaseWallMs": 1.7459999999998672,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19341,
+      "resultRows": 30,
+      "heapDeltaBytes": 1248160,
+      "rssDeltaBytes": 425984
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 2.792167000000063,
+      "databaseDurationMs": 2.794749999999567,
+      "databaseWallMs": 2.5006670000000213,
+      "statementCount": 7,
+      "materializedRows": 61,
+      "resultBytes": 26318,
+      "resultRows": 30,
+      "heapDeltaBytes": 1822704,
+      "rssDeltaBytes": 557056
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 2.8055409999999483,
+      "databaseDurationMs": 2.8157920000001013,
+      "databaseWallMs": 2.4644170000001395,
+      "statementCount": 7,
+      "materializedRows": 61,
+      "resultBytes": 26318,
+      "resultRows": 30,
+      "heapDeltaBytes": 1812968,
+      "rssDeltaBytes": 524288
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 2.1354590000000826,
+      "databaseDurationMs": 2.0864579999999933,
+      "databaseWallMs": 1.6809160000000247,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19341,
+      "resultRows": 30,
+      "heapDeltaBytes": 1248160,
+      "rssDeltaBytes": 540672
+    },
+    {
+      "operation": "feed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 2.5384169999999813,
+      "databaseDurationMs": 2.4551250000004075,
+      "databaseWallMs": 2.0254580000000715,
+      "statementCount": 8,
+      "materializedRows": 69,
+      "resultBytes": 19341,
+      "resultRows": 30,
+      "heapDeltaBytes": 1248160,
+      "rssDeltaBytes": 491520
+    },
+    {
+      "operation": "mixed-view-page",
+      "cache": "cold",
+      "visibility": "later",
+      "fullDurationMs": 2.732584000000088,
+      "databaseDurationMs": 2.731127000000015,
+      "databaseWallMs": 2.4346250000000964,
+      "statementCount": 7,
+      "materializedRows": 61,
+      "resultBytes": 26318,
+      "resultRows": 30,
+      "heapDeltaBytes": 1812968,
+      "rssDeltaBytes": 475136
+    }
+  ],
+  "statementObservations": [
+    {
+      "cache": "warm",
+      "visibility": "unread",
+      "operation": "feed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.44337500000006,
+          "rows": 3
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"url\", \"image_url\", \"platform\", \"open_location\", \"created_at\", \"updated_at\", \"last_fetched_at\", \"next_fetch_at\", \"is_active\", \"etag\", \"last_modified_header\" from \"serial_feed\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 0.2517920000000231,
+          "rows": 12
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ? order by \"serial_content_categories\".\"name\" asc",
+          "durationMs": 0.05770899999993162,
+          "rows": 3
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"category_id\" in (?, ?, ?)",
+          "durationMs": 0.2750419999999849,
+          "rows": 12
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?)",
+          "durationMs": 0.20124999999995907,
+          "rows": 2
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?)",
+          "durationMs": 0.14304200000003675,
+          "rows": 2
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?) order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.0681250000000091,
+          "rows": 4
+        },
+        {
+          "sql": "select \"id\", \"feed_id\", \"content_id\", \"title\", \"author\", \"url\", \"thumbnail\", \"content\", \"content_snippet\", \"is_watched\", \"is_watched_updated_at\", \"is_watch_later\", \"is_watch_later_updated_at\", \"progress\", \"duration\", \"orientation\", \"posted_at\", \"created_at\", \"updated_at\", \"content_hash\" from \"serial_feed_item\" where (\"serial_feed_item\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) and (\"serial_feed_item\".\"is_watched\" = ? and \"serial_feed_item\".\"is_watch_later\" = ?)) order by \"serial_feed_item\".\"posted_at\" desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 0.552332999999976,
+          "rows": 31
+        }
+      ]
+    },
+    {
+      "cache": "warm",
+      "visibility": "unread",
+      "operation": "mixed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where (\"serial_views\".\"id\" = ? and \"serial_views\".\"user_id\" = ?) limit ?",
+          "durationMs": 0.3678750000000264,
+          "rows": 1
+        },
+        {
+          "sql": "select \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" = ?",
+          "durationMs": 0.18324999999992997,
+          "rows": 0
+        },
+        {
+          "sql": "select \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" = ?",
+          "durationMs": 0.1250839999999016,
+          "rows": 0
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" = ? order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.053167000000030384,
+          "rows": 0
+        },
+        {
+          "sql": "select \"id\", \"created_at\", CAST(0 AS INTEGER) from \"serial_bookmark\" where (\"serial_bookmark\".\"user_id\" = ? and (\"serial_bookmark\".\"is_saved\" = ? and \"serial_bookmark\".\"is_read\" = ?)) order by CAST(0 AS INTEGER) asc, \"serial_bookmark\".\"created_at\" desc, \"serial_bookmark\".\"id\" desc limit ?",
+          "durationMs": 1.0537500000000364,
+          "rows": 31
+        },
+        {
+          "sql": "select \"serial_feed_item\".\"id\", \"serial_feed_item\".\"feed_id\", \"serial_feed_item\".\"content_id\", \"serial_feed_item\".\"title\", \"serial_feed_item\".\"author\", \"serial_feed_item\".\"url\", \"serial_feed_item\".\"thumbnail\", \"serial_feed_item\".\"content\", \"serial_feed_item\".\"content_snippet\", \"serial_feed_item\".\"is_watched\", \"serial_feed_item\".\"is_watch_later\", \"serial_feed_item\".\"progress\", \"serial_feed_item\".\"duration\", \"serial_feed_item\".\"orientation\", \"serial_feed_item\".\"posted_at\", \"serial_feed_item\".\"created_at\", \"serial_feed_item\".\"updated_at\", \"serial_feed_item\".\"is_watched_updated_at\", \"serial_feed_item\".\"is_watch_later_updated_at\", \"serial_feed_item\".\"content_hash\", \"serial_feed\".\"platform\", \"serial_feed_item\".\"posted_at\", CAST(0 AS INTEGER) from \"serial_feed_item\" inner join \"serial_feed\" on \"serial_feed\".\"id\" = \"serial_feed_item\".\"feed_id\" where (\"serial_feed\".\"user_id\" = ? and (\"serial_feed_item\".\"is_watch_later\" = ? and \"serial_feed_item\".\"is_watched\" = ?) and not exists (select 1 from \"serial_bookmark\" where (\"serial_bookmark\".\"user_id\" = ? and \"serial_bookmark\".\"canonical_url\" = COALESCE(\n    \"serial_feed_item\".\"normalized_url\",\n    \"serial_feed_item\".\"url\"\n  )))) order by CAST(0 AS INTEGER) asc, \"serial_feed_item\".\"posted_at\" desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 0.7340830000000551,
+          "rows": 31
+        },
+        {
+          "sql": "select \"serial_bookmark\".\"id\", \"serial_bookmark\".\"user_id\", \"serial_bookmark\".\"source_url\", \"serial_bookmark\".\"canonical_url\", \"serial_bookmark\".\"is_saved\", \"serial_bookmark\".\"is_read\", \"serial_bookmark\".\"progress\", \"serial_bookmark\".\"duration\", \"serial_bookmark\".\"saved_updated_at\", \"serial_bookmark\".\"read_updated_at\", \"serial_bookmark\".\"progress_updated_at\", \"serial_bookmark\".\"created_at\", \"serial_bookmark\".\"updated_at\", \"serial_page_capture\".\"bookmark_id\", \"serial_page_capture\".\"title\", \"serial_page_capture\".\"author\", \"serial_page_capture\".\"published_at\", \"serial_page_capture\".\"effective_url\", \"serial_page_capture\".\"icon_url\", \"serial_page_capture\".\"representative_image_url\", \"serial_page_capture\".\"content_hash\", \"serial_page_capture\".\"captured_at\", (\n  SELECT GROUP_CONCAT(view_id, ',')\n  FROM serial_bookmark_view\n  WHERE bookmark_id = serial_bookmark.id\n), (\n  SELECT GROUP_CONCAT(tag_id, ',')\n  FROM serial_bookmark_tag\n  WHERE bookmark_id = serial_bookmark.id\n) from \"serial_bookmark\" left join \"serial_page_capture\" on \"serial_page_capture\".\"bookmark_id\" = \"serial_bookmark\".\"id\" where (\"serial_bookmark\".\"user_id\" = ? and \"serial_bookmark\".\"id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?))",
+          "durationMs": 0.26900000000000546,
+          "rows": 10
+        }
+      ]
+    },
+    {
+      "cache": "warm",
+      "visibility": "read",
+      "operation": "feed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.40999999999996817,
+          "rows": 3
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"url\", \"image_url\", \"platform\", \"open_location\", \"created_at\", \"updated_at\", \"last_fetched_at\", \"next_fetch_at\", \"is_active\", \"etag\", \"last_modified_header\" from \"serial_feed\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 0.23966700000005403,
+          "rows": 12
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ? order by \"serial_content_categories\".\"name\" asc",
+          "durationMs": 0.05320799999992687,
+          "rows": 3
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"category_id\" in (?, ?, ?)",
+          "durationMs": 0.27054199999997763,
+          "rows": 12
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?)",
+          "durationMs": 0.19583299999999326,
+          "rows": 2
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?)",
+          "durationMs": 0.14437499999996817,
+          "rows": 2
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?) order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.06770800000003874,
+          "rows": 4
+        },
+        {
+          "sql": "select \"id\", \"feed_id\", \"content_id\", \"title\", \"author\", \"url\", \"thumbnail\", \"content\", \"content_snippet\", \"is_watched\", \"is_watched_updated_at\", \"is_watch_later\", \"is_watch_later_updated_at\", \"progress\", \"duration\", \"orientation\", \"posted_at\", \"created_at\", \"updated_at\", \"content_hash\" from \"serial_feed_item\" where (\"serial_feed_item\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) and (\"serial_feed_item\".\"is_watched\" = ? and \"serial_feed_item\".\"is_watch_later\" = ?)) order by \"serial_feed_item\".\"is_watched_updated_at\" desc, \"serial_feed_item\".\"posted_at\" desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 0.5617500000000746,
+          "rows": 31
+        }
+      ]
+    },
+    {
+      "cache": "warm",
+      "visibility": "read",
+      "operation": "mixed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where (\"serial_views\".\"id\" = ? and \"serial_views\".\"user_id\" = ?) limit ?",
+          "durationMs": 0.31416600000000017,
+          "rows": 1
+        },
+        {
+          "sql": "select \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" = ?",
+          "durationMs": 0.163208999999938,
+          "rows": 0
+        },
+        {
+          "sql": "select \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" = ?",
+          "durationMs": 0.11487500000009732,
+          "rows": 0
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" = ? order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.04816700000003493,
+          "rows": 0
+        },
+        {
+          "sql": "select \"id\", \"read_updated_at\", CAST(0 AS INTEGER) from \"serial_bookmark\" where (\"serial_bookmark\".\"user_id\" = ? and (\"serial_bookmark\".\"is_saved\" = ? and \"serial_bookmark\".\"is_read\" = ?)) order by CAST(0 AS INTEGER) asc, \"serial_bookmark\".\"read_updated_at\" desc, \"serial_bookmark\".\"id\" desc limit ?",
+          "durationMs": 1.0336670000000368,
+          "rows": 31
+        },
+        {
+          "sql": "select \"serial_feed_item\".\"id\", \"serial_feed_item\".\"feed_id\", \"serial_feed_item\".\"content_id\", \"serial_feed_item\".\"title\", \"serial_feed_item\".\"author\", \"serial_feed_item\".\"url\", \"serial_feed_item\".\"thumbnail\", \"serial_feed_item\".\"content\", \"serial_feed_item\".\"content_snippet\", \"serial_feed_item\".\"is_watched\", \"serial_feed_item\".\"is_watch_later\", \"serial_feed_item\".\"progress\", \"serial_feed_item\".\"duration\", \"serial_feed_item\".\"orientation\", \"serial_feed_item\".\"posted_at\", \"serial_feed_item\".\"created_at\", \"serial_feed_item\".\"updated_at\", \"serial_feed_item\".\"is_watched_updated_at\", \"serial_feed_item\".\"is_watch_later_updated_at\", \"serial_feed_item\".\"content_hash\", \"serial_feed\".\"platform\", COALESCE(\"serial_feed_item\".\"is_watched_updated_at\", \"serial_feed_item\".\"posted_at\"), CAST(0 AS INTEGER) from \"serial_feed_item\" inner join \"serial_feed\" on \"serial_feed\".\"id\" = \"serial_feed_item\".\"feed_id\" where (\"serial_feed\".\"user_id\" = ? and (\"serial_feed_item\".\"is_watch_later\" = ? and \"serial_feed_item\".\"is_watched\" = ?) and not exists (select 1 from \"serial_bookmark\" where (\"serial_bookmark\".\"user_id\" = ? and \"serial_bookmark\".\"canonical_url\" = COALESCE(\n    \"serial_feed_item\".\"normalized_url\",\n    \"serial_feed_item\".\"url\"\n  )))) order by CAST(0 AS INTEGER) asc, COALESCE(\"serial_feed_item\".\"is_watched_updated_at\", \"serial_feed_item\".\"posted_at\") desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 0.7192919999999958,
+          "rows": 31
+        },
+        {
+          "sql": "select \"serial_bookmark\".\"id\", \"serial_bookmark\".\"user_id\", \"serial_bookmark\".\"source_url\", \"serial_bookmark\".\"canonical_url\", \"serial_bookmark\".\"is_saved\", \"serial_bookmark\".\"is_read\", \"serial_bookmark\".\"progress\", \"serial_bookmark\".\"duration\", \"serial_bookmark\".\"saved_updated_at\", \"serial_bookmark\".\"read_updated_at\", \"serial_bookmark\".\"progress_updated_at\", \"serial_bookmark\".\"created_at\", \"serial_bookmark\".\"updated_at\", \"serial_page_capture\".\"bookmark_id\", \"serial_page_capture\".\"title\", \"serial_page_capture\".\"author\", \"serial_page_capture\".\"published_at\", \"serial_page_capture\".\"effective_url\", \"serial_page_capture\".\"icon_url\", \"serial_page_capture\".\"representative_image_url\", \"serial_page_capture\".\"content_hash\", \"serial_page_capture\".\"captured_at\", (\n  SELECT GROUP_CONCAT(view_id, ',')\n  FROM serial_bookmark_view\n  WHERE bookmark_id = serial_bookmark.id\n), (\n  SELECT GROUP_CONCAT(tag_id, ',')\n  FROM serial_bookmark_tag\n  WHERE bookmark_id = serial_bookmark.id\n) from \"serial_bookmark\" left join \"serial_page_capture\" on \"serial_page_capture\".\"bookmark_id\" = \"serial_bookmark\".\"id\" where (\"serial_bookmark\".\"user_id\" = ? and \"serial_bookmark\".\"id\" in (?, ?, ?, ?, ?, ?, ?, ?))",
+          "durationMs": 0.24291599999992286,
+          "rows": 8
+        }
+      ]
+    },
+    {
+      "cache": "warm",
+      "visibility": "later",
+      "operation": "feed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.44174999999995634,
+          "rows": 3
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"url\", \"image_url\", \"platform\", \"open_location\", \"created_at\", \"updated_at\", \"last_fetched_at\", \"next_fetch_at\", \"is_active\", \"etag\", \"last_modified_header\" from \"serial_feed\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 0.24300000000005184,
+          "rows": 12
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ? order by \"serial_content_categories\".\"name\" asc",
+          "durationMs": 0.051791999999977634,
+          "rows": 3
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"category_id\" in (?, ?, ?)",
+          "durationMs": 0.27499999999997726,
+          "rows": 12
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?)",
+          "durationMs": 0.19829200000003766,
+          "rows": 2
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?)",
+          "durationMs": 0.1464579999999387,
+          "rows": 2
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?) order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.07500000000004547,
+          "rows": 4
+        },
+        {
+          "sql": "select \"id\", \"feed_id\", \"content_id\", \"title\", \"author\", \"url\", \"thumbnail\", \"content\", \"content_snippet\", \"is_watched\", \"is_watched_updated_at\", \"is_watch_later\", \"is_watch_later_updated_at\", \"progress\", \"duration\", \"orientation\", \"posted_at\", \"created_at\", \"updated_at\", \"content_hash\" from \"serial_feed_item\" where (\"serial_feed_item\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) and \"serial_feed_item\".\"is_watch_later\" = ?) order by \"serial_feed_item\".\"is_watch_later_updated_at\" desc, \"serial_feed_item\".\"posted_at\" desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 0.4723340000000462,
+          "rows": 31
+        }
+      ]
+    },
+    {
+      "cache": "warm",
+      "visibility": "later",
+      "operation": "mixed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where (\"serial_views\".\"id\" = ? and \"serial_views\".\"user_id\" = ?) limit ?",
+          "durationMs": 0.2935420000000022,
+          "rows": 1
+        },
+        {
+          "sql": "select \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" = ?",
+          "durationMs": 0.15737500000000182,
+          "rows": 0
+        },
+        {
+          "sql": "select \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" = ?",
+          "durationMs": 0.11383299999999963,
+          "rows": 0
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" = ? order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.04670899999996436,
+          "rows": 0
+        },
+        {
+          "sql": "select \"id\", \"saved_updated_at\", CAST(0 AS INTEGER) from \"serial_bookmark\" where (\"serial_bookmark\".\"user_id\" = ? and \"serial_bookmark\".\"is_saved\" = ?) order by CAST(0 AS INTEGER) asc, \"serial_bookmark\".\"saved_updated_at\" desc, \"serial_bookmark\".\"id\" desc limit ?",
+          "durationMs": 0.8717910000000302,
+          "rows": 20
+        },
+        {
+          "sql": "select \"serial_feed_item\".\"id\", \"serial_feed_item\".\"feed_id\", \"serial_feed_item\".\"content_id\", \"serial_feed_item\".\"title\", \"serial_feed_item\".\"author\", \"serial_feed_item\".\"url\", \"serial_feed_item\".\"thumbnail\", \"serial_feed_item\".\"content\", \"serial_feed_item\".\"content_snippet\", \"serial_feed_item\".\"is_watched\", \"serial_feed_item\".\"is_watch_later\", \"serial_feed_item\".\"progress\", \"serial_feed_item\".\"duration\", \"serial_feed_item\".\"orientation\", \"serial_feed_item\".\"posted_at\", \"serial_feed_item\".\"created_at\", \"serial_feed_item\".\"updated_at\", \"serial_feed_item\".\"is_watched_updated_at\", \"serial_feed_item\".\"is_watch_later_updated_at\", \"serial_feed_item\".\"content_hash\", \"serial_feed\".\"platform\", COALESCE(\"serial_feed_item\".\"is_watch_later_updated_at\", \"serial_feed_item\".\"posted_at\"), CAST(0 AS INTEGER) from \"serial_feed_item\" inner join \"serial_feed\" on \"serial_feed\".\"id\" = \"serial_feed_item\".\"feed_id\" where (\"serial_feed\".\"user_id\" = ? and \"serial_feed_item\".\"is_watch_later\" = ? and not exists (select 1 from \"serial_bookmark\" where (\"serial_bookmark\".\"user_id\" = ? and \"serial_bookmark\".\"canonical_url\" = COALESCE(\n    \"serial_feed_item\".\"normalized_url\",\n    \"serial_feed_item\".\"url\"\n  )))) order by CAST(0 AS INTEGER) asc, COALESCE(\"serial_feed_item\".\"is_watch_later_updated_at\", \"serial_feed_item\".\"posted_at\") desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 0.6058339999999589,
+          "rows": 31
+        },
+        {
+          "sql": "select \"serial_bookmark\".\"id\", \"serial_bookmark\".\"user_id\", \"serial_bookmark\".\"source_url\", \"serial_bookmark\".\"canonical_url\", \"serial_bookmark\".\"is_saved\", \"serial_bookmark\".\"is_read\", \"serial_bookmark\".\"progress\", \"serial_bookmark\".\"duration\", \"serial_bookmark\".\"saved_updated_at\", \"serial_bookmark\".\"read_updated_at\", \"serial_bookmark\".\"progress_updated_at\", \"serial_bookmark\".\"created_at\", \"serial_bookmark\".\"updated_at\", \"serial_page_capture\".\"bookmark_id\", \"serial_page_capture\".\"title\", \"serial_page_capture\".\"author\", \"serial_page_capture\".\"published_at\", \"serial_page_capture\".\"effective_url\", \"serial_page_capture\".\"icon_url\", \"serial_page_capture\".\"representative_image_url\", \"serial_page_capture\".\"content_hash\", \"serial_page_capture\".\"captured_at\", (\n  SELECT GROUP_CONCAT(view_id, ',')\n  FROM serial_bookmark_view\n  WHERE bookmark_id = serial_bookmark.id\n), (\n  SELECT GROUP_CONCAT(tag_id, ',')\n  FROM serial_bookmark_tag\n  WHERE bookmark_id = serial_bookmark.id\n) from \"serial_bookmark\" left join \"serial_page_capture\" on \"serial_page_capture\".\"bookmark_id\" = \"serial_bookmark\".\"id\" where (\"serial_bookmark\".\"user_id\" = ? and \"serial_bookmark\".\"id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?))",
+          "durationMs": 0.24424999999996544,
+          "rows": 9
+        }
+      ]
+    },
+    {
+      "cache": "cold",
+      "visibility": "unread",
+      "operation": "feed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.6250840000000153,
+          "rows": 3
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"url\", \"image_url\", \"platform\", \"open_location\", \"created_at\", \"updated_at\", \"last_fetched_at\", \"next_fetch_at\", \"is_active\", \"etag\", \"last_modified_header\" from \"serial_feed\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 0.2244999999998072,
+          "rows": 12
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ? order by \"serial_content_categories\".\"name\" asc",
+          "durationMs": 0.04733299999998053,
+          "rows": 3
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"category_id\" in (?, ?, ?)",
+          "durationMs": 0.27116700000010496,
+          "rows": 12
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?)",
+          "durationMs": 0.1938750000001619,
+          "rows": 2
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?)",
+          "durationMs": 0.14125000000012733,
+          "rows": 2
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?) order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.06766700000002857,
+          "rows": 4
+        },
+        {
+          "sql": "select \"id\", \"feed_id\", \"content_id\", \"title\", \"author\", \"url\", \"thumbnail\", \"content\", \"content_snippet\", \"is_watched\", \"is_watched_updated_at\", \"is_watch_later\", \"is_watch_later_updated_at\", \"progress\", \"duration\", \"orientation\", \"posted_at\", \"created_at\", \"updated_at\", \"content_hash\" from \"serial_feed_item\" where (\"serial_feed_item\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) and (\"serial_feed_item\".\"is_watched\" = ? and \"serial_feed_item\".\"is_watch_later\" = ?)) order by \"serial_feed_item\".\"posted_at\" desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 0.6103330000000824,
+          "rows": 31
+        }
+      ]
+    },
+    {
+      "cache": "cold",
+      "visibility": "unread",
+      "operation": "mixed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where (\"serial_views\".\"id\" = ? and \"serial_views\".\"user_id\" = ?) limit ?",
+          "durationMs": 0.4823750000000473,
+          "rows": 1
+        },
+        {
+          "sql": "select \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" = ?",
+          "durationMs": 0.1512920000000122,
+          "rows": 0
+        },
+        {
+          "sql": "select \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" = ?",
+          "durationMs": 0.10608400000000984,
+          "rows": 0
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" = ? order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.0442920000000413,
+          "rows": 0
+        },
+        {
+          "sql": "select \"id\", \"created_at\", CAST(0 AS INTEGER) from \"serial_bookmark\" where (\"serial_bookmark\".\"user_id\" = ? and (\"serial_bookmark\".\"is_saved\" = ? and \"serial_bookmark\".\"is_read\" = ?)) order by CAST(0 AS INTEGER) asc, \"serial_bookmark\".\"created_at\" desc, \"serial_bookmark\".\"id\" desc limit ?",
+          "durationMs": 1.0644589999999425,
+          "rows": 31
+        },
+        {
+          "sql": "select \"serial_feed_item\".\"id\", \"serial_feed_item\".\"feed_id\", \"serial_feed_item\".\"content_id\", \"serial_feed_item\".\"title\", \"serial_feed_item\".\"author\", \"serial_feed_item\".\"url\", \"serial_feed_item\".\"thumbnail\", \"serial_feed_item\".\"content\", \"serial_feed_item\".\"content_snippet\", \"serial_feed_item\".\"is_watched\", \"serial_feed_item\".\"is_watch_later\", \"serial_feed_item\".\"progress\", \"serial_feed_item\".\"duration\", \"serial_feed_item\".\"orientation\", \"serial_feed_item\".\"posted_at\", \"serial_feed_item\".\"created_at\", \"serial_feed_item\".\"updated_at\", \"serial_feed_item\".\"is_watched_updated_at\", \"serial_feed_item\".\"is_watch_later_updated_at\", \"serial_feed_item\".\"content_hash\", \"serial_feed\".\"platform\", \"serial_feed_item\".\"posted_at\", CAST(0 AS INTEGER) from \"serial_feed_item\" inner join \"serial_feed\" on \"serial_feed\".\"id\" = \"serial_feed_item\".\"feed_id\" where (\"serial_feed\".\"user_id\" = ? and (\"serial_feed_item\".\"is_watch_later\" = ? and \"serial_feed_item\".\"is_watched\" = ?) and not exists (select 1 from \"serial_bookmark\" where (\"serial_bookmark\".\"user_id\" = ? and \"serial_bookmark\".\"canonical_url\" = COALESCE(\n    \"serial_feed_item\".\"normalized_url\",\n    \"serial_feed_item\".\"url\"\n  )))) order by CAST(0 AS INTEGER) asc, \"serial_feed_item\".\"posted_at\" desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 0.7690840000000208,
+          "rows": 31
+        },
+        {
+          "sql": "select \"serial_bookmark\".\"id\", \"serial_bookmark\".\"user_id\", \"serial_bookmark\".\"source_url\", \"serial_bookmark\".\"canonical_url\", \"serial_bookmark\".\"is_saved\", \"serial_bookmark\".\"is_read\", \"serial_bookmark\".\"progress\", \"serial_bookmark\".\"duration\", \"serial_bookmark\".\"saved_updated_at\", \"serial_bookmark\".\"read_updated_at\", \"serial_bookmark\".\"progress_updated_at\", \"serial_bookmark\".\"created_at\", \"serial_bookmark\".\"updated_at\", \"serial_page_capture\".\"bookmark_id\", \"serial_page_capture\".\"title\", \"serial_page_capture\".\"author\", \"serial_page_capture\".\"published_at\", \"serial_page_capture\".\"effective_url\", \"serial_page_capture\".\"icon_url\", \"serial_page_capture\".\"representative_image_url\", \"serial_page_capture\".\"content_hash\", \"serial_page_capture\".\"captured_at\", (\n  SELECT GROUP_CONCAT(view_id, ',')\n  FROM serial_bookmark_view\n  WHERE bookmark_id = serial_bookmark.id\n), (\n  SELECT GROUP_CONCAT(tag_id, ',')\n  FROM serial_bookmark_tag\n  WHERE bookmark_id = serial_bookmark.id\n) from \"serial_bookmark\" left join \"serial_page_capture\" on \"serial_page_capture\".\"bookmark_id\" = \"serial_bookmark\".\"id\" where (\"serial_bookmark\".\"user_id\" = ? and \"serial_bookmark\".\"id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?))",
+          "durationMs": 0.2817919999999958,
+          "rows": 10
+        }
+      ]
+    },
+    {
+      "cache": "cold",
+      "visibility": "read",
+      "operation": "feed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.821875000000091,
+          "rows": 3
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"url\", \"image_url\", \"platform\", \"open_location\", \"created_at\", \"updated_at\", \"last_fetched_at\", \"next_fetch_at\", \"is_active\", \"etag\", \"last_modified_header\" from \"serial_feed\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 0.2545000000000073,
+          "rows": 12
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ? order by \"serial_content_categories\".\"name\" asc",
+          "durationMs": 0.05541700000003402,
+          "rows": 3
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"category_id\" in (?, ?, ?)",
+          "durationMs": 0.28779199999985394,
+          "rows": 12
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?)",
+          "durationMs": 0.20462500000007822,
+          "rows": 2
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?)",
+          "durationMs": 0.14762500000006185,
+          "rows": 2
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?) order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.06979200000000674,
+          "rows": 4
+        },
+        {
+          "sql": "select \"id\", \"feed_id\", \"content_id\", \"title\", \"author\", \"url\", \"thumbnail\", \"content\", \"content_snippet\", \"is_watched\", \"is_watched_updated_at\", \"is_watch_later\", \"is_watch_later_updated_at\", \"progress\", \"duration\", \"orientation\", \"posted_at\", \"created_at\", \"updated_at\", \"content_hash\" from \"serial_feed_item\" where (\"serial_feed_item\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) and (\"serial_feed_item\".\"is_watched\" = ? and \"serial_feed_item\".\"is_watch_later\" = ?)) order by \"serial_feed_item\".\"is_watched_updated_at\" desc, \"serial_feed_item\".\"posted_at\" desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 0.6082920000001195,
+          "rows": 31
+        }
+      ]
+    },
+    {
+      "cache": "cold",
+      "visibility": "read",
+      "operation": "mixed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where (\"serial_views\".\"id\" = ? and \"serial_views\".\"user_id\" = ?) limit ?",
+          "durationMs": 0.508542000000034,
+          "rows": 1
+        },
+        {
+          "sql": "select \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" = ?",
+          "durationMs": 0.157416000000012,
+          "rows": 0
+        },
+        {
+          "sql": "select \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" = ?",
+          "durationMs": 0.11300000000005639,
+          "rows": 0
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" = ? order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.04779200000007222,
+          "rows": 0
+        },
+        {
+          "sql": "select \"id\", \"read_updated_at\", CAST(0 AS INTEGER) from \"serial_bookmark\" where (\"serial_bookmark\".\"user_id\" = ? and (\"serial_bookmark\".\"is_saved\" = ? and \"serial_bookmark\".\"is_read\" = ?)) order by CAST(0 AS INTEGER) asc, \"serial_bookmark\".\"read_updated_at\" desc, \"serial_bookmark\".\"id\" desc limit ?",
+          "durationMs": 1.086084000000028,
+          "rows": 31
+        },
+        {
+          "sql": "select \"serial_feed_item\".\"id\", \"serial_feed_item\".\"feed_id\", \"serial_feed_item\".\"content_id\", \"serial_feed_item\".\"title\", \"serial_feed_item\".\"author\", \"serial_feed_item\".\"url\", \"serial_feed_item\".\"thumbnail\", \"serial_feed_item\".\"content\", \"serial_feed_item\".\"content_snippet\", \"serial_feed_item\".\"is_watched\", \"serial_feed_item\".\"is_watch_later\", \"serial_feed_item\".\"progress\", \"serial_feed_item\".\"duration\", \"serial_feed_item\".\"orientation\", \"serial_feed_item\".\"posted_at\", \"serial_feed_item\".\"created_at\", \"serial_feed_item\".\"updated_at\", \"serial_feed_item\".\"is_watched_updated_at\", \"serial_feed_item\".\"is_watch_later_updated_at\", \"serial_feed_item\".\"content_hash\", \"serial_feed\".\"platform\", COALESCE(\"serial_feed_item\".\"is_watched_updated_at\", \"serial_feed_item\".\"posted_at\"), CAST(0 AS INTEGER) from \"serial_feed_item\" inner join \"serial_feed\" on \"serial_feed\".\"id\" = \"serial_feed_item\".\"feed_id\" where (\"serial_feed\".\"user_id\" = ? and (\"serial_feed_item\".\"is_watch_later\" = ? and \"serial_feed_item\".\"is_watched\" = ?) and not exists (select 1 from \"serial_bookmark\" where (\"serial_bookmark\".\"user_id\" = ? and \"serial_bookmark\".\"canonical_url\" = COALESCE(\n    \"serial_feed_item\".\"normalized_url\",\n    \"serial_feed_item\".\"url\"\n  )))) order by CAST(0 AS INTEGER) asc, COALESCE(\"serial_feed_item\".\"is_watched_updated_at\", \"serial_feed_item\".\"posted_at\") desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 0.7809159999999338,
+          "rows": 31
+        },
+        {
+          "sql": "select \"serial_bookmark\".\"id\", \"serial_bookmark\".\"user_id\", \"serial_bookmark\".\"source_url\", \"serial_bookmark\".\"canonical_url\", \"serial_bookmark\".\"is_saved\", \"serial_bookmark\".\"is_read\", \"serial_bookmark\".\"progress\", \"serial_bookmark\".\"duration\", \"serial_bookmark\".\"saved_updated_at\", \"serial_bookmark\".\"read_updated_at\", \"serial_bookmark\".\"progress_updated_at\", \"serial_bookmark\".\"created_at\", \"serial_bookmark\".\"updated_at\", \"serial_page_capture\".\"bookmark_id\", \"serial_page_capture\".\"title\", \"serial_page_capture\".\"author\", \"serial_page_capture\".\"published_at\", \"serial_page_capture\".\"effective_url\", \"serial_page_capture\".\"icon_url\", \"serial_page_capture\".\"representative_image_url\", \"serial_page_capture\".\"content_hash\", \"serial_page_capture\".\"captured_at\", (\n  SELECT GROUP_CONCAT(view_id, ',')\n  FROM serial_bookmark_view\n  WHERE bookmark_id = serial_bookmark.id\n), (\n  SELECT GROUP_CONCAT(tag_id, ',')\n  FROM serial_bookmark_tag\n  WHERE bookmark_id = serial_bookmark.id\n) from \"serial_bookmark\" left join \"serial_page_capture\" on \"serial_page_capture\".\"bookmark_id\" = \"serial_bookmark\".\"id\" where (\"serial_bookmark\".\"user_id\" = ? and \"serial_bookmark\".\"id\" in (?, ?, ?, ?, ?, ?, ?, ?))",
+          "durationMs": 0.25220899999999347,
+          "rows": 8
+        }
+      ]
+    },
+    {
+      "cache": "cold",
+      "visibility": "later",
+      "operation": "feed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where \"serial_views\".\"user_id\" = ? order by \"serial_views\".\"placement\" asc",
+          "durationMs": 0.6218750000000455,
+          "rows": 3
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"url\", \"image_url\", \"platform\", \"open_location\", \"created_at\", \"updated_at\", \"last_fetched_at\", \"next_fetch_at\", \"is_active\", \"etag\", \"last_modified_header\" from \"serial_feed\" where \"serial_feed\".\"user_id\" = ?",
+          "durationMs": 0.2284589999999298,
+          "rows": 12
+        },
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"created_at\", \"updated_at\" from \"serial_content_categories\" where \"serial_content_categories\".\"user_id\" = ? order by \"serial_content_categories\".\"name\" asc",
+          "durationMs": 0.04804100000001199,
+          "rows": 3
+        },
+        {
+          "sql": "select \"feed_id\", \"category_id\" from \"serial_feed_categories\" where \"serial_feed_categories\".\"category_id\" in (?, ?, ?)",
+          "durationMs": 0.2690420000001268,
+          "rows": 12
+        },
+        {
+          "sql": "select \"view_id\", \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" in (?, ?, ?)",
+          "durationMs": 0.19329199999992852,
+          "rows": 2
+        },
+        {
+          "sql": "select \"view_id\", \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" in (?, ?, ?)",
+          "durationMs": 0.14170899999999165,
+          "rows": 2
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" in (?, ?, ?) order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.06799999999998363,
+          "rows": 4
+        },
+        {
+          "sql": "select \"id\", \"feed_id\", \"content_id\", \"title\", \"author\", \"url\", \"thumbnail\", \"content\", \"content_snippet\", \"is_watched\", \"is_watched_updated_at\", \"is_watch_later\", \"is_watch_later_updated_at\", \"progress\", \"duration\", \"orientation\", \"posted_at\", \"created_at\", \"updated_at\", \"content_hash\" from \"serial_feed_item\" where (\"serial_feed_item\".\"feed_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) and \"serial_feed_item\".\"is_watch_later\" = ?) order by \"serial_feed_item\".\"is_watch_later_updated_at\" desc, \"serial_feed_item\".\"posted_at\" desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 0.5341670000000249,
+          "rows": 31
+        }
+      ]
+    },
+    {
+      "cache": "cold",
+      "visibility": "later",
+      "operation": "mixed-view-page",
+      "statements": [
+        {
+          "sql": "select \"id\", \"user_id\", \"name\", \"days_window\", \"read_status\", \"orientation\", \"content_type\", \"layout\", \"placement\", \"created_at\", \"updated_at\" from \"serial_views\" where (\"serial_views\".\"id\" = ? and \"serial_views\".\"user_id\" = ?) limit ?",
+          "durationMs": 0.47262499999987995,
+          "rows": 1
+        },
+        {
+          "sql": "select \"category_id\" from \"serial_view_categories\" where \"serial_view_categories\".\"view_id\" = ?",
+          "durationMs": 0.1477500000000873,
+          "rows": 0
+        },
+        {
+          "sql": "select \"feed_id\" from \"serial_view_feeds\" where \"serial_view_feeds\".\"view_id\" = ?",
+          "durationMs": 0.10816599999998289,
+          "rows": 0
+        },
+        {
+          "sql": "select \"id\", \"view_id\", \"placement\", \"item_type\", \"item_id\", \"layout\", \"created_at\", \"updated_at\" from \"serial_view_sections\" where \"serial_view_sections\".\"view_id\" = ? order by \"serial_view_sections\".\"placement\" asc",
+          "durationMs": 0.04733399999986432,
+          "rows": 0
+        },
+        {
+          "sql": "select \"id\", \"saved_updated_at\", CAST(0 AS INTEGER) from \"serial_bookmark\" where (\"serial_bookmark\".\"user_id\" = ? and \"serial_bookmark\".\"is_saved\" = ?) order by CAST(0 AS INTEGER) asc, \"serial_bookmark\".\"saved_updated_at\" desc, \"serial_bookmark\".\"id\" desc limit ?",
+          "durationMs": 0.9850420000000213,
+          "rows": 20
+        },
+        {
+          "sql": "select \"serial_feed_item\".\"id\", \"serial_feed_item\".\"feed_id\", \"serial_feed_item\".\"content_id\", \"serial_feed_item\".\"title\", \"serial_feed_item\".\"author\", \"serial_feed_item\".\"url\", \"serial_feed_item\".\"thumbnail\", \"serial_feed_item\".\"content\", \"serial_feed_item\".\"content_snippet\", \"serial_feed_item\".\"is_watched\", \"serial_feed_item\".\"is_watch_later\", \"serial_feed_item\".\"progress\", \"serial_feed_item\".\"duration\", \"serial_feed_item\".\"orientation\", \"serial_feed_item\".\"posted_at\", \"serial_feed_item\".\"created_at\", \"serial_feed_item\".\"updated_at\", \"serial_feed_item\".\"is_watched_updated_at\", \"serial_feed_item\".\"is_watch_later_updated_at\", \"serial_feed_item\".\"content_hash\", \"serial_feed\".\"platform\", COALESCE(\"serial_feed_item\".\"is_watch_later_updated_at\", \"serial_feed_item\".\"posted_at\"), CAST(0 AS INTEGER) from \"serial_feed_item\" inner join \"serial_feed\" on \"serial_feed\".\"id\" = \"serial_feed_item\".\"feed_id\" where (\"serial_feed\".\"user_id\" = ? and \"serial_feed_item\".\"is_watch_later\" = ? and not exists (select 1 from \"serial_bookmark\" where (\"serial_bookmark\".\"user_id\" = ? and \"serial_bookmark\".\"canonical_url\" = COALESCE(\n    \"serial_feed_item\".\"normalized_url\",\n    \"serial_feed_item\".\"url\"\n  )))) order by CAST(0 AS INTEGER) asc, COALESCE(\"serial_feed_item\".\"is_watch_later_updated_at\", \"serial_feed_item\".\"posted_at\") desc, \"serial_feed_item\".\"id\" desc limit ?",
+          "durationMs": 0.7164159999999811,
+          "rows": 31
+        },
+        {
+          "sql": "select \"serial_bookmark\".\"id\", \"serial_bookmark\".\"user_id\", \"serial_bookmark\".\"source_url\", \"serial_bookmark\".\"canonical_url\", \"serial_bookmark\".\"is_saved\", \"serial_bookmark\".\"is_read\", \"serial_bookmark\".\"progress\", \"serial_bookmark\".\"duration\", \"serial_bookmark\".\"saved_updated_at\", \"serial_bookmark\".\"read_updated_at\", \"serial_bookmark\".\"progress_updated_at\", \"serial_bookmark\".\"created_at\", \"serial_bookmark\".\"updated_at\", \"serial_page_capture\".\"bookmark_id\", \"serial_page_capture\".\"title\", \"serial_page_capture\".\"author\", \"serial_page_capture\".\"published_at\", \"serial_page_capture\".\"effective_url\", \"serial_page_capture\".\"icon_url\", \"serial_page_capture\".\"representative_image_url\", \"serial_page_capture\".\"content_hash\", \"serial_page_capture\".\"captured_at\", (\n  SELECT GROUP_CONCAT(view_id, ',')\n  FROM serial_bookmark_view\n  WHERE bookmark_id = serial_bookmark.id\n), (\n  SELECT GROUP_CONCAT(tag_id, ',')\n  FROM serial_bookmark_tag\n  WHERE bookmark_id = serial_bookmark.id\n) from \"serial_bookmark\" left join \"serial_page_capture\" on \"serial_page_capture\".\"bookmark_id\" = \"serial_bookmark\".\"id\" where (\"serial_bookmark\".\"user_id\" = ? and \"serial_bookmark\".\"id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?))",
+          "durationMs": 0.26587500000005093,
+          "rows": 9
+        }
+      ]
+    }
+  ],
+  "passed": true
+}

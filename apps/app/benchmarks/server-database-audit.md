@@ -17,9 +17,9 @@ composite indexes. First, cursor, sectioned, Tag,
 Uncategorized, collision, and ownership semantics retain direct regression
 coverage.
 
-The retained small, representative, and stress artifacts pass all 18
-warm/cold visibility cells. Median ratios range from 1.15× to 1.38×, p95 ratios
-from 1.17× to 1.47×, and the largest candidate materialization is 75 rows
+The final small, representative, and stress artifacts pass all 18 warm/cold
+visibility cells. Median ratios range from 1.13× to 1.34×, p95 ratios from
+1.16× to 1.39×, and the largest candidate materialization is 75 rows
 against budgets of 100, 198, and 408. The stress fixture no longer produces a
 library-sized heap delta per page.
 
@@ -34,7 +34,7 @@ without a valid production timing comparator.
 ## Method and evidence
 
 - The generated inventory covers TypeScript and TSX in `src`, `server`,
-  `tests`, and `scripts`, excluding generated migrations. It contains 410
+  `tests`, and `scripts`, excluding generated migrations. It contains 476
   direct database accesses after this audit added the previously omitted
   `server/tasks` scope.
 - Every inventory entry was reviewed in its owning call path. Server entry

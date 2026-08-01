@@ -114,12 +114,12 @@ ceilings are 500 ms.
 
 | Scenario             | Usable content | Long task | Worst commit |    Heap |  Storage | RPC requests / transfer |
 | -------------------- | -------------: | --------: | -----------: | ------: | -------: | ----------------------: |
-| Cold load            |       1,104 ms |      0 ms |       7.0 ms | 44.7 MB | 4.49 MiB |            7 / 1.47 MiB |
-| Warm hydration       |         192 ms |      0 ms |       9.8 ms | 44.7 MB | 4.63 MiB |           7 / 321.9 KiB |
-| Visibility reconnect |              — |      0 ms |       6.1 ms | 44.7 MB | 4.65 MiB |           6 / 274.0 KiB |
-| Pagination           |              — |      0 ms |       5.7 ms | 44.7 MB | 4.65 MiB |                 1 / 9 B |
-| Native reader        |          54 ms |      0 ms |       8.2 ms | 44.7 MB | 4.59 MiB |                 1 / 0 B |
-| Page-capture reader  |          68 ms |      0 ms |       6.0 ms | 44.7 MB | 4.63 MiB |                 1 / 0 B |
+| Cold load            |       1,108 ms |      0 ms |       6.7 ms | 47.4 MB | 4.50 MiB |            7 / 1.47 MiB |
+| Warm hydration       |         197 ms |      0 ms |      10.1 ms | 47.4 MB | 4.65 MiB |           7 / 254.7 KiB |
+| Visibility reconnect |              — |      0 ms |       6.0 ms | 47.4 MB | 4.63 MiB |           6 / 319.0 KiB |
+| Pagination           |              — |      0 ms |       6.1 ms | 47.4 MB | 4.63 MiB |                 1 / 9 B |
+| Native reader        |          57 ms |      0 ms |       7.9 ms | 47.4 MB | 4.60 MiB |                 1 / 0 B |
+| Page-capture reader  |          68 ms |      0 ms |       6.0 ms | 47.4 MB | 4.63 MiB |                 1 / 0 B |
 
 The app does not yet expose a Bookmark-specific capture route before the UI
 checkpoint. The Page-capture scenario therefore feeds representative sanitized
