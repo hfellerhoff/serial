@@ -3,12 +3,11 @@
 import { Link } from "@tanstack/react-router";
 import clsx from "clsx";
 import { useAtomValue } from "jotai";
-import { toast } from "sonner";
 import {
   ArchiveIcon,
   BookmarkCheckIcon,
   BookmarkIcon,
-  CopyIcon,
+  PencilIcon,
   SendIcon,
   Trash2Icon,
 } from "lucide-react";
@@ -36,6 +35,7 @@ import {
   useDeleteBookmarkMutation,
   useUpdateBookmarkStateMutation,
 } from "~/lib/data/bookmarks/mutations";
+import { useDialogStore } from "~/components/feed/dialogStore";
 
 export type ItemSize = "standard" | "large";
 type WatchedDatePrefix = "read" | "watched";
@@ -302,7 +302,10 @@ function IconThumbnail({ feedImageUrl, feedName }: IconThumbnailProps) {
 function EmptyThumbnail() {
   return (
     <div className="absolute inset-0 grid place-items-center bg-transparent">
-      <div className="bg-muted-foreground/20 h-10 w-10 rounded" />
+      <div
+        data-testid="empty-thumbnail-placeholder"
+        className="bg-muted-foreground/20 h-10 w-10 rounded"
+      />
     </div>
   );
 }
@@ -330,7 +333,7 @@ function ItemActions({
 }: ItemActionsProps) {
   const { mutateAsync: setWatchLaterValue } =
     useFeedItemsSetWatchLaterValueMutation(contentId);
-  const { copyUrl, toggleRead } = useFeedItemActions(contentId);
+  const { toggleRead } = useFeedItemActions(contentId);
 
   const showInstapaperAction = useShowInstapaperAction(contentId);
   const { mutateAsync: saveToInstapaper, isPending: isSavingToInstapaper } =
@@ -389,18 +392,6 @@ function ItemActions({
           />
         </Button>
       )}
-      <Button
-        size="icon"
-        variant="ghost"
-        onClick={() => void copyUrl()}
-        aria-label="Copy item URL"
-        className={clsx("relative overflow-visible", {
-          "h-8 w-8 p-0": isGrid,
-        })}
-      >
-        <CopyIcon size={isGrid ? 14 : 16} />
-        <KeyboardShortcutDisplay shortcut={SHORTCUT_KEYS.COPY_URL} />
-      </Button>
       <Button
         size="icon"
         variant="ghost"
@@ -510,21 +501,19 @@ function BookmarkThumbnail({
           referrerPolicy="no-referrer"
           className="absolute inset-0 h-full w-full object-cover"
         />
-      ) : (
+      ) : bookmark.iconUrl ? (
         <div className="absolute inset-0 grid place-items-center">
-          {bookmark.iconUrl ? (
-            <img
-              src={bookmark.iconUrl}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              referrerPolicy="no-referrer"
-              className="size-10 rounded object-contain"
-            />
-          ) : (
-            <BookmarkIcon className="text-muted-foreground size-8" />
-          )}
+          <img
+            src={bookmark.iconUrl}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            className="size-10 rounded object-contain"
+          />
         </div>
+      ) : (
+        <EmptyThumbnail />
       )}
     </ThumbnailContainer>
   );
@@ -541,6 +530,7 @@ function BookmarkActions({
 }) {
   const { mutate: updateState } = useUpdateBookmarkStateMutation(bookmark.id);
   const { mutate: deleteBookmark } = useDeleteBookmarkMutation();
+  const launchDialog = useDialogStore((store) => store.launchDialog);
   const showShortcuts = useShowShortcuts();
   const isGrid = layout === "grid";
   const isStandardList = layout === "list";
@@ -560,21 +550,27 @@ function BookmarkActions({
       <Button
         size="icon"
         variant="ghost"
-        aria-label="Copy Bookmark URL"
+        aria-label="Delete Bookmark"
         className={clsx({ "h-8 w-8 p-0": isGrid })}
-        onClick={() => {
-          void navigator.clipboard
-            .writeText(bookmark.sourceUrl)
-            .then(() => toast.success("Link copied"))
-            .catch(() => toast.error("Could not copy URL"));
-        }}
+        onClick={() => deleteBookmark({ bookmarkId: bookmark.id })}
       >
-        <CopyIcon size={isGrid ? 14 : 16} />
+        <Trash2Icon size={isGrid ? 14 : 16} />
       </Button>
       <Button
         size="icon"
         variant="ghost"
-        aria-label={bookmark.isSaved ? "Remove Saved" : "Add Saved"}
+        aria-label="Edit Bookmark"
+        className={clsx({ "h-8 w-8 p-0": isGrid })}
+        onClick={() =>
+          launchDialog("edit-bookmark", { selectedBookmarkId: bookmark.id })
+        }
+      >
+        <PencilIcon size={isGrid ? 14 : 16} />
+      </Button>
+      <Button
+        size="icon"
+        variant="ghost"
+        aria-label={bookmark.isSaved ? "Unsave" : "Save"}
         className={clsx({ "h-8 w-8 p-0": isGrid })}
         onClick={() =>
           updateState({
@@ -592,7 +588,7 @@ function BookmarkActions({
       <Button
         size="icon"
         variant="ghost"
-        aria-label={bookmark.isRead ? "Mark unread" : "Archive Bookmark"}
+        aria-label={bookmark.isRead ? "Unarchive" : "Archive"}
         className={clsx({ "h-8 w-8 p-0": isGrid })}
         onClick={() =>
           updateState({
@@ -602,15 +598,6 @@ function BookmarkActions({
         }
       >
         <ArchiveIcon size={isGrid ? 14 : 16} />
-      </Button>
-      <Button
-        size="icon"
-        variant="ghost"
-        aria-label="Delete Bookmark"
-        className={clsx({ "h-8 w-8 p-0": isGrid })}
-        onClick={() => deleteBookmark({ bookmarkId: bookmark.id })}
-      >
-        <Trash2Icon size={isGrid ? 14 : 16} />
       </Button>
     </div>
   );

@@ -5,19 +5,16 @@ import {
   ArchiveRestoreIcon,
   BookmarkCheckIcon,
   BookmarkIcon,
-  ExternalLinkIcon,
 } from "lucide-react";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { useBookmarkValue } from "~/lib/data/bookmarks";
 import { useUpdateBookmarkStateMutation } from "~/lib/data/bookmarks/mutations";
-import { useOpenOriginalShortcut } from "~/lib/hooks/useOpenOriginalShortcut";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 
 export function BookmarkReaderActions({ bookmarkId }: { bookmarkId: string }) {
   const bookmark = useBookmarkValue(bookmarkId);
   const { mutate: updateState } = useUpdateBookmarkStateMutation(bookmarkId);
-  useOpenOriginalShortcut(bookmark?.sourceUrl);
 
   const toggleSaved = () => {
     if (!bookmark) return;
@@ -38,7 +35,7 @@ export function BookmarkReaderActions({ bookmarkId }: { bookmarkId: string }) {
       <ButtonWithShortcut
         shortcut={SHORTCUT_KEYS.TOGGLE_SAVED}
         variant={bookmark.isSaved ? "secondary" : "outline"}
-        aria-label={bookmark.isSaved ? "Remove Saved" : "Add Saved"}
+        aria-label={bookmark.isSaved ? "Unsave" : "Save"}
         onClick={toggleSaved}
         size="icon md:default"
       >
@@ -48,7 +45,7 @@ export function BookmarkReaderActions({ bookmarkId }: { bookmarkId: string }) {
           <BookmarkIcon size={16} />
         )}
         <span className="hidden pl-1.5 md:block">
-          {bookmark.isSaved ? "Remove Saved" : "Add Saved"}
+          {bookmark.isSaved ? "Unsave" : "Save"}
         </span>
       </ButtonWithShortcut>
       <ButtonWithShortcut
@@ -66,18 +63,6 @@ export function BookmarkReaderActions({ bookmarkId }: { bookmarkId: string }) {
         <span className="hidden pl-1.5 md:block">
           {bookmark.isRead ? "Unarchive" : "Archive"}
         </span>
-      </ButtonWithShortcut>
-      <ButtonWithShortcut
-        shortcut={SHORTCUT_KEYS.OPEN_ORIGINAL}
-        variant="outline"
-        size="icon md:default"
-        aria-label="Open original"
-        onClick={() =>
-          window.open(bookmark.sourceUrl, "_blank", "noopener,noreferrer")
-        }
-      >
-        <ExternalLinkIcon size={16} />
-        <span className="hidden pl-1.5 md:block">Original</span>
       </ButtonWithShortcut>
     </div>
   );

@@ -3,6 +3,7 @@ import { create } from "zustand";
 export type DialogType =
   | "add-feed"
   | "edit-feed"
+  | "edit-bookmark"
   | "add-view"
   | "add-content-category"
   | "custom-video"
@@ -16,6 +17,7 @@ export type SettingsPane = "main" | "export" | "delete";
 type DialogStore = {
   dialog: null | DialogType;
   selectedFeedId: number | null;
+  selectedBookmarkId: string | null;
   subscriptionView: SubscriptionView;
   settingsPane: SettingsPane;
   launchDialog: (
@@ -24,6 +26,7 @@ type DialogStore = {
       subscriptionView?: SubscriptionView;
       settingsPane?: SettingsPane;
       selectedFeedId?: number;
+      selectedBookmarkId?: string;
     },
   ) => void;
   closeDialog: () => void;
@@ -33,6 +36,7 @@ type DialogStore = {
 export const useDialogStore = create<DialogStore>((set) => ({
   dialog: null,
   selectedFeedId: null,
+  selectedBookmarkId: null,
   subscriptionView: "overview",
   settingsPane: "main",
   launchDialog: (dialog, options) =>
@@ -41,11 +45,13 @@ export const useDialogStore = create<DialogStore>((set) => ({
       subscriptionView: options?.subscriptionView ?? "overview",
       settingsPane: options?.settingsPane ?? "main",
       selectedFeedId: options?.selectedFeedId ?? null,
+      selectedBookmarkId: options?.selectedBookmarkId ?? null,
     }),
   closeDialog: () =>
     set({
       dialog: null,
       selectedFeedId: null,
+      selectedBookmarkId: null,
       subscriptionView: "overview",
       settingsPane: "main",
     }),
@@ -53,6 +59,7 @@ export const useDialogStore = create<DialogStore>((set) => ({
     set({
       dialog: null,
       selectedFeedId: null,
+      selectedBookmarkId: null,
       subscriptionView: "overview",
       settingsPane: "main",
     }),

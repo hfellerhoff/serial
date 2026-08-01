@@ -1,13 +1,6 @@
 "use client";
 
-import { Link } from "@tanstack/react-router";
-import {
-  BookmarkCheckIcon,
-  ExternalLinkIcon,
-  Loader2Icon,
-  RefreshCwIcon,
-  Trash2Icon,
-} from "lucide-react";
+import { BookmarkCheckIcon, Loader2Icon, RefreshCwIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import type {
@@ -28,6 +21,12 @@ import { useQuickCreateViewMutation } from "~/lib/data/views/mutations";
 import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
 import { Button } from "~/components/ui/button";
 import { SelectableChipList } from "~/components/ui/selectable-chip-list";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "~/components/ui/dialog";
 
 type SaveFeedback = Pick<
   BookmarkSaveResult<unknown>,
@@ -78,7 +77,7 @@ export function BookmarkOrganizationEditor({
   onClose,
 }: {
   bookmarkId: string;
-  feedback: SaveFeedback;
+  feedback?: SaveFeedback;
   onClose: () => void;
 }) {
   const bookmark = useBookmarkValue(bookmarkId);
@@ -117,6 +116,12 @@ export function BookmarkOrganizationEditor({
       return tagIds;
     }, new Set<number>());
   }, [selectedViewIds, views]);
+  const showFeedback =
+    feedback !== undefined &&
+    !(
+      feedback.capture.status === "captured" &&
+      feedback.disposition === "created"
+    );
 
   if (!bookmark) {
     return (
@@ -126,11 +131,6 @@ export function BookmarkOrganizationEditor({
       </div>
     );
   }
-
-  const hasCapture = Boolean(bookmark.captureHash);
-  const destination = hasCapture
-    ? `/bookmark/${bookmark.id}`
-    : bookmark.effectiveUrl || bookmark.sourceUrl;
 
   const toggleView = async (viewId: number) => {
     const assigned = !selectedViewIds.includes(viewId);
@@ -174,9 +174,11 @@ export function BookmarkOrganizationEditor({
             </p>
           </div>
         </div>
-        <div className="mt-4">
-          <CaptureFeedback feedback={feedback} />
-        </div>
+        {feedback && showFeedback && (
+          <div className="mt-4" data-testid="bookmark-capture-feedback">
+            <CaptureFeedback feedback={feedback} />
+          </div>
+        )}
       </div>
 
       <div className="grid min-h-0 gap-6 overflow-y-auto px-6 py-5">
@@ -225,7 +227,7 @@ export function BookmarkOrganizationEditor({
       <div className="flex gap-2 border-t px-6 py-4">
         <Button
           variant="destructive"
-          size="icon md:default"
+          className="flex-1"
           disabled={isDeleting}
           aria-label="Delete Bookmark"
           onClick={async () => {
@@ -234,28 +236,42 @@ export function BookmarkOrganizationEditor({
             onClose();
           }}
         >
-          {isDeleting ? (
-            <Loader2Icon className="size-4 animate-spin" />
-          ) : (
-            <Trash2Icon className="size-4" />
-          )}
-          <span className="hidden pl-1.5 md:block">Delete</span>
-        </Button>
-        <Button variant="outline" className="flex-1" asChild>
-          {hasCapture ? (
-            <Link to={destination} onClick={onClose}>
-              Open Bookmark
-            </Link>
-          ) : (
-            <a target="_blank" rel="noopener noreferrer" href={destination}>
-              Open original <ExternalLinkIcon className="size-4" />
-            </a>
-          )}
+          {isDeleting ? "Deleting..." : "Delete"}
         </Button>
         <Button className="flex-1" onClick={onClose}>
           Done
         </Button>
       </div>
     </div>
+  );
+}
+
+export function EditBookmarkDialog({
+  bookmarkId,
+  onClose,
+}: {
+  bookmarkId: string | null;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog
+      open={bookmarkId !== null}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        <DialogTitle className="sr-only">Edit Bookmark</DialogTitle>
+        <DialogDescription className="sr-only">
+          Organize this Bookmark into Views and Tags.
+        </DialogDescription>
+        {bookmarkId && (
+          <BookmarkOrganizationEditor
+            bookmarkId={bookmarkId}
+            onClose={onClose}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

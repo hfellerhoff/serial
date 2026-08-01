@@ -6,15 +6,21 @@ import { AddFeedDialog, EditFeedDialog } from "~/components/AddFeedDialog";
 import { AddViewDialog } from "~/components/view-dialog";
 import { ConnectionsDialog } from "~/components/ConnectionsDialog";
 import { CustomVideoDialog } from "~/components/CustomVideoDialog";
+import { EditBookmarkDialog } from "~/components/bookmarks/BookmarkOrganizationEditor";
 
 export function AppDialogs() {
-  const { dialog, closeDialog, selectedFeedId } = useDialogStore();
+  const { dialog, closeDialog, selectedFeedId, selectedBookmarkId } =
+    useDialogStore();
 
   return (
     <>
       <AddFeedDialog />
       <EditFeedDialog
         selectedFeedId={dialog === "edit-feed" ? selectedFeedId : null}
+        onClose={closeDialog}
+      />
+      <EditBookmarkDialog
+        bookmarkId={dialog === "edit-bookmark" ? selectedBookmarkId : null}
         onClose={closeDialog}
       />
       <AddViewDialog />

@@ -72,6 +72,9 @@ test.describe("add feed manually", () => {
     await expect(page.locator("article").first()).toBeVisible({
       timeout: 30000,
     });
+    await expect(
+      page.getByRole("button", { name: "Copy item URL" }),
+    ).toHaveCount(0);
 
     const manageHeaderButton = page.getByRole("button", {
       name: "Manage",
@@ -107,6 +110,7 @@ test.describe("add feed manually", () => {
     // On desktop, the command palette sits one-third down the viewport.
     const desktopDialogBox = await dialog.boundingBox();
     expect(desktopDialogBox).not.toBeNull();
+    expect(desktopDialogBox!.width).toBe(672);
     expect(desktopDialogBox!.y + desktopDialogBox!.height / 2).toBeCloseTo(
       1080 / 3,
       0,
@@ -159,9 +163,23 @@ test.describe("add feed manually", () => {
       name: /Bookmark page to read later/,
     });
     await expect(bookmarkFallback).toBeVisible({ timeout: 10000 });
-    await expect(dialog.getByText("No feeds found for URL.")).toHaveCount(0);
+    const retryFeedDiscovery = dialog.getByRole("option", {
+      name: /Retry finding feeds/,
+    });
+    await expect(retryFeedDiscovery).toBeVisible();
+    await expect(retryFeedDiscovery).toContainText("No feeds found for URL.");
+    await expect(dialog.getByRole("option").first()).toContainText(
+      "Retry finding feeds",
+    );
 
     await expect(dialog.getByText(/Find feeds at/)).toHaveCount(0);
+
+    await retryFeedDiscovery.click();
+    await expect(
+      dialog.getByRole("option", { name: "Finding feeds…" }),
+    ).toBeVisible();
+    await expect(retryFeedDiscovery).toBeVisible({ timeout: 10000 });
+    await expect(bookmarkFallback).toBeVisible();
 
     await feedSearch.fill(feedUrl);
     await expect(

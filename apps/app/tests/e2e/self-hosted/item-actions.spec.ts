@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
   SELF_HOSTED_APP_PORT,
-  SELF_HOSTED_RSS_SERVER_PORT,
   SELF_HOSTED_TURSO_PORT,
 } from "../fixtures/ports";
 import {
@@ -67,38 +66,22 @@ test.describe("feed item actions", () => {
     await expect(readArticle).toBeVisible({ timeout: 10000 });
   });
 
-  test("copies the selected item URL and shows the shortcut overlay", async ({
-    context,
-    page,
-  }) => {
+  test("does not show a copy-link action on feed items", async ({ page }) => {
     const { email, password, feedItemId } = await seedArticleData(
       SELF_HOSTED_TURSO_PORT,
       SELF_HOSTED_APP_PORT,
     );
     testEmail = email;
 
-    await context.grantPermissions(["clipboard-read", "clipboard-write"], {
-      origin: `http://localhost:${SELF_HOSTED_APP_PORT}`,
-    });
     await signIn({ page, email, password });
 
     const article = page.locator(`article[data-item-id="${feedItemId}"]`);
     await expect(article).toBeVisible({ timeout: 30000 });
     await article.hover();
 
-    const copyButton = article.getByRole("button", { name: "Copy item URL" });
-    await page.keyboard.down("Alt");
-    await expect(copyButton.locator("kbd")).toHaveText("Shift+C");
-    await page.keyboard.up("Alt");
-
-    await page.keyboard.press("Shift+C");
-    await expect(page.getByText("Link copied")).toBeVisible();
-
-    const copiedUrl = await page.evaluate(() => navigator.clipboard.readText());
-    const itemUrlSuffix = feedItemId.replace(/^article-/, "");
-    expect(copiedUrl).toBe(
-      `http://127.0.0.1:${SELF_HOSTED_RSS_SERVER_PORT}/test-blog/${itemUrlSuffix}`,
-    );
+    await expect(
+      article.getByRole("button", { name: "Copy item URL" }),
+    ).toHaveCount(0);
   });
 
   test("shows Copy URL before Open in the video header", async ({ page }) => {

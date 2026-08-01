@@ -26,6 +26,7 @@ import {
 } from "~/lib/hooks/useArticleNavigation";
 import { useDebouncedSaveBookmarkProgress } from "~/lib/hooks/useDebouncedSaveBookmarkProgress";
 import { useRetentionPin } from "~/lib/hooks/useRetentionPin";
+import { useOpenOriginalShortcut } from "~/lib/hooks/useOpenOriginalShortcut";
 import { useScrollDirection } from "~/lib/hooks/useScrollDirection";
 import { orpcRouterClient } from "~/lib/orpc";
 import { getScrollContainer } from "~/lib/scroll";
@@ -50,6 +51,7 @@ function BookmarkReaderPage() {
   const setBarsHidden = useSetAtom(barsHiddenAtom);
   const barsHidden = useAtomValue(barsHiddenAtom);
   useRetentionPin("bookmark", id);
+  useOpenOriginalShortcut(bookmark?.sourceUrl);
 
   useEffect(() => {
     let active = true;
@@ -130,7 +132,7 @@ function BookmarkReaderPage() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              Open original
+              Open in Website
             </a>
           </Button>
         </Alert>

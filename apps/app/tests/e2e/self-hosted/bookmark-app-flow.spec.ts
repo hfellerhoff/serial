@@ -77,11 +77,9 @@ test.describe("Bookmark Serial-app flow", () => {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.getByRole("button", { name: "Archive" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Unsave" })).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Remove Saved" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Open original" }),
+      page.getByRole("link", { name: "Open in Website" }),
     ).toBeVisible();
     expect(
       await page.evaluate(
@@ -91,8 +89,8 @@ test.describe("Bookmark Serial-app flow", () => {
 
     await page.getByRole("button", { name: /Archive/ }).click();
     await expect(page.getByRole("button", { name: /Unarchive/ })).toBeVisible();
-    await page.getByRole("button", { name: /Remove Saved/ }).click();
-    await expect(page.getByRole("button", { name: /Add Saved/ })).toBeVisible();
+    await page.getByRole("button", { name: "Unsave" }).click();
+    await expect(page.getByRole("button", { name: "Save" })).toBeVisible();
 
     await page.mouse.wheel(0, 600);
     await expect
@@ -125,11 +123,53 @@ test.describe("Bookmark Serial-app flow", () => {
     );
     await signIn({ page, email, password });
     await page.getByRole("tab", { name: /Saved/ }).click();
+    const bookmarkCard = page.locator(
+      `article[data-item-id="${bookmarkId}"][data-entity-kind="bookmark"]`,
+    );
+    await expect(bookmarkCard).toBeVisible({ timeout: 30_000 });
     await expect(
-      page.locator(
-        `article[data-item-id="${bookmarkId}"][data-entity-kind="bookmark"]`,
-      ),
-    ).toBeVisible({ timeout: 30_000 });
+      bookmarkCard.getByTestId("empty-thumbnail-placeholder"),
+    ).toBeVisible();
+
+    await bookmarkCard.hover();
+    await expect(
+      bookmarkCard.getByRole("button", { name: "Copy Bookmark URL" }),
+    ).toHaveCount(0);
+    await expect
+      .poll(() =>
+        bookmarkCard
+          .getByRole("button")
+          .evaluateAll((buttons) =>
+            buttons.map((button) => button.getAttribute("aria-label")),
+          ),
+      )
+      .toEqual(["Delete Bookmark", "Edit Bookmark", "Unsave", "Archive"]);
+    await bookmarkCard.getByRole("button", { name: "Edit Bookmark" }).click();
+
+    const editDialog = page.getByRole("dialog");
+    await expect(
+      editDialog.getByRole("heading", { name: "Edit Bookmark" }),
+    ).toBeAttached();
+    await expect(
+      editDialog.getByTestId("bookmark-capture-feedback"),
+    ).toHaveCount(0);
+    const deleteButton = editDialog.getByRole("button", {
+      name: "Delete Bookmark",
+    });
+    const doneButton = editDialog.getByRole("button", { name: "Done" });
+    await expect(deleteButton).toBeVisible();
+    await expect(doneButton).toBeVisible();
+    await expect
+      .poll(async () => {
+        const [deleteBox, doneBox] = await Promise.all([
+          deleteButton.boundingBox(),
+          doneButton.boundingBox(),
+        ]);
+        return Math.abs((deleteBox?.width ?? 0) - (doneBox?.width ?? 0));
+      })
+      .toBeLessThanOrEqual(1);
+    await doneButton.click();
+    await expect(editDialog).toHaveCount(0);
 
     await page.getByRole("button", { name: "Add Feed or Bookmark" }).click();
     const dialog = page.getByRole("dialog");
@@ -152,5 +192,8 @@ test.describe("Bookmark Serial-app flow", () => {
         .locator('[data-slot="selectable-chip-list"][data-label="Views"]')
         .getByRole("button", { name: "All" }),
     ).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      dialog.getByRole("link", { name: /Open Bookmark|Open original/ }),
+    ).toHaveCount(0);
   });
 });

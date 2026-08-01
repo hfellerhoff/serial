@@ -1,4 +1,10 @@
-import { BookmarkIcon, Loader2Icon, RssIcon, SearchIcon } from "lucide-react";
+import {
+  BookmarkIcon,
+  Loader2Icon,
+  RefreshCwIcon,
+  RssIcon,
+  SearchIcon,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   normalizeFeedSearchUrl,
@@ -164,64 +170,89 @@ export function FeedDiscoveryCommand({
         }}
       />
       <CommandList className="relative flex max-h-none min-h-0 flex-1 flex-col sm:max-h-[min(60dvh,32rem,calc(100dvh-5.5rem))] sm:min-h-[min(20rem,60dvh,calc(100dvh-5.5rem))] sm:flex-none">
-        {isAddingFeed ? (
-          <CommandGroup>
-            <CommandItem className="gap-2" disabled value="adding">
-              <Loader2Icon className="size-4 animate-spin" />
-              {loadingLabel}
-            </CommandItem>
-          </CommandGroup>
-        ) : isDiscovering || isAutoDiscoveryPending ? (
-          <CommandGroup>
-            <CommandItem className="gap-2" disabled value="discovering">
-              <Loader2Icon className="size-4 animate-spin" />
-              Finding feeds…
-            </CommandItem>
-          </CommandGroup>
-        ) : isSelecting || (hasNoResults && normalizedUrl) ? (
+        {normalizedUrl ? (
           <>
-            {discoveredFeeds.length > 0 && (
-              <CommandGroup heading="Feeds">
-                {discoveredFeeds.map((feed) => (
-                  <CommandItem
-                    className="gap-2"
-                    key={feed.url}
-                    value={`${feed.title ?? ""} ${feed.url}`}
-                    onSelect={() => onSelectFeed(feed)}
-                  >
-                    <span className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded">
-                      <RssIcon className="size-4" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate">{feed.title || feed.url}</p>
-                      <p className="text-muted-foreground truncate text-xs">
-                        {feed.url}
-                      </p>
-                    </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
-            <CommandGroup heading="Bookmark">
-              <CommandItem
-                className="gap-2"
-                value={`${BOOKMARK_ACTION_LABEL[bookmarkPlatform]} ${normalizedUrl}`}
-                onSelect={() => {
-                  if (normalizedUrl) onSelectBookmark(normalizedUrl);
-                }}
-              >
-                <span className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded">
-                  <BookmarkIcon className="size-4" />
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate">
-                    {BOOKMARK_ACTION_LABEL[bookmarkPlatform]}
-                  </p>
-                  <p className="text-muted-foreground truncate text-xs">
-                    {normalizedUrl}
-                  </p>
-                </div>
-              </CommandItem>
+            <CommandGroup
+              className={
+                isAddingFeed || isDiscovering || isAutoDiscoveryPending
+                  ? undefined
+                  : "hidden"
+              }
+            >
+              {(isAddingFeed || isDiscovering || isAutoDiscoveryPending) && (
+                <CommandItem
+                  className="gap-2"
+                  disabled
+                  value={isAddingFeed ? "adding" : "discovering"}
+                >
+                  <Loader2Icon className="size-4 animate-spin" />
+                  {isAddingFeed ? loadingLabel : "Finding feeds…"}
+                </CommandItem>
+              )}
+            </CommandGroup>
+            <CommandGroup
+              heading="Feeds"
+              className={isSelecting || hasNoResults ? undefined : "hidden"}
+            >
+              {hasNoResults && (
+                <CommandItem
+                  className="gap-2"
+                  value={`Retry finding feeds ${normalizedUrl}`}
+                  onSelect={() => onDiscover()}
+                >
+                  <span className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded">
+                    <RefreshCwIcon className="size-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate">Retry finding feeds</p>
+                    <p className="text-muted-foreground truncate text-xs">
+                      No feeds found for URL.
+                    </p>
+                  </div>
+                </CommandItem>
+              )}
+              {discoveredFeeds.map((feed) => (
+                <CommandItem
+                  className="gap-2"
+                  key={feed.url}
+                  value={`${feed.title ?? ""} ${feed.url}`}
+                  onSelect={() => onSelectFeed(feed)}
+                >
+                  <span className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded">
+                    <RssIcon className="size-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate">{feed.title || feed.url}</p>
+                    <p className="text-muted-foreground truncate text-xs">
+                      {feed.url}
+                    </p>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+            <CommandGroup
+              heading="Bookmark"
+              className={isSelecting || hasNoResults ? undefined : "hidden"}
+            >
+              {(isSelecting || hasNoResults) && (
+                <CommandItem
+                  className="gap-2"
+                  value={`${BOOKMARK_ACTION_LABEL[bookmarkPlatform]} ${normalizedUrl}`}
+                  onSelect={() => onSelectBookmark(normalizedUrl)}
+                >
+                  <span className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded">
+                    <BookmarkIcon className="size-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate">
+                      {BOOKMARK_ACTION_LABEL[bookmarkPlatform]}
+                    </p>
+                    <p className="text-muted-foreground truncate text-xs">
+                      {normalizedUrl}
+                    </p>
+                  </div>
+                </CommandItem>
+              )}
             </CommandGroup>
           </>
         ) : (
