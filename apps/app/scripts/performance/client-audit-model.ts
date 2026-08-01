@@ -101,13 +101,166 @@ export type ClientAuditResult = {
 };
 
 export function evaluateClientAuditOperationBudgets(result: ClientAuditResult) {
-  return Object.entries(result.operations).flatMap(([operation, metrics]) =>
-    metrics.durationMs > CLIENT_OPERATION_DURATION_BUDGET_MS
-      ? [
-          `${operation}: ${metrics.durationMs.toFixed(1)}ms > ${CLIENT_OPERATION_DURATION_BUDGET_MS}ms`,
-        ]
-      : [],
+  const violations = Object.entries(result.operations).flatMap(
+    ([operation, metrics]) =>
+      metrics.durationMs > CLIENT_OPERATION_DURATION_BUDGET_MS
+        ? [
+            `${operation}: ${metrics.durationMs.toFixed(1)}ms > ${CLIENT_OPERATION_DURATION_BUDGET_MS}ms`,
+          ]
+        : [],
   );
+
+  function checkMaximum(label: string, measured: number, budget: number) {
+    if (measured > budget) {
+      violations.push(`${label}: ${measured} > ${budget}`);
+    }
+  }
+
+  checkMaximum(
+    "Bookmark synchronization request bytes",
+    result.synchronizationBytes.request,
+    result.synchronizationBytes.requestBudget,
+  );
+  checkMaximum(
+    "Bookmark synchronization response-page bytes",
+    result.synchronizationBytes.maximumResponsePage,
+    result.synchronizationBytes.responseBudget,
+  );
+  checkMaximum(
+    "normalized persistence mutation bytes",
+    result.persistenceMutationBytes.measured,
+    result.persistenceMutationBytes.budget,
+  );
+
+  const finalRetention = result.retention.afterTwentyFourPages;
+  const initialRetention = result.retention.afterTwelvePages;
+  checkMaximum(
+    "retained in-memory pages",
+    finalRetention.pages,
+    result.retention.budgets.memoryPages,
+  );
+  checkMaximum(
+    "retained in-memory bytes",
+    finalRetention.retainedBytes,
+    result.retention.budgets.memoryBytes,
+  );
+  checkMaximum(
+    "retained IndexedDB pages",
+    finalRetention.persistedPages,
+    result.retention.budgets.indexedDbPages,
+  );
+  checkMaximum(
+    "retained IndexedDB bytes",
+    finalRetention.persistedBytes,
+    result.retention.budgets.indexedDbBytes,
+  );
+  checkMaximum(
+    "mounted list items",
+    finalRetention.mountedItems,
+    result.retention.budgets.mountedItems,
+  );
+  checkMaximum(
+    "retained entities after pagination plateau",
+    finalRetention.entities,
+    initialRetention.entities,
+  );
+  checkMaximum(
+    "retained scope references after pagination plateau",
+    finalRetention.scopeReferences,
+    initialRetention.scopeReferences,
+  );
+  checkMaximum(
+    "retained heap bytes after pagination plateau",
+    finalRetention.retainedHeapBytes,
+    initialRetention.retainedHeapBytes + 1_024,
+  );
+
+  const fanOutBudgets: Partial<
+    Record<
+      keyof ClientAuditResult["operations"],
+      Partial<Record<keyof ClientAuditOperation, number>>
+    >
+  > = {
+    bookmarkSave: {
+      bookmarkStoreNotifications: 1,
+      mixedStoreNotifications: 1,
+      authoritativeRefills: 1,
+    },
+    bookmarkProgressEvent: {
+      bookmarkStoreNotifications: 1,
+      mixedStoreNotifications: 0,
+      authoritativeRefills: 0,
+    },
+    bookmarkCaptureEvent: {
+      bookmarkStoreNotifications: 1,
+      mixedStoreNotifications: 0,
+      authoritativeRefills: 0,
+    },
+    bookmarkOrganizationChange: {
+      bookmarkStoreNotifications: 1,
+      mixedStoreNotifications: 1,
+      authoritativeRefills: 2,
+    },
+    bookmarkDelete: {
+      bookmarkStoreNotifications: 1,
+      mixedStoreNotifications: 1,
+      authoritativeRefills: 1,
+    },
+    feedProgressEvent: {
+      feedItemStoreNotifications: 1,
+      feedItemProjectionNotifications: 0,
+      feedItemScopeNotifications: 0,
+      mixedStoreNotifications: 0,
+      authoritativeRefills: 0,
+    },
+    feedProgressBurst: {
+      feedItemStoreNotifications: 1,
+      feedItemProjectionNotifications: 0,
+      feedItemScopeNotifications: 0,
+      mixedStoreNotifications: 0,
+      authoritativeRefills: 0,
+    },
+    bookmarkBurstSingleFrame: {
+      bookmarkStoreNotifications: 100,
+      mixedStoreNotifications: 0,
+      authoritativeRefills: 0,
+    },
+    bookmarkBurstSeparateFrames: {
+      bookmarkStoreNotifications: 100,
+      mixedStoreNotifications: 0,
+      authoritativeRefills: 0,
+    },
+    coldSynchronization: {
+      bookmarkStoreNotifications: 128,
+      feedItemStoreNotifications: 0,
+      feedItemProjectionNotifications: 0,
+      feedItemScopeNotifications: 0,
+      mixedStoreNotifications: 0,
+      authoritativeRefills: 0,
+    },
+    warmSynchronization: {
+      bookmarkStoreNotifications: 0,
+      feedItemStoreNotifications: 0,
+      feedItemProjectionNotifications: 0,
+      feedItemScopeNotifications: 0,
+      mixedStoreNotifications: 0,
+      authoritativeRefills: 0,
+    },
+  };
+
+  for (const [operationName, metricBudgets] of Object.entries(fanOutBudgets)) {
+    const operation =
+      result.operations[operationName as keyof ClientAuditResult["operations"]];
+    for (const [metricName, budget] of Object.entries(metricBudgets)) {
+      checkMaximum(
+        `${operationName} ${metricName}`,
+        operation[metricName as keyof ClientAuditOperation],
+        budget,
+      );
+    }
+  }
+
+  return violations;
 }
 
 type RetentionPlateauMetrics = {

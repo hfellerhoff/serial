@@ -2643,6 +2643,7 @@ export const requestItemsByVisibility = protectedProcedure
           }),
         )
         .optional(),
+      membershipRevision: z.number().int().min(0).optional(),
     }),
   )
   .handler(async ({ context, input }) => {
@@ -2693,6 +2694,7 @@ export const requestItemsByVisibility = protectedProcedure
           diff: [],
           cursor: null,
           hasMore: false,
+          membershipRevision: input.membershipRevision,
         },
       });
       return { status: "completed" };
@@ -2729,6 +2731,7 @@ export const requestItemsByVisibility = protectedProcedure
           cursor: nextCursor,
           hasMore,
           replacesScope: clientItems !== undefined,
+          membershipRevision: input.membershipRevision,
         },
       });
     } catch (error) {
@@ -3125,6 +3128,7 @@ export type GetItemsByVisibilityChunk =
       hasMore: boolean;
       nextCursor: PaginationCursor;
       replacesScope?: boolean;
+      membershipRevision?: number;
     }
   | {
       type: "view-diff";
@@ -3134,6 +3138,7 @@ export type GetItemsByVisibilityChunk =
       cursor: PaginationCursor;
       hasMore: boolean;
       replacesScope?: boolean;
+      membershipRevision?: number;
     }
   | { type: "error"; message: string; phase: string };
 

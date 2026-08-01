@@ -5,6 +5,7 @@ import {
   setPendingWatchedOverride,
   setPendingWatchLaterOverride,
 } from "./pendingMutations";
+import { advanceFeedItemMembershipRevision } from "./membershipRevision";
 import { orpc, orpcRouterClient } from "~/lib/orpc";
 
 type BulkWatchedItem = {
@@ -53,7 +54,10 @@ export function applyOptimisticWatchedValues(
     });
     return [{ ...feedItem, isWatched, isWatchedUpdatedAt }];
   });
-  if (updatedItems.length > 0) store.setFeedItems(updatedItems);
+  if (updatedItems.length > 0) {
+    advanceFeedItemMembershipRevision();
+    store.setFeedItems(updatedItems);
+  }
   return contexts;
 }
 
@@ -78,6 +82,7 @@ export function applyOptimisticWatchLaterValue(
     isWatchLater,
     isWatchLaterUpdatedAt,
   );
+  advanceFeedItemMembershipRevision();
   store.setFeedItem(itemId, {
     ...feedItem,
     isWatchLater,
