@@ -103,6 +103,41 @@ test.describe("Bookmark Serial-app flow", () => {
       )
       .toBe(initialArticleWidth);
 
+    const scrollContainer = page.locator('[data-slot="sidebar-inset"]');
+    const scrollBox = await scrollContainer.boundingBox();
+    if (scrollBox) {
+      await page.mouse.move(
+        scrollBox.x + scrollBox.width / 2,
+        scrollBox.y + scrollBox.height / 2,
+      );
+    }
+    for (let index = 0; index < 12; index += 1) {
+      await page.mouse.wheel(0, 300);
+      await page.waitForTimeout(50);
+    }
+    await expect
+      .poll(
+        async () =>
+          (await getBookmarkState(SELF_HOSTED_TURSO_PORT, bookmarkId))
+            ?.progress ?? 0,
+      )
+      .toBeGreaterThan(0);
+    const savedBookmarkProgress = (
+      await getBookmarkState(SELF_HOSTED_TURSO_PORT, bookmarkId)
+    )?.progress;
+    expect(savedBookmarkProgress).toBeGreaterThan(5);
+
+    await page.goto("/");
+    await page.getByRole("tab", { name: /Saved/ }).click();
+    await expect(bookmarkCard).toBeVisible({ timeout: 15_000 });
+    await bookmarkCard.getByRole("link").click();
+    await expect(
+      page.getByRole("heading", { name: "Captured Bookmark" }),
+    ).toBeVisible({ timeout: 15_000 });
+    await expect
+      .poll(() => scrollContainer.evaluate((element) => element.scrollTop))
+      .toBeGreaterThan(0);
+
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.getByRole("button", { name: "Archive" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Unsave" })).toBeVisible();

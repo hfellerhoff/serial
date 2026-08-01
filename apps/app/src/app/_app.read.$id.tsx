@@ -2,14 +2,8 @@
 
 import clsx from "clsx";
 
-import { createFileRoute, useRouter } from "@tanstack/react-router";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
 import rehypeParse from "rehype-parse";
 import rehypeSanitize from "rehype-sanitize";
@@ -29,9 +23,9 @@ import {
   getElements,
   useArticleNavigation,
 } from "~/lib/hooks/useArticleNavigation";
-import { getScrollContainer } from "~/lib/scroll";
 import { useDebouncedSaveProgress } from "~/lib/hooks/useDebouncedSaveProgress";
 import { useRefreshFeedItem } from "~/lib/hooks/useRefreshFeedItem";
+import { useRestoreArticleProgress } from "~/lib/hooks/useRestoreArticleProgress";
 import { useScrollDirection } from "~/lib/hooks/useScrollDirection";
 import { detectTruncatedContent } from "~/lib/utils/detectTruncatedContent";
 import {
@@ -85,13 +79,12 @@ function ReadPage() {
 }
 
 function FeedReader({ id }: { id: string }) {
-  const router = useRouter();
   useRetentionPin("feed-item", id);
 
   const [articleStyle] = useFlagState("ARTICLE_STYLE");
 
   const feedItem = useFeedItemValue(id);
-  useRefreshFeedItem(id);
+  const hasRefreshedFeedItem = useRefreshFeedItem(id);
 
   const { feeds } = useFeeds();
   const feedCategories = useFeedCategories();
@@ -140,6 +133,12 @@ function FeedReader({ id }: { id: string }) {
 
   // Arrow key navigation between paragraphs/headings
   const { scrollToElement } = useArticleNavigation(articleRef);
+  useRestoreArticleProgress({
+    contentId: id,
+    articleElement,
+    progress: feedItem?.progress,
+    ready: hasRefreshedFeedItem,
+  });
 
   // Save progress 500ms after last scroll event
   useDebouncedSaveProgress({
@@ -153,32 +152,6 @@ function FeedReader({ id }: { id: string }) {
       };
     },
   });
-
-  // The app reuses one scroll container across routes. Always start a newly
-  // opened article at the top; saved progress remains available to progress
-  // indicators but should not move the reader on entry.
-  useLayoutEffect(() => {
-    let active = true;
-    const resetScroll = () => {
-      getScrollContainer().scrollTo({ top: 0, behavior: "instant" });
-    };
-
-    resetScroll();
-    const unsubscribe = router.subscribe("onRendered", (event) => {
-      if (!event.pathChanged) return;
-
-      // Router scroll restoration also runs on `onRendered`. Defer until all
-      // synchronous subscribers finish so Back/Forward restoration runs first.
-      queueMicrotask(() => {
-        if (active) resetScroll();
-      });
-    });
-
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, [id, router]);
 
   // Truncation alert
   const { mutate: editFeed } = useEditFeedMutation();

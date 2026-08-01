@@ -273,33 +273,23 @@ export function useFeedItemNavigation(
             ?.isGrid);
 
       if (isGrid && selectedItemId) {
-        const gridPos = getGridPosition(items, selectedItemId);
+        const currentSection = hasSections
+          ? getSectionIndex(currentIndex, sectionBoundaries)
+          : null;
+        const currentBoundary =
+          currentSection === null ? null : sectionBoundaries[currentSection];
+        const gridItems = currentBoundary
+          ? items.slice(currentBoundary.start, currentBoundary.end)
+          : items;
+        const gridPos = getGridPosition(gridItems, selectedItemId);
         if (gridPos) {
-          const nextIndex = (gridPos.row + 1) * gridPos.columns + gridPos.col;
-          if (nextIndex < items.length) {
-            // Check if we've moved to a different section
-            if (hasSections) {
-              const currentSection = getSectionIndex(
-                currentIndex,
-                sectionBoundaries,
-              );
-              const nextSection = getSectionIndex(nextIndex, sectionBoundaries);
-              if (currentSection !== nextSection) {
-                // Jump to first item of next section
-                const nextSectionStart =
-                  sectionBoundaries[nextSection]?.start ?? nextIndex;
-                selectItem(items[nextSectionStart]!);
-                return;
-              }
-            }
-            selectItem(items[nextIndex]!);
+          const nextGridIndex =
+            (gridPos.row + 1) * gridPos.columns + gridPos.col;
+          if (nextGridIndex < gridItems.length) {
+            selectItem(gridItems[nextGridIndex]!);
           } else {
             // At the end of the grid, try next section
-            if (hasSections) {
-              const currentSection = getSectionIndex(
-                currentIndex,
-                sectionBoundaries,
-              );
+            if (currentSection !== null) {
               const nextSection = currentSection + 1;
               if (nextSection < sectionBoundaries.length) {
                 const nextSectionStart = sectionBoundaries[nextSection]!.start;
@@ -385,31 +375,22 @@ export function useFeedItemNavigation(
             ?.isGrid);
 
       if (isGrid && selectedItemId) {
-        const gridPos = getGridPosition(items, selectedItemId);
+        const currentSection = hasSections
+          ? getSectionIndex(currentIndex, sectionBoundaries)
+          : null;
+        const currentBoundary =
+          currentSection === null ? null : sectionBoundaries[currentSection];
+        const gridItems = currentBoundary
+          ? items.slice(currentBoundary.start, currentBoundary.end)
+          : items;
+        const gridPos = getGridPosition(gridItems, selectedItemId);
         if (gridPos && gridPos.row > 0) {
-          const prevIndex = (gridPos.row - 1) * gridPos.columns + gridPos.col;
-          // Check if we've moved to a different section
-          if (hasSections) {
-            const currentSection = getSectionIndex(
-              currentIndex,
-              sectionBoundaries,
-            );
-            const prevSection = getSectionIndex(prevIndex, sectionBoundaries);
-            if (currentSection !== prevSection) {
-              // Jump to last item of previous section
-              const prevSectionEnd = sectionBoundaries[prevSection]!.end - 1;
-              selectItem(items[prevSectionEnd]!);
-              return;
-            }
-          }
-          selectItem(items[prevIndex]!);
+          const prevGridIndex =
+            (gridPos.row - 1) * gridPos.columns + gridPos.col;
+          selectItem(gridItems[prevGridIndex]!);
         } else {
           // At the top of the grid, try previous section
-          if (hasSections) {
-            const currentSection = getSectionIndex(
-              currentIndex,
-              sectionBoundaries,
-            );
+          if (currentSection !== null) {
             const prevSection = currentSection - 1;
             if (prevSection >= 0) {
               const prevSectionEnd = sectionBoundaries[prevSection]!.end - 1;

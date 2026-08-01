@@ -1,11 +1,16 @@
 import { useMutation } from "@tanstack/react-query";
 import { feedItemsStore, useFeedItemState } from "../store";
+import { bookmarksStore } from "../bookmarks/store";
+import { feedCategoriesStore } from "../feed-categories/store";
+import { mixedContentStore } from "../mixed-content/store";
+import { viewsStore } from "../views/store";
 import {
   clearPendingFeedItemOverride,
   setPendingWatchedOverride,
   setPendingWatchLaterOverride,
 } from "./pendingMutations";
 import { advanceFeedItemMembershipRevision } from "./membershipRevision";
+import type { ApplicationFeedItem } from "~/server/db/schema";
 import { orpc, orpcRouterClient } from "~/lib/orpc";
 
 type BulkWatchedItem = {
@@ -34,6 +39,23 @@ type WatchedServerValue = {
   updatedAt: Date;
 };
 
+function setFeedItemsWithMixedProjection(items: ApplicationFeedItem[]) {
+  if (items.length === 0) return;
+  const store = feedItemsStore.getState();
+  const previousFeedItems = Object.fromEntries(
+    items.map((item) => [item.id, store.feedItemsDict[item.id]]),
+  );
+  store.setFeedItems(items);
+  mixedContentStore.getState().reprojectFeedItems({
+    itemIds: items.map((item) => item.id),
+    previousFeedItems,
+    feedItems: store.feedItemsDict,
+    bookmarks: bookmarksStore.getState().snapshot(),
+    views: viewsStore.getState().views,
+    feedCategories: feedCategoriesStore.getState().feedCategories,
+  });
+}
+
 export function applyOptimisticWatchedValues(
   items: Array<{ id: string }>,
   isWatched: boolean,
@@ -56,7 +78,7 @@ export function applyOptimisticWatchedValues(
   });
   if (updatedItems.length > 0) {
     advanceFeedItemMembershipRevision();
-    store.setFeedItems(updatedItems);
+    setFeedItemsWithMixedProjection(updatedItems);
   }
   return contexts;
 }
@@ -83,11 +105,9 @@ export function applyOptimisticWatchLaterValue(
     isWatchLaterUpdatedAt,
   );
   advanceFeedItemMembershipRevision();
-  store.setFeedItem(itemId, {
-    ...feedItem,
-    isWatchLater,
-    isWatchLaterUpdatedAt,
-  });
+  setFeedItemsWithMixedProjection([
+    { ...feedItem, isWatchLater, isWatchLaterUpdatedAt },
+  ]);
 
   return {
     itemId,
@@ -123,11 +143,13 @@ export function rollbackOptimisticWatchLaterValue(
   const currentItem = store.feedItemsDict[context.itemId];
   if (!currentItem) return;
 
-  store.setFeedItem(context.itemId, {
-    ...currentItem,
-    isWatchLater: context.previousIsWatchLater,
-    isWatchLaterUpdatedAt: context.previousIsWatchLaterUpdatedAt,
-  });
+  setFeedItemsWithMixedProjection([
+    {
+      ...currentItem,
+      isWatchLater: context.previousIsWatchLater,
+      isWatchLaterUpdatedAt: context.previousIsWatchLaterUpdatedAt,
+    },
+  ]);
 }
 
 export function resolveOptimisticWatchedValue(
@@ -168,7 +190,7 @@ export function settleOptimisticWatchedValues(
           },
     ];
   });
-  if (updatedItems.length > 0) store.setFeedItems(updatedItems);
+  setFeedItemsWithMixedProjection(updatedItems);
 }
 
 export function resolveOptimisticWatchLaterValue(
@@ -190,10 +212,7 @@ export function resolveOptimisticWatchLaterValue(
   const currentItem = store.feedItemsDict[context.itemId];
   if (!currentItem) return;
 
-  store.setFeedItem(context.itemId, {
-    ...currentItem,
-    ...serverValue,
-  });
+  setFeedItemsWithMixedProjection([{ ...currentItem, ...serverValue }]);
 }
 
 export async function setBulkWatchedValue({

@@ -80,6 +80,17 @@ export const getCapture = protectedProcedure
     }),
   );
 
+export const getById = protectedProcedure
+  .input(z.object({ bookmarkId: bookmarkIdSchema }))
+  .handler(async ({ context, input }) => {
+    const bookmarks = await loadApplicationBookmarksById({
+      database: context.db,
+      userId: context.user.id,
+      bookmarkIds: [input.bookmarkId],
+    });
+    return bookmarks[0] ?? null;
+  });
+
 export const updateState = protectedProcedure
   .input(
     z

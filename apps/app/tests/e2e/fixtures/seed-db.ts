@@ -86,6 +86,20 @@ export async function getFeedItemProgress(tursoPort: number, id: string) {
   return feedItem?.progress ?? null;
 }
 
+export async function getFeedItemWatchLaterState(
+  tursoPort: number,
+  id: string,
+) {
+  const { db, client } = getDb(tursoPort);
+  const feedItem = await db
+    .select({ isWatchLater: schema.feedItems.isWatchLater })
+    .from(schema.feedItems)
+    .where(eq(schema.feedItems.id, id))
+    .get();
+  client.close();
+  return feedItem?.isWatchLater ?? null;
+}
+
 export async function getBookmarkState(tursoPort: number, id: string) {
   const { db, client } = getDb(tursoPort);
   const bookmark = await db
@@ -196,6 +210,7 @@ export async function seedBookmarkProjectionData(
       <p><a href="https://example.com/next">External reader link</a></p>
       <img src="https://images.example.com/reader.jpg" alt="Reader image" onerror="steal()">
       <div data-serial-embed="youtube" data-video-id="dQw4w9WgXcQ" data-start="42"></div>
+      ${ARTICLE_HTML}
       <script data-testid="unsafe-capture-script">steal()</script>`,
     contentHash: `hash-${bookmarkId}`,
     captureSource: "extension-live-dom",
@@ -510,6 +525,7 @@ export async function seedMixedViewSectionCase(
   return {
     email,
     password,
+    viewId: targetView.id,
     viewName,
     emptyViewName,
     tagName: tag.name,

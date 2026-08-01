@@ -707,14 +707,14 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
     expect(
       mixedContentStore.getState().scopes[getMixedScopeKey(scope, "unread")]
         ?.references,
-    ).toEqual([reference("feed-item", item.id)]);
+    ).toEqual([]);
     expect(
       mixedContentStore
         .getState()
         .scopes[getMixedScopeKey(scope, "read")]?.references.map(
           ({ entityId }) => entityId,
         ),
-    ).toEqual([archivedBookmark.id]);
+    ).toEqual([archivedBookmark.id, item.id]);
 
     await setMixedReadValue({ references, isRead: false });
     expect(
@@ -723,6 +723,17 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
     expect(feedItemsStore.getState().feedItemsDict[item.id]?.isWatched).toBe(
       false,
     );
+    expect(
+      mixedContentStore
+        .getState()
+        .scopes[getMixedScopeKey(scope, "unread")]?.references.map(
+          ({ entityId }) => entityId,
+        ),
+    ).toEqual([archivedBookmark.id, item.id]);
+    expect(
+      mixedContentStore.getState().scopes[getMixedScopeKey(scope, "read")]
+        ?.references,
+    ).toEqual([]);
     expect(orpcMocks.setBookmarkBulkReadValue).toHaveBeenNthCalledWith(2, {
       bookmarkIds: [archivedBookmark.id],
       isRead: false,

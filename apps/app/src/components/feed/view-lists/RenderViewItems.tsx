@@ -274,7 +274,8 @@ export function RenderViewItems() {
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
   const viewListKey = `view-${currentView?.id ?? "none"}-${visibilityFilter}`;
   const navigationItems = fullFlatItems;
-  const navigationHasGridSections = fullHasGridSections;
+  const navigationIsGridLayout =
+    fullSectionInfo.length === 1 && fullHasGridSections;
   const navigationSectionInfo = fullSectionInfo;
   const shouldShowPaginationEnd =
     hasRenderedAllItems &&
@@ -284,7 +285,7 @@ export function RenderViewItems() {
   // Keyboard navigation
   const { handleMouseSelect, selectItem } = useFeedItemNavigation(
     navigationItems,
-    navigationHasGridSections,
+    navigationIsGridLayout,
     navigationSectionInfo,
   );
 

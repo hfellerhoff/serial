@@ -199,16 +199,16 @@ test.describe("view subview sections", () => {
         .click();
     };
 
-    // 1st item (Tech Feed) -> Large List
-    await selectSectionLayout(viewSectionRows.nth(0), "Default", "Large List");
+    // 1st item (Tech Feed) -> Grid
+    await selectSectionLayout(viewSectionRows.nth(0), "Default", "Grid");
 
-    // 2nd item (News Feed) -> Default (already default, no change needed)
+    // 2nd item (News Feed) -> List
+    await selectSectionLayout(viewSectionRows.nth(1), "Default", "List");
 
     // 3rd item (#Tech) -> List
     await selectSectionLayout(viewSectionRows.nth(2), "Default", "List");
 
-    // Uncategorized -> Grid
-    await selectSectionLayout(viewSectionRows.nth(3), "Large List", "Grid");
+    // Uncategorized -> Large List (already the inherited layout)
 
     // ── 6. Save the view ─────────────────────────────────────────────
     await dialog.getByRole("button", { name: /add view/i }).click();
@@ -299,20 +299,22 @@ test.describe("view subview sections", () => {
     });
     await page.waitForTimeout(150);
 
-    const renderedItemIdsBeforeNavigation = await getRenderedItemIds(
-      page.locator("[data-item-id]"),
-    );
+    // A grid in one subsection must not make list navigation in another
+    // subsection jump by the grid's column count.
+    const newsSectionForNavigation = sectionByHeading("News Feed");
+    const newsItemsForNavigation =
+      newsSectionForNavigation.locator("[data-item-id]");
+    const firstNewsItem = newsItemsForNavigation.nth(0);
+    const secondNewsItem = newsItemsForNavigation.nth(1);
+    const firstNewsItemId = await firstNewsItem.getAttribute("data-item-id");
+    const secondNewsItemId = await secondNewsItem.getAttribute("data-item-id");
+    expect(firstNewsItemId).not.toBeNull();
+    expect(secondNewsItemId).not.toBeNull();
 
-    // Press arrow down to move selection from the current selection state.
+    await firstNewsItem.hover();
+    await expect.poll(getSelectedRenderedItemIds).toEqual([firstNewsItemId!]);
     await page.keyboard.press("ArrowDown");
-
-    await expect(async () => {
-      const selectedItemIds = await getSelectedRenderedItemIds();
-      expect(selectedItemIds).toHaveLength(1);
-      expect(renderedItemIdsBeforeNavigation).toContain(selectedItemIds[0]);
-    }).toPass({
-      timeout: 5000,
-    });
+    await expect.poll(getSelectedRenderedItemIds).toEqual([secondNewsItemId!]);
 
     // ── 10. Verify pagination in sectioned views ─────────────────────
     // Count total visible items after initial load (should be 30)

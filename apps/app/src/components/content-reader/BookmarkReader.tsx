@@ -2,15 +2,8 @@
 
 import clsx from "clsx";
 import { BookmarkIcon } from "lucide-react";
-import { useRouter } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom } from "jotai";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { DatabasePageCapture } from "~/server/db/schema";
 import { BookmarkArticleContent } from "~/components/bookmarks/BookmarkArticleContent";
 import { BookmarkReaderActions } from "~/components/bookmarks/BookmarkReaderActions";
@@ -31,15 +24,16 @@ import { useDebouncedSaveBookmarkProgress } from "~/lib/hooks/useDebouncedSaveBo
 import { useRetentionPin } from "~/lib/hooks/useRetentionPin";
 import { useOpenOriginalShortcut } from "~/lib/hooks/useOpenOriginalShortcut";
 import { useScrollDirection } from "~/lib/hooks/useScrollDirection";
+import { useRefreshBookmark } from "~/lib/hooks/useRefreshBookmark";
+import { useRestoreArticleProgress } from "~/lib/hooks/useRestoreArticleProgress";
 import { orpcRouterClient } from "~/lib/orpc";
-import { getScrollContainer } from "~/lib/scroll";
 import { getOriginActionLabel } from "~/lib/content/capabilities";
 
 const captureCache = new Map<string, DatabasePageCapture>();
 
 export function BookmarkReader({ id }: { id: string }) {
-  const router = useRouter();
   const bookmark = useBookmarkValue(id);
+  const refreshedBookmark = useRefreshBookmark(id);
   const [capture, setCapture] = useState<
     DatabasePageCapture | null | undefined
   >(() => captureCache.get(id));
@@ -85,6 +79,12 @@ export function BookmarkReader({ id }: { id: string }) {
   useEffect(() => () => setBarsHidden(false), [setBarsHidden]);
 
   const { scrollToElement } = useArticleNavigation(articleRef);
+  useRestoreArticleProgress({
+    contentId: id,
+    articleElement,
+    progress: refreshedBookmark?.progress ?? bookmark?.progress,
+    ready: refreshedBookmark !== undefined,
+  });
   useDebouncedSaveBookmarkProgress({
     bookmarkId: id,
     getProgress: () => {
@@ -95,16 +95,6 @@ export function BookmarkReader({ id }: { id: string }) {
       };
     },
   });
-
-  useLayoutEffect(() => {
-    const resetScroll = () =>
-      getScrollContainer().scrollTo({ top: 0, behavior: "instant" });
-    resetScroll();
-    const unsubscribe = router.subscribe("onRendered", (event) => {
-      if (event.pathChanged) queueMicrotask(resetScroll);
-    });
-    return unsubscribe;
-  }, [id, router]);
 
   const updateArticleRef = useCallback((element: HTMLDivElement | null) => {
     articleRef.current = element;

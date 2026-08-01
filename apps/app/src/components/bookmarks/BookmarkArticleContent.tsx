@@ -34,7 +34,11 @@ export function BookmarkArticleContent({ content }: { content: string }) {
   }, [content]);
 
   if (!sanitizedContent) {
-    return <p role="status">Preparing Page capture…</p>;
+    return (
+      <p role="status" data-reader-content-pending>
+        Preparing Page capture…
+      </p>
+    );
   }
 
   const options: HTMLReactParserOptions = {

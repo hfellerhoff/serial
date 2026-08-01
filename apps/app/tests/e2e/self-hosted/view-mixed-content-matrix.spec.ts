@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { signIn } from "../fixtures/auth";
+import { indexedDbKeys } from "../fixtures/indexed-db";
 import {
   MIXED_VIEW_SECTION_CASES,
   mixedViewSectionCaseName,
@@ -374,25 +375,7 @@ test.describe("exhaustive mixed-content View section matrix", () => {
     await expect
       .poll(
         async () => {
-          const keys = await page.evaluate(async () => {
-            const database = await new Promise<IDBDatabase>(
-              (resolve, reject) => {
-                const request = indexedDB.open("keyval-store");
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => resolve(request.result);
-              },
-            );
-            try {
-              return await new Promise<IDBValidKey[]>((resolve, reject) => {
-                const transaction = database.transaction("keyval", "readonly");
-                const request = transaction.objectStore("keyval").getAllKeys();
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => resolve(request.result);
-              });
-            } finally {
-              database.close();
-            }
-          });
+          const keys = await indexedDbKeys(page);
           return keys.includes(loadedScopeKey);
         },
         { timeout: 30_000 },

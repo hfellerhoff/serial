@@ -3,12 +3,20 @@ import type { ApplicationFeedItem } from "~/server/db/schema";
 import {
   applyOptimisticWatchedValue,
   applyOptimisticWatchedValues,
+  applyOptimisticWatchLaterValue,
   resolveOptimisticWatchedValue,
   rollbackOptimisticWatchedValue,
   rollbackOptimisticWatchedValues,
   settleOptimisticWatchedValues,
 } from "~/lib/data/feed-items/mutations";
 import { feedItemsStore } from "~/lib/data/store";
+import {
+  getMixedScopeKey,
+  mixedContentStore,
+} from "~/lib/data/mixed-content/store";
+import { viewsStore } from "~/lib/data/views/store";
+import { feedCategoriesStore } from "~/lib/data/feed-categories/store";
+import { bookmarksStore } from "~/lib/data/bookmarks/store";
 
 function makeItem(
   overrides: Partial<ApplicationFeedItem> = {},
@@ -43,6 +51,72 @@ function makeItem(
 describe("optimistic feed item mutations", () => {
   beforeEach(() => {
     feedItemsStore.getState().reset();
+    mixedContentStore.getState().reset();
+    viewsStore.getState().reset();
+    feedCategoriesStore.getState().reset();
+    bookmarksStore.getState().reset();
+  });
+
+  it("removes an optimistically saved item from a loaded unread View", () => {
+    const item = makeItem();
+    const now = new Date("2026-01-01T00:00:00Z");
+    const view = {
+      id: 10,
+      userId: "user-1",
+      name: "Sectioned View",
+      daysWindow: 0,
+      readStatus: 0,
+      contentFilter: 7 as const,
+      layout: "list" as const,
+      placement: 0,
+      createdAt: now,
+      updatedAt: now,
+      feedIds: [item.feedId],
+      categoryIds: [],
+      isDefault: false,
+      viewSections: [
+        {
+          id: 1,
+          viewId: 10,
+          placement: 0,
+          itemType: "feed" as const,
+          itemId: item.feedId,
+          layout: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    };
+    viewsStore.getState().set([view]);
+    feedItemsStore.getState().setFeedItem(item.id, item);
+    const scope = { type: "view" as const, viewId: view.id };
+    mixedContentStore.getState().applyPage({
+      scope,
+      visibility: "unread",
+      page: {
+        references: [
+          {
+            entityKind: "feed-item",
+            entityId: item.id,
+            sectionPlacement: 0,
+            normalizedAt: item.postedAt,
+          },
+        ],
+        bookmarks: [],
+        feedItems: [item],
+        cursor: null,
+        hasMore: false,
+      },
+      replacesScope: true,
+      feedItems: feedItemsStore.getState().feedItemsDict,
+    });
+
+    applyOptimisticWatchLaterValue(item.id, true);
+
+    expect(
+      mixedContentStore.getState().scopes[getMixedScopeKey(scope, "unread")]
+        ?.references,
+    ).toEqual([]);
   });
 
   it("rolls back a failed optimistic update without changing updatedAt", () => {

@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { mergeFeedItem } from "~/lib/data/feed-items/mergeFeedItem";
 import { feedItemsStore } from "~/lib/data/store";
 import { orpcRouterClient } from "~/lib/orpc";
 
 export function useRefreshFeedItem(id: string | undefined) {
+  const [refreshState, setRefreshState] = useState<{
+    id: string;
+    complete: boolean;
+  }>();
+
   useEffect(() => {
     if (!id) return;
 
@@ -28,10 +33,15 @@ export function useRefreshFeedItem(id: string | undefined) {
       })
       .catch((error) => {
         console.error("Error refreshing feed item:", error);
+      })
+      .finally(() => {
+        if (!canceled) setRefreshState({ id, complete: true });
       });
 
     return () => {
       canceled = true;
     };
   }, [id]);
+
+  return refreshState ? refreshState.id === id && refreshState.complete : false;
 }
