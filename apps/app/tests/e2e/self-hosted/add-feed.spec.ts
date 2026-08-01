@@ -68,6 +68,7 @@ test.describe("add feed manually", () => {
     await seedAddFeedSelectionData(SELF_HOSTED_TURSO_PORT, email);
 
     await signIn({ page, email, password });
+    await page.getByRole("radio", { name: "All", exact: true }).click();
     await expect(page.locator("article").first()).toBeVisible({
       timeout: 30000,
     });

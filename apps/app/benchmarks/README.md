@@ -205,3 +205,8 @@ pairs. Their audit evidence uses the environment/tool division above.
 `pnpm benchmark:client:coverage:check` scans current client source and validates
 that every configured finding path still belongs to the applicable coverage
 set; it does not require a committed report.
+
+The client audit profiles also measure local mixed-content View projection over
+their complete Bookmark fixtures. This protects fetch-free View navigation and
+View-chip status computation with the same 50 ms operation budget as other
+client state transitions.

@@ -11,7 +11,9 @@ import {
   getMixedScopeKey,
   mixedContentStore,
 } from "~/lib/data/mixed-content/store";
+import { projectLocalMixedContentOrder } from "~/lib/data/mixed-content/bookmarkProjection";
 import { viewsStore } from "~/lib/data/views/store";
+import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
 import { processPublishedChunks } from "~/lib/data/subscriptionCoordinator";
 import {
   partitionMixedReadTargets,
@@ -147,6 +149,114 @@ beforeEach(() => {
 });
 
 describe("Bookmark synchronization and local mixed reprojection", () => {
+  it("projects locally cached Bookmarks only into their owned Views", () => {
+    const assigned = bookmark({ id: "assigned", viewIds: [10] });
+    const unassigned = bookmark({ id: "unassigned", viewIds: [] });
+    const emptyView = { ...view(), id: 11, feedIds: [] };
+    const allViews = [view(), emptyView];
+
+    expect(
+      projectLocalMixedContentOrder({
+        feedItemIds: [],
+        feedItems: {},
+        bookmarks: { assigned, unassigned },
+        scope: { type: "view", viewId: 10 },
+        views: allViews,
+        visibility: "later",
+      }),
+    ).toEqual(["assigned"]);
+    expect(
+      projectLocalMixedContentOrder({
+        feedItemIds: [],
+        feedItems: {},
+        bookmarks: { assigned, unassigned },
+        scope: { type: "view", viewId: 11 },
+        views: allViews,
+        visibility: "later",
+      }),
+    ).toEqual([]);
+    expect(
+      projectLocalMixedContentOrder({
+        feedItemIds: [],
+        feedItems: {},
+        bookmarks: { assigned, unassigned },
+        scope: { type: "view", viewId: INBOX_VIEW_ID },
+        views: allViews,
+        visibility: "later",
+      }),
+    ).toEqual(["unassigned"]);
+  });
+
+  it("keeps local mixed Read projections ordered by View section", () => {
+    const sectionedView: ApplicationView = {
+      ...view(),
+      categoryIds: [100],
+      feedIds: [1, 2],
+      viewSections: [
+        {
+          id: 1,
+          viewId: 10,
+          placement: 0,
+          itemType: "feed",
+          itemId: 1,
+          layout: null,
+          createdAt: NOW,
+          updatedAt: NOW,
+        },
+        {
+          id: 2,
+          viewId: 10,
+          placement: 1,
+          itemType: "tag",
+          itemId: 100,
+          layout: null,
+          createdAt: NOW,
+          updatedAt: NOW,
+        },
+      ],
+    };
+    const feedSectionItem = {
+      ...feedItem("feed-section", "https://example.com/feed-section"),
+      feedId: 1,
+      isWatched: true,
+      isWatchedUpdatedAt: new Date("2026-07-30T08:00:00.000Z"),
+    };
+    const tagSectionItem = {
+      ...feedItem("tag-section", "https://example.com/tag-section"),
+      feedId: 2,
+      isWatched: true,
+      isWatchedUpdatedAt: new Date("2026-07-30T10:00:00.000Z"),
+    };
+    const uncategorizedBookmark = bookmark({
+      id: "uncategorized-bookmark",
+      isSaved: false,
+      isRead: true,
+      readUpdatedAt: new Date("2026-07-30T11:00:00.000Z"),
+      viewIds: [10],
+    });
+
+    expect(
+      projectLocalMixedContentOrder({
+        feedItemIds: [tagSectionItem.id, feedSectionItem.id],
+        feedItems: {
+          [feedSectionItem.id]: feedSectionItem,
+          [tagSectionItem.id]: tagSectionItem,
+        },
+        bookmarks: {
+          [uncategorizedBookmark.id]: uncategorizedBookmark,
+        },
+        scope: { type: "view", viewId: 10 },
+        views: [sectionedView],
+        visibility: "read",
+        feedCategories: [{ feedId: 2, categoryId: 100 }],
+      }),
+    ).toEqual([
+      feedSectionItem.id,
+      tagSectionItem.id,
+      uncategorizedBookmark.id,
+    ]);
+  });
+
   it("hydrates Bookmark and Feed-item entities into separate caches from a discriminated page", () => {
     const savedBookmark = bookmark();
     const item = feedItem("feed-one", "https://example.com/feed");

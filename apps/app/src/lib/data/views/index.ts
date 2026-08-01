@@ -20,8 +20,10 @@ import {
   useFeedItemsOrder,
   useScopeFeedItemIds,
 } from "../store";
-import { useViewsFetchStatus } from "./store";
+import { bookmarksStore } from "../bookmarks/store";
+import { projectLocalMixedContentOrder } from "../mixed-content/bookmarkProjection";
 import { INBOX_VIEW_ID, INBOX_VIEW_PLACEMENT } from "./constants";
+import { useViewsFetchStatus } from "./store";
 import type { ApplicationView } from "~/server/db/schema";
 
 export { INBOX_VIEW_ID, INBOX_VIEW_PLACEMENT };
@@ -96,6 +98,41 @@ export function useCheckFilteredFeedItemsForView() {
       scopeFeedItemIds,
       feedItemsProjection,
       filterIndex,
+      views,
+      visibilityFilter,
+    ],
+  );
+}
+
+export function useCheckFilteredContentForView() {
+  const checkFilteredFeedItemsForView = useCheckFilteredFeedItemsForView();
+  const feedItemsProjection = useFeedItemsListProjection();
+  const { feedCategories } = useFeedCategories();
+  const { views } = useViews();
+  const visibilityFilter = useAtomValue(visibilityFilterAtom);
+  const bookmarkRevision = bookmarksStore.useRevision();
+  const bookmarks = useMemo(() => {
+    void bookmarkRevision;
+    return { ...bookmarksStore.getState().snapshot() };
+  }, [bookmarkRevision]);
+
+  return useCallback(
+    (viewId: number) => {
+      return projectLocalMixedContentOrder({
+        feedItemIds: checkFilteredFeedItemsForView(viewId),
+        feedItems: feedItemsProjection.getItems(),
+        bookmarks,
+        scope: { type: "view", viewId },
+        views,
+        visibility: visibilityFilter,
+        feedCategories,
+      });
+    },
+    [
+      bookmarks,
+      checkFilteredFeedItemsForView,
+      feedItemsProjection,
+      feedCategories,
       views,
       visibilityFilter,
     ],

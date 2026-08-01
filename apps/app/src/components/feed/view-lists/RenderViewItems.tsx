@@ -19,7 +19,6 @@ import { ViewItemStandardList } from "./ViewItemStandardList";
 import { useViewSections } from "./useViewSections";
 import { useViewListScroll } from "./useViewListScroll";
 import type { ViewSection } from "./useViewSections";
-import type { ViewLayout } from "~/server/db/constants";
 import { VIEW_LAYOUT } from "~/server/db/constants";
 import FeedLoading from "~/components/loading";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
@@ -194,18 +193,15 @@ function LayoutSection({
   handleMouseSelect,
   sectionIndex,
   onMarkAsRead,
-  viewName,
   sectionItemsForAction,
 }: {
   section: ViewSection;
   handleMouseSelect: (itemId: string) => void;
   sectionIndex: number;
   onMarkAsRead?: (sectionIndex: number) => void;
-  viewName?: string;
   sectionItemsForAction: string[];
 }) {
-  const { items, layout, name, isUncategorized, itemType, itemId } = section;
-  const sectionName = isUncategorized ? (viewName ?? name) : name;
+  const { items, layout, name, itemType, itemId } = section;
 
   const layoutProps = {
     items,
@@ -217,7 +213,7 @@ function LayoutSection({
     <div className="w-full" id={`section-${sectionIndex}`}>
       {items.length > 0 && (
         <SectionHeading
-          name={sectionName}
+          name={name}
           itemType={itemType}
           itemId={itemId}
           sectionItems={sectionItemsForAction}
@@ -241,39 +237,6 @@ function LayoutSection({
       )}
     </div>
   );
-}
-
-function isGridLayout(layout: ViewLayout) {
-  return layout === VIEW_LAYOUT.GRID || layout === VIEW_LAYOUT.LARGE_GRID;
-}
-
-function FlatViewItemsList({
-  items,
-  layout,
-  handleMouseSelect,
-}: {
-  items: string[];
-  layout: ViewLayout;
-  handleMouseSelect: (itemId: string) => void;
-}) {
-  const layoutProps = {
-    items,
-    handleMouseSelect,
-  };
-
-  if (layout === VIEW_LAYOUT.LARGE_LIST) {
-    return <ViewItemLargeList {...layoutProps} />;
-  }
-
-  if (layout === VIEW_LAYOUT.GRID) {
-    return <ViewItemGrid {...layoutProps} />;
-  }
-
-  if (layout === VIEW_LAYOUT.LARGE_GRID) {
-    return <ViewItemLargeGrid {...layoutProps} />;
-  }
-
-  return <ViewItemStandardList {...layoutProps} />;
 }
 
 export function RenderViewItems() {
@@ -309,15 +272,10 @@ export function RenderViewItems() {
     visibleFilteredFeedItemsOrder,
   );
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
-  const isReadVisibility = visibilityFilter === "read";
   const viewListKey = `view-${currentView?.id ?? "none"}-${visibilityFilter}`;
-  const navigationItems = isReadVisibility
-    ? filteredFeedItemsOrder
-    : fullFlatItems;
-  const navigationHasGridSections = isReadVisibility
-    ? isGridLayout(baseLayout)
-    : fullHasGridSections;
-  const navigationSectionInfo = isReadVisibility ? undefined : fullSectionInfo;
+  const navigationItems = fullFlatItems;
+  const navigationHasGridSections = fullHasGridSections;
+  const navigationSectionInfo = fullSectionInfo;
   const shouldShowPaginationEnd =
     hasRenderedAllItems &&
     paginationState?.hasMore === false &&
@@ -384,30 +342,20 @@ export function RenderViewItems() {
 
   return (
     <div className="w-full">
-      {isReadVisibility ? (
-        <FlatViewItemsList
-          key={viewListKey}
-          items={visibleFilteredFeedItemsOrder}
-          layout={baseLayout}
+      {visibleComputedSections.map((section, index) => (
+        <LayoutSection
+          key={
+            section.isUncategorized
+              ? `${viewListKey}-uncategorized`
+              : `${viewListKey}-${section.itemType}-${section.itemId}`
+          }
+          section={section}
+          sectionIndex={index}
           handleMouseSelect={handleMouseSelect}
+          onMarkAsRead={handleSectionMarkAsRead}
+          sectionItemsForAction={fullComputedSections[index]?.items ?? []}
         />
-      ) : (
-        visibleComputedSections.map((section, index) => (
-          <LayoutSection
-            key={
-              section.isUncategorized
-                ? `${viewListKey}-uncategorized`
-                : `${viewListKey}-${section.itemType}-${section.itemId}`
-            }
-            section={section}
-            sectionIndex={index}
-            handleMouseSelect={handleMouseSelect}
-            onMarkAsRead={handleSectionMarkAsRead}
-            viewName={currentView?.name}
-            sectionItemsForAction={fullComputedSections[index]?.items ?? []}
-          />
-        ))
-      )}
+      ))}
       <div ref={sentinelRef} className="h-px w-full" />
       {paginationState?.isFetching && <PaginationLoader />}
       {shouldShowPaginationEnd && <PaginationEnd />}

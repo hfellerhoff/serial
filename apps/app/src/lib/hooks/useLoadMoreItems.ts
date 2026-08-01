@@ -1,7 +1,7 @@
 "use client";
 
 import { useAtomValue } from "jotai";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import {
   categoryFilterAtom,
   feedFilterAtom,
@@ -21,6 +21,35 @@ import {
   mixedContentStore,
 } from "~/lib/data/mixed-content/store";
 import { dataSubscriptionActions } from "~/lib/data/useDataSubscription";
+
+function waitForMixedScope(
+  scopeKey: string,
+  predicate: (
+    scope: ReturnType<typeof mixedContentStore.getState>["scopes"][string],
+  ) => boolean,
+) {
+  const currentScope = mixedContentStore.getState().scopes[scopeKey];
+  if (currentScope && predicate(currentScope)) {
+    return Promise.resolve(currentScope);
+  }
+
+  return new Promise<typeof currentScope>((resolve) => {
+    let unsubscribe = () => {};
+    const timeoutId = setTimeout(() => {
+      unsubscribe();
+      resolve(undefined);
+    }, 5_000);
+
+    unsubscribe = mixedContentStore.subscribe((state) => {
+      const scope = state.scopes[scopeKey];
+      if (!scope || !predicate(scope)) return;
+
+      clearTimeout(timeoutId);
+      unsubscribe();
+      resolve(scope);
+    });
+  });
+}
 
 export function useLoadMoreItems() {
   const feedFilter = useAtomValue(feedFilterAtom);
@@ -98,28 +127,47 @@ export function useLoadMoreItems() {
       if (mixedContentStore.getState().fetchingScopes[mixedScopeKey]) return;
       mixedContentStore.getState().setScopeFetching(mixedScopeKey, true);
       try {
+        const existingScope =
+          mixedContentStore.getState().scopes[mixedScopeKey];
+        if (!resetCursor && !existingScope) {
+          await dataSubscriptionActions.requestMixedContentPage(
+            mixedScope,
+            visibilityFilter,
+            null,
+          );
+          const initializedScope = await waitForMixedScope(
+            mixedScopeKey,
+            () => true,
+          );
+          if (!initializedScope?.hasMore || !initializedScope.cursor) return;
+          await dataSubscriptionActions.requestMixedContentPage(
+            mixedScope,
+            visibilityFilter,
+            initializedScope.cursor,
+          );
+          await waitForMixedScope(
+            mixedScopeKey,
+            (scope) => scope !== initializedScope,
+          );
+          return;
+        }
         await dataSubscriptionActions.requestMixedContentPage(
           mixedScope,
           visibilityFilter,
-          resetCursor
-            ? null
-            : mixedContentStore.getState().scopes[mixedScopeKey]?.cursor,
+          resetCursor ? null : existingScope?.cursor,
         );
+        if (existingScope) {
+          await waitForMixedScope(
+            mixedScopeKey,
+            (scope) => scope !== existingScope,
+          );
+        }
       } finally {
         mixedContentStore.getState().setScopeFetching(mixedScopeKey, false);
       }
     },
     [mixedScope, mixedScopeKey, visibilityFilter],
   );
-
-  const requestedMixedScopeRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!mixedScopeKey || requestedMixedScopeRef.current === mixedScopeKey) {
-      return;
-    }
-    requestedMixedScopeRef.current = mixedScopeKey;
-    void requestMixedPage(true);
-  }, [mixedScopeKey, requestMixedPage]);
 
   const handleLoadMore = useCallback(() => {
     if (mixedScope) return requestMixedPage(false);

@@ -29,6 +29,7 @@ import {
   getBoundedItemWindow,
   selectPersistedPages,
 } from "~/lib/data/page-retention";
+import { projectLocalMixedContentOrder } from "~/lib/data/mixed-content/bookmarkProjection";
 
 const PAGE_SIZE = 30;
 const VISIBILITIES: VisibilityFilter[] = ["unread", "read", "later"];
@@ -96,6 +97,7 @@ export type ClientAuditResult = {
     bookmarkBurstSeparateFrames: ClientAuditOperation;
     coldSynchronization: ClientAuditOperation;
     warmSynchronization: ClientAuditOperation;
+    localViewProjection: ClientAuditOperation;
     normalizedPersistenceMutation: ClientAuditOperation;
   };
 };
@@ -641,6 +643,24 @@ export function runClientAuditProfile(
 ): ClientAuditResult {
   let fixture = seedClientFixture(profileName);
   const profile = fixture.profile;
+  const localProjectionView = fixture.views.at(-1)!;
+  const localProjectionFeedItemIds = fixture.feedItems
+    .filter(
+      (item) =>
+        item.isWatchLater && localProjectionView.feedIds.includes(item.feedId),
+    )
+    .map((item) => item.id);
+  const localViewProjection = measure(() => {
+    projectLocalMixedContentOrder({
+      feedItemIds: localProjectionFeedItemIds,
+      feedItems: feedItemsStore.getState().feedItemsDict,
+      bookmarks: bookmarksStore.getState().snapshot(),
+      scope: { type: "view", viewId: localProjectionView.id },
+      views: fixture.views,
+      visibility: "later",
+    });
+    return 0;
+  });
   const bookmarkSave = measure(
     () =>
       processPublishedChunks([
@@ -838,6 +858,7 @@ export function runClientAuditProfile(
       bookmarkBurstSeparateFrames,
       coldSynchronization,
       warmSynchronization,
+      localViewProjection,
       normalizedPersistenceMutation,
     },
   };

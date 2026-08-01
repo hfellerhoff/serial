@@ -188,7 +188,7 @@ export function createFeedItemFilterPredicate({
 
     if (
       !!viewFilter &&
-      (viewFilter.categoryIds.length > 0 || viewFilter.feedIds.length > 0) &&
+      viewFilter.id !== INBOX_VIEW_ID &&
       !viewFeedIds?.has(item.feedId)
     ) {
       return false;

@@ -9,7 +9,7 @@ import { Button } from "~/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
 import { viewFilterIdAtom } from "~/lib/data/atoms";
 import {
-  useCheckFilteredFeedItemsForView,
+  useCheckFilteredContentForView,
   useUpdateViewFilter,
   useViews,
 } from "~/lib/data/views";
@@ -25,15 +25,15 @@ export function ViewFilterChips() {
 
   const updateViewFilter = useUpdateViewFilter();
 
-  const checkFilteredFeedItemsForView = useCheckFilteredFeedItemsForView();
+  const checkFilteredContentForView = useCheckFilteredContentForView();
 
   const viewHasEntriesMap = useMemo(() => {
     const map = new Map<number, boolean>();
     views.forEach((view) => {
-      map.set(view.id, checkFilteredFeedItemsForView(view.id).length > 0);
+      map.set(view.id, checkFilteredContentForView(view.id).length > 0);
     });
     return map;
-  }, [views, checkFilteredFeedItemsForView]);
+  }, [views, checkFilteredContentForView]);
 
   const launchDialog = useDialogStore((store) => store.launchDialog);
 

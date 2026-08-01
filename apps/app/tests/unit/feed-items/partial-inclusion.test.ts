@@ -211,14 +211,7 @@ describe("doesFeedItemPassFilters – Inbox view", () => {
     ).toBe(false);
   });
 
-  // NOTE: There is a pre-existing limitation (not introduced by this PR) where
-  // a feed whose only category is assigned to an *incompatible* custom view is
-  // orphaned from both that view and Inbox. The Inbox-exclusion logic correctly
-  // avoids adding such feeds to its exclusion set, but the synthetic Inbox view
-  // doesn't carry that category in its `categoryIds` either, so the regular view
-  // filter then drops the feed. The direct-assignment fix below (#2) does NOT
-  // change this — it's tracked separately.
-  it("orphans a feed whose only category is in an incompatible custom view (pre-existing limitation)", () => {
+  it("keeps a feed in Inbox when its only assigned View is incompatible", () => {
     const feed = makeFeed(1, "website");
     const item = makeItem(1, "website");
     const customView = makeView(10, {
@@ -236,7 +229,7 @@ describe("doesFeedItemPassFilters – Inbox view", () => {
         feedCategories: [{ feedId: 1, categoryId: 100 }],
         customViews: [customView],
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("excludes a feed directly assigned to a compatible custom view", () => {
@@ -380,8 +373,7 @@ describe("doesFeedItemPassFilters – custom view", () => {
     ).toBe(false);
   });
 
-  it("does not apply view filter when both categoryIds and feedIds are empty", () => {
-    // An empty view filter is treated as "no filter" — the item passes regardless.
+  it("keeps an explicitly empty custom View empty", () => {
     const feed = makeFeed(1);
     const item = makeItem(1);
     const view = makeView(10);
@@ -392,7 +384,7 @@ describe("doesFeedItemPassFilters – custom view", () => {
         feedCategories: [],
         customViews: [view],
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("excludes a feed via content-type filter even if it's directly assigned", () => {

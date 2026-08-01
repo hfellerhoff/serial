@@ -144,34 +144,7 @@ function feedInboxCondition(database: MixedContentDatabase, userId: string) {
       )
       .where(and(eq(feedCategories.feedId, feeds.id), compatibleView)),
   );
-  const unfiltered = exists(
-    database
-      .select({ value: sql<number>`1` })
-      .from(views)
-      .where(
-        and(
-          eq(views.userId, userId),
-          compatibleView,
-          not(
-            exists(
-              database
-                .select({ value: sql<number>`1` })
-                .from(viewFeeds)
-                .where(eq(viewFeeds.viewId, views.id)),
-            ),
-          ),
-          not(
-            exists(
-              database
-                .select({ value: sql<number>`1` })
-                .from(viewCategories)
-                .where(eq(viewCategories.viewId, views.id)),
-            ),
-          ),
-        ),
-      ),
-  );
-  return and(not(direct), not(tagged), not(unfiltered));
+  return and(not(direct), not(tagged));
 }
 
 function bookmarkInboxCondition(
@@ -203,34 +176,7 @@ function bookmarkInboxCondition(
       )
       .where(and(eq(bookmarkTags.bookmarkId, bookmarks.id), compatibleView)),
   );
-  const unfiltered = exists(
-    database
-      .select({ value: sql<number>`1` })
-      .from(views)
-      .where(
-        and(
-          eq(views.userId, userId),
-          compatibleView,
-          not(
-            exists(
-              database
-                .select({ value: sql<number>`1` })
-                .from(viewFeeds)
-                .where(eq(viewFeeds.viewId, views.id)),
-            ),
-          ),
-          not(
-            exists(
-              database
-                .select({ value: sql<number>`1` })
-                .from(viewCategories)
-                .where(eq(viewCategories.viewId, views.id)),
-            ),
-          ),
-        ),
-      ),
-  );
-  return and(not(direct), not(tagged), not(unfiltered));
+  return and(not(direct), not(tagged));
 }
 
 export function feedScopeCondition(input: {
@@ -258,8 +204,8 @@ export function feedScopeCondition(input: {
   }
   const targetView = scopeData.targetView!;
   const membership =
-    scopeData.categoryIds.length === 0 && scopeData.directFeedIds.length === 0
-      ? undefined
+    scopeData.directFeedIds.length === 0 && scopeData.categoryIds.length === 0
+      ? sql`0`
       : or(
           scopeData.directFeedIds.length > 0
             ? inArray(feeds.id, scopeData.directFeedIds)
@@ -330,35 +276,32 @@ export function bookmarkScopeCondition(input: {
   }
   const targetView = scopeData.targetView!;
   if (!["all", "longform"].includes(targetView.contentType)) return sql`0`;
-  const membership =
-    scopeData.categoryIds.length === 0 && scopeData.directFeedIds.length === 0
-      ? undefined
-      : or(
-          exists(
-            database
-              .select({ value: sql<number>`1` })
-              .from(bookmarkViews)
-              .where(
-                and(
-                  eq(bookmarkViews.bookmarkId, bookmarks.id),
-                  eq(bookmarkViews.viewId, scope.viewId),
-                ),
-              ),
+  const membership = or(
+    exists(
+      database
+        .select({ value: sql<number>`1` })
+        .from(bookmarkViews)
+        .where(
+          and(
+            eq(bookmarkViews.bookmarkId, bookmarks.id),
+            eq(bookmarkViews.viewId, scope.viewId),
           ),
-          scopeData.categoryIds.length > 0
-            ? exists(
-                database
-                  .select({ value: sql<number>`1` })
-                  .from(bookmarkTags)
-                  .where(
-                    and(
-                      eq(bookmarkTags.bookmarkId, bookmarks.id),
-                      inArray(bookmarkTags.tagId, scopeData.categoryIds),
-                    ),
-                  ),
-              )
-            : undefined,
-        );
+        ),
+    ),
+    scopeData.categoryIds.length > 0
+      ? exists(
+          database
+            .select({ value: sql<number>`1` })
+            .from(bookmarkTags)
+            .where(
+              and(
+                eq(bookmarkTags.bookmarkId, bookmarks.id),
+                inArray(bookmarkTags.tagId, scopeData.categoryIds),
+              ),
+            ),
+        )
+      : undefined,
+  );
   const timeWindow =
     targetView.daysWindow > 0
       ? gte(

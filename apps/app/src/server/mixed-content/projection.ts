@@ -79,7 +79,6 @@ export async function queryMixedContentPage(input: {
     };
   }
   const hasSections =
-    input.visibility !== "read" &&
     input.scope.type === "view" &&
     input.scope.viewId !== INBOX_VIEW_ID &&
     scopeData.sections.length > 0;

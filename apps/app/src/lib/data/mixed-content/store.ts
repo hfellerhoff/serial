@@ -359,7 +359,7 @@ const vanillaMixedContentStore = createStore<MixedContentStore>()(
       },
     }),
     {
-      name: "serial-mixed-content-store",
+      name: "serial-mixed-content-store-v2",
       storage: createNormalizedIDBStorage({
         recordFields: ["scopes", "suppressedReferences"],
       }),

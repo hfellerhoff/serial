@@ -1,6 +1,10 @@
 import { INBOX_VIEW_ID } from "../views/constants";
 import type { VisibilityFilter } from "../atoms";
-import type { ApplicationFeedItem, ApplicationView } from "~/server/db/schema";
+import type {
+  ApplicationFeedItem,
+  ApplicationView,
+  DatabaseFeedCategory,
+} from "~/server/db/schema";
 import type {
   ApplicationBookmark,
   MixedContentCursor,
@@ -267,7 +271,6 @@ function isBookmarkCompatibleWithView(view: ApplicationView) {
 type ViewMembershipIndex = {
   compatibleViewsById: Map<number, ApplicationView>;
   viewIdsByTagId: Map<number, number[]>;
-  catchAllViewIds: number[];
 };
 
 let indexedViews: ApplicationView[] | undefined;
@@ -295,11 +298,6 @@ function getViewMembershipIndex(views: ApplicationView[]) {
       compatibleViews.map((view) => [view.id, view]),
     ),
     viewIdsByTagId,
-    catchAllViewIds: compatibleViews
-      .filter(
-        (view) => view.feedIds.length === 0 && view.categoryIds.length === 0,
-      )
-      .map((view) => view.id),
   };
   return cachedViewMembershipIndex;
 }
@@ -309,7 +307,7 @@ function matchingCustomViewIds(
   views: ApplicationView[],
 ) {
   const index = getViewMembershipIndex(views);
-  const matchingIds = new Set(index.catchAllViewIds);
+  const matchingIds = new Set<number>();
   for (const viewId of bookmark.viewIds) {
     if (index.compatibleViewsById.has(viewId)) matchingIds.add(viewId);
   }
@@ -375,6 +373,153 @@ export function matchesScope(
   );
 }
 
+function feedItemNormalizedAt(
+  item: ApplicationFeedItem,
+  visibility: VisibilityFilter,
+) {
+  if (visibility === "later") {
+    return item.isWatchLaterUpdatedAt ?? item.postedAt;
+  }
+  if (visibility === "read") {
+    return item.isWatchedUpdatedAt ?? item.postedAt;
+  }
+  return item.postedAt;
+}
+
+function bookmarkNormalizedAt(
+  bookmark: ApplicationBookmark,
+  visibility: VisibilityFilter,
+) {
+  if (visibility === "later") return bookmark.savedUpdatedAt;
+  if (visibility === "read") return bookmark.readUpdatedAt;
+  return bookmark.createdAt;
+}
+
+function localSectionPlacement(input: {
+  entityKind: "bookmark" | "feed-item";
+  feedId?: number;
+  tagIds?: number[];
+  view: ApplicationView | undefined;
+  categoryIdsByFeedId: ReadonlyMap<number, ReadonlySet<number>>;
+}) {
+  const { entityKind, feedId, tagIds, view, categoryIdsByFeedId } = input;
+  if (!view?.viewSections.length) return 0;
+
+  if (entityKind === "feed-item" && feedId !== undefined) {
+    const feedPlacements = view.viewSections.flatMap((section) =>
+      section.itemType === "feed" && section.itemId === feedId
+        ? [section.placement]
+        : [],
+    );
+    if (feedPlacements.length > 0) return Math.min(...feedPlacements);
+
+    const feedTagIds = categoryIdsByFeedId.get(feedId);
+    const tagPlacements = view.viewSections.flatMap((section) =>
+      section.itemType === "tag" && feedTagIds?.has(section.itemId)
+        ? [section.placement]
+        : [],
+    );
+    return tagPlacements.length > 0 ? Math.min(...tagPlacements) : 999_999;
+  }
+
+  const bookmarkTagIds = new Set(tagIds ?? []);
+  const tagPlacements = view.viewSections.flatMap((section) =>
+    section.itemType === "tag" && bookmarkTagIds.has(section.itemId)
+      ? [section.placement]
+      : [],
+  );
+  return tagPlacements.length > 0 ? Math.min(...tagPlacements) : 999_999;
+}
+
+export function projectLocalMixedContentOrder(input: {
+  feedItemIds: string[];
+  feedItems: Record<string, ApplicationFeedItem>;
+  bookmarks: Record<string, ApplicationBookmark>;
+  scope: MixedContentScope;
+  views: ApplicationView[];
+  visibility: VisibilityFilter;
+  feedCategories?: DatabaseFeedCategory[];
+}) {
+  const {
+    feedItemIds,
+    feedItems,
+    bookmarks,
+    scope,
+    views,
+    visibility,
+    feedCategories = [],
+  } = input;
+  const bookmarkValues = Object.values(bookmarks);
+  const view =
+    scope.type === "view"
+      ? views.find((candidate) => candidate.id === scope.viewId)
+      : undefined;
+  const categoryIdsByFeedId = new Map<number, Set<number>>();
+  for (const assignment of feedCategories) {
+    const categoryIds = categoryIdsByFeedId.get(assignment.feedId);
+    if (categoryIds) categoryIds.add(assignment.categoryId);
+    else
+      categoryIdsByFeedId.set(
+        assignment.feedId,
+        new Set([assignment.categoryId]),
+      );
+  }
+  const bookmarkCanonicalUrls = new Set(
+    bookmarkValues.map((bookmark) => canonicalize(bookmark.canonicalUrl)),
+  );
+  const entries: Array<{
+    id: string;
+    entityKind: "bookmark" | "feed-item";
+    normalizedAt: Date;
+    sectionPlacement: number;
+  }> = [];
+
+  for (const id of feedItemIds) {
+    const item = feedItems[id];
+    if (!item) continue;
+    if (bookmarkCanonicalUrls.has(canonicalize(item.url))) continue;
+    entries.push({
+      id,
+      entityKind: "feed-item",
+      normalizedAt: feedItemNormalizedAt(item, visibility),
+      sectionPlacement: localSectionPlacement({
+        entityKind: "feed-item",
+        feedId: item.feedId,
+        view,
+        categoryIdsByFeedId,
+      }),
+    });
+  }
+  for (const bookmark of bookmarkValues) {
+    if (bookmarkVisibility(bookmark) !== visibility) continue;
+    if (!matchesScope(bookmark, scope, views)) continue;
+    entries.push({
+      id: bookmark.id,
+      entityKind: "bookmark",
+      normalizedAt: bookmarkNormalizedAt(bookmark, visibility),
+      sectionPlacement: localSectionPlacement({
+        entityKind: "bookmark",
+        tagIds: bookmark.tagIds,
+        view,
+        categoryIdsByFeedId,
+      }),
+    });
+  }
+
+  entries.sort((left, right) => {
+    if (left.sectionPlacement !== right.sectionPlacement) {
+      return left.sectionPlacement - right.sectionPlacement;
+    }
+    const timeDifference =
+      right.normalizedAt.getTime() - left.normalizedAt.getTime();
+    if (timeDifference !== 0) return timeDifference;
+    const kindDifference = left.entityKind.localeCompare(right.entityKind);
+    if (kindDifference !== 0) return kindDifference;
+    return right.id.localeCompare(left.id);
+  });
+  return entries.map(({ id }) => id);
+}
+
 export function bookmarkReference(
   bookmark: ApplicationBookmark,
   scopeState: LoadedMixedScope,
@@ -386,8 +531,7 @@ export function bookmarkReference(
     scope.type === "view"
       ? views.find((candidate) => candidate.id === scope.viewId)
       : undefined;
-  const hasSections =
-    scopeState.visibility !== "read" && (view?.viewSections.length ?? 0) > 0;
+  const hasSections = (view?.viewSections.length ?? 0) > 0;
   const matchingPlacements =
     view?.viewSections
       .filter(

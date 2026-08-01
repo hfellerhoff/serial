@@ -132,6 +132,96 @@ beforeEach(async () => {
 afterEach(() => cleanup());
 
 describe("mixed-content projection", () => {
+  it("includes Feed items only through explicit View or Tag membership, including unfiltered Views", async () => {
+    await seedFeed(1);
+    await seedFeed(2);
+    await seedFeedItem({
+      id: "assigned-feed-item",
+      feedId: 1,
+      url: "https://feeds.example/assigned",
+    });
+    await seedFeedItem({
+      id: "unassigned-feed-item",
+      feedId: 2,
+      url: "https://feeds.example/unassigned",
+    });
+    await seedView(10, "Assigned");
+    await seedView(11, "Unfiltered but empty");
+    await database.insert(viewFeeds).values({ viewId: 10, feedId: 1 });
+
+    const assignedView = await queryMixedContentPage({
+      database,
+      userId: "user-one",
+      scope: { type: "view", viewId: 10 },
+      visibility: "unread",
+      limit: 20,
+    });
+    expect(
+      assignedView.references.map((reference) => reference.entityId),
+    ).toEqual(["assigned-feed-item"]);
+
+    const emptyView = await queryMixedContentPage({
+      database,
+      userId: "user-one",
+      scope: { type: "view", viewId: 11 },
+      visibility: "unread",
+      limit: 20,
+    });
+    expect(emptyView.references).toEqual([]);
+
+    const inbox = await queryMixedContentPage({
+      database,
+      userId: "user-one",
+      scope: { type: "view", viewId: INBOX_VIEW_ID },
+      visibility: "unread",
+      limit: 20,
+    });
+    expect(inbox.references.map((reference) => reference.entityId)).toEqual([
+      "unassigned-feed-item",
+    ]);
+  });
+
+  it("includes Bookmarks only through explicit View or Tag membership, including unfiltered Views", async () => {
+    await seedView(10, "Assigned");
+    await seedView(11, "Unfiltered but empty");
+    await seedBookmark({ id: "assigned" });
+    await seedBookmark({ id: "unassigned" });
+    await database
+      .insert(bookmarkViews)
+      .values({ bookmarkId: "assigned", viewId: 10 });
+
+    const assignedView = await queryMixedContentPage({
+      database,
+      userId: "user-one",
+      scope: { type: "view", viewId: 10 },
+      visibility: "later",
+      limit: 20,
+    });
+    expect(
+      assignedView.references.map((reference) => reference.entityId),
+    ).toEqual(["assigned"]);
+
+    const emptyView = await queryMixedContentPage({
+      database,
+      userId: "user-one",
+      scope: { type: "view", viewId: 11 },
+      visibility: "later",
+      limit: 20,
+    });
+    expect(emptyView.references).toEqual([]);
+
+    const inbox = await queryMixedContentPage({
+      database,
+      userId: "user-one",
+      scope: { type: "view", viewId: INBOX_VIEW_ID },
+      visibility: "later",
+      limit: 20,
+    });
+    expect(inbox.references.map((reference) => reference.entityId)).toEqual([
+      "unassigned",
+    ]);
+  });
+
   it("suppresses every canonical Feed item before mixed membership while preserving Feed-only access and independent deletion", async () => {
     await seedFeed(1);
     await seedFeed(2);
@@ -270,6 +360,42 @@ describe("mixed-content projection", () => {
     expect(
       tagScope.references.map((reference) => reference.entityId).sort(),
     ).toEqual(["both-tags", "tagged-feed"]);
+
+    await Promise.all([
+      database
+        .update(feedItems)
+        .set({
+          isWatchLater: false,
+          isWatched: true,
+          isWatchedUpdatedAt: NOW,
+        })
+        .where(eq(feedItems.id, "tagged-feed")),
+      database
+        .update(bookmarks)
+        .set({ isSaved: false, isRead: true, readUpdatedAt: NOW })
+        .where(eq(bookmarks.id, "both-tags")),
+      database
+        .update(bookmarks)
+        .set({ isSaved: false, isRead: true, readUpdatedAt: NOW })
+        .where(eq(bookmarks.id, "direct-only")),
+    ]);
+    const read = await queryMixedContentPage({
+      database,
+      userId: "user-one",
+      scope: { type: "view", viewId: 10 },
+      visibility: "read",
+      limit: 20,
+    });
+    expect(
+      read.references.map(({ entityId, sectionPlacement }) => ({
+        entityId,
+        sectionPlacement,
+      })),
+    ).toEqual([
+      { entityId: "both-tags", sectionPlacement: 1 },
+      { entityId: "tagged-feed", sectionPlacement: 2 },
+      { entityId: "direct-only", sectionPlacement: 999_999 },
+    ]);
   });
 
   it("applies Saved dominance and visibility-specific normalized ordering to both entity kinds", async () => {

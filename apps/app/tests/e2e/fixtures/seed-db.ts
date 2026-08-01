@@ -8,6 +8,8 @@ import * as schema from "../../../src/server/db/schema";
 import { seedBenchmarkFixture } from "../../../scripts/performance/fixtures";
 import { SELF_HOSTED_RSS_SERVER_PORT } from "./ports";
 import type { BenchmarkProfileName } from "../../../scripts/performance/model";
+import type { VisibilityFilter } from "../../../src/lib/data/atoms";
+import type { MixedViewSectionCase } from "./mixed-view-section-matrix";
 
 const ARTICLE_HTML = Array.from(
   { length: 20 },
@@ -205,6 +207,327 @@ export async function seedBookmarkProjectionData(
   return { bookmarkId, viewId: userView.views.id, sourceUrl: item.url };
 }
 
+export async function seedBookmarkViewFilterData(
+  tursoPort: number,
+  email: string,
+  bookmarkId: string,
+  feedItemId: string,
+) {
+  const { db, client } = getDb(tursoPort);
+  const testUser = await db
+    .select()
+    .from(schema.user)
+    .where(eq(schema.user.email, email))
+    .get();
+  if (!testUser) {
+    client.close();
+    throw new Error("Bookmark View filter seed user was not found");
+  }
+
+  const now = new Date();
+  const createdViews = await db
+    .insert(schema.views)
+    .values(
+      ["Bookmark View", "Empty View"].map((name, index) => ({
+        userId: testUser.id,
+        name,
+        daysWindow: 0,
+        readStatus: 0,
+        orientation: "horizontal" as const,
+        contentType: "all" as const,
+        layout: "list" as const,
+        placement: index + 1,
+        createdAt: now,
+        updatedAt: now,
+      })),
+    )
+    .returning();
+  const bookmarkView = createdViews.find(
+    (view) => view.name === "Bookmark View",
+  );
+  const emptyView = createdViews.find((view) => view.name === "Empty View");
+  if (!bookmarkView || !emptyView) {
+    client.close();
+    throw new Error("Bookmark View filter seed Views were not created");
+  }
+
+  await Promise.all([
+    db.insert(schema.bookmarkViews).values({
+      bookmarkId,
+      viewId: bookmarkView.id,
+    }),
+    db
+      .update(schema.feedItems)
+      .set({ isWatched: true })
+      .where(eq(schema.feedItems.id, feedItemId)),
+  ]);
+  client.close();
+
+  return { bookmarkViewId: bookmarkView.id, emptyViewId: emptyView.id };
+}
+
+export async function seedMixedViewSectionCase(
+  tursoPort: number,
+  appPort: number,
+  testCase: MixedViewSectionCase,
+  visibility: VisibilityFilter = "later",
+) {
+  const {
+    email,
+    password,
+    feedItemId: feedSectionFeedItemId,
+  } = await seedArticleData(tursoPort, appPort);
+  const { db, client } = getDb(tursoPort);
+  const [testUser, feedSectionFeedItem] = await Promise.all([
+    db.select().from(schema.user).where(eq(schema.user.email, email)).get(),
+    db
+      .select()
+      .from(schema.feedItems)
+      .where(eq(schema.feedItems.id, feedSectionFeedItemId))
+      .get(),
+  ]);
+  if (!testUser || !feedSectionFeedItem) {
+    client.close();
+    throw new Error("Mixed View section seed prerequisites were not found");
+  }
+
+  const testId = uniqueId();
+  const now = new Date();
+  const farFuture = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 365);
+  const [tag] = await db
+    .insert(schema.contentCategories)
+    .values({
+      userId: testUser.id,
+      name: `Matrix Tag ${testId}`,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+  if (!tag) {
+    client.close();
+    throw new Error("Mixed View section tag was not created");
+  }
+
+  const createdFeeds = await db
+    .insert(schema.feeds)
+    .values(
+      ["Tag Section Feed", "Uncategorized Feed", "Outside Feed"].map(
+        (name, index) => ({
+          userId: testUser.id,
+          name: `${name} ${testId}`,
+          url: `https://example.com/matrix/${testId}/feed-${index}`,
+          imageUrl: "",
+          platform: "website",
+          openLocation: "serial",
+          createdAt: now,
+          updatedAt: now,
+          lastFetchedAt: now,
+          nextFetchAt: farFuture,
+        }),
+      ),
+    )
+    .returning();
+  const [tagSectionFeed, uncategorizedFeed, outsideFeed] = createdFeeds;
+  if (!tagSectionFeed || !uncategorizedFeed || !outsideFeed) {
+    client.close();
+    throw new Error("Mixed View section feeds were not created");
+  }
+
+  const tagSectionFeedItemId = `matrix-tag-feed-${testId}`;
+  const uncategorizedFeedItemId = `matrix-uncategorized-feed-${testId}`;
+  const outsideFeedItemId = `matrix-outside-feed-${testId}`;
+  await db.insert(schema.feedItems).values(
+    [
+      [tagSectionFeedItemId, tagSectionFeed.id, "Tag Section Feed Item"],
+      [
+        uncategorizedFeedItemId,
+        uncategorizedFeed.id,
+        "Uncategorized Feed Item",
+      ],
+      [outsideFeedItemId, outsideFeed.id, "Outside Feed Item"],
+    ].map(([id, feedId, title], index) => ({
+      id: id as string,
+      feedId: feedId as number,
+      contentId: id as string,
+      title: `${title} ${testId}`,
+      author: "Matrix Author",
+      url: `https://example.com/matrix/${testId}/item-${index}`,
+      thumbnail: "",
+      content: ARTICLE_HTML,
+      contentSnippet: "Matrix feed item",
+      isWatched: visibility === "read",
+      isWatchLater: visibility === "later",
+      progress: 0,
+      duration: 0,
+      orientation: "horizontal",
+      postedAt: new Date(now.getTime() - index * 1000),
+      createdAt: now,
+      updatedAt: now,
+      isWatchLaterUpdatedAt: new Date(now.getTime() - index * 1000),
+    })),
+  );
+  await db
+    .update(schema.feedItems)
+    .set({
+      title: `Feed Section Feed Item ${testId}`,
+      isWatched: visibility === "read",
+      isWatchLater: visibility === "later",
+      isWatchedUpdatedAt: new Date(now.getTime() + 1000),
+      isWatchLaterUpdatedAt: new Date(now.getTime() + 1000),
+    })
+    .where(eq(schema.feedItems.id, feedSectionFeedItemId));
+
+  const viewName = `Matrix View ${testId}`;
+  const [targetView] = await db
+    .insert(schema.views)
+    .values({
+      userId: testUser.id,
+      name: viewName,
+      daysWindow: 0,
+      readStatus: 0,
+      orientation: "horizontal",
+      contentType: "all",
+      layout: "list",
+      placement: 1,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+  if (!targetView) {
+    client.close();
+    throw new Error("Mixed View section target View was not created");
+  }
+  const emptyViewName = `Matrix Empty View ${testId}`;
+  await db.insert(schema.views).values({
+    userId: testUser.id,
+    name: emptyViewName,
+    daysWindow: 0,
+    readStatus: 0,
+    orientation: "horizontal",
+    contentType: "all",
+    layout: "list",
+    placement: 2,
+    createdAt: now,
+    updatedAt: now,
+  });
+  await Promise.all([
+    db.insert(schema.viewCategories).values({
+      viewId: targetView.id,
+      categoryId: tag.id,
+    }),
+    db.insert(schema.viewSections).values([
+      {
+        viewId: targetView.id,
+        placement: 0,
+        itemType: "feed",
+        itemId: feedSectionFeedItem.feedId,
+        layout: null,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        viewId: targetView.id,
+        placement: 1,
+        itemType: "tag",
+        itemId: tag.id,
+        layout: null,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ]),
+  ]);
+
+  const viewFeedRows = [
+    testCase.feedSectionFeedItem ? feedSectionFeedItem.feedId : null,
+    testCase.uncategorizedFeedItem ? uncategorizedFeed.id : null,
+  ].flatMap((feedId) =>
+    feedId === null ? [] : [{ viewId: targetView.id, feedId }],
+  );
+  if (viewFeedRows.length > 0) {
+    await db.insert(schema.viewFeeds).values(viewFeedRows);
+  }
+
+  const feedCategoryRows = [
+    testCase.feedSectionFeedItem ? feedSectionFeedItem.feedId : null,
+    testCase.tagSectionFeedItem ? tagSectionFeed.id : null,
+  ].flatMap((feedId) =>
+    feedId === null ? [] : [{ feedId, categoryId: tag.id }],
+  );
+  if (feedCategoryRows.length > 0) {
+    await db.insert(schema.feedCategories).values(feedCategoryRows);
+  }
+
+  const tagSectionBookmarkId = `matrix-tag-bookmark-${testId}`;
+  const uncategorizedBookmarkId = `matrix-uncategorized-bookmark-${testId}`;
+  const outsideBookmarkId = `matrix-outside-bookmark-${testId}`;
+  const bookmarkRows = [
+    [tagSectionBookmarkId, "Tag Section Bookmark"],
+    [uncategorizedBookmarkId, "Uncategorized Bookmark"],
+    [outsideBookmarkId, "Outside Bookmark"],
+  ] as const;
+  await db.insert(schema.bookmarks).values(
+    bookmarkRows.map(([id], index) => ({
+      id,
+      userId: testUser.id,
+      sourceUrl: `https://example.com/matrix/${testId}/bookmark-${index}`,
+      canonicalUrl: `https://example.com/matrix/${testId}/bookmark-${index}`,
+      isSaved: visibility === "later",
+      isRead: visibility === "read",
+      progress: 0,
+      duration: 0,
+      savedUpdatedAt: new Date(now.getTime() - (index + 4) * 1000),
+      readUpdatedAt: now,
+      progressUpdatedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    })),
+  );
+  await db.insert(schema.pageCaptures).values(
+    bookmarkRows.map(([bookmarkId, title], index) => ({
+      bookmarkId,
+      title: `${title} ${testId}`,
+      author: "Matrix Author",
+      contentHtml: `<p>${title}</p>`,
+      effectiveUrl: `https://example.com/matrix/${testId}/bookmark-${index}`,
+      contentHash: `hash-${bookmarkId}`,
+      captureSource: "extension-live-dom" as const,
+      extractorVersion: "playwright-fixture",
+      sanitizerPolicyVersion: 1,
+      capturedAt: now,
+    })),
+  );
+  if (testCase.tagSectionBookmark) {
+    await db.insert(schema.bookmarkTags).values({
+      bookmarkId: tagSectionBookmarkId,
+      tagId: tag.id,
+    });
+  }
+  if (testCase.uncategorizedBookmark) {
+    await db.insert(schema.bookmarkViews).values({
+      bookmarkId: uncategorizedBookmarkId,
+      viewId: targetView.id,
+    });
+  }
+
+  client.close();
+  return {
+    email,
+    password,
+    viewName,
+    emptyViewName,
+    tagName: tag.name,
+    items: {
+      feedSectionFeedItem: feedSectionFeedItemId,
+      tagSectionFeedItem: tagSectionFeedItemId,
+      tagSectionBookmark: tagSectionBookmarkId,
+      uncategorizedFeedItem: uncategorizedFeedItemId,
+      uncategorizedBookmark: uncategorizedBookmarkId,
+      outsideFeedItem: outsideFeedItemId,
+      outsideBookmark: outsideBookmarkId,
+    },
+  };
+}
+
 export async function getViewsForUser(tursoPort: number, email: string) {
   const { db, client } = getDb(tursoPort);
   const userViews = await db
@@ -274,18 +597,21 @@ export async function seedArticleData(
   const farFuture = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365);
 
   // Create a default "All" view so items appear on the home page
-  await db.insert(schema.views).values({
-    userId: testUser.id,
-    name: "All",
-    daysWindow: 0,
-    readStatus: 0,
-    orientation: "horizontal",
-    contentType: "all",
-    layout: "list",
-    placement: 0,
-    createdAt: now,
-    updatedAt: now,
-  });
+  const [defaultView] = await db
+    .insert(schema.views)
+    .values({
+      userId: testUser.id,
+      name: "All",
+      daysWindow: 0,
+      readStatus: 0,
+      orientation: "horizontal",
+      contentType: "all",
+      layout: "list",
+      placement: 0,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
 
   // Create a website feed (skip re-fetch by setting nextFetchAt far in future)
   const feedUrl = `http://127.0.0.1:${rssPort}/feed/test-blog?t=${testId}`;
@@ -305,6 +631,11 @@ export async function seedArticleData(
     })
     .returning();
   if (!testFeed) throw new Error("Feed insert returned no rows");
+  if (!defaultView) throw new Error("Default View insert returned no rows");
+  await db.insert(schema.viewFeeds).values({
+    viewId: defaultView.id,
+    feedId: testFeed.id,
+  });
 
   // Create an article feed item with HTML content
   const feedItemId = `article-${testId}`;
@@ -439,18 +770,21 @@ export async function seedYouTubeVideoData(
   const now = new Date();
   const farFuture = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365);
 
-  await db.insert(schema.views).values({
-    userId: testUser.id,
-    name: "All",
-    daysWindow: 0,
-    readStatus: 0,
-    orientation: "horizontal",
-    contentType: "all",
-    layout: "list",
-    placement: 0,
-    createdAt: now,
-    updatedAt: now,
-  });
+  const [defaultView] = await db
+    .insert(schema.views)
+    .values({
+      userId: testUser.id,
+      name: "All",
+      daysWindow: 0,
+      readStatus: 0,
+      orientation: "horizontal",
+      contentType: "all",
+      layout: "list",
+      placement: 0,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
 
   const [testFeed] = await db
     .insert(schema.feeds)
@@ -468,6 +802,11 @@ export async function seedYouTubeVideoData(
     })
     .returning();
   if (!testFeed) throw new Error("Feed insert returned no rows");
+  if (!defaultView) throw new Error("Default View insert returned no rows");
+  await db.insert(schema.viewFeeds).values({
+    viewId: defaultView.id,
+    feedId: testFeed.id,
+  });
 
   const videoId = "dQw4w9WgXcQ";
   const originalUrl = `https://www.youtube.com/watch?v=${videoId}`;
@@ -549,18 +888,21 @@ export async function seedMultipleArticleData(
   const farFuture = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365);
 
   // Create a default "All" view so items appear on the home page
-  await db.insert(schema.views).values({
-    userId: testUser.id,
-    name: "All",
-    daysWindow: 0,
-    readStatus: 0,
-    orientation: "horizontal",
-    contentType: "all",
-    layout: "list",
-    placement: 0,
-    createdAt: now,
-    updatedAt: now,
-  });
+  const [defaultView] = await db
+    .insert(schema.views)
+    .values({
+      userId: testUser.id,
+      name: "All",
+      daysWindow: 0,
+      readStatus: 0,
+      orientation: "horizontal",
+      contentType: "all",
+      layout: "list",
+      placement: 0,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
 
   // Create a website feed (skip re-fetch by setting nextFetchAt far in future)
   const feedUrl = `http://127.0.0.1:${rssPort}/feed/test-blog?t=${testId}`;
@@ -580,6 +922,11 @@ export async function seedMultipleArticleData(
     })
     .returning();
   if (!testFeed) throw new Error("Feed insert returned no rows");
+  if (!defaultView) throw new Error("Default View insert returned no rows");
+  await db.insert(schema.viewFeeds).values({
+    viewId: defaultView.id,
+    feedId: testFeed.id,
+  });
 
   // Create multiple article feed items with HTML content
   // Stagger postedAt so they have a deterministic order (newest first)

@@ -971,10 +971,8 @@ function buildPaginatedFeedItemQuery({
   visibilityFilter: VisibilityFilter;
   cursor: PaginationCursor | null;
 }) {
-  const isReadVisibility = visibilityFilter === "read";
   const hasSections =
     scope.type === "view" &&
-    !isReadVisibility &&
     scope.view.viewSections &&
     scope.view.viewSections.length > 0;
   const placementExpr =
