@@ -14,6 +14,7 @@ import {
 import { mergeFeedItem } from "./feed-items/mergeFeedItem";
 import { hasFeedItemListProjectionChanged } from "./feed-items/listProjection";
 import { clearPendingFeedItemOverrides } from "./feed-items/pendingMutations";
+import { isFeedItemMembershipRevisionStale } from "./feed-items/membershipRevision";
 import { feedsStore } from "./feeds/store";
 import { createNormalizedIDBStorage } from "./normalized-idb-storage";
 import { loadingActor } from "./loading-machine";
@@ -1508,6 +1509,10 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           case "visibility": {
             if (chunk.type === "error") {
               console.error("Visibility fetch error:", chunk.message);
+              break;
+            }
+
+            if (isFeedItemMembershipRevisionStale(chunk.membershipRevision)) {
               break;
             }
 

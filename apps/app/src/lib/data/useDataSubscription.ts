@@ -9,6 +9,7 @@ import { loadingActor } from "./loading-machine";
 import { bookmarksStore } from "./bookmarks/store";
 import { processPublishedChunks } from "./subscriptionCoordinator";
 import { shouldAlwaysKeepSSEConnectionAlive } from "./atoms";
+import { getFeedItemMembershipRevision } from "./feed-items/membershipRevision";
 import type { PublishedChunk } from "~/server/api/publisher";
 import type { VisibilityFilter } from "./atoms";
 import type {
@@ -265,6 +266,7 @@ export function useDataSubscription() {
         cursor,
         limit,
         clientItems,
+        membershipRevision: getFeedItemMembershipRevision(),
         clientId,
       });
     },
@@ -382,6 +384,7 @@ export const dataSubscriptionActions = {
       cursor,
       limit,
       clientItems,
+      membershipRevision: getFeedItemMembershipRevision(),
       clientId: getDataSubscriptionClientId(),
     }),
   requestItemsByFeed: (
