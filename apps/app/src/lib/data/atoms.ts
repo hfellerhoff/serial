@@ -9,6 +9,7 @@ import { viewsStore } from "./views/store";
 import { feedsStore } from "./feeds/store";
 import { bookmarksStore } from "./bookmarks/store";
 import { mixedContentStore } from "./mixed-content/store";
+import { navigationSnapshotStore } from "./navigation/store";
 import type { ApplicationView } from "~/server/db/schema";
 
 export const viewsAtom = atom<ApplicationView[]>([]);
@@ -39,6 +40,7 @@ export const useClearAllUserData = () => {
   const setViewsAtom = useSetAtom(viewsAtom);
   const resetBookmarks = bookmarksStore.useReset();
   const resetMixedContent = mixedContentStore.useReset();
+  const resetNavigationSnapshot = navigationSnapshotStore.useReset();
 
   return () => {
     resetFeeds();
@@ -49,6 +51,7 @@ export const useClearAllUserData = () => {
     resetViews();
     resetBookmarks();
     resetMixedContent();
+    resetNavigationSnapshot();
     setViewsAtom([]);
     // Wipe all persisted state from IndexedDB immediately.
     // The reset() calls handle in-memory state but write through a 2-second

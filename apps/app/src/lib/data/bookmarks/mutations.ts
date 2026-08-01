@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { feedItemsStore } from "../store";
 import { mixedContentStore } from "../mixed-content/store";
 import { viewsStore } from "../views/store";
+import { refreshNavigationSnapshotSafely } from "../navigation/store";
 import { bookmarksStore } from "./store";
 import type { ApplicationBookmark } from "~/server/mixed-content/projection";
 import { orpc } from "~/lib/orpc";
@@ -32,7 +33,7 @@ function removeProjectedBookmark(bookmark: ApplicationBookmark) {
 export function useSaveBookmarkMutation() {
   return useMutation(
     orpc.bookmark.save.mutationOptions({
-      onSuccess: (result) => {
+      onSuccess: async (result) => {
         const bookmark = result.bookmark as ApplicationBookmark;
         const previousBookmark = bookmarksStore
           .getState()
@@ -45,6 +46,7 @@ export function useSaveBookmarkMutation() {
           if (removedBookmark) removeProjectedBookmark(removedBookmark);
         }
         projectBookmark(bookmark, previousBookmark);
+        await refreshNavigationSnapshotSafely();
       },
     }),
   );
@@ -81,11 +83,14 @@ export function useUpdateBookmarkStateMutation(bookmarkId: string) {
         );
         return { previousBookmark };
       },
-      onSuccess: (bookmark, _input, context) => {
+      onSuccess: async (bookmark, input, context) => {
         projectBookmark(
           bookmark as ApplicationBookmark,
           context?.previousBookmark,
         );
+        if (input.isSaved !== undefined || input.isRead !== undefined) {
+          await refreshNavigationSnapshotSafely();
+        }
       },
       onError: (_error, _input, context) => {
         const optimisticBookmark = bookmarksStore
@@ -102,13 +107,14 @@ export function useUpdateBookmarkStateMutation(bookmarkId: string) {
 export function useSetBookmarkViewMutation() {
   return useMutation(
     orpc.bookmark.setView.mutationOptions({
-      onSuccess: (bookmark) => {
+      onSuccess: async (bookmark) => {
         if (!bookmark) return;
         const applicationBookmark = bookmark;
         projectBookmark(
           applicationBookmark,
           bookmarksStore.getState().getBookmark(applicationBookmark.id),
         );
+        await refreshNavigationSnapshotSafely();
       },
     }),
   );
@@ -117,13 +123,14 @@ export function useSetBookmarkViewMutation() {
 export function useSetBookmarkTagMutation() {
   return useMutation(
     orpc.bookmark.setTag.mutationOptions({
-      onSuccess: (bookmark) => {
+      onSuccess: async (bookmark) => {
         if (!bookmark) return;
         const applicationBookmark = bookmark;
         projectBookmark(
           applicationBookmark,
           bookmarksStore.getState().getBookmark(applicationBookmark.id),
         );
+        await refreshNavigationSnapshotSafely();
       },
     }),
   );
@@ -143,6 +150,9 @@ export function useDeleteBookmarkMutation() {
         if (context?.previousBookmark) {
           projectBookmark(context.previousBookmark, undefined);
         }
+      },
+      onSuccess: async () => {
+        await refreshNavigationSnapshotSafely();
       },
     }),
   );

@@ -12,6 +12,7 @@ import {
 } from "./store";
 import { useDialogStore } from "~/components/feed/dialogStore";
 import { orpc } from "~/lib/orpc";
+import { refreshNavigationSnapshotSafely } from "~/lib/data/navigation/store";
 
 export function useCreateFeedMutation() {
   const fetchFeedItemsForFeed = useFetchFeedItemsForFeed();
@@ -30,6 +31,7 @@ export function useCreateFeedMutation() {
           fetchViewFeeds(),
           fetchViews(),
         ]);
+        await refreshNavigationSnapshotSafely();
 
         if (result.deactivatedCount > 0) {
           toast.warning(
@@ -59,7 +61,7 @@ export function useDeleteFeedMutation() {
 
   return useMutation(
     orpc.feed.delete.mutationOptions({
-      onSuccess: (_, feedId) => {
+      onSuccess: async (_, feedId) => {
         removeFeed(feedId);
         removeFeedReferences([feedId]);
         const { feedItemsDict, feedItemsOrder } = feedItemsStore.getState();
@@ -87,6 +89,7 @@ export function useDeleteFeedMutation() {
 
         setFeedItemsOrder(updatedFeedItemsOrder);
         setFeedItemsDict(updatedfeedItemsDict);
+        await refreshNavigationSnapshotSafely();
       },
     }),
   );
@@ -109,6 +112,7 @@ export function useEditFeedMutation() {
           fetchViewFeeds(),
           fetchViews(),
         ]);
+        await refreshNavigationSnapshotSafely();
       },
     }),
   );
@@ -124,7 +128,7 @@ export function useBulkDeleteFeedsMutation() {
 
   return useMutation(
     orpc.feed.bulkDelete.mutationOptions({
-      onSuccess: (_, { feedIds }) => {
+      onSuccess: async (_, { feedIds }) => {
         removeFeedReferences(feedIds);
         const { feedItemsDict, feedItemsOrder } = feedItemsStore.getState();
 
@@ -158,6 +162,7 @@ export function useBulkDeleteFeedsMutation() {
         // Refetch feeds to update the list
         void fetchFeeds();
         void fetchFeedCategories();
+        await refreshNavigationSnapshotSafely();
       },
     }),
   );

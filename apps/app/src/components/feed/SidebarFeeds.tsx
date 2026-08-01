@@ -9,7 +9,7 @@ import {
   PlusIcon,
   SettingsIcon,
 } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Skeleton } from "../ui/skeleton";
 import { useDialogStore } from "./dialogStore";
 import type { ApplicationFeed } from "~/server/db/schema";
@@ -35,68 +35,13 @@ import {
   viewFilterAtom,
   visibilityFilterAtom,
 } from "~/lib/data/atoms";
-import { useFeedCategories } from "~/lib/data/feed-categories";
-import {
-  createFeedItemFilterIndex,
-  createFeedItemFilterPredicate,
-} from "~/lib/data/feed-items";
 import { useFeeds } from "~/lib/data/feeds";
+import { useFeedStatusDict, useViewFeedIds } from "~/lib/data/store";
 import {
-  useFeedItemsListProjection,
-  useFeedItemsOrder,
-  useFeedStatusDict,
-  useHasInitialData,
-  useViewFeedIds,
-} from "~/lib/data/store";
-import { useLoadingMode } from "~/lib/data/loading-machine";
-import { useCustomViewsData } from "~/lib/data/views";
-
-function useCheckFilteredFeedItemsForFeed() {
-  const feedItemsOrder = useFeedItemsOrder();
-  const feedItemsProjection = useFeedItemsListProjection();
-  const { feedCategories } = useFeedCategories();
-
-  const visibilityFilter = useAtomValue(visibilityFilterAtom);
-  const categoryFilter = useAtomValue(categoryFilterAtom);
-  const viewFilter = useAtomValue(viewFilterAtom);
-  const { customViews } = useCustomViewsData();
-  const filterIndex = useMemo(
-    () =>
-      createFeedItemFilterIndex(
-        feedCategories,
-        viewFilter && !customViews.some((view) => view.id === viewFilter.id)
-          ? [...customViews, viewFilter]
-          : customViews,
-      ),
-    [customViews, feedCategories, viewFilter],
-  );
-
-  return useCallback(
-    (feed: number) => {
-      const feedItemsDict = feedItemsProjection.getItems();
-      const doesFeedItemPassFilters = createFeedItemFilterPredicate({
-        visibilityFilter,
-        categoryFilter,
-        feedFilter: feed,
-        viewFilter,
-        filterIndex,
-      });
-
-      return feedItemsOrder.some((itemId) => {
-        const item = feedItemsDict[itemId];
-        return !!item && doesFeedItemPassFilters(item);
-      });
-    },
-    [
-      feedItemsOrder,
-      feedItemsProjection,
-      visibilityFilter,
-      categoryFilter,
-      filterIndex,
-      viewFilter,
-    ],
-  );
-}
+  getNavigationAvailability,
+  useNavigationSnapshot,
+  useNavigationSnapshotStatus,
+} from "~/lib/data/navigation/store";
 
 function useDebouncedState(defaultValue: string, delay: number) {
   const [searchQuery, setSearchQuery] = useState(defaultValue);
@@ -140,18 +85,17 @@ export function SidebarFeeds() {
   const [feedFilter, setFeedFilter] = useAtom(feedFilterAtom);
   const categoryFilter = useAtomValue(categoryFilterAtom);
   const viewFilter = useAtomValue(viewFilterAtom);
+  const visibilityFilter = useAtomValue(visibilityFilterAtom);
   const feedStatusDict = useFeedStatusDict();
-  const hasInitialData = useHasInitialData();
-  const loading = useLoadingMode();
-
-  const checkFilteredFeedItemsForFeed = useCheckFilteredFeedItemsForFeed();
+  const navigationSnapshot = useNavigationSnapshot();
+  const navigationSnapshotStatus = useNavigationSnapshotStatus();
   const viewFeedIds = useViewFeedIds();
   const feedsInCurrentView = viewFilter
     ? (viewFeedIds[viewFilter.id] ?? [])
     : [];
   const feedsInCurrentViewSet = new Set(feedsInCurrentView);
 
-  if (!hasInitialData || loading.mode === "initialLoad") {
+  if (navigationSnapshotStatus !== "success") {
     return (
       <div>
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -196,7 +140,9 @@ export function SidebarFeeds() {
 
   const feedOptions = feeds.map((feed) => ({
     ...feed,
-    hasEntries: feed.isActive ? checkFilteredFeedItemsForFeed(feed.id) : false,
+    hasEntries: getNavigationAvailability(navigationSnapshot.feeds, feed.id)[
+      visibilityFilter
+    ],
   }));
 
   const {
@@ -279,7 +225,9 @@ export function SidebarFeeds() {
     ...preferredFeedOptionsWithoutEntries,
   ];
 
-  const hasAnyItems = checkFilteredFeedItemsForFeed(-1);
+  const hasAnyItems = Object.values(navigationSnapshot.feeds).some(
+    (availability) => availability[visibilityFilter],
+  );
 
   return (
     <>
@@ -502,6 +450,14 @@ export function SidebarFeeds() {
                     variant={feed.id === feedFilter ? "outline" : "default"}
                     onClick={() => setFeedFilter(feed.id)}
                   >
+                    {!feed.hasEntries && (
+                      <CircleSmall size={16} className="text-sidebar-accent" />
+                    )}
+                    {feed.hasEntries && (
+                      <div className="grid size-4 place-items-center">
+                        <div className="bg-sidebar-accent size-2.5 rounded-full" />
+                      </div>
+                    )}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <PauseIcon

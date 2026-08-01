@@ -8,6 +8,7 @@ import { useFetchViewFeeds } from "~/lib/data/view-feeds/store";
 import { mixedContentStore } from "~/lib/data/mixed-content/store";
 import { bookmarksStore } from "~/lib/data/bookmarks/store";
 import { feedCategoriesStore } from "~/lib/data/feed-categories/store";
+import { refreshNavigationSnapshotSafely } from "~/lib/data/navigation/store";
 
 export function useCreateViewMutation() {
   const setViews = useSetViews();
@@ -27,6 +28,7 @@ export function useCreateViewMutation() {
           await revalidateView(createdView.id);
           updateViewFilter(createdView.id, viewsStore.getState().views);
         }
+        await refreshNavigationSnapshotSafely();
       },
     }),
   );
@@ -47,6 +49,7 @@ export function useQuickCreateViewMutation() {
         setViews([]);
         await fetchViews();
         await fetchViewFeeds();
+        await refreshNavigationSnapshotSafely();
       },
     }),
   );
@@ -55,7 +58,7 @@ export function useQuickCreateViewMutation() {
 export function useEditViewMutation() {
   return useMutation(
     orpc.view.update.mutationOptions({
-      onSuccess: (updatedView) => {
+      onSuccess: async (updatedView) => {
         if (!updatedView) return;
         viewsStore.getState().update(updatedView.id, updatedView);
         const nextViews = viewsStore.getState().views;
@@ -77,6 +80,7 @@ export function useEditViewMutation() {
           views: nextViews,
           feedCategories: feedCategoriesStore.getState().feedCategories,
         });
+        await refreshNavigationSnapshotSafely();
       },
     }),
   );
@@ -95,6 +99,7 @@ export function useDeleteViewMutation() {
         await fetchViews();
         await fetchViewFeeds();
         updateViewFilter(INBOX_VIEW_ID, viewsStore.getState().views);
+        await refreshNavigationSnapshotSafely();
       },
     }),
   );

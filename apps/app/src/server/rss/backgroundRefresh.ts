@@ -4,12 +4,14 @@ import type { PlanId } from "~/server/subscriptions/plans";
 import type { DatabaseFeed } from "~/server/db/schema";
 import type { db as Database } from "~/server/db";
 import type { RefreshStats } from "./refreshUserFeeds";
+import type { NavigationSnapshot } from "~/server/navigation/snapshot";
 import {
   checkUserRefreshEligibilityForPlan,
   getUserPlanId,
 } from "~/server/subscriptions/helpers";
 import { feeds, user } from "~/server/db/schema";
 import { workerPool } from "~/lib/workerPool";
+import { queryNavigationSnapshot } from "~/server/navigation/snapshot";
 
 export const BACKGROUND_USER_PAGE_SIZE = 25;
 export const BACKGROUND_FEED_PAGE_SIZE = 50;
@@ -22,6 +24,7 @@ type UserCandidate = {
 
 type RefreshLifecycleChunk =
   | { type: "refresh-start"; totalFeeds: number; nextRefreshAt: Date }
+  | { type: "navigation-snapshot"; snapshot: NavigationSnapshot }
   | { type: "refresh-complete" };
 
 type RefreshEligibility =
@@ -255,6 +258,14 @@ export async function runBackgroundFeedRefresh(
           });
           addRefreshStats(metrics, pageStats);
         }
+
+        await dependencies.publish(channel, {
+          type: "navigation-snapshot",
+          snapshot: await queryNavigationSnapshot({
+            database: dependencies.db,
+            userId: candidate.id,
+          }),
+        });
       } catch (error) {
         metrics.errorCount++;
         dependencies.onUserError?.(error, candidate.id);

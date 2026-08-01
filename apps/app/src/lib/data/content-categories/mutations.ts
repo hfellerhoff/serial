@@ -3,6 +3,7 @@ import { useFetchFeedCategories } from "../feed-categories/store";
 import { useFetchViews, useSetViews } from "../views/store";
 import { useFetchContentCategories } from "./store";
 import { orpc } from "~/lib/orpc";
+import { refreshNavigationSnapshotSafely } from "~/lib/data/navigation/store";
 
 export function useCreateContentCategoryMutation() {
   const fetchContentCategories = useFetchContentCategories();
@@ -13,6 +14,7 @@ export function useCreateContentCategoryMutation() {
       onSuccess: async () => {
         await fetchContentCategories();
         await fetchFeedCategories();
+        await refreshNavigationSnapshotSafely();
       },
     }),
   );
@@ -27,6 +29,7 @@ export function useUpdateContentCategoryMutation() {
       onSuccess: async () => {
         await fetchContentCategories();
         await fetchFeedCategories();
+        await refreshNavigationSnapshotSafely();
       },
     }),
   );
@@ -46,6 +49,7 @@ export function useDeleteContentCategoryMutation() {
         // Reset views and refetch to recompute Uncategorized view categories
         setViews([]);
         await fetchViews();
+        await refreshNavigationSnapshotSafely();
       },
     }),
   );

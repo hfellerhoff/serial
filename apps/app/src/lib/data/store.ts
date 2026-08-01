@@ -28,6 +28,10 @@ import {
 } from "./scopeMembership";
 import { viewFeedsStore } from "./view-feeds/store";
 import { viewsStore } from "./views/store";
+import {
+  navigationSnapshotStore,
+  refreshNavigationSnapshotSafely,
+} from "./navigation/store";
 import type {
   RetainedFeedPage,
   RetainFeedItemPageInput,
@@ -860,6 +864,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
         set({
           feedItemsOrder: [...get().feedItemsOrder],
         });
+        await refreshNavigationSnapshotSafely();
       },
 
       fetchNewData: async () => {
@@ -1019,6 +1024,10 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               case "feed-categories":
                 feedCategoriesStore.getState().set(initialChunk.feedCategories);
                 feedCategoriesStore.setState({ fetchStatus: "success" });
+                break;
+
+              case "navigation-snapshot":
+                navigationSnapshotStore.getState().set(initialChunk.snapshot);
                 break;
 
               case "view-feeds":

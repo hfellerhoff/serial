@@ -90,6 +90,9 @@ describe("runBackgroundFeedRefresh", () => {
     expect(
       publishedChunkTypes.filter((type) => type === "refresh-complete"),
     ).toHaveLength(27);
+    expect(
+      publishedChunkTypes.filter((type) => type === "navigation-snapshot"),
+    ).toHaveLength(27);
   });
 
   it("bounds plan cache and provider resolution to four users", async () => {

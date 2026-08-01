@@ -3,6 +3,8 @@ import { feedCategoriesStore } from "./feed-categories/store";
 import { feedItemsStore } from "./store";
 import { getMixedScopeKey, mixedContentStore } from "./mixed-content/store";
 import { viewsStore } from "./views/store";
+import { isBookmarkProjectionChange } from "./mixed-content/bookmarkProjection";
+import { refreshNavigationSnapshotSafely } from "./navigation/store";
 import type { LoadedMixedScope } from "./mixed-content/store";
 import type { PublishedChunk } from "~/server/api/publisher";
 import type { BookmarkSyncBucketPage } from "~/server/mixed-content/sync";
@@ -68,6 +70,7 @@ function completeBookmarkSyncPages(payloads: PublishedChunk[]) {
 
 export function processPublishedChunks(payloads: PublishedChunk[]) {
   const affectedScopes = new Map<string, LoadedMixedScope>();
+  let navigationSnapshotChanged = false;
   const feedPayloads = payloads.filter(
     (payload) => payload.source !== "bookmark" && payload.source !== "mixed",
   );
@@ -134,6 +137,10 @@ export function processPublishedChunks(payloads: PublishedChunk[]) {
         .getState()
         .getBookmark(chunk.bookmark.id);
       bookmarksStore.getState().upsert(chunk.bookmark);
+      navigationSnapshotChanged ||= isBookmarkProjectionChange(
+        previousBookmark,
+        chunk.bookmark,
+      );
       const affected = mixedContentStore.getState().reprojectUpsert({
         bookmark: chunk.bookmark,
         previousBookmark,
@@ -157,6 +164,10 @@ export function processPublishedChunks(payloads: PublishedChunk[]) {
       );
       bookmarksStore.getState().upsertMany(chunk.bookmarks);
       for (const bookmark of chunk.bookmarks) {
+        navigationSnapshotChanged ||= isBookmarkProjectionChange(
+          previousBookmarks.get(bookmark.id),
+          bookmark,
+        );
         const affected = mixedContentStore.getState().reprojectUpsert({
           bookmark,
           previousBookmark: previousBookmarks.get(bookmark.id),
@@ -172,6 +183,7 @@ export function processPublishedChunks(payloads: PublishedChunk[]) {
       }
       continue;
     }
+    navigationSnapshotChanged = true;
     bookmarksStore.getState().remove(chunk.id);
     const affected = mixedContentStore.getState().reprojectDeletion({
       bookmarkId: chunk.id,
@@ -183,6 +195,9 @@ export function processPublishedChunks(payloads: PublishedChunk[]) {
         scope,
       );
     }
+  }
+  if (navigationSnapshotChanged) {
+    void refreshNavigationSnapshotSafely();
   }
   return [...affectedScopes.values()];
 }

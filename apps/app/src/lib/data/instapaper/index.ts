@@ -7,6 +7,7 @@ import {
 } from "../store";
 import { applyPendingFeedItemOverrides } from "../feed-items/pendingMutations";
 import { feedsStore } from "../feeds/store";
+import { refreshNavigationSnapshotSafely } from "../navigation/store";
 import { orpc } from "~/lib/orpc";
 
 export function useInstapaperConnectionStatus() {
@@ -34,7 +35,7 @@ export function useSaveToInstapaperMutation(contentId: string) {
 
   return useMutation(
     orpc.instapaper.saveBookmark.mutationOptions({
-      onSuccess: (serverValue) => {
+      onSuccess: async (serverValue) => {
         const currentFeedItem =
           feedItemsStore.getState().feedItemsDict[contentId];
         if (currentFeedItem) {
@@ -45,6 +46,7 @@ export function useSaveToInstapaperMutation(contentId: string) {
             }),
           });
         }
+        await refreshNavigationSnapshotSafely();
         toast.success("Saved to Instapaper");
       },
       onError: (error) => {

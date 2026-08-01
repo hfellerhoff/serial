@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { CircleSmall, Edit2Icon, PlusIcon, SettingsIcon } from "lucide-react";
@@ -21,56 +21,19 @@ import {
   visibilityFilterAtom,
 } from "~/lib/data/atoms";
 import { useContentCategories } from "~/lib/data/content-categories";
-import { useFeedCategories } from "~/lib/data/feed-categories";
-import {
-  createFeedItemFilterIndex,
-  createFeedItemFilterPredicate,
-} from "~/lib/data/feed-items";
 import { useDeselectViewFilter } from "~/lib/data/views";
 import {
-  useFeedItemsListProjection,
-  useFeedItemsOrder,
-} from "~/lib/data/store";
-
-function useCheckFilteredFeedItemsForCategory() {
-  const feedItemsOrder = useFeedItemsOrder();
-  const feedItemsProjection = useFeedItemsListProjection();
-  const { feedCategories } = useFeedCategories();
-  const filterIndex = useMemo(
-    () => createFeedItemFilterIndex(feedCategories, []),
-    [feedCategories],
-  );
-
-  const visibilityFilter = useAtomValue(visibilityFilterAtom);
-
-  return useCallback(
-    (category: number) => {
-      const feedItemsDict = feedItemsProjection.getItems();
-      const doesFeedItemPassFilters = createFeedItemFilterPredicate({
-        visibilityFilter,
-        categoryFilter: category,
-        feedFilter: -1,
-        viewFilter: null,
-        filterIndex,
-      });
-
-      return feedItemsOrder.some((itemId) => {
-        const item = feedItemsDict[itemId];
-        return !!item && doesFeedItemPassFilters(item);
-      });
-    },
-    [feedItemsOrder, feedItemsProjection, filterIndex, visibilityFilter],
-  );
-}
+  getNavigationAvailability,
+  useNavigationSnapshot,
+  useNavigationSnapshotStatus,
+} from "~/lib/data/navigation/store";
+import { Skeleton } from "~/components/ui/skeleton";
 
 export function SidebarCategories() {
   const [
     selectedContentCategoryForEditing,
     setSelectedContentCategoryForEditing,
   ] = useState<null | number>(null);
-
-  const checkFilteredFeedItemsForCategory =
-    useCheckFilteredFeedItemsForCategory();
 
   const setFeedFilter = useSetAtom(feedFilterAtom);
   const setDateFilter = useSetAtom(dateFilterAtom);
@@ -80,13 +43,20 @@ export function SidebarCategories() {
   const launchDialog = useDialogStore((store) => store.launchDialog);
 
   const { contentCategories } = useContentCategories();
+  const navigationSnapshot = useNavigationSnapshot();
+  const navigationSnapshotStatus = useNavigationSnapshotStatus();
+  const visibilityFilter = useAtomValue(visibilityFilterAtom);
 
   const categoryOptions = contentCategories.map((category) => ({
     ...category,
-    hasEntries: checkFilteredFeedItemsForCategory(category.id),
+    hasEntries: getNavigationAvailability(navigationSnapshot.tags, category.id)[
+      visibilityFilter
+    ],
   }));
 
-  const hasAnyItems = checkFilteredFeedItemsForCategory(-1);
+  const hasAnyItems = Object.values(navigationSnapshot.feeds).some(
+    (availability) => availability[visibilityFilter],
+  );
 
   const updateCategoryFilter = (category: number) => {
     setFeedFilter(-1);
@@ -118,54 +88,69 @@ export function SidebarCategories() {
           </div>
         </SidebarGroupLabel>
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              variant={categoryFilter === -1 ? "outline" : "default"}
-              onClick={() => {
-                updateCategoryFilter(-1);
-                setDateFilter(1);
-              }}
-            >
-              {!hasAnyItems && (
-                <CircleSmall size={16} className="text-sidebar-accent" />
-              )}
-              {hasAnyItems && (
-                <div className="grid size-4 place-items-center">
-                  <div className="bg-sidebar-accent size-2.5 rounded-full" />
-                </div>
-              )}
-              All
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          {categoryOptions.map((option) => {
-            return (
-              <SidebarMenuItem key={option.id} className="group flex gap-1">
+          {navigationSnapshotStatus !== "success" ? (
+            <div className="flex flex-col items-center gap-4 px-2 py-2">
+              {Array.from({ length: 5 }, (_, index) => (
+                <Skeleton className="h-8 w-full" key={index} />
+              ))}
+            </div>
+          ) : (
+            <>
+              <SidebarMenuItem>
                 <SidebarMenuButton
-                  variant={option.id === categoryFilter ? "outline" : "default"}
-                  onClick={() => updateCategoryFilter(option.id)}
+                  variant={categoryFilter === -1 ? "outline" : "default"}
+                  onClick={() => {
+                    updateCategoryFilter(-1);
+                    setDateFilter(1);
+                  }}
                 >
-                  {!option.hasEntries && (
+                  {!hasAnyItems && (
                     <CircleSmall size={16} className="text-sidebar-accent" />
                   )}
-                  {option.hasEntries && (
+                  {hasAnyItems && (
                     <div className="grid size-4 place-items-center">
                       <div className="bg-sidebar-accent size-2.5 rounded-full" />
                     </div>
                   )}
-                  {option.name}
+                  All
                 </SidebarMenuButton>
-                <div className="group/button flex w-fit items-center justify-end">
-                  <SidebarMenuButton
-                    onClick={() =>
-                      setSelectedContentCategoryForEditing(option.id)
-                    }
-                  >
-                    <Edit2Icon className="opacity-30 transition-opacity group-hover/button:opacity-100" />
-                  </SidebarMenuButton>
-                </div>
               </SidebarMenuItem>
-            );
-          })}
+              {categoryOptions.map((option) => {
+                return (
+                  <SidebarMenuItem key={option.id} className="group flex gap-1">
+                    <SidebarMenuButton
+                      variant={
+                        option.id === categoryFilter ? "outline" : "default"
+                      }
+                      onClick={() => updateCategoryFilter(option.id)}
+                    >
+                      {!option.hasEntries && (
+                        <CircleSmall
+                          size={16}
+                          className="text-sidebar-accent"
+                        />
+                      )}
+                      {option.hasEntries && (
+                        <div className="grid size-4 place-items-center">
+                          <div className="bg-sidebar-accent size-2.5 rounded-full" />
+                        </div>
+                      )}
+                      {option.name}
+                    </SidebarMenuButton>
+                    <div className="group/button flex w-fit items-center justify-end">
+                      <SidebarMenuButton
+                        onClick={() =>
+                          setSelectedContentCategoryForEditing(option.id)
+                        }
+                      >
+                        <Edit2Icon className="opacity-30 transition-opacity group-hover/button:opacity-100" />
+                      </SidebarMenuButton>
+                    </div>
+                  </SidebarMenuItem>
+                );
+              })}
+            </>
+          )}
         </SidebarMenu>
       </SidebarGroup>
     </>

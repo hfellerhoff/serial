@@ -6,6 +6,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { hashPassword } from "better-auth/crypto";
 import * as schema from "../../../src/server/db/schema";
 import { seedBenchmarkFixture } from "../../../scripts/performance/fixtures";
+import { INITIAL_ITEMS_PER_VIEW } from "../../../src/server/api/constants";
 import { SELF_HOSTED_RSS_SERVER_PORT } from "./ports";
 import type { BenchmarkProfileName } from "../../../scripts/performance/model";
 import type { VisibilityFilter } from "../../../src/lib/data/atoms";
@@ -674,6 +675,93 @@ export async function seedArticleData(
   client.close();
 
   return { feedItemId, email, password };
+}
+
+export async function seedSidebarFeedAvailabilityData(
+  tursoPort: number,
+  appPort: number,
+) {
+  const base = await seedArticleData(tursoPort, appPort);
+  const { db, client } = getDb(tursoPort);
+  const testUser = await db
+    .select()
+    .from(schema.user)
+    .where(eq(schema.user.email, base.email))
+    .get();
+  const targetView = testUser
+    ? await db
+        .select()
+        .from(schema.views)
+        .where(eq(schema.views.userId, testUser.id))
+        .get()
+    : undefined;
+  if (!testUser || !targetView) {
+    client.close();
+    throw new Error("Sidebar Feed availability prerequisites were not found");
+  }
+
+  const now = Date.now();
+  const feedCount = INITIAL_ITEMS_PER_VIEW + 1;
+  const seededFeeds = await db
+    .insert(schema.feeds)
+    .values(
+      Array.from({ length: feedCount }, (_, index) => ({
+        userId: testUser.id,
+        name:
+          index === feedCount - 1
+            ? "Globally Populated Overflow Feed"
+            : `Sidebar Feed ${index + 1}`,
+        url: `https://sidebar.example/${uniqueId()}/${index}.xml`,
+        imageUrl: "",
+        platform: "website" as const,
+        openLocation: "serial" as const,
+        isActive: index !== feedCount - 1,
+        createdAt: new Date(now - index * 1000),
+        updatedAt: new Date(now - index * 1000),
+        lastFetchedAt: new Date(now),
+        nextFetchAt: new Date(now + 86_400_000),
+      })),
+    )
+    .returning();
+  const overflowFeed = seededFeeds.at(-1);
+  if (!overflowFeed) {
+    client.close();
+    throw new Error("Sidebar overflow Feed was not created");
+  }
+
+  await Promise.all([
+    db.insert(schema.viewFeeds).values(
+      seededFeeds.map((feed) => ({
+        viewId: targetView.id,
+        feedId: feed.id,
+      })),
+    ),
+    db.insert(schema.feedItems).values(
+      seededFeeds.map((feed, index) => {
+        const id = `sidebar-feed-item-${uniqueId()}`;
+        const itemTime = new Date(now - index * 1000);
+        return {
+          id,
+          feedId: feed.id,
+          contentId: id,
+          contentType: "text" as const,
+          title: `Sidebar item ${index + 1}`,
+          author: "Sidebar Author",
+          url: `https://sidebar.example/items/${id}`,
+          postedAt: itemTime,
+          createdAt: itemTime,
+          updatedAt: itemTime,
+        };
+      }),
+    ),
+  ]);
+
+  client.close();
+  return {
+    email: base.email,
+    password: base.password,
+    overflowFeedName: overflowFeed.name,
+  };
 }
 
 export async function seedAddFeedSelectionData(

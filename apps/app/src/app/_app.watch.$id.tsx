@@ -27,6 +27,7 @@ function WatchVideoPage() {
   const params = Route.useParams();
   const bookmark = useBookmarkValue(params.id);
   const feedItem = useFeedItemValue(params.id);
+  useRefreshFeedItem(bookmark ? undefined : params.id);
   const resolution = resolveContentItem({ bookmark, feedItem });
   if (resolution.status === "ambiguous") {
     return <p className="p-6 text-center">This content ID is ambiguous.</p>;
@@ -64,7 +65,6 @@ function VideoPage({
 
   const isInactive = useIsInactive();
   const feedItem = useFeedItemValue(id);
-  useRefreshFeedItem(bookmark ? "" : id);
 
   useEffect(() => {
     if (isInactive) {

@@ -61,6 +61,9 @@ function ReadPage() {
   const params = Route.useParams();
   const bookmark = useBookmarkValue(params.id);
   const feedItem = useFeedItemValue(params.id);
+  const hasRefreshedFeedItem = useRefreshFeedItem(
+    bookmark ? undefined : params.id,
+  );
   const resolution = resolveContentItem({ bookmark, feedItem });
   if (resolution.status === "ambiguous") {
     return <p className="p-6 text-center">This content ID is ambiguous.</p>;
@@ -75,16 +78,23 @@ function ReadPage() {
   if (resolution.item.entityKind === "bookmark") {
     return <BookmarkReader id={params.id} />;
   }
-  return <FeedReader id={params.id} />;
+  return (
+    <FeedReader id={params.id} hasRefreshedFeedItem={hasRefreshedFeedItem} />
+  );
 }
 
-function FeedReader({ id }: { id: string }) {
+function FeedReader({
+  id,
+  hasRefreshedFeedItem,
+}: {
+  id: string;
+  hasRefreshedFeedItem: boolean;
+}) {
   useRetentionPin("feed-item", id);
 
   const [articleStyle] = useFlagState("ARTICLE_STYLE");
 
   const feedItem = useFeedItemValue(id);
-  const hasRefreshedFeedItem = useRefreshFeedItem(id);
 
   const { feeds } = useFeeds();
   const feedCategories = useFeedCategories();

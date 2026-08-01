@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useFetchFeedCategories } from "./store";
 import { orpc } from "~/lib/orpc";
+import { refreshNavigationSnapshotSafely } from "~/lib/data/navigation/store";
 
 export function useBulkAssignFeedCategoryMutation() {
   const fetchFeedCategories = useFetchFeedCategories();
@@ -9,6 +10,7 @@ export function useBulkAssignFeedCategoryMutation() {
     orpc.feedCategories.bulkAssignToFeeds.mutationOptions({
       onSuccess: async () => {
         await fetchFeedCategories();
+        await refreshNavigationSnapshotSafely();
       },
     }),
   );
@@ -21,6 +23,7 @@ export function useBulkRemoveFeedCategoryMutation() {
     orpc.feedCategories.bulkRemoveFromFeeds.mutationOptions({
       onSuccess: async () => {
         await fetchFeedCategories();
+        await refreshNavigationSnapshotSafely();
       },
     }),
   );

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { DragHandleDots2Icon } from "@radix-ui/react-icons";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { CircleSmall, Edit2Icon, PlusIcon, SettingsIcon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
@@ -40,16 +40,19 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "~/components/ui/sidebar";
-import { viewFilterIdAtom } from "~/lib/data/atoms";
-import {
-  useCheckFilteredFeedItemsForView,
-  useUpdateViewFilter,
-  useViews,
-} from "~/lib/data/views";
+import { viewFilterIdAtom, visibilityFilterAtom } from "~/lib/data/atoms";
+import { useUpdateViewFilter, useViews } from "~/lib/data/views";
 import {
   calculateViewsPlacement,
   useUpdateViewsPlacementMutation,
 } from "~/lib/data/views/mutations";
+import {
+  getNavigationAvailability,
+  useNavigationSnapshot,
+  useNavigationSnapshotStatus,
+} from "~/lib/data/navigation/store";
+import { Skeleton } from "~/components/ui/skeleton";
+import { useSetViews } from "~/lib/data/views/store";
 
 type ViewOption = ApplicationView & { hasEntries: boolean };
 
@@ -130,45 +133,35 @@ export function SidebarViews() {
   );
 
   const launchDialog = useDialogStore((store) => store.launchDialog);
-  const checkFilteredFeedItemsForView = useCheckFilteredFeedItemsForView();
-
   const { views } = useViews();
-
-  const [viewOptions, setViewOptions] = useState<ViewOption[]>([]);
+  const navigationSnapshot = useNavigationSnapshot();
+  const navigationSnapshotStatus = useNavigationSnapshotStatus();
+  const visibilityFilter = useAtomValue(visibilityFilterAtom);
+  const setViews = useSetViews();
 
   const { mutateAsync: updateViewsPlacement } =
     useUpdateViewsPlacementMutation();
 
-  useEffect(() => {
-    setViewOptions(
-      views.map((view) => ({
-        ...view,
-        hasEntries: !!checkFilteredFeedItemsForView(view.id).length,
-      })),
-    );
-  }, [views, checkFilteredFeedItemsForView]);
+  const viewOptions = views.map((view) => ({
+    ...view,
+    hasEntries: getNavigationAvailability(navigationSnapshot.views, view.id)[
+      visibilityFilter
+    ],
+  }));
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      setViewOptions((options) => {
-        const oldIndex = options.findIndex((view) => view.id === active.id);
-        const newIndex = options.findIndex((view) => view.id === over.id);
+      const oldIndex = views.findIndex((view) => view.id === active.id);
+      const newIndex = views.findIndex((view) => view.id === over.id);
+      const updatedViews = calculateViewsPlacement(
+        arrayMove(views, oldIndex, newIndex),
+      );
 
-        const updatedOptions = arrayMove(options, oldIndex, newIndex);
-
-        const updatedViews = calculateViewsPlacement(
-          updatedOptions.map((option) => {
-            // eslint-disable-next-line no-unused-vars
-            const { hasEntries, ...restOfOption } = option;
-            return restOfOption;
-          }),
-        );
-
-        void updateViewsPlacement({ views: updatedViews });
-
-        return updatedOptions;
+      setViews(updatedViews);
+      void updateViewsPlacement({ views: updatedViews }).catch(() => {
+        setViews(views);
       });
     }
   }
@@ -194,27 +187,35 @@ export function SidebarViews() {
           </div>
         </SidebarGroupLabel>
         <SidebarMenu>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-            modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-          >
-            <SortableContext
-              items={viewOptions}
-              strategy={verticalListSortingStrategy}
+          {navigationSnapshotStatus !== "success" ? (
+            <div className="flex flex-col items-center gap-4 px-2 py-2">
+              {Array.from({ length: 5 }, (_, index) => (
+                <Skeleton className="h-8 w-full" key={index} />
+              ))}
+            </div>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+              modifiers={[restrictToVerticalAxis, restrictToParentElement]}
             >
-              {viewOptions.map((option) => {
-                return (
-                  <ViewSidebarItem
-                    view={option}
-                    key={option.id}
-                    setSelectedViewForEditing={setSelectedViewForEditing}
-                  />
-                );
-              })}
-            </SortableContext>
-          </DndContext>
+              <SortableContext
+                items={viewOptions}
+                strategy={verticalListSortingStrategy}
+              >
+                {viewOptions.map((option) => {
+                  return (
+                    <ViewSidebarItem
+                      view={option}
+                      key={option.id}
+                      setSelectedViewForEditing={setSelectedViewForEditing}
+                    />
+                  );
+                })}
+              </SortableContext>
+            </DndContext>
+          )}
         </SidebarMenu>
       </SidebarGroup>
     </>
