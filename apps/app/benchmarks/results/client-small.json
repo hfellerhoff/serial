@@ -54,8 +54,8 @@
   },
   "operations": {
     "bookmarkSave": {
-      "durationMs": 0.7837080000000469,
-      "heapDeltaBytes": 269688,
+      "durationMs": 0.7851670000000013,
+      "heapDeltaBytes": 270576,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -64,7 +64,7 @@
       "authoritativeRefills": 1
     },
     "bookmarkProgressEvent": {
-      "durationMs": 0.045958999999925254,
+      "durationMs": 0.04879199999993489,
       "heapDeltaBytes": 4624,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
@@ -74,7 +74,7 @@
       "authoritativeRefills": 0
     },
     "bookmarkCaptureEvent": {
-      "durationMs": 0.04808400000001711,
+      "durationMs": 0.03537499999993088,
       "heapDeltaBytes": 3816,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
@@ -84,8 +84,8 @@
       "authoritativeRefills": 0
     },
     "bookmarkOrganizationChange": {
-      "durationMs": 0.31616699999995035,
-      "heapDeltaBytes": 281600,
+      "durationMs": 0.2965000000000373,
+      "heapDeltaBytes": 281464,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -94,8 +94,8 @@
       "authoritativeRefills": 2
     },
     "bookmarkDelete": {
-      "durationMs": 0.2479999999999336,
-      "heapDeltaBytes": 195800,
+      "durationMs": 0.23887500000000728,
+      "heapDeltaBytes": 195016,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -104,8 +104,8 @@
       "authoritativeRefills": 1
     },
     "feedProgressEvent": {
-      "durationMs": 0.2580000000000382,
-      "heapDeltaBytes": 1566336,
+      "durationMs": 0.2589580000000069,
+      "heapDeltaBytes": 1565320,
       "bookmarkStoreNotifications": 0,
       "feedItemStoreNotifications": 1,
       "feedItemProjectionNotifications": 0,
@@ -114,8 +114,8 @@
       "authoritativeRefills": 0
     },
     "feedProgressBurst": {
-      "durationMs": 0.9676249999999982,
-      "heapDeltaBytes": 1620880,
+      "durationMs": 0.9621250000000146,
+      "heapDeltaBytes": 1613040,
       "bookmarkStoreNotifications": 0,
       "feedItemStoreNotifications": 1,
       "feedItemProjectionNotifications": 0,
@@ -124,8 +124,8 @@
       "authoritativeRefills": 0
     },
     "bookmarkBurstSingleFrame": {
-      "durationMs": 0.13929200000006858,
-      "heapDeltaBytes": 166104,
+      "durationMs": 0.13049999999998363,
+      "heapDeltaBytes": 166088,
       "bookmarkStoreNotifications": 100,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -134,8 +134,8 @@
       "authoritativeRefills": 0
     },
     "bookmarkBurstSeparateFrames": {
-      "durationMs": 0.17499999999995453,
-      "heapDeltaBytes": 570752,
+      "durationMs": 0.14112499999998818,
+      "heapDeltaBytes": 684440,
       "bookmarkStoreNotifications": 100,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -144,8 +144,8 @@
       "authoritativeRefills": 0
     },
     "coldSynchronization": {
-      "durationMs": 0.10066700000004403,
-      "heapDeltaBytes": 293632,
+      "durationMs": 0.09237500000006094,
+      "heapDeltaBytes": 386056,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -154,8 +154,8 @@
       "authoritativeRefills": 0
     },
     "warmSynchronization": {
-      "durationMs": 1.1854999999999336,
-      "heapDeltaBytes": 1873136,
+      "durationMs": 1.1849579999999378,
+      "heapDeltaBytes": 1872824,
       "bookmarkStoreNotifications": 0,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -164,7 +164,7 @@
       "authoritativeRefills": 0
     },
     "normalizedPersistenceMutation": {
-      "durationMs": 0.12408300000004147,
+      "durationMs": 0.13216699999998127,
       "heapDeltaBytes": 57344,
       "bookmarkStoreNotifications": 0,
       "feedItemStoreNotifications": 0,

@@ -88,8 +88,12 @@ are the deterministic evidence.
 Every deterministic operation, including Bookmark save, progress, capture,
 organization, delete, 100-event bursts, synchronization, persistence, and the
 100-item Feed update used by bulk watched-state changes, has a 50 ms synchronous
-duration ceiling at all three fixture sizes. The retained stress profile's
-largest operation is the batched 100-item Feed update at 37.02 ms with one store
+duration ceiling at all three fixture sizes. The explicit benchmark command
+enforces wall-clock duration in the controlled profiling environment; ordinary
+CI deterministically replays the retained stress artifact and separately checks
+notification, refill, payload, retention, and scope-work bounds so shared-runner
+contention cannot manufacture a timing regression. The retained stress profile's
+largest operation is the batched 100-item Feed update at 22.91 ms with one store
 notification and no projection or scope notifications. The unbatched reference
 performed 100 full-store notifications and took about 2.25 seconds.
 
@@ -103,12 +107,12 @@ ceilings are 500 ms.
 
 | Scenario             | Usable content | Long task | Worst commit |    Heap |  Storage | RPC requests / transfer |
 | -------------------- | -------------: | --------: | -----------: | ------: | -------: | ----------------------: |
-| Cold load            |       1,093 ms |      0 ms |       6.6 ms | 29.4 MB | 4.71 MiB |            7 / 2.04 MiB |
-| Warm hydration       |         181 ms |      0 ms |       9.8 ms | 29.4 MB | 4.85 MiB |           7 / 293.3 KiB |
-| Visibility reconnect |              — |      0 ms |       6.1 ms | 29.4 MB | 4.88 MiB |           6 / 312.6 KiB |
-| Pagination           |              — |      0 ms |       5.8 ms | 29.4 MB | 4.88 MiB |             1 / 1.5 KiB |
-| Native reader        |          52 ms |      0 ms |       8.2 ms | 29.4 MB | 4.80 MiB |                 1 / 0 B |
-| Page-capture reader  |          68 ms |      0 ms |       6.3 ms | 29.4 MB | 4.86 MiB |                 1 / 0 B |
+| Cold load            |       1,104 ms |      0 ms |       7.0 ms | 44.7 MB | 4.49 MiB |            7 / 1.47 MiB |
+| Warm hydration       |         192 ms |      0 ms |       9.8 ms | 44.7 MB | 4.63 MiB |           7 / 321.9 KiB |
+| Visibility reconnect |              — |      0 ms |       6.1 ms | 44.7 MB | 4.65 MiB |           6 / 274.0 KiB |
+| Pagination           |              — |      0 ms |       5.7 ms | 44.7 MB | 4.65 MiB |                 1 / 9 B |
+| Native reader        |          54 ms |      0 ms |       8.2 ms | 44.7 MB | 4.59 MiB |                 1 / 0 B |
+| Page-capture reader  |          68 ms |      0 ms |       6.0 ms | 44.7 MB | 4.63 MiB |                 1 / 0 B |
 
 The app does not yet expose a Bookmark-specific capture route before the UI
 checkpoint. The Page-capture scenario therefore feeds representative sanitized

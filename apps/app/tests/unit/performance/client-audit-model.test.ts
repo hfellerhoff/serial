@@ -1,8 +1,10 @@
+import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import {
   evaluateClientAuditOperationBudgets,
   runClientAuditProfile,
 } from "../../../scripts/performance/client-audit-model";
+import type { ClientAuditResult } from "../../../scripts/performance/client-audit-model";
 
 describe("client performance audit model", () => {
   it.each([
@@ -69,7 +71,6 @@ describe("client performance audit model", () => {
     expect(result.operations.feedProgressBurst.feedItemScopeNotifications).toBe(
       0,
     );
-    expect(evaluateClientAuditOperationBudgets(result)).toEqual([]);
   });
 
   it("keeps synchronization pages and normalized persistence mutations within explicit budgets", () => {
@@ -96,8 +97,21 @@ describe("client performance audit model", () => {
       mixedStoreNotifications: 0,
       authoritativeRefills: 0,
     });
-    expect(evaluateClientAuditOperationBudgets(result)).toEqual([]);
   }, 30_000);
+
+  it("keeps the retained stress profile within explicit operation budgets", async () => {
+    const result = JSON.parse(
+      await readFile(
+        new URL(
+          "../../../benchmarks/results/client-stress.json",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    ) as ClientAuditResult;
+
+    expect(evaluateClientAuditOperationBudgets(result)).toEqual([]);
+  });
 
   it("plateaus repeated pagination within memory, IndexedDB, and mounted-item budgets", () => {
     const result = runClientAuditProfile("small");

@@ -102,12 +102,14 @@ describe("optimistic feed item mutations", () => {
       makeItem({ id: `item-${index}` }),
     );
     feedItemsStore.getState().setFeedItems(items);
+    const normalizedDictionary = feedItemsStore.getState().feedItemsDict;
     let notifications = 0;
     const unsubscribe = feedItemsStore.subscribe(() => notifications++);
 
     const contexts = applyOptimisticWatchedValues(items, true);
     expect(notifications).toBe(1);
     expect(contexts).toHaveLength(100);
+    expect(feedItemsStore.getState().feedItemsDict).toBe(normalizedDictionary);
 
     settleOptimisticWatchedValues(
       contexts,

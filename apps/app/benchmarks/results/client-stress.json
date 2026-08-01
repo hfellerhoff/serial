@@ -54,8 +54,8 @@
   },
   "operations": {
     "bookmarkSave": {
-      "durationMs": 1.442542000000003,
-      "heapDeltaBytes": 1064128,
+      "durationMs": 1.3838750000001028,
+      "heapDeltaBytes": 1063096,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -64,7 +64,7 @@
       "authoritativeRefills": 1
     },
     "bookmarkProgressEvent": {
-      "durationMs": 0.10404200000004948,
+      "durationMs": 0.1187080000000833,
       "heapDeltaBytes": 4624,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
@@ -74,8 +74,8 @@
       "authoritativeRefills": 0
     },
     "bookmarkCaptureEvent": {
-      "durationMs": 0.08533299999999144,
-      "heapDeltaBytes": 12736,
+      "durationMs": 0.08708300000012059,
+      "heapDeltaBytes": 12800,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -84,8 +84,8 @@
       "authoritativeRefills": 0
     },
     "bookmarkOrganizationChange": {
-      "durationMs": 1.755333999999948,
-      "heapDeltaBytes": -29252392,
+      "durationMs": 0.8510830000000169,
+      "heapDeltaBytes": 1062112,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -94,8 +94,8 @@
       "authoritativeRefills": 2
     },
     "bookmarkDelete": {
-      "durationMs": 0.865833000000066,
-      "heapDeltaBytes": 961224,
+      "durationMs": 0.7825000000000273,
+      "heapDeltaBytes": 960976,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -104,8 +104,8 @@
       "authoritativeRefills": 1
     },
     "feedProgressEvent": {
-      "durationMs": 24.65929099999994,
-      "heapDeltaBytes": -15123480,
+      "durationMs": 23.595542000000023,
+      "heapDeltaBytes": 16844440,
       "bookmarkStoreNotifications": 0,
       "feedItemStoreNotifications": 1,
       "feedItemProjectionNotifications": 0,
@@ -114,8 +114,8 @@
       "authoritativeRefills": 0
     },
     "feedProgressBurst": {
-      "durationMs": 37.02016600000002,
-      "heapDeltaBytes": 22998040,
+      "durationMs": 22.907416999999896,
+      "heapDeltaBytes": 16926408,
       "bookmarkStoreNotifications": 0,
       "feedItemStoreNotifications": 1,
       "feedItemProjectionNotifications": 0,
@@ -124,8 +124,8 @@
       "authoritativeRefills": 0
     },
     "bookmarkBurstSingleFrame": {
-      "durationMs": 0.1449999999999818,
-      "heapDeltaBytes": 164536,
+      "durationMs": 0.14754199999993034,
+      "heapDeltaBytes": 164480,
       "bookmarkStoreNotifications": 100,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -134,8 +134,8 @@
       "authoritativeRefills": 0
     },
     "bookmarkBurstSeparateFrames": {
-      "durationMs": 0.19658299999991868,
-      "heapDeltaBytes": 525624,
+      "durationMs": 0.19908299999997325,
+      "heapDeltaBytes": 367160,
       "bookmarkStoreNotifications": 100,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -144,7 +144,7 @@
       "authoritativeRefills": 0
     },
     "coldSynchronization": {
-      "durationMs": 0.6340420000001359,
+      "durationMs": 0.6547499999996944,
       "heapDeltaBytes": 719136,
       "bookmarkStoreNotifications": 1,
       "feedItemStoreNotifications": 0,
@@ -154,8 +154,8 @@
       "authoritativeRefills": 0
     },
     "warmSynchronization": {
-      "durationMs": 18.057999999999993,
-      "heapDeltaBytes": 10299176,
+      "durationMs": 17.816749999999956,
+      "heapDeltaBytes": 10414864,
       "bookmarkStoreNotifications": 0,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
@@ -164,8 +164,8 @@
       "authoritativeRefills": 0
     },
     "normalizedPersistenceMutation": {
-      "durationMs": 8.97504200000003,
-      "heapDeltaBytes": 3925792,
+      "durationMs": 9.014208000000053,
+      "heapDeltaBytes": 3950632,
       "bookmarkStoreNotifications": 0,
       "feedItemStoreNotifications": 0,
       "feedItemProjectionNotifications": 0,
