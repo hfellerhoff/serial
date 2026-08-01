@@ -1,6 +1,6 @@
 import { randomInt } from "node:crypto";
 import net from "node:net";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 
 type TestEnvironment = "main" | "self-hosted" | "demo";
 
@@ -102,11 +102,25 @@ const childEnvironment = {
   DATABASE_URL: `http://127.0.0.1:${tursoPort}`,
   PUBLIC_BASE_URL: appUrl,
   VITE_PUBLIC_BASE_URL: appUrl,
+  PORT: String(appPort),
 };
 
 console.log(
   `${environmentName} test ports: app=${appPort}, db=${tursoPort}, rss=${rssPort}`,
 );
+
+if (process.env.SERIAL_CLIENT_PERFORMANCE_PRODUCTION === "1") {
+  const build = spawnSync("pnpm", ["build:atomic"], {
+    env: childEnvironment,
+    stdio: "inherit",
+  });
+  if (build.signal) {
+    process.kill(process.pid, build.signal);
+  }
+  if (build.status !== 0) {
+    process.exit(build.status ?? 1);
+  }
+}
 
 const playwright = spawn(
   "pnpm",

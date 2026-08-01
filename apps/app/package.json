@@ -57,6 +57,7 @@
     "benchmark:app:gate": "node --import=tsx scripts/performance/run-app-benchmark.ts --profile representative --cache all --gate",
     "benchmark:client": "dotenv -e .env.test -- node --import=tsx scripts/performance/run-client-audit.ts",
     "benchmark:client:smoke": "dotenv -e .env.test -- node --import=tsx scripts/performance/run-client-audit.ts --profile small --output benchmarks/results/client-small.json",
+    "benchmark:client:gate": "pnpm benchmark:client --profile small --gate && pnpm benchmark:client --profile representative --gate && pnpm benchmark:client --profile stress --gate",
     "benchmark:client:coverage": "node --import=tsx scripts/performance/inventory-client-audit.ts",
     "benchmark:client:coverage:check": "node --import=tsx scripts/performance/inventory-client-audit.ts --check",
     "benchmark:inventory": "node --import=tsx scripts/performance/inventory-app-queries.ts",

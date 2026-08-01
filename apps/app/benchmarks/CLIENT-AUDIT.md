@@ -2,15 +2,13 @@
 
 ## Result
 
-The pre-UI Bookmark foundation is not safe to extend yet. The audit originally
-found five release-blocking client/synchronization problems. CL-01's unbounded
-Bookmark event projection and CL-02's synchronization/persistence growth are now
-resolved. Entity-only events patch one Bookmark without mixed projection work,
-while projection-relevant events target only changed scopes. Bookmark
-synchronization uses a constant-size bucket manifest, unchanged reconnects
-refill no mixed scopes, incoming pages commit as one frame batch, and large
-persisted collections use normalized or chunked IndexedDB records. The remaining
-findings continue to block the UI checkpoint.
+The pre-UI Bookmark performance gate is green. The audit originally found five
+release-blocking client/synchronization problems; CL-01 through CL-05 now have
+bounded implementations and executable regression budgets. Entity-only events
+patch one Bookmark without mixed projection work, projection-relevant events
+target only changed scopes, synchronization and persistence stay bounded,
+retained pages plateau, visible rendering remains windowed, and production
+Chromium enforces the remaining hydration and reader limits.
 
 The checked [coverage ledger](client-audit-coverage.json) records a finding or an
 explicit clean result for every applicable route, component, hook, state,
@@ -28,9 +26,12 @@ persisted structured-clone payload size, and authoritative refill count.
 
 The opt-in Playwright profile runs Chromium against the representative
 self-hosted fixture. `?client-performance-audit=1` enables React commit
-measurement without affecting ordinary sessions. The profile records long
-tasks, React commit duration, IndexedDB reads/writes, total and RPC request bytes,
-heap, time to usable content, reconnect, pagination, and native reader entry.
+measurement without affecting ordinary sessions. The production profile uses
+React's profiling renderer and records long tasks, React commit duration,
+IndexedDB reads/writes, browser storage, total and RPC request bytes, heap, time
+to usable content, reconnect, pagination, native reader entry, and a
+representative 100-section sanitized Page-capture document. Development-server
+measurements are written separately and never satisfy the hard gate.
 
 ```sh
 pnpm benchmark:client:coverage:check
@@ -39,8 +40,10 @@ pnpm benchmark:client --profile representative \
   --output benchmarks/results/client-representative.json
 pnpm benchmark:client --profile stress \
   --output benchmarks/results/client-stress.json
+pnpm benchmark:client:gate
 
-SERIAL_RUN_CLIENT_PERFORMANCE=1 pnpm test:e2e:self-hosted \
+SERIAL_CLIENT_PERFORMANCE_PRODUCTION=1 SERIAL_RUN_CLIENT_PERFORMANCE=1 \
+  pnpm test:e2e:self-hosted \
   tests/e2e/self-hosted/client-performance-audit.spec.ts --reporter=line
 ```
 
@@ -81,6 +84,36 @@ following bounded measurements:
 Heap deltas are diagnostic only because garbage collection may occur inside a
 sample; payload size, notification count, refill count, and synchronous duration
 are the deterministic evidence.
+
+Every deterministic operation, including Bookmark save, progress, capture,
+organization, delete, 100-event bursts, synchronization, persistence, and the
+100-item Feed update used by bulk watched-state changes, has a 50 ms synchronous
+duration ceiling at all three fixture sizes. The retained stress profile's
+largest operation is the batched 100-item Feed update at 37.02 ms with one store
+notification and no projection or scope notifications. The unbatched reference
+performed 100 full-store notifications and took about 2.25 seconds.
+
+## CL-05 production browser budgets
+
+The retained production Chromium profile is enforced by unit replay and by the
+profile itself. All scenarios cap a long task and React commit at 50 ms, heap at
+128 MiB, browser storage at 16 MiB, and scenario-specific network and IndexedDB
+work. Cold and warm usable-content ceilings are 2,000 ms and 800 ms; both reader
+ceilings are 500 ms.
+
+| Scenario             | Usable content | Long task | Worst commit |    Heap |  Storage | RPC requests / transfer |
+| -------------------- | -------------: | --------: | -----------: | ------: | -------: | ----------------------: |
+| Cold load            |       1,093 ms |      0 ms |       6.6 ms | 29.4 MB | 4.71 MiB |            7 / 2.04 MiB |
+| Warm hydration       |         181 ms |      0 ms |       9.8 ms | 29.4 MB | 4.85 MiB |           7 / 293.3 KiB |
+| Visibility reconnect |              — |      0 ms |       6.1 ms | 29.4 MB | 4.88 MiB |           6 / 312.6 KiB |
+| Pagination           |              — |      0 ms |       5.8 ms | 29.4 MB | 4.88 MiB |             1 / 1.5 KiB |
+| Native reader        |          52 ms |      0 ms |       8.2 ms | 29.4 MB | 4.80 MiB |                 1 / 0 B |
+| Page-capture reader  |          68 ms |      0 ms |       6.3 ms | 29.4 MB | 4.86 MiB |                 1 / 0 B |
+
+The app does not yet expose a Bookmark-specific capture route before the UI
+checkpoint. The Page-capture scenario therefore feeds representative sanitized
+capture HTML through the same `ArticleContent` and `ArticleSidebars` renderer
+that route will use, without inventing a temporary product route.
 
 ## CL-04 retention remediation evidence
 
