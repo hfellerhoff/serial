@@ -296,7 +296,9 @@ export const feedItems = sqliteTable(
     title: text("title", { length: 512 }).notNull(),
     author: text("author", { length: 512 }).notNull(),
     url: text("url", { length: 512 }).notNull(),
-    canonicalUrl: text("canonical_url", { length: 4096 }),
+    // Stored only when production URL normalization changes the Feed URL.
+    // Most rows remain null and compare through COALESCE(normalizedUrl, url).
+    normalizedUrl: text("normalized_url", { length: 4096 }),
     thumbnail: text("thumbnail", { length: 512 }).notNull().default(""),
     content: text("content").notNull().default(""),
     contentSnippet: text("content_snippet").notNull().default(""),
@@ -352,14 +354,13 @@ export const feedItems = sqliteTable(
       example.isWatched,
       example.isWatchedUpdatedAt,
     ),
-    index("feed_item_canonical_url_idx").on(example.canonicalUrl),
   ],
 );
 export const feedItemSchema = createSelectSchema(feedItems);
 export type DatabaseFeedItem = typeof feedItems.$inferSelect;
 
 export const applicationFeedItemSchema = feedItemSchema
-  .omit({ canonicalUrl: true })
+  .omit({ normalizedUrl: true })
   .merge(
     z.object({
       platform: platformsSchema,

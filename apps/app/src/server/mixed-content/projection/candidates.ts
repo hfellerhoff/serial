@@ -46,7 +46,7 @@ export type BookmarkCandidate = {
 export type Candidate = FeedCandidate | BookmarkCandidate;
 
 const applicationFeedItemColumns = { ...getTableColumns(feedItems) };
-Reflect.deleteProperty(applicationFeedItemColumns, "canonicalUrl");
+Reflect.deleteProperty(applicationFeedItemColumns, "normalizedUrl");
 
 function bookmarkVisibilityCondition(visibility: VisibilityFilter) {
   if (visibility === "later") return eq(bookmarks.isSaved, true);
@@ -216,13 +216,9 @@ export async function queryFeedCandidates(input: {
   const placement = input.hasSections
     ? feedSectionPlacement((input.scope as { viewId: number }).viewId)
     : sql<number>`CAST(0 AS INTEGER)`;
-  const canonicalFeedUrl = sql<string>`COALESCE(
-    ${feedItems.canonicalUrl},
-    CASE
-      WHEN INSTR(${feedItems.url}, '#') > 0
-        THEN SUBSTR(${feedItems.url}, 1, INSTR(${feedItems.url}, '#') - 1)
-      ELSE ${feedItems.url}
-    END
+  const normalizedFeedUrl = sql<string>`COALESCE(
+    ${feedItems.normalizedUrl},
+    ${feedItems.url}
   )`;
   const canonicalBookmark = exists(
     input.database
@@ -231,7 +227,7 @@ export async function queryFeedCandidates(input: {
       .where(
         and(
           eq(bookmarks.userId, input.userId),
-          eq(bookmarks.canonicalUrl, canonicalFeedUrl),
+          eq(bookmarks.canonicalUrl, normalizedFeedUrl),
         ),
       ),
   );

@@ -173,7 +173,6 @@ export async function seedBenchmarkFixture(input: {
         title: `Fixture item ${index}`,
         author: `Fixture author ${index % 20}`,
         url: `https://content.serial.test/item/${index}`,
-        canonicalUrl: `https://content.serial.test/item/${index}`,
         thumbnail: "",
         content: `<p>Fixture body ${index}</p>`,
         contentSnippet: `Fixture summary ${index}`,

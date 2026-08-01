@@ -32,6 +32,11 @@ export function normalizeBookmarkUrl(value: string) {
   return normalized;
 }
 
+export function normalizedBookmarkUrlOverride(value: string) {
+  const normalized = normalizeBookmarkUrl(value);
+  return normalized === value ? null : normalized;
+}
+
 export function chooseCanonicalUrl(input: {
   sourceUrl: string;
   effectiveUrl?: string;

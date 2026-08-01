@@ -930,7 +930,6 @@ const lightweightFeedItemColumns = {
   title: feedItems.title,
   author: feedItems.author,
   url: feedItems.url,
-  canonicalUrl: feedItems.canonicalUrl,
   thumbnail: feedItems.thumbnail,
   isWatched: feedItems.isWatched,
   isWatchLater: feedItems.isWatchLater,
@@ -1086,7 +1085,10 @@ async function queryLightweightItemsForView(
   } = params;
 
   let itemsData: Array<
-    Omit<typeof feedItems.$inferSelect, "content" | "contentSnippet"> & {
+    Omit<
+      typeof feedItems.$inferSelect,
+      "content" | "contentSnippet" | "normalizedUrl"
+    > & {
       placement?: number;
     }
   >;

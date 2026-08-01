@@ -19,6 +19,7 @@ import {
   viewSections,
 } from "~/server/db/schema";
 import { queryMixedContentPage } from "~/server/mixed-content/projection";
+import { normalizedBookmarkUrlOverride } from "~/server/bookmarks/url";
 
 type TestDatabase = Awaited<
   ReturnType<typeof createBookmarkTestDatabase>
@@ -74,6 +75,7 @@ async function seedFeedItem(input: {
     title: input.id,
     author: "Author",
     url: input.url,
+    normalizedUrl: normalizedBookmarkUrlOverride(input.url),
     postedAt: input.postedAt ?? NOW,
     createdAt: input.postedAt ?? NOW,
     updatedAt: NOW,

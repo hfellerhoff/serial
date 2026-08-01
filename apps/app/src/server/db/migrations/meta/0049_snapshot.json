@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "dddf696b-e94a-487b-aede-48091e260406",
+  "id": "d833549f-0875-43b7-9fc0-63f5294d602a",
   "prevId": "846a2df7-f378-45fe-8edc-aaca05ba0221",
   "tables": {
     "serial_account": {
@@ -720,8 +720,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "canonical_url": {
-          "name": "canonical_url",
+        "normalized_url": {
+          "name": "normalized_url",
           "type": "text(4096)",
           "primaryKey": false,
           "notNull": false,
@@ -867,13 +867,6 @@
             "feed_id",
             "is_watched",
             "is_watched_updated_at"
-          ],
-          "isUnique": false
-        },
-        "feed_item_canonical_url_idx": {
-          "name": "feed_item_canonical_url_idx",
-          "columns": [
-            "canonical_url"
           ],
           "isUnique": false
         },

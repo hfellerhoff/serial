@@ -122,9 +122,9 @@ across workloads:
 
 | Profile        | Median ratio range | p95 ratio range | Candidate max rows | Structural budget |
 | -------------- | -----------------: | --------------: | -----------------: | ----------------: |
-| small          |         1.23–1.36× |      1.11–1.41× |              61–73 |               100 |
-| representative |         1.11–1.29× |      0.87–1.31× |                 75 |               198 |
-| stress         |         1.20–1.31× |      1.07–1.31× |                 75 |               408 |
+| small          |         1.24–1.38× |      1.21–1.47× |              61–73 |               100 |
+| representative |         1.15–1.31× |      1.19–1.33× |                 75 |               198 |
+| stress         |         1.19–1.32× |      1.17–1.38× |                 75 |               408 |
 
 The structural regression suite separately locks first and cursor View pages,
 Tag pages, point publication lookups, maximum 500-Bookmark bulk updates, and

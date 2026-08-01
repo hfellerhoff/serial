@@ -11,14 +11,15 @@ the 2026-07-31 remediation addendum records their current disposition.
 SDB-01 through SDB-04 are resolved. Mixed pages now execute two independently
 bounded SQL candidate queries, merge at most two `limit + 1` windows, and load
 capture and organization data only for Bookmark entities on the returned page.
-Feed-item canonical URLs are persisted and indexed Bookmark visibility/order
-access is backed by composite indexes. First, cursor, sectioned, Tag,
+Feed-item normalized URL overrides are persisted only when they differ from
+the original URL; indexed Bookmark visibility/order access is backed by
+composite indexes. First, cursor, sectioned, Tag,
 Uncategorized, collision, and ownership semantics retain direct regression
 coverage.
 
 The retained small, representative, and stress artifacts pass all 18
-warm/cold visibility cells. Median ratios range from 1.11× to 1.36×, p95 ratios
-from 0.87× to 1.41×, and the largest candidate materialization is 75 rows
+warm/cold visibility cells. Median ratios range from 1.15× to 1.38×, p95 ratios
+from 1.17× to 1.47×, and the largest candidate materialization is 75 rows
 against budgets of 100, 198, and 408. The stress fixture no longer produces a
 library-sized heap delta per page.
 

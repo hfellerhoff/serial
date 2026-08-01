@@ -147,7 +147,6 @@ describe("Bookmark server performance bounds", () => {
         title: `Item ${index}`,
         author: "Author",
         url: `https://example.com/feed-item-${index}`,
-        canonicalUrl: `https://example.com/feed-item-${index}`,
         postedAt: new Date(NOW.getTime() - index),
       })),
     );

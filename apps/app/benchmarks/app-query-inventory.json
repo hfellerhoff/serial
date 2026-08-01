@@ -112,7 +112,7 @@
       "file": "scripts/performance/fixtures.ts",
       "area": "application support",
       "symbol": "seedBenchmarkFixture",
-      "line": 195,
+      "line": 194,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -120,7 +120,7 @@
       "file": "scripts/performance/fixtures.ts",
       "area": "application support",
       "symbol": "seedBenchmarkFixture",
-      "line": 226,
+      "line": 225,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -128,7 +128,7 @@
       "file": "scripts/performance/fixtures.ts",
       "area": "application support",
       "symbol": "seedBenchmarkFixture",
-      "line": 242,
+      "line": 241,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -136,7 +136,7 @@
       "file": "scripts/performance/fixtures.ts",
       "area": "application support",
       "symbol": "seedBenchmarkFixture",
-      "line": 252,
+      "line": 251,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -144,7 +144,7 @@
       "file": "scripts/performance/fixtures.ts",
       "area": "application support",
       "symbol": "seedBenchmarkFixture",
-      "line": 261,
+      "line": 260,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -152,7 +152,7 @@
       "file": "scripts/performance/fixtures.ts",
       "area": "application support",
       "symbol": "removeBenchmarkFixture",
-      "line": 279,
+      "line": 278,
       "method": "delete",
       "expression": "input.database.delete"
     },
@@ -1152,7 +1152,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "queryLightweightItemsForView",
-      "line": 1110,
+      "line": 1112,
       "method": "select",
       "expression": "context.db\n      .select"
     },
@@ -1160,7 +1160,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "queryLightweightItemsForView",
-      "line": 1117,
+      "line": 1119,
       "method": "select",
       "expression": "context.db\n      .select"
     },
@@ -1168,7 +1168,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "queryFeedItemsForView",
-      "line": 1282,
+      "line": 1284,
       "method": "findMany",
       "expression": "context.db.query.feedItems.findMany"
     },
@@ -1176,7 +1176,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "queryFeedItemsForView",
-      "line": 1288,
+      "line": 1290,
       "method": "select",
       "expression": "context.db\n      .select"
     },
@@ -1184,7 +1184,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "insertResult",
-      "line": 2063,
+      "line": 2065,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -1192,7 +1192,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "streamingImport",
-      "line": 2203,
+      "line": 2205,
       "method": "transaction",
       "expression": "context.db.transaction"
     },
@@ -1200,7 +1200,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "existingViews",
-      "line": 2205,
+      "line": 2207,
       "method": "select",
       "expression": "tx\n            .select"
     },
@@ -1208,7 +1208,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "inserted",
-      "line": 2216,
+      "line": 2218,
       "method": "insert",
       "expression": "tx\n              .insert"
     },
@@ -1216,7 +1216,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "existingCategories",
-      "line": 2240,
+      "line": 2242,
       "method": "select",
       "expression": "tx\n                  .select"
     },
@@ -1224,7 +1224,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "insertedCategories",
-      "line": 2258,
+      "line": 2260,
       "method": "insert",
       "expression": "tx\n              .insert"
     },
@@ -1232,7 +1232,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "existingViewSections",
-      "line": 2276,
+      "line": 2278,
       "method": "select",
       "expression": "tx\n                  .select"
     },
@@ -1240,7 +1240,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "streamingImport",
-      "line": 2386,
+      "line": 2388,
       "method": "insert",
       "expression": "tx\n              .insert"
     },
@@ -1248,7 +1248,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "streamingImport",
-      "line": 2393,
+      "line": 2395,
       "method": "insert",
       "expression": "tx\n              .insert"
     },
@@ -1256,7 +1256,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "streamingImport",
-      "line": 2400,
+      "line": 2402,
       "method": "insert",
       "expression": "tx.insert"
     },
@@ -1264,7 +1264,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "feed",
-      "line": 2769,
+      "line": 2771,
       "method": "findFirst",
       "expression": "context.db.query.feeds.findFirst"
     },
@@ -1272,7 +1272,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "itemsData",
-      "line": 2793,
+      "line": 2795,
       "method": "findMany",
       "expression": "context.db.query.feedItems.findMany"
     },
@@ -1280,7 +1280,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "category",
-      "line": 2885,
+      "line": 2887,
       "method": "findFirst",
       "expression": "context.db.query.contentCategories.findFirst"
     },
@@ -1288,7 +1288,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "categoryFeedLinks",
-      "line": 2905,
+      "line": 2907,
       "method": "select",
       "expression": "context.db\n      .select"
     },
@@ -1296,7 +1296,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "feedsList",
-      "line": 2929,
+      "line": 2931,
       "method": "findMany",
       "expression": "context.db.query.feeds.findMany"
     },
@@ -1304,7 +1304,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "itemsData",
-      "line": 2946,
+      "line": 2948,
       "method": "findMany",
       "expression": "context.db.query.feedItems.findMany"
     },
@@ -1312,7 +1312,7 @@
       "file": "src/server/api/routers/initialRouter.ts",
       "area": "request procedures",
       "symbol": "items",
-      "line": 3296,
+      "line": 3298,
       "method": "select",
       "expression": "context.db\n        .select"
     },
@@ -2208,7 +2208,7 @@
       "file": "src/server/mixed-content/projection/candidates.ts",
       "area": "synchronization and projection",
       "symbol": "canonicalBookmark",
-      "line": 228,
+      "line": 224,
       "method": "select",
       "expression": "input.database\n      .select"
     },
@@ -2216,7 +2216,7 @@
       "file": "src/server/mixed-content/projection/candidates.ts",
       "area": "synchronization and projection",
       "symbol": "rows",
-      "line": 238,
+      "line": 234,
       "method": "select",
       "expression": "input.database\n    .select"
     },
@@ -2424,7 +2424,7 @@
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
       "symbol": "feedItemsList",
-      "line": 227,
+      "line": 232,
       "method": "insert",
       "expression": "context.db\n        .insert"
     },
@@ -2432,7 +2432,7 @@
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
       "symbol": "processFeed",
-      "line": 293,
+      "line": 298,
       "method": "update",
       "expression": "context.db\n              .update"
     },
@@ -2440,7 +2440,7 @@
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
       "symbol": "processFeed",
-      "line": 312,
+      "line": 317,
       "method": "update",
       "expression": "context.db\n              .update"
     },
@@ -2448,7 +2448,7 @@
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
       "symbol": "processFeed",
-      "line": 336,
+      "line": 341,
       "method": "update",
       "expression": "context.db\n            .update"
     },
@@ -2456,7 +2456,7 @@
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
       "symbol": "processFeed",
-      "line": 384,
+      "line": 389,
       "method": "update",
       "expression": "context.db\n            .update"
     },
@@ -2464,7 +2464,7 @@
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
       "symbol": "processFeed",
-      "line": 407,
+      "line": 412,
       "method": "update",
       "expression": "context.db\n            .update"
     },
@@ -2472,7 +2472,7 @@
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
       "symbol": "processFeed",
-      "line": 434,
+      "line": 439,
       "method": "update",
       "expression": "context.db\n            .update"
     },
@@ -2480,7 +2480,7 @@
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
       "symbol": "processFeed",
-      "line": 463,
+      "line": 468,
       "method": "update",
       "expression": "context.db\n          .update"
     },
@@ -2488,7 +2488,7 @@
       "file": "src/server/rss/fetchFeeds.ts",
       "area": "background and maintenance tasks",
       "symbol": "processFeed",
-      "line": 492,
+      "line": 497,
       "method": "update",
       "expression": "context.db\n            .update"
     },
@@ -3064,7 +3064,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "seedBookmark",
-      "line": 100,
+      "line": 102,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3072,7 +3072,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "seedView",
-      "line": 116,
+      "line": 118,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3080,7 +3080,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 138,
+      "line": 140,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3088,7 +3088,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 139,
+      "line": 141,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3096,7 +3096,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 158,
+      "line": 160,
       "method": "insert",
       "expression": "database\n      .insert"
     },
@@ -3104,25 +3104,9 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "feedOnlyItems",
-      "line": 173,
+      "line": 175,
       "method": "select",
       "expression": "database\n      .select"
-    },
-    {
-      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
-      "area": "test-only infrastructure",
-      "symbol": "<module>",
-      "line": 182,
-      "method": "delete",
-      "expression": "database.delete"
-    },
-    {
-      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
-      "area": "test-only infrastructure",
-      "symbol": "<module>",
-      "line": 183,
-      "method": "select",
-      "expression": "database.select"
     },
     {
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
@@ -3136,7 +3120,23 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 208,
+      "line": 185,
+      "method": "select",
+      "expression": "database.select"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 186,
+      "method": "delete",
+      "expression": "database.delete"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 210,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3144,7 +3144,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 212,
+      "line": 214,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3152,7 +3152,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 216,
+      "line": 218,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3160,7 +3160,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 220,
+      "line": 222,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3168,7 +3168,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 224,
+      "line": 226,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3176,7 +3176,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 228,
+      "line": 230,
       "method": "insert",
       "expression": "database\n      .insert"
     },
@@ -3184,7 +3184,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 276,
+      "line": 278,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3192,7 +3192,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 299,
+      "line": 301,
       "method": "insert",
       "expression": "database\n      .insert"
     },
@@ -3200,7 +3200,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 303,
+      "line": 305,
       "method": "insert",
       "expression": "database\n      .insert"
     },
@@ -3208,7 +3208,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 307,
+      "line": 309,
       "method": "insert",
       "expression": "database\n      .insert"
     },
@@ -3216,7 +3216,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 352,
+      "line": 354,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3224,7 +3224,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 357,
+      "line": 359,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3232,7 +3232,15 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 358,
+      "line": 360,
+      "method": "insert",
+      "expression": "database.insert"
+    },
+    {
+      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
+      "area": "test-only infrastructure",
+      "symbol": "<module>",
+      "line": 367,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3240,7 +3248,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "seedUser",
-      "line": 36,
+      "line": 37,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3248,7 +3256,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 365,
+      "line": 384,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3256,15 +3264,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 382,
-      "method": "insert",
-      "expression": "database.insert"
-    },
-    {
-      "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
-      "area": "test-only infrastructure",
-      "symbol": "<module>",
-      "line": 388,
+      "line": 390,
       "method": "insert",
       "expression": "database\n      .insert"
     },
@@ -3272,7 +3272,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 426,
+      "line": 428,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3280,7 +3280,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 440,
+      "line": 442,
       "method": "insert",
       "expression": "database\n      .insert"
     },
@@ -3288,7 +3288,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 443,
+      "line": 445,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3296,7 +3296,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "seedFeed",
-      "line": 50,
+      "line": 51,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3304,7 +3304,7 @@
       "file": "tests/unit/bookmarks/mixed-content-projection.test.ts",
       "area": "test-only infrastructure",
       "symbol": "seedFeedItem",
-      "line": 70,
+      "line": 71,
       "method": "insert",
       "expression": "database.insert"
     },
@@ -3584,7 +3584,7 @@
       "file": "tests/unit/performance/bookmark-server-bounds.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 155,
+      "line": 154,
       "method": "insert",
       "expression": "session.database.insert"
     },
@@ -3592,7 +3592,7 @@
       "file": "tests/unit/performance/bookmark-server-bounds.test.ts",
       "area": "test-only infrastructure",
       "symbol": "<module>",
-      "line": 156,
+      "line": 155,
       "method": "insert",
       "expression": "session.database\n      .insert"
     },
