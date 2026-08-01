@@ -1,20 +1,14 @@
-import {
-  and,
-  asc,
-  eq,
-  exists,
-  gte,
-  inArray,
-  isNull,
-  ne,
-  not,
-  or,
-  sql,
-} from "drizzle-orm";
+import { and, asc, eq, exists, gte, inArray, not, or, sql } from "drizzle-orm";
 import type { MixedContentScope } from "../projection";
 import type { db as defaultDatabase } from "~/server/db";
 import type { DatabaseView, DatabaseViewSection } from "~/server/db/schema";
 import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
+import {
+  CONTENT_FILTER_OPTION,
+  contentFilterColumnAllowsDescriptor,
+  contentFilterColumnHasOption,
+  contentFilterSqlPredicate,
+} from "~/lib/views/contentFilter";
 import {
   bookmarks,
   bookmarkTags,
@@ -110,10 +104,25 @@ export async function loadScopeData(input: {
 
 function compatibleFeedViewCondition() {
   return or(
-    inArray(views.contentType, ["all", "longform"]),
     and(
-      inArray(views.contentType, ["horizontal-video", "vertical-video"]),
+      eq(feeds.platform, "website"),
+      contentFilterColumnHasOption(
+        views.contentFilter,
+        CONTENT_FILTER_OPTION.TEXT,
+      ),
+    ),
+    and(
       inArray(feeds.platform, [...VIDEO_PLATFORMS]),
+      or(
+        contentFilterColumnHasOption(
+          views.contentFilter,
+          CONTENT_FILTER_OPTION.VIDEOS,
+        ),
+        contentFilterColumnHasOption(
+          views.contentFilter,
+          CONTENT_FILTER_OPTION.SHORTS,
+        ),
+      ),
     ),
   );
 }
@@ -151,7 +160,11 @@ function bookmarkInboxCondition(
   database: MixedContentDatabase,
   userId: string,
 ) {
-  const compatibleView = inArray(views.contentType, ["all", "longform"]);
+  const compatibleView = contentFilterColumnAllowsDescriptor({
+    filter: views.contentFilter,
+    contentType: bookmarks.contentType,
+    orientation: bookmarks.orientation,
+  });
   const direct = exists(
     database
       .select({ value: sql<number>`1` })
@@ -224,23 +237,11 @@ export function feedScopeCondition(input: {
               )
             : undefined,
         );
-  const contentType =
-    targetView.contentType === "all"
-      ? undefined
-      : targetView.contentType === "longform"
-        ? or(
-            isNull(feedItems.orientation),
-            ne(feedItems.orientation, "vertical"),
-          )
-        : and(
-            inArray(feeds.platform, [...VIDEO_PLATFORMS]),
-            eq(
-              feedItems.orientation,
-              targetView.contentType === "vertical-video"
-                ? "vertical"
-                : "horizontal",
-            ),
-          );
+  const contentFilter = contentFilterSqlPredicate({
+    filter: targetView.contentFilter,
+    contentType: feedItems.contentType,
+    orientation: feedItems.orientation,
+  });
   const timeWindow =
     targetView.daysWindow > 0
       ? gte(
@@ -248,7 +249,7 @@ export function feedScopeCondition(input: {
           new Date(Date.now() - targetView.daysWindow * 86_400_000),
         )
       : undefined;
-  return and(membership, contentType, timeWindow);
+  return and(membership, contentFilter, timeWindow);
 }
 
 export function bookmarkScopeCondition(input: {
@@ -275,7 +276,11 @@ export function bookmarkScopeCondition(input: {
     return bookmarkInboxCondition(database, userId);
   }
   const targetView = scopeData.targetView!;
-  if (!["all", "longform"].includes(targetView.contentType)) return sql`0`;
+  const contentFilter = contentFilterSqlPredicate({
+    filter: targetView.contentFilter,
+    contentType: bookmarks.contentType,
+    orientation: bookmarks.orientation,
+  });
   const membership = or(
     exists(
       database
@@ -309,5 +314,5 @@ export function bookmarkScopeCondition(input: {
           new Date(Date.now() - targetView.daysWindow * 86_400_000),
         )
       : undefined;
-  return and(membership, timeWindow);
+  return and(membership, contentFilter, timeWindow);
 }

@@ -28,12 +28,6 @@ export type MixedContentCursor = {
 } | null;
 
 export type ApplicationBookmark = DatabaseBookmark & {
-  title: string;
-  author: string | null;
-  publishedAt: Date | null;
-  effectiveUrl: string | null;
-  iconUrl: string | null;
-  representativeImageUrl: string | null;
   captureHash: string | null;
   capturedAt: Date | null;
   viewIds: number[];

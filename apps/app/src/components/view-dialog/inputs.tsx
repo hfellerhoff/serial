@@ -3,7 +3,11 @@
 import { toast } from "sonner";
 import type { Ref } from "react";
 import type React from "react";
-import type { ViewContentType, ViewLayout } from "~/server/db/constants";
+import type { ViewLayout } from "~/server/db/constants";
+import type {
+  ContentFilter,
+  ContentFilterOption,
+} from "~/lib/views/contentFilter";
 import { ChipCombobox } from "~/components/ui/chip-combobox";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -11,7 +15,12 @@ import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
 import { useContentCategories } from "~/lib/data/content-categories";
 import { useCreateContentCategoryMutation } from "~/lib/data/content-categories/mutations";
 import { useFeeds } from "~/lib/data/feeds";
-import { VIEW_CONTENT_TYPE, VIEW_LAYOUT } from "~/server/db/constants";
+import { VIEW_LAYOUT } from "~/server/db/constants";
+import {
+  CONTENT_FILTER_OPTION,
+  decodeContentFilter,
+  encodeContentFilter,
+} from "~/lib/views/contentFilter";
 
 function AddViewToggleItem({
   value,
@@ -119,46 +128,49 @@ export function ViewLayoutInput({
   );
 }
 
-const CONTENT_TYPE_HELPER_TEXT = {
-  longform: "Shows articles and longform videos",
-  "horizontal-video": "Shows longform videos",
-  "vertical-video": "Shows shortform videos",
-  all: "Shows all content",
-} as const satisfies Record<ViewContentType, string>;
+const CONTENT_FILTER_LABEL = {
+  [CONTENT_FILTER_OPTION.TEXT]: "text",
+  [CONTENT_FILTER_OPTION.VIDEOS]: "videos",
+  [CONTENT_FILTER_OPTION.SHORTS]: "shorts",
+} as const satisfies Record<ContentFilterOption, string>;
 
-export function ViewContentTypeInput({
-  contentType,
-  setContentType,
+export function ViewContentFilterInput({
+  contentFilter,
+  setContentFilter,
 }: {
-  contentType: ViewContentType;
-  setContentType: (contentType: ViewContentType) => void;
+  contentFilter: ContentFilter;
+  setContentFilter: (contentFilter: ContentFilter) => void;
 }) {
+  const selectedOptions = decodeContentFilter(contentFilter);
+  const helperList = selectedOptions.map(
+    (option) => CONTENT_FILTER_LABEL[option],
+  );
   return (
     <div className="grid gap-2">
       <Label htmlFor="content-type">Content Type</Label>
       <ToggleGroup
         id="content-type"
-        type="single"
-        value={contentType}
-        onValueChange={(value: ViewContentType) => {
-          setContentType(value);
+        type="multiple"
+        value={selectedOptions}
+        onValueChange={(values: ContentFilterOption[]) => {
+          if (values.length === 0) return;
+          setContentFilter(encodeContentFilter(values));
         }}
         size="sm"
         className="w-fit"
       >
-        <AddViewToggleItem value={VIEW_CONTENT_TYPE.LONGFORM}>
-          Standard
+        <AddViewToggleItem value={CONTENT_FILTER_OPTION.TEXT}>
+          Text
         </AddViewToggleItem>
-        <AddViewToggleItem value={VIEW_CONTENT_TYPE.HORIZONTAL_VIDEO}>
+        <AddViewToggleItem value={CONTENT_FILTER_OPTION.VIDEOS}>
           Videos
         </AddViewToggleItem>
-        <AddViewToggleItem value={VIEW_CONTENT_TYPE.VERTICAL_VIDEO}>
+        <AddViewToggleItem value={CONTENT_FILTER_OPTION.SHORTS}>
           Shorts
         </AddViewToggleItem>
-        <AddViewToggleItem value={VIEW_CONTENT_TYPE.ALL}>All</AddViewToggleItem>
       </ToggleGroup>
       <p className="text-muted-foreground text-sm">
-        {CONTENT_TYPE_HELPER_TEXT[contentType]}
+        Shows {helperList.join(", ").replace(/, ([^,]*)$/, " and $1")}
       </p>
     </div>
   );

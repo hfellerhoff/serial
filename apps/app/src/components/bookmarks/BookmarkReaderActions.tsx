@@ -5,8 +5,11 @@ import {
   ArchiveRestoreIcon,
   BookmarkCheckIcon,
   BookmarkIcon,
+  ExternalLinkIcon,
 } from "lucide-react";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
+import { Button } from "~/components/ui/button";
+import { getOriginActionLabel } from "~/lib/content/capabilities";
 import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { useBookmarkValue } from "~/lib/data/bookmarks";
 import { useUpdateBookmarkStateMutation } from "~/lib/data/bookmarks/mutations";
@@ -29,6 +32,7 @@ export function BookmarkReaderActions({ bookmarkId }: { bookmarkId: string }) {
   useShortcut(SHORTCUT_KEYS.TOGGLE_READ, toggleRead);
 
   if (!bookmark) return null;
+  const originActionLabel = getOriginActionLabel(bookmark);
 
   return (
     <div className="flex w-full items-center justify-center gap-2 p-6">
@@ -64,6 +68,17 @@ export function BookmarkReaderActions({ bookmarkId }: { bookmarkId: string }) {
           {bookmark.isRead ? "Unarchive" : "Archive"}
         </span>
       </ButtonWithShortcut>
+      <Button asChild variant="outline" size="icon md:default">
+        <a
+          href={bookmark.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={originActionLabel}
+        >
+          <ExternalLinkIcon size={16} />
+          <span className="hidden pl-1.5 md:block">{originActionLabel}</span>
+        </a>
+      </Button>
     </div>
   );
 }

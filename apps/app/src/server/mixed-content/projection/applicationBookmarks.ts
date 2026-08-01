@@ -6,14 +6,6 @@ import { bookmarks, pageCaptures } from "~/server/db/schema";
 
 type MixedContentDatabase = typeof defaultDatabase;
 
-function titleFromUrl(url: string) {
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return url;
-  }
-}
-
 function parseIds(value: string | null) {
   if (!value) return [];
   return value
@@ -35,12 +27,6 @@ const bookmarkTagIds = sql<string | null>`(
 )`;
 const captureMetadataColumns = {
   bookmarkId: pageCaptures.bookmarkId,
-  title: pageCaptures.title,
-  author: pageCaptures.author,
-  publishedAt: pageCaptures.publishedAt,
-  effectiveUrl: pageCaptures.effectiveUrl,
-  iconUrl: pageCaptures.iconUrl,
-  representativeImageUrl: pageCaptures.representativeImageUrl,
   contentHash: pageCaptures.contentHash,
   capturedAt: pageCaptures.capturedAt,
 };
@@ -58,12 +44,6 @@ function mapApplicationBookmark(row: {
 }): ApplicationBookmark {
   return {
     ...row.bookmark,
-    title: row.capture?.title || titleFromUrl(row.bookmark.sourceUrl),
-    author: row.capture?.author ?? null,
-    publishedAt: row.capture?.publishedAt ?? null,
-    effectiveUrl: row.capture?.effectiveUrl ?? null,
-    iconUrl: row.capture?.iconUrl ?? null,
-    representativeImageUrl: row.capture?.representativeImageUrl ?? null,
     captureHash: row.capture?.contentHash ?? null,
     capturedAt: row.capture?.capturedAt ?? null,
     viewIds: parseIds(row.viewIds),

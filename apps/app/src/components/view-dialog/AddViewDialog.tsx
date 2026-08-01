@@ -4,18 +4,16 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { ContentTab } from "./ContentTab";
 import { DisplayTab } from "./DisplayTab";
-import type { ViewContentType, ViewLayout } from "~/server/db/constants";
+import type { ViewLayout } from "~/server/db/constants";
+import type { ContentFilter } from "~/lib/views/contentFilter";
 import type { ViewSection } from "./ViewSectionList";
 import { Button } from "~/components/ui/button";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useDialogStore } from "~/components/feed/dialogStore";
 import { useCreateViewMutation } from "~/lib/data/views/mutations";
-import {
-  DEFAULT_VIEW_LAYOUT,
-  VIEW_CONTENT_TYPE,
-  VIEW_READ_STATUS,
-} from "~/server/db/constants";
+import { DEFAULT_VIEW_LAYOUT, VIEW_READ_STATUS } from "~/server/db/constants";
+import { DEFAULT_CONTENT_FILTER } from "~/lib/views/contentFilter";
 
 export function AddViewDialog() {
   const [isAddingView, setIsAddingView] = useState(false);
@@ -25,8 +23,8 @@ export function AddViewDialog() {
 
   const [name, setName] = useState<string>("");
   const [daysTimeWindow, setDaysTimeWindow] = useState<number>(0);
-  const [contentType, setContentType] = useState<ViewContentType>(
-    VIEW_CONTENT_TYPE.LONGFORM,
+  const [contentFilter, setContentFilter] = useState<ContentFilter>(
+    DEFAULT_CONTENT_FILTER,
   );
   const [layout, setLayout] = useState<ViewLayout>(DEFAULT_VIEW_LAYOUT);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
@@ -44,7 +42,7 @@ export function AddViewDialog() {
     if (!value) {
       setName("");
       setDaysTimeWindow(0);
-      setContentType(VIEW_CONTENT_TYPE.LONGFORM);
+      setContentFilter(DEFAULT_CONTENT_FILTER);
       setLayout(DEFAULT_VIEW_LAYOUT);
       setSelectedCategories([]);
       setSelectedFeedIds([]);
@@ -60,7 +58,7 @@ export function AddViewDialog() {
         name,
         daysWindow: daysTimeWindow,
         readStatus: VIEW_READ_STATUS.UNREAD,
-        contentType: contentType,
+        contentFilter,
         layout: layout,
         categoryIds: selectedCategories,
         feedIds: selectedFeedIds,
@@ -114,8 +112,8 @@ export function AddViewDialog() {
             setSelectedFeedIds={setSelectedFeedIds}
             daysTimeWindow={daysTimeWindow}
             setDaysTimeWindow={setDaysTimeWindow}
-            contentType={contentType}
-            setContentType={setContentType}
+            contentFilter={contentFilter}
+            setContentFilter={setContentFilter}
           />
         </TabsContent>
         <TabsContent value="display" className="mt-4">

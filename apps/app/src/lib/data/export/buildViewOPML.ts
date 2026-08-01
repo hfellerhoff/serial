@@ -8,7 +8,7 @@ import type {
   DatabaseFeedCategory,
   DatabaseViewFeed,
 } from "~/server/db/schema";
-import { isFeedCompatibleWithContentType } from "~/lib/data/feed-items/filters";
+import { isFeedCompatibleWithContentFilter } from "~/lib/data/feed-items/filters";
 import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
 import { VIEW_LAYOUT_ITEM_TYPE } from "~/server/db/constants";
 
@@ -190,7 +190,9 @@ export function buildViewOPML(input: BuildViewOPMLInput) {
     for (const feedId of feedIdsInView) {
       const feed = feedsById.get(feedId);
       if (!feed) continue;
-      if (!isFeedCompatibleWithContentType(feed.platform, view.contentType)) {
+      if (
+        !isFeedCompatibleWithContentFilter(feed.platform, view.contentFilter)
+      ) {
         continue;
       }
 

@@ -26,6 +26,7 @@ import type {
   RSSFeedWithMetadata,
 } from "./types";
 import { normalizedBookmarkUrlOverride } from "~/server/bookmarks/url";
+import { CONTENT_TYPE } from "~/lib/content/descriptor";
 import { env } from "~/env";
 import { dbSemaphore } from "~/lib/semaphore";
 import { workerPool } from "~/lib/workerPool";
@@ -164,6 +165,9 @@ async function insertFeedItems(
     return [];
   }
 
+  const targetFeed = databaseFeeds.find((feed) => feed.id === feedId);
+  const feedContentType =
+    targetFeed?.platform === "website" ? CONTENT_TYPE.TEXT : CONTENT_TYPE.VIDEO;
   const feedItemList: Array<typeof feedItems.$inferInsert> = items.map(
     (item) => {
       let normalizedUrl: string | null = null;
@@ -178,6 +182,7 @@ async function insertFeedItems(
         contentId: item.id,
         content: item.content,
         contentSnippet: item.contentSnippet,
+        contentType: feedContentType,
         title: item.title,
         author: item.author,
         thumbnail: item.thumbnail,
@@ -240,6 +245,7 @@ async function insertFeedItems(
             "contentHash",
             "contentId",
             "contentSnippet",
+            "contentType",
             "normalizedUrl",
             "createdAt",
             "orientation",

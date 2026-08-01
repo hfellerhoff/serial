@@ -1,4 +1,14 @@
 import { z } from "zod";
+import type {
+  BookmarkClassification,
+  BookmarkPreview,
+} from "~/lib/content/classification";
+import { CONTENT_CLASSIFIER_VERSION } from "~/lib/content/classification";
+import {
+  contentPlatformSchema,
+  contentTypeSchema,
+  videoOrientationSchema,
+} from "~/lib/content/descriptor";
 
 export const BOOKMARK_CAPTURE_LIMITS = {
   extensionRequestBytes: 4 * 1024 * 1024,
@@ -11,11 +21,13 @@ export const BOOKMARK_CAPTURE_LIMITS = {
   urlBytes: 8 * 1024,
   titleCodePoints: 1_024,
   authorCodePoints: 512,
+  descriptionCodePoints: 2_048,
+  siteNameCodePoints: 512,
   versionBytes: 128,
 } as const;
 
 export const SANITIZER_POLICY_VERSION = 1;
-export const EXTENSION_BOOKMARK_CONTRACT_VERSION = 1;
+export const EXTENSION_BOOKMARK_CONTRACT_VERSION = 2;
 export const READABILITY_EXTRACTOR_VERSION = "mozilla-readability-0.6";
 
 const captureFailureReasonSchema = z.enum([
@@ -29,6 +41,7 @@ const captureFailureReasonSchema = z.enum([
   "unsupported_capture_version",
   "rate_limited",
   "capacity_limited",
+  "unsupported_content",
 ]);
 
 export type CaptureFailureReason = z.infer<typeof captureFailureReasonSchema>;
@@ -43,6 +56,7 @@ export type BookmarkSaveResult<TBookmark> = {
   bookmark: TBookmark;
   capture: BookmarkCaptureOutcome;
   removedBookmarkId?: string;
+  removedBookmarkIds?: string[];
 };
 
 const boundedString = (maxCodePoints: number) =>
@@ -78,51 +92,97 @@ const versionString = z
       Buffer.byteLength(value, "ascii") <= BOOKMARK_CAPTURE_LIMITS.versionBytes,
   );
 
-export const extensionCaptureCandidateSchema = z.strictObject({
-  effectiveUrl: boundedUrlString,
-  canonicalUrl: z.unknown().transform(optionalBoundedUrlString).optional(),
-  title: boundedString(BOOKMARK_CAPTURE_LIMITS.titleCodePoints),
-  author: z
-    .unknown()
-    .transform((value) =>
-      optionalBoundedString(value, BOOKMARK_CAPTURE_LIMITS.authorCodePoints),
-    )
-    .optional(),
-  publishedAt: z
-    .unknown()
-    .transform((value) =>
-      typeof value === "string" &&
-      z.iso.datetime({ offset: true }).safeParse(value).success
-        ? value
-        : undefined,
-    )
-    .optional(),
-  iconUrl: z.unknown().transform(optionalBoundedUrlString).optional(),
-  representativeImageUrl: z
-    .unknown()
-    .transform(optionalBoundedUrlString)
-    .optional(),
-  contentHtml: z.string().min(1),
-  extractorVersion: versionString,
-  sanitizerPolicyVersion: z.number().int().positive(),
-});
+export const extensionCaptureCandidateSchema = z
+  .strictObject({
+    effectiveUrl: boundedUrlString,
+    canonicalUrl: z.unknown().transform(optionalBoundedUrlString).optional(),
+    title: boundedString(BOOKMARK_CAPTURE_LIMITS.titleCodePoints),
+    description: z
+      .unknown()
+      .transform((value) =>
+        optionalBoundedString(
+          value,
+          BOOKMARK_CAPTURE_LIMITS.descriptionCodePoints,
+        ),
+      )
+      .optional(),
+    author: z
+      .unknown()
+      .transform((value) =>
+        optionalBoundedString(value, BOOKMARK_CAPTURE_LIMITS.authorCodePoints),
+      )
+      .optional(),
+    publishedAt: z
+      .unknown()
+      .transform((value) =>
+        typeof value === "string" &&
+        z.iso.datetime({ offset: true }).safeParse(value).success
+          ? value
+          : undefined,
+      )
+      .optional(),
+    siteName: z
+      .unknown()
+      .transform((value) =>
+        optionalBoundedString(
+          value,
+          BOOKMARK_CAPTURE_LIMITS.siteNameCodePoints,
+        ),
+      )
+      .optional(),
+    iconUrl: z.unknown().transform(optionalBoundedUrlString).optional(),
+    thumbnailUrl: z.unknown().transform(optionalBoundedUrlString).optional(),
+    descriptor: z.strictObject({
+      platform: contentPlatformSchema,
+      contentType: contentTypeSchema,
+      orientation: videoOrientationSchema.nullable(),
+      contentId: z.string().min(1).nullable(),
+      classifierVersion: z.literal(CONTENT_CLASSIFIER_VERSION),
+    }),
+    contentHtml: z.string().min(1).optional(),
+    extractorVersion: versionString.optional(),
+    sanitizerPolicyVersion: z.number().int().positive().optional(),
+  })
+  .superRefine((candidate, context) => {
+    const captureFields = [
+      candidate.contentHtml,
+      candidate.extractorVersion,
+      candidate.sanitizerPolicyVersion,
+    ];
+    const suppliedCaptureFields = captureFields.filter(
+      (value) => value !== undefined,
+    ).length;
+    if (suppliedCaptureFields !== 0 && suppliedCaptureFields !== 3) {
+      context.addIssue({
+        code: "custom",
+        message: "Reader capture fields must be supplied together",
+        path: ["contentHtml"],
+      });
+    }
+  });
 
 export type ExtensionCaptureCandidate = z.infer<
   typeof extensionCaptureCandidateSchema
 >;
 
-export type TrustedCapture = {
-  title: string;
-  author: string | null;
-  publishedAt: Date | null;
+export type TrustedPageCapture = {
   contentHtml: string;
-  effectiveUrl: string;
-  canonicalUrl: string;
-  iconUrl: string | null;
-  representativeImageUrl: string | null;
   contentHash: string;
   captureSource: "extension-live-dom" | "server-static-fetch";
   extractorVersion: string;
   sanitizerPolicyVersion: number;
   capturedAt: Date;
+};
+
+export type TrustedBookmarkObservation = {
+  effectiveUrl: string;
+  canonicalUrl: string;
+  classification: BookmarkClassification;
+  preview: BookmarkPreview;
+  capture: TrustedPageCapture | null;
+};
+
+export type BookmarkObservationResult = {
+  observation: TrustedBookmarkObservation;
+  captureFailureReason?: CaptureFailureReason;
 };

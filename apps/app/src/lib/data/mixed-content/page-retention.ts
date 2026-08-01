@@ -94,20 +94,28 @@ export function mergeRetainedMixedPage({
   });
 }
 
-export function updateBookmarkPageMembership(
+export function updateReferencePageMembership(
   pages: Array<RetainedCursorPage<MixedPageRetentionValue>>,
-  bookmarkId: string,
+  reference: Pick<MixedContentReference, "entityKind" | "entityId">,
   isRetained: boolean,
 ) {
-  const bookmarkKey = `bookmark:${bookmarkId}`;
+  const referenceKey = mixedReferenceKey({
+    ...reference,
+    sectionPlacement: null,
+    normalizedAt: new Date(0),
+  });
+  const isCurrentlyRetained = pages.some((page) =>
+    page.value.referenceKeys.includes(referenceKey),
+  );
+  if (isCurrentlyRetained === isRetained) return pages;
   const nextPages = pages.map((page) => {
     const referenceKeys = page.value.referenceKeys.filter(
-      (key) => key !== bookmarkKey,
+      (key) => key !== referenceKey,
     );
     const value = { referenceKeys };
     return {
       ...page,
-      entityIds: page.entityIds.filter((id) => id !== bookmarkId),
+      entityIds: page.entityIds.filter((id) => id !== reference.entityId),
       value,
       byteSize: estimateRetainedBytes(value),
     };
@@ -116,15 +124,27 @@ export function updateBookmarkPageMembership(
 
   const latestPage = nextPages[nextPages.length - 1]!;
   const value = {
-    referenceKeys: [...latestPage.value.referenceKeys, bookmarkKey],
+    referenceKeys: [...latestPage.value.referenceKeys, referenceKey],
   };
   nextPages[nextPages.length - 1] = {
     ...latestPage,
-    entityIds: [...latestPage.entityIds, bookmarkId],
+    entityIds: [...latestPage.entityIds, reference.entityId],
     value,
     byteSize: estimateRetainedBytes(value),
   };
   return nextPages;
+}
+
+export function updateBookmarkPageMembership(
+  pages: Array<RetainedCursorPage<MixedPageRetentionValue>>,
+  bookmarkId: string,
+  isRetained: boolean,
+) {
+  return updateReferencePageMembership(
+    pages,
+    { entityKind: "bookmark", entityId: bookmarkId },
+    isRetained,
+  );
 }
 
 export function getMixedRetentionPins() {

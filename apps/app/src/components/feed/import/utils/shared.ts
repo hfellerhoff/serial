@@ -1,4 +1,4 @@
-import type { FeedPlatform } from "~/server/db/schema";
+import type { ContentPlatform } from "~/lib/content/descriptor";
 
 export type ImportCategoryPathItem = {
   name: string;
@@ -13,7 +13,7 @@ export type ImportFeedDataItem = {
   categories: string[];
   categoryPaths?: ImportCategoryPathItem[][];
   tagNames?: string[];
-  platform: FeedPlatform;
+  platform: ContentPlatform;
   shouldImport: boolean;
 };
 

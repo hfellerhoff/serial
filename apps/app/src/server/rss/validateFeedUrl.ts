@@ -1,4 +1,4 @@
-import type { FeedPlatform } from "../db/schema";
+import type { ContentPlatform } from "~/lib/content/descriptor";
 
 const YOUTUBE_URL_SEGMENTS = [
   "https://youtube.com/@",
@@ -19,7 +19,7 @@ const NEBULA_URL_SEGMENTS = [
   "https://rss.nebula.app",
 ];
 
-export function getAssumedFeedPlatform(url: string): FeedPlatform {
+export function getAssumedFeedPlatform(url: string): ContentPlatform {
   if (YOUTUBE_URL_SEGMENTS.some((supported) => url.includes(supported))) {
     return "youtube";
   }

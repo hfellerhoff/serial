@@ -42,13 +42,18 @@ export const save = protectedProcedure
       userId: context.user.id,
       ...input,
     });
-    if (result.removedBookmarkId) {
-      await publishBookmarkDeletion({
-        userId: context.user.id,
-        id: result.removedBookmarkId,
-        canonicalUrl: result.bookmark.canonicalUrl,
-      });
-    }
+    const removedBookmarkIds =
+      result.removedBookmarkIds ??
+      (result.removedBookmarkId ? [result.removedBookmarkId] : []);
+    await Promise.all(
+      removedBookmarkIds.map((removedBookmarkId) =>
+        publishBookmarkDeletion({
+          userId: context.user.id,
+          id: removedBookmarkId,
+          canonicalUrl: result.bookmark.canonicalUrl,
+        }),
+      ),
+    );
     const applicationBookmark = await publishBookmarkUpsert({
       database: context.db,
       userId: context.user.id,

@@ -52,7 +52,7 @@ test.describe("Bookmark Serial-app flow", () => {
     ).toHaveCount(0);
 
     await bookmarkCard.getByRole("link").click();
-    await expect(page).toHaveURL(`/bookmark/${bookmarkId}`);
+    await expect(page).toHaveURL(`/read/${bookmarkId}`);
     await expect(
       page.getByRole("heading", { name: "Captured Bookmark" }),
     ).toBeVisible();

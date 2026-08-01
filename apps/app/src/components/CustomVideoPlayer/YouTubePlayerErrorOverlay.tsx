@@ -5,13 +5,15 @@ import { Button } from "../ui/button";
 type YouTubePlayerErrorOverlayProps = {
   errorMessage: string;
   isInactive: boolean;
-  onWatchOnYouTube: () => void;
+  originActionLabel: string;
+  onOpenOrigin: () => void;
 };
 
 export function YouTubePlayerErrorOverlay({
   errorMessage,
   isInactive,
-  onWatchOnYouTube,
+  originActionLabel,
+  onOpenOrigin,
 }: YouTubePlayerErrorOverlayProps) {
   return (
     <div
@@ -31,12 +33,12 @@ export function YouTubePlayerErrorOverlay({
           <p className="sr-only">{errorMessage}</p>
         </div>
         <Button
-          onClick={onWatchOnYouTube}
+          onClick={onOpenOrigin}
           variant="outline"
           size="lg"
           className="gap-2 border-white bg-white text-black shadow-lg hover:bg-neutral-100 hover:text-black"
         >
-          <span>View on YouTube</span>
+          <span>{originActionLabel}</span>
           <ExternalLinkIcon aria-hidden="true" size={18} />
         </Button>
       </div>

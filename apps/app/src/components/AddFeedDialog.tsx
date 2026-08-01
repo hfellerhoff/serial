@@ -20,7 +20,8 @@ import { SelectableChipList } from "./ui/selectable-chip-list";
 import { Switch } from "./ui/switch";
 import { ToggleGroupItem } from "./ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-import type { FeedOpenLocation, FeedPlatform } from "~/server/db/schema";
+import type { FeedOpenLocation } from "~/server/db/schema";
+import type { ContentPlatform } from "~/lib/content/descriptor";
 import type { BookmarkSaveResult } from "~/server/bookmarks/contracts";
 import type { ApplicationBookmark } from "~/server/mixed-content/projection";
 import { useFeedCategories } from "~/lib/data/feed-categories";
@@ -254,7 +255,7 @@ function FeedOpenLocationToggleGroup({
   openLocation,
   setOpenLocation,
 }: {
-  feedPlatform: FeedPlatform;
+  feedPlatform: ContentPlatform;
   openLocation: FeedOpenLocation;
   setOpenLocation: (location: FeedOpenLocation) => void;
 }) {

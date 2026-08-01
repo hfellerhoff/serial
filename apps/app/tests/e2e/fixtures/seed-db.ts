@@ -138,7 +138,7 @@ export async function setFeedItemAsYouTubeVideo(
     .where(eq(schema.feeds.id, feedItem.feedId));
   await db
     .update(schema.feedItems)
-    .set({ contentId: videoId })
+    .set({ contentId: videoId, contentType: "video" })
     .where(eq(schema.feedItems.id, id));
   client.close();
 }
@@ -175,6 +175,9 @@ export async function seedBookmarkProjectionData(
     userId: testUser.id,
     sourceUrl: item.url,
     canonicalUrl: item.url,
+    effectiveUrl: item.url,
+    title: "Captured Bookmark",
+    author: "Bookmark Author",
     isSaved: true,
     isRead: false,
     createdAt: now,
@@ -189,14 +192,11 @@ export async function seedBookmarkProjectionData(
   });
   await db.insert(schema.pageCaptures).values({
     bookmarkId,
-    title: "Captured Bookmark",
-    author: "Bookmark Author",
     contentHtml: `<p>Captured Bookmark body</p>
       <p><a href="https://example.com/next">External reader link</a></p>
       <img src="https://images.example.com/reader.jpg" alt="Reader image" onerror="steal()">
       <div data-serial-embed="youtube" data-video-id="dQw4w9WgXcQ" data-start="42"></div>
       <script data-testid="unsafe-capture-script">steal()</script>`,
-    effectiveUrl: item.url,
     contentHash: `hash-${bookmarkId}`,
     captureSource: "extension-live-dom",
     extractorVersion: "playwright-fixture",
@@ -233,8 +233,7 @@ export async function seedBookmarkViewFilterData(
         name,
         daysWindow: 0,
         readStatus: 0,
-        orientation: "horizontal" as const,
-        contentType: "all" as const,
+        contentFilter: 7 as const,
         layout: "list" as const,
         placement: index + 1,
         createdAt: now,
@@ -385,8 +384,7 @@ export async function seedMixedViewSectionCase(
       name: viewName,
       daysWindow: 0,
       readStatus: 0,
-      orientation: "horizontal",
-      contentType: "all",
+      contentFilter: 7,
       layout: "list",
       placement: 1,
       createdAt: now,
@@ -403,8 +401,7 @@ export async function seedMixedViewSectionCase(
     name: emptyViewName,
     daysWindow: 0,
     readStatus: 0,
-    orientation: "horizontal",
-    contentType: "all",
+    contentFilter: 7,
     layout: "list",
     placement: 2,
     createdAt: now,
@@ -604,8 +601,7 @@ export async function seedArticleData(
       name: "All",
       daysWindow: 0,
       readStatus: 0,
-      orientation: "horizontal",
-      contentType: "all",
+      contentFilter: 7,
       layout: "list",
       placement: 0,
       createdAt: now,
@@ -699,8 +695,7 @@ export async function seedAddFeedSelectionData(
         name,
         daysWindow: 0,
         readStatus: 0,
-        orientation: "horizontal",
-        contentType: "all",
+        contentFilter: 7,
         layout: "list",
         placement: index + 1,
         createdAt: now,
@@ -777,8 +772,7 @@ export async function seedYouTubeVideoData(
       name: "All",
       daysWindow: 0,
       readStatus: 0,
-      orientation: "horizontal",
-      contentType: "all",
+      contentFilter: 7,
       layout: "list",
       placement: 0,
       createdAt: now,
@@ -822,6 +816,7 @@ export async function seedYouTubeVideoData(
     thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
     content: "",
     contentSnippet: "Test YouTube video",
+    contentType: "video",
     isWatched: false,
     isWatchLater: false,
     progress: 0,
@@ -895,8 +890,7 @@ export async function seedMultipleArticleData(
       name: "All",
       daysWindow: 0,
       readStatus: 0,
-      orientation: "horizontal",
-      contentType: "all",
+      contentFilter: 7,
       layout: "list",
       placement: 0,
       createdAt: now,
@@ -1139,8 +1133,7 @@ export async function seedSavedViewClientStateData(
       name: viewName,
       daysWindow: 0,
       readStatus: 0,
-      orientation: "horizontal",
-      contentType: "all",
+      contentFilter: 7,
       layout: "list",
       placement: 1,
       createdAt: now,

@@ -6,15 +6,15 @@ import type {
   ApplicationView,
   DatabaseFeed,
   DatabaseFeedCategory,
-  FeedPlatform,
 } from "~/server/db/schema";
+import type { ContentPlatform } from "~/lib/content/descriptor";
 import {
   createFeedItemFilterIndex,
   createFeedItemFilterPredicate,
 } from "~/lib/data/feed-items";
 import {
   buildViewCategoryFilter,
-  isFeedCompatibleWithContentType,
+  isFeedCompatibleWithContentFilter,
 } from "~/lib/data/feed-items/filters";
 import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
 
@@ -29,7 +29,7 @@ import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
 let nextItemId = 1;
 function makeItem(
   feedId: number,
-  platform: FeedPlatform = "website",
+  platform: ContentPlatform = "website",
   overrides: Partial<ApplicationFeedItem> = {},
 ): ApplicationFeedItem {
   return {
@@ -43,11 +43,12 @@ function makeItem(
     thumbnail: "",
     content: "",
     contentSnippet: "",
+    contentType: platform === "website" ? "text" : "video",
     isWatched: false,
     isWatchLater: false,
     progress: 0,
     duration: 0,
-    orientation: "horizontal",
+    orientation: platform === "website" ? null : "horizontal",
     postedAt: new Date("2026-01-01"),
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
@@ -58,7 +59,7 @@ function makeItem(
 
 function makeFeed(
   id: number,
-  platform: FeedPlatform = "website",
+  platform: ContentPlatform = "website",
 ): DatabaseFeed {
   return {
     id,
@@ -85,7 +86,7 @@ function makeView(
   opts: {
     categoryIds?: number[];
     feedIds?: number[];
-    contentType?: ApplicationView["contentType"];
+    contentFilter?: ApplicationView["contentFilter"];
   } = {},
 ): ApplicationView {
   return {
@@ -94,8 +95,7 @@ function makeView(
     name: `view-${id}`,
     daysWindow: 0,
     readStatus: 0,
-    orientation: "horizontal",
-    contentType: opts.contentType ?? "all",
+    contentFilter: opts.contentFilter ?? 7,
     layout: "list",
     placement: 0,
     createdAt: new Date(),
@@ -139,46 +139,30 @@ function passes(
   return doesFeedItemPassFilters(item);
 }
 
-// ---------- isFeedCompatibleWithContentType ----------
+// ---------- isFeedCompatibleWithContentFilter ----------
 
-describe("isFeedCompatibleWithContentType", () => {
-  it("'all' is compatible with every platform", () => {
-    expect(isFeedCompatibleWithContentType("youtube", "all")).toBe(true);
-    expect(isFeedCompatibleWithContentType("website", "all")).toBe(true);
-    expect(isFeedCompatibleWithContentType("nebula", "all")).toBe(true);
+describe("isFeedCompatibleWithContentFilter", () => {
+  it("accepts every current platform in the all-content filter", () => {
+    expect(isFeedCompatibleWithContentFilter("youtube", 7)).toBe(true);
+    expect(isFeedCompatibleWithContentFilter("website", 7)).toBe(true);
+    expect(isFeedCompatibleWithContentFilter("nebula", 7)).toBe(true);
   });
 
-  it("'longform' is compatible with every platform (filtering happens per-item)", () => {
-    expect(isFeedCompatibleWithContentType("youtube", "longform")).toBe(true);
-    expect(isFeedCompatibleWithContentType("website", "longform")).toBe(true);
+  it("accepts text and video Feeds in the default filter", () => {
+    expect(isFeedCompatibleWithContentFilter("youtube", 3)).toBe(true);
+    expect(isFeedCompatibleWithContentFilter("website", 3)).toBe(true);
   });
 
-  it("'horizontal-video' only allows video platforms", () => {
-    expect(isFeedCompatibleWithContentType("youtube", "horizontal-video")).toBe(
-      true,
-    );
-    expect(
-      isFeedCompatibleWithContentType("peertube", "horizontal-video"),
-    ).toBe(true);
-    expect(isFeedCompatibleWithContentType("nebula", "horizontal-video")).toBe(
-      true,
-    );
-    expect(isFeedCompatibleWithContentType("website", "horizontal-video")).toBe(
-      false,
-    );
+  it("accepts only video-capable Feeds in the Videos filter", () => {
+    expect(isFeedCompatibleWithContentFilter("youtube", 2)).toBe(true);
+    expect(isFeedCompatibleWithContentFilter("peertube", 2)).toBe(true);
+    expect(isFeedCompatibleWithContentFilter("nebula", 2)).toBe(true);
+    expect(isFeedCompatibleWithContentFilter("website", 2)).toBe(false);
   });
 
-  it("'vertical-video' only allows video platforms", () => {
-    expect(isFeedCompatibleWithContentType("youtube", "vertical-video")).toBe(
-      true,
-    );
-    expect(isFeedCompatibleWithContentType("website", "vertical-video")).toBe(
-      false,
-    );
-  });
-
-  it("undefined content type defaults to compatible", () => {
-    expect(isFeedCompatibleWithContentType("website", undefined)).toBe(true);
+  it("accepts only short-capable Feeds in the Shorts filter", () => {
+    expect(isFeedCompatibleWithContentFilter("youtube", 4)).toBe(true);
+    expect(isFeedCompatibleWithContentFilter("website", 4)).toBe(false);
   });
 });
 
@@ -200,7 +184,7 @@ describe("doesFeedItemPassFilters – Inbox view", () => {
   it("excludes a feed whose category is in a compatible custom view", () => {
     const feed = makeFeed(1, "youtube");
     const item = makeItem(1, "youtube");
-    const view = makeView(10, { categoryIds: [100], contentType: "all" });
+    const view = makeView(10, { categoryIds: [100], contentFilter: 7 });
 
     expect(
       passes(item, inboxView, {
@@ -216,7 +200,7 @@ describe("doesFeedItemPassFilters – Inbox view", () => {
     const item = makeItem(1, "website");
     const customView = makeView(10, {
       categoryIds: [100],
-      contentType: "horizontal-video",
+      contentFilter: 2,
     });
     // Realistic Inbox: carries the set of "uncategorized" category ids,
     // i.e. categories NOT assigned to any custom view. Category 100 is in
@@ -235,7 +219,7 @@ describe("doesFeedItemPassFilters – Inbox view", () => {
   it("excludes a feed directly assigned to a compatible custom view", () => {
     const feed = makeFeed(1, "youtube");
     const item = makeItem(1, "youtube");
-    const view = makeView(10, { feedIds: [1], contentType: "all" });
+    const view = makeView(10, { feedIds: [1], contentFilter: 7 });
 
     expect(
       passes(item, inboxView, {
@@ -253,7 +237,7 @@ describe("doesFeedItemPassFilters – Inbox view", () => {
     const item = makeItem(1, "website");
     const view = makeView(10, {
       feedIds: [1],
-      contentType: "vertical-video",
+      contentFilter: 4,
     });
 
     expect(
@@ -270,9 +254,9 @@ describe("doesFeedItemPassFilters – Inbox view", () => {
     const item = makeItem(1, "youtube");
     const incompatible = makeView(10, {
       feedIds: [1],
-      contentType: "vertical-video",
+      contentFilter: 4,
     });
-    const compatible = makeView(11, { feedIds: [1], contentType: "all" });
+    const compatible = makeView(11, { feedIds: [1], contentFilter: 7 });
 
     expect(
       passes(item, inboxView, {
@@ -286,8 +270,8 @@ describe("doesFeedItemPassFilters – Inbox view", () => {
   it("includes a feed directly assigned only to incompatible views", () => {
     const feed = makeFeed(1, "website");
     const item = makeItem(1, "website");
-    const v1 = makeView(10, { feedIds: [1], contentType: "horizontal-video" });
-    const v2 = makeView(11, { feedIds: [1], contentType: "vertical-video" });
+    const v1 = makeView(10, { feedIds: [1], contentFilter: 2 });
+    const v2 = makeView(11, { feedIds: [1], contentFilter: 4 });
 
     expect(
       passes(item, inboxView, {
@@ -394,7 +378,7 @@ describe("doesFeedItemPassFilters – custom view", () => {
     const item = makeItem(1, "website");
     const view = makeView(10, {
       feedIds: [1],
-      contentType: "horizontal-video",
+      contentFilter: 2,
     });
 
     expect(
@@ -465,7 +449,7 @@ describe("buildViewCategoryFilter – server", () => {
       const inbox = makeView(INBOX_VIEW_ID, { categoryIds: [200] });
       const customView = makeView(10, {
         categoryIds: [100],
-        contentType: "all",
+        contentFilter: 7,
       });
       const feeds = [
         makeFeed(1, "youtube"), // categorized into custom view → excluded
@@ -491,7 +475,7 @@ describe("buildViewCategoryFilter – server", () => {
 
     it("excludes feeds directly assigned to a compatible custom view", () => {
       const inbox = makeView(INBOX_VIEW_ID, { categoryIds: [200] });
-      const customView = makeView(10, { feedIds: [1], contentType: "all" });
+      const customView = makeView(10, { feedIds: [1], contentFilter: 7 });
       const feeds = [makeFeed(1, "youtube"), makeFeed(2, "website")];
       const sql = buildViewCategoryFilter(
         inbox,
@@ -512,7 +496,7 @@ describe("buildViewCategoryFilter – server", () => {
       const inbox = makeView(INBOX_VIEW_ID, { categoryIds: [200] });
       const videoView = makeView(10, {
         feedIds: [1],
-        contentType: "horizontal-video",
+        contentFilter: 2,
       });
       const feeds = [makeFeed(1, "website")];
       const sql = buildViewCategoryFilter(
@@ -531,9 +515,9 @@ describe("buildViewCategoryFilter – server", () => {
       const inbox = makeView(INBOX_VIEW_ID, { categoryIds: [200] });
       const incompatible = makeView(10, {
         feedIds: [1],
-        contentType: "vertical-video",
+        contentFilter: 4,
       });
-      const compatible = makeView(11, { feedIds: [1], contentType: "all" });
+      const compatible = makeView(11, { feedIds: [1], contentFilter: 7 });
       const feeds = [makeFeed(1, "youtube")];
       const sql = buildViewCategoryFilter(
         inbox,

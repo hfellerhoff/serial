@@ -13,7 +13,7 @@ import {
 import type { Ref } from "react";
 import type { DiscoveredFeed } from "./FeedDiscoveryResults";
 import type { StaticFeedSearchOption } from "./feedSearchOptions";
-import type { FeedPlatform } from "~/server/db/schema";
+import type { ContentPlatform } from "~/lib/content/descriptor";
 import {
   Command,
   CommandEmpty,
@@ -54,7 +54,7 @@ interface FeedDiscoveryCommandProps {
   onDiscover: (url?: string) => void;
   onSelectFeed: (feed: DiscoveredFeed) => void;
   onSelectBookmark: (url: string) => void;
-  bookmarkPlatform: FeedPlatform;
+  bookmarkPlatform: ContentPlatform;
   discoveredFeeds: DiscoveredFeed[];
   state: "input" | "discovering" | "no-results" | "select" | "adding";
   inputRef?: Ref<HTMLInputElement>;
@@ -62,7 +62,7 @@ interface FeedDiscoveryCommandProps {
 }
 
 const AUTO_DISCOVERY_DELAY_MS = 500;
-const BOOKMARK_ACTION_LABEL: Record<FeedPlatform, string> = {
+const BOOKMARK_ACTION_LABEL: Record<ContentPlatform, string> = {
   website: "Bookmark page to read later",
   youtube: "Bookmark video to watch later",
   peertube: "Bookmark video to watch later",

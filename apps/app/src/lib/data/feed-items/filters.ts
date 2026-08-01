@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, ne } from "drizzle-orm";
+import { and, eq, gte, inArray } from "drizzle-orm";
 
 import { INBOX_VIEW_ID } from "../views/constants";
 import type { SQL } from "drizzle-orm";
@@ -7,13 +7,14 @@ import type {
   ApplicationView,
   DatabaseFeed,
   DatabaseFeedCategory,
-  FeedPlatform,
 } from "~/server/db/schema";
-import type { ViewContentType } from "~/server/db/constants";
+import type { ContentPlatform } from "~/lib/content/descriptor";
+import type { ContentFilter } from "~/lib/views/contentFilter";
 import {
-  FEED_ITEM_ORIENTATION,
-  VIEW_CONTENT_TYPE,
-} from "~/server/db/constants";
+  CONTENT_FILTER_OPTION,
+  contentFilterSqlPredicate,
+  hasContentFilterOption,
+} from "~/lib/views/contentFilter";
 import { feedItems } from "~/server/db/schema";
 
 /** Video platforms that support orientation filtering */
@@ -21,51 +22,27 @@ export const VIDEO_PLATFORMS = ["youtube", "peertube", "nebula"] as const;
 
 export type VideoPlatform = (typeof VIDEO_PLATFORMS)[number];
 
-export function getContentTypeFromItem(item: {
-  platform: FeedPlatform;
-  orientation?: string | null;
-}): ViewContentType {
-  if (!VIDEO_PLATFORMS.includes(item.platform as VideoPlatform)) {
-    return VIEW_CONTENT_TYPE.LONGFORM;
-  }
-
-  if (item.orientation === FEED_ITEM_ORIENTATION.VERTICAL) {
-    return VIEW_CONTENT_TYPE.VERTICAL_VIDEO;
-  }
-
-  return VIEW_CONTENT_TYPE.HORIZONTAL_VIDEO;
-}
-
 /**
- * Check if a feed's platform is compatible with a view's content type.
+ * Check whether a Feed can produce items accepted by a View filter.
  *
  * A feed is compatible if its items could potentially appear in the view:
  * - "all" or "longform": all platforms are compatible
  * - "horizontal-video" or "vertical-video": only video platforms are compatible
  */
-export function isFeedCompatibleWithContentType(
-  feedPlatform: string,
-  viewContentType: string | undefined,
+export function isFeedCompatibleWithContentFilter(
+  feedPlatform: ContentPlatform,
+  contentFilter: ContentFilter,
 ): boolean {
-  if (
-    !viewContentType ||
-    viewContentType === "all" ||
-    viewContentType === "longform"
-  ) {
-    return true;
+  if (feedPlatform === "website") {
+    return hasContentFilterOption(contentFilter, CONTENT_FILTER_OPTION.TEXT);
   }
-
-  // For video-specific content types, only video platforms are compatible
-  if (
-    viewContentType === "horizontal-video" ||
-    viewContentType === "vertical-video"
-  ) {
-    return VIDEO_PLATFORMS.includes(
-      feedPlatform as (typeof VIDEO_PLATFORMS)[number],
+  if (feedPlatform === "youtube") {
+    return (
+      hasContentFilterOption(contentFilter, CONTENT_FILTER_OPTION.VIDEOS) ||
+      hasContentFilterOption(contentFilter, CONTENT_FILTER_OPTION.SHORTS)
     );
   }
-
-  return true;
+  return hasContentFilterOption(contentFilter, CONTENT_FILTER_OPTION.VIDEOS);
 }
 
 /**
@@ -159,7 +136,10 @@ export function buildViewCategoryFilter(
         const wouldAppearInDirectView = customViews.some(
           (v) =>
             v.feedIds.includes(feedId) &&
-            isFeedCompatibleWithContentType(feed.platform, v.contentType),
+            isFeedCompatibleWithContentFilter(
+              feed.platform as ContentPlatform,
+              v.contentFilter,
+            ),
         );
 
         if (wouldAppearInDirectView) {
@@ -181,7 +161,10 @@ export function buildViewCategoryFilter(
         );
 
         const wouldAppearInAnyView = viewsWithCategory.some((v) =>
-          isFeedCompatibleWithContentType(feed.platform, v.contentType),
+          isFeedCompatibleWithContentFilter(
+            feed.platform as ContentPlatform,
+            v.contentFilter,
+          ),
         );
 
         if (wouldAppearInAnyView) {
@@ -218,51 +201,16 @@ export function buildViewCategoryFilter(
  * - "horizontal-video": only video feeds with horizontal orientation
  * - "vertical-video": only video feeds with vertical orientation
  */
-export function buildContentTypeFilter(
-  contentType: string | undefined,
-  feeds: DatabaseFeed[],
+export function buildContentFilter(
+  contentFilter: ContentFilter | undefined,
 ): SQL | undefined {
-  if (!contentType || contentType === "all") {
-    return undefined;
-  }
-
-  // Get IDs of feeds that are video platforms
-  const videoFeedIds = feeds
-    .filter((feed) =>
-      VIDEO_PLATFORMS.includes(
-        feed.platform as (typeof VIDEO_PLATFORMS)[number],
-      ),
-    )
-    .map((feed) => feed.id);
-
-  switch (contentType) {
-    case "longform":
-      // Exclude vertical videos (shorts)
-      return ne(feedItems.orientation, "vertical");
-
-    case "horizontal-video":
-      // Must be from a video feed AND have horizontal orientation
-      if (videoFeedIds.length === 0) {
-        return eq(feedItems.feedId, -1);
-      }
-      return and(
-        inArray(feedItems.feedId, videoFeedIds),
-        eq(feedItems.orientation, "horizontal"),
-      );
-
-    case "vertical-video":
-      // Must be from a video feed AND have vertical orientation
-      if (videoFeedIds.length === 0) {
-        return eq(feedItems.feedId, -1);
-      }
-      return and(
-        inArray(feedItems.feedId, videoFeedIds),
-        eq(feedItems.orientation, "vertical"),
-      );
-
-    default:
-      return undefined;
-  }
+  return contentFilter === undefined
+    ? undefined
+    : contentFilterSqlPredicate({
+        filter: contentFilter,
+        contentType: feedItems.contentType,
+        orientation: feedItems.orientation,
+      });
 }
 
 /**

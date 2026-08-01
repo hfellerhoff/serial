@@ -28,6 +28,25 @@ function bookmarkRequest(body: unknown, headers: Record<string, string> = {}) {
   });
 }
 
+function supportedRequest(overrides: Record<string, unknown> = {}) {
+  return {
+    contractVersion: 2,
+    sourceUrl: "https://example.com/article",
+    capture: {
+      effectiveUrl: "https://example.com/article",
+      title: "Article",
+      descriptor: {
+        platform: "website",
+        contentType: "text",
+        orientation: null,
+        contentId: null,
+        classifierVersion: 1,
+      },
+    },
+    ...overrides,
+  };
+}
+
 function successfulResult(disposition: "created" | "refreshed") {
   return {
     disposition,
@@ -60,7 +79,7 @@ describe("extension Bookmark HTTP contract", () => {
 
   it("requires extension authentication and never caches failures", async () => {
     const response = await saveExtensionBookmark(
-      bookmarkRequest({ contractVersion: 1, sourceUrl: "https://example.com" }),
+      bookmarkRequest(supportedRequest()),
       {
         authenticate: vi.fn(() => Promise.resolve(null)),
         save: vi.fn(),
@@ -88,19 +107,15 @@ describe("extension Bookmark HTTP contract", () => {
   });
 
   it("enforces the request byte ceiling", async () => {
-    const request = bookmarkRequest(
-      { contractVersion: 1, sourceUrl: "https://example.com" },
-      { "Content-Length": String(4 * 1024 * 1024 + 1) },
-    );
+    const request = bookmarkRequest(supportedRequest(), {
+      "Content-Length": String(4 * 1024 * 1024 + 1),
+    });
     const response = await saveExtensionBookmark(request, dependencies());
     expect(response.status).toBe(413);
   });
 
   it("uses 201 for creation and 200 for refresh", async () => {
-    const requestBody = {
-      contractVersion: 1,
-      sourceUrl: "https://example.com/article",
-    };
+    const requestBody = supportedRequest();
     expect(
       (
         await saveExtensionBookmark(
@@ -119,27 +134,21 @@ describe("extension Bookmark HTTP contract", () => {
     ).toBe(200);
   });
 
-  it("degrades malformed capture data without rejecting the Bookmark", async () => {
+  it("rejects malformed capture data rather than accepting another shape", async () => {
     const deps = dependencies();
     const response = await saveExtensionBookmark(
       bookmarkRequest({
-        contractVersion: 1,
+        contractVersion: 2,
         sourceUrl: "https://example.com/article",
         capture: { title: "missing required capture fields" },
       }),
       deps,
     );
-    expect(response.status).toBe(201);
-    expect(deps.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userId: "user-one",
-        capture: undefined,
-        captureFailureReason: "invalid_capture",
-      }),
-    );
+    expect(response.status).toBe(400);
+    expect(deps.save).not.toHaveBeenCalled();
   });
 
-  it("degrades unsupported contract versions to URL-only saves", async () => {
+  it("rejects unsupported contract versions without a legacy parser", async () => {
     const deps = dependencies();
     const response = await saveExtensionBookmark(
       bookmarkRequest({
@@ -149,12 +158,7 @@ describe("extension Bookmark HTTP contract", () => {
       }),
       deps,
     );
-    expect(response.status).toBe(201);
-    expect(deps.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        unsupportedContract: true,
-        capture: undefined,
-      }),
-    );
+    expect(response.status).toBe(400);
+    expect(deps.save).not.toHaveBeenCalled();
   });
 });

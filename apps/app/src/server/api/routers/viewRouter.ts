@@ -19,6 +19,7 @@ import {
   viewFeeds,
   views,
   viewSections,
+  viewSectionSchema,
 } from "~/server/db/schema";
 import {
   deduplicateByLastValue,
@@ -60,8 +61,7 @@ export const create = protectedProcedure
           name: input.name,
           daysWindow: input.daysWindow,
           readStatus: input.readStatus,
-          orientation: input.orientation,
-          contentType: input.contentType,
+          contentFilter: input.contentFilter,
           layout: input.layout ?? DEFAULT_VIEW_LAYOUT,
           placement: input.placement,
         })
@@ -108,7 +108,7 @@ export const create = protectedProcedure
 export const update = protectedProcedure
   .input(updateViewSchema)
   .handler(async ({ context, input }) => {
-    await context.db.transaction(async (tx) => {
+    return context.db.transaction(async (tx) => {
       const [categoriesOwned, feedsOwned] = await Promise.all([
         verifyContentCategoriesOwnedByUser({
           categoryIds: input.categoryIds,
@@ -139,8 +139,7 @@ export const update = protectedProcedure
           name: input.name,
           daysWindow: input.daysWindow,
           readStatus: input.readStatus,
-          orientation: input.orientation,
-          contentType: input.contentType,
+          contentFilter: input.contentFilter,
           layout: input.layout,
           placement: input.placement,
         })
@@ -217,6 +216,19 @@ export const update = protectedProcedure
           );
         }
       }
+
+      const updatedSections = await tx
+        .select()
+        .from(viewSections)
+        .where(eq(viewSections.viewId, view.id))
+        .orderBy(asc(viewSections.placement));
+      return {
+        ...view,
+        categoryIds: input.categoryIds,
+        feedIds: input.feedIds,
+        isDefault: false,
+        viewSections: viewSectionSchema.array().parse(updatedSections),
+      } satisfies ApplicationView;
     });
   });
 

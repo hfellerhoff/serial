@@ -1,7 +1,8 @@
 "use client";
 
 import clsx from "clsx";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { BookmarkIcon } from "lucide-react";
+import { useRouter } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom } from "jotai";
 import {
   useCallback,
@@ -30,15 +31,11 @@ import { useOpenOriginalShortcut } from "~/lib/hooks/useOpenOriginalShortcut";
 import { useScrollDirection } from "~/lib/hooks/useScrollDirection";
 import { orpcRouterClient } from "~/lib/orpc";
 import { getScrollContainer } from "~/lib/scroll";
+import { getOriginActionLabel } from "~/lib/content/capabilities";
 
 const captureCache = new Map<string, DatabasePageCapture>();
 
-export const Route = createFileRoute("/_app/bookmark/$id")({
-  component: BookmarkReaderPage,
-});
-
-function BookmarkReaderPage() {
-  const { id } = Route.useParams();
+export function BookmarkReader({ id }: { id: string }) {
   const router = useRouter();
   const bookmark = useBookmarkValue(id);
   const [capture, setCapture] = useState<
@@ -119,6 +116,7 @@ function BookmarkReaderPage() {
   }
 
   if (!capture) {
+    const originActionLabel = getOriginActionLabel(bookmark);
     return (
       <div className="mx-auto max-w-xl p-6">
         <Alert>
@@ -132,7 +130,7 @@ function BookmarkReaderPage() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              Open in Website
+              {originActionLabel}
             </a>
           </Button>
         </Alert>
@@ -151,10 +149,12 @@ function BookmarkReaderPage() {
             className="size-6 rounded object-contain"
           />
         ) : (
-          <div className="bg-muted size-6 rounded" />
+          <div className="bg-muted text-muted-foreground grid size-6 place-items-center rounded">
+            <BookmarkIcon size={14} />
+          </div>
         )}
         <span className="line-clamp-1 font-sans text-sm">
-          {new URL(bookmark.sourceUrl).hostname}
+          {bookmark.siteName ?? new URL(bookmark.sourceUrl).hostname}
         </span>
       </div>
       <div className="relative w-full">
@@ -167,8 +167,8 @@ function BookmarkReaderPage() {
           ref={updateArticleRef}
           className={`h-full w-full px-6 sm:pb-6 ${classes.article}`}
         >
-          <h1 data-serial-header>{capture.title}</h1>
-          <h6 data-serial-header>{capture.author || ""}</h6>
+          <h1 data-serial-header>{bookmark.title}</h1>
+          <h6 data-serial-header>{bookmark.author || ""}</h6>
           <BookmarkArticleContent content={capture.contentHtml} />
         </article>
       </div>

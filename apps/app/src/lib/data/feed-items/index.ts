@@ -31,10 +31,7 @@ import {
   sortFeedItemsOrderByWatchedAt,
 } from "~/lib/sortFeedItems";
 
-export {
-  getContentTypeFromItem,
-  isFeedCompatibleWithContentType,
-} from "./filters";
+export { isFeedCompatibleWithContentFilter } from "./filters";
 export {
   createFeedItemFilterIndex,
   createFeedItemFilterPredicate,

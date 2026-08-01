@@ -97,7 +97,7 @@ export async function seedBenchmarkFixture(input: {
       daysWindow: 0,
       readStatus: 0,
       orientation: "horizontal" as const,
-      contentType: "all" as const,
+      contentFilter: 7 as const,
       layout: "list" as const,
       placement: index,
       createdAt: BASE_TIME,

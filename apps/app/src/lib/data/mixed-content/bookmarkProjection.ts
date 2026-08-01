@@ -11,6 +11,7 @@ import type {
   MixedContentReference,
   MixedContentScope,
 } from "~/server/mixed-content/projection";
+import { contentFilterAllowsDescriptor } from "~/lib/views/contentFilter";
 
 export type LoadedMixedScope = {
   scope: MixedContentScope;
@@ -239,6 +240,10 @@ export function isBookmarkProjectionChange(
   if (!previousBookmark) return true;
   if (
     previousBookmark.canonicalUrl !== bookmark.canonicalUrl ||
+    previousBookmark.platform !== bookmark.platform ||
+    previousBookmark.contentType !== bookmark.contentType ||
+    previousBookmark.orientation !== bookmark.orientation ||
+    previousBookmark.contentId !== bookmark.contentId ||
     previousBookmark.isSaved !== bookmark.isSaved ||
     previousBookmark.isRead !== bookmark.isRead ||
     previousBookmark.createdAt.getTime() !== bookmark.createdAt.getTime() ||
@@ -265,7 +270,8 @@ export function isBookmarkProjectionChange(
 }
 
 function isBookmarkCompatibleWithView(view: ApplicationView) {
-  return view.contentType === "all" || view.contentType === "longform";
+  return (bookmark: ApplicationBookmark) =>
+    contentFilterAllowsDescriptor(view.contentFilter, bookmark);
 }
 
 type ViewMembershipIndex = {
@@ -280,9 +286,7 @@ function getViewMembershipIndex(views: ApplicationView[]) {
   if (views === indexedViews && cachedViewMembershipIndex) {
     return cachedViewMembershipIndex;
   }
-  const compatibleViews = views.filter(
-    (view) => view.id !== INBOX_VIEW_ID && isBookmarkCompatibleWithView(view),
-  );
+  const compatibleViews = views.filter((view) => view.id !== INBOX_VIEW_ID);
   const viewIdsByTagId = new Map<number, number[]>();
   for (const view of compatibleViews) {
     for (const tagId of view.categoryIds) {
@@ -309,11 +313,17 @@ function matchingCustomViewIds(
   const index = getViewMembershipIndex(views);
   const matchingIds = new Set<number>();
   for (const viewId of bookmark.viewIds) {
-    if (index.compatibleViewsById.has(viewId)) matchingIds.add(viewId);
+    const view = index.compatibleViewsById.get(viewId);
+    if (view && isBookmarkCompatibleWithView(view)(bookmark)) {
+      matchingIds.add(viewId);
+    }
   }
   for (const tagId of bookmark.tagIds) {
     for (const viewId of index.viewIdsByTagId.get(tagId) ?? []) {
-      matchingIds.add(viewId);
+      const view = index.compatibleViewsById.get(viewId);
+      if (view && isBookmarkCompatibleWithView(view)(bookmark)) {
+        matchingIds.add(viewId);
+      }
     }
   }
   return { index, matchingIds };

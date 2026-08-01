@@ -54,12 +54,17 @@ import { useRef, useEffect } from "react";
 import { articleSelectedElementAtom } from "~/lib/hooks/useArticleNavigation";
 import { useSaveProgress } from "~/lib/hooks/useSaveProgress";
 import { useFeedItemValue } from "~/lib/data/store";
+import { useBookmarkValue } from "~/lib/data/bookmarks";
+import { useSaveBookmarkVideoProgress } from "~/lib/hooks/useSaveBookmarkVideoProgress";
 import { YouTubePlayerErrorOverlay } from "./YouTubePlayerErrorOverlay";
+import { getOriginActionLabel } from "~/lib/content/capabilities";
 
 interface IResponsiveVideoProps {
   videoID?: string;
   feedItemId?: string;
+  bookmarkId?: string;
   videoSrc?: string;
+  originalUrl?: string;
   orientation: "vertical" | "horizontal";
   isInactive: boolean;
   isEmbed?: boolean;
@@ -111,15 +116,31 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
 
   // --- Progress save/restore ---
   const savedFeedItem = useFeedItemValue(props.feedItemId ?? "");
+  const savedBookmark = useBookmarkValue(props.bookmarkId ?? "");
 
-  const { saveNow } = useSaveProgress({
+  const feedProgress = useSaveProgress({
     contentId: props.feedItemId ?? "",
     getProgress: () => ({
       progress: Math.floor(videoProgress * 1000),
       duration: Math.floor(videoDuration * 1000),
     }),
-    enabled: manualPlayerState === YOUTUBE_PLAYER_STATES.PLAYING,
+    enabled:
+      Boolean(props.feedItemId) &&
+      manualPlayerState === YOUTUBE_PLAYER_STATES.PLAYING,
   });
+  const bookmarkProgress = useSaveBookmarkVideoProgress({
+    bookmarkId: props.bookmarkId ?? "",
+    getProgress: () => ({
+      progress: Math.floor(videoProgress * 1000),
+      duration: Math.floor(videoDuration * 1000),
+    }),
+    enabled:
+      Boolean(props.bookmarkId) &&
+      manualPlayerState === YOUTUBE_PLAYER_STATES.PLAYING,
+  });
+  const saveNow = props.bookmarkId
+    ? bookmarkProgress.saveNow
+    : feedProgress.saveNow;
 
   // Save progress on pause
   const prevPlayerStateRef = useRef(manualPlayerState);
@@ -140,10 +161,16 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
     if (manualPlayerState !== YOUTUBE_PLAYER_STATES.PLAYING) return;
 
     hasRestoredRef.current = true;
-    if (savedFeedItem?.progress && savedFeedItem.progress > 0) {
-      seekToSecond(savedFeedItem.progress / 1000);
+    const savedProgress = savedBookmark?.progress ?? savedFeedItem?.progress;
+    if (savedProgress && savedProgress > 0) {
+      seekToSecond(savedProgress / 1000);
     }
-  }, [manualPlayerState, savedFeedItem?.progress, seekToSecond]);
+  }, [
+    manualPlayerState,
+    savedBookmark?.progress,
+    savedFeedItem?.progress,
+    seekToSecond,
+  ]);
 
   const { view, setView, toggleView } = useView();
 
@@ -166,10 +193,16 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
 
   const player = playerRef?.current;
   const originalVideoUrl =
+    props.originalUrl ??
+    savedBookmark?.sourceUrl ??
     savedFeedItem?.url ??
     (props.videoID
       ? `https://www.youtube.com/watch?v=${props.videoID}`
       : undefined);
+  const originActionLabel = getOriginActionLabel(
+    savedBookmark ??
+      savedFeedItem ?? { platform: "youtube", contentType: "video" },
+  );
   const playerErrorMessage =
     playerErrorCode === null
       ? null
@@ -517,7 +550,8 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
               <YouTubePlayerErrorOverlay
                 errorMessage={playerErrorMessage}
                 isInactive={props.isInactive}
-                onWatchOnYouTube={openOriginalVideoUrl}
+                originActionLabel={originActionLabel}
+                onOpenOrigin={openOriginalVideoUrl}
               />
             )}
           </div>

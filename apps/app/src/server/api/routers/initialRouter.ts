@@ -51,13 +51,17 @@ import {
 } from "~/server/subscriptions/helpers";
 import { visibilityFilterSchema } from "~/lib/data/atoms";
 import {
-  buildContentTypeFilter,
+  buildContentFilter,
   buildTimeWindowFilter,
   buildViewCategoryFilter,
   buildVisibilityFilter,
-  isFeedCompatibleWithContentType,
+  isFeedCompatibleWithContentFilter,
   VIDEO_PLATFORMS,
 } from "~/lib/data/feed-items/filters";
+import {
+  CONTENT_FILTER_OPTION,
+  contentFilterColumnHasOption,
+} from "~/lib/views/contentFilter";
 import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
 import { sortViewsByPlacement } from "~/lib/data/views/utils";
 import { prepareArrayChunks } from "~/lib/iterators";
@@ -264,9 +268,9 @@ function computeFeedsForView(
     if (feedIds.has(feed.id)) continue;
 
     // Check if feed's content type is compatible with the view
-    const isCompatible = isFeedCompatibleWithContentType(
+    const isCompatible = isFeedCompatibleWithContentFilter(
       feed.platform,
-      view.contentType,
+      view.contentFilter,
     );
     if (!isCompatible) {
       continue;
@@ -291,7 +295,7 @@ function computeFeedsForView(
         );
 
         return viewsWithCategory.some((v) =>
-          isFeedCompatibleWithContentType(feed.platform, v.contentType),
+          isFeedCompatibleWithContentFilter(feed.platform, v.contentFilter),
         );
       });
 
@@ -660,11 +664,25 @@ async function fetchUncategorizedPageData(
   userId: string,
 ): Promise<ScopedViewPageData> {
   const compatibleCustomView = or(
-    isNull(views.contentType),
-    inArray(views.contentType, ["all", "longform"]),
     and(
-      inArray(views.contentType, ["horizontal-video", "vertical-video"]),
+      eq(feeds.platform, "website"),
+      contentFilterColumnHasOption(
+        views.contentFilter,
+        CONTENT_FILTER_OPTION.TEXT,
+      ),
+    ),
+    and(
       inArray(feeds.platform, [...VIDEO_PLATFORMS]),
+      or(
+        contentFilterColumnHasOption(
+          views.contentFilter,
+          CONTENT_FILTER_OPTION.VIDEOS,
+        ),
+        contentFilterColumnHasOption(
+          views.contentFilter,
+          CONTENT_FILTER_OPTION.SHORTS,
+        ),
+      ),
     ),
   );
   const directlyAssignedToCompatibleView = exists(
@@ -943,6 +961,7 @@ const lightweightFeedItemColumns = {
   isWatchLaterUpdatedAt: feedItems.isWatchLaterUpdatedAt,
   contentHash: feedItems.contentHash,
   contentSnippet: feedItems.contentSnippet,
+  contentType: feedItems.contentType,
 };
 
 type ViewPaginatedFeedItemScope = {
@@ -995,10 +1014,7 @@ function buildPaginatedFeedItemQuery({
                 scope.applicationFeeds,
                 scope.customViewFeedIds,
               ),
-          buildContentTypeFilter(
-            scope.view.contentType,
-            scope.applicationFeeds,
-          ),
+          buildContentFilter(scope.view.contentFilter),
           buildTimeWindowFilter(scope.view.daysWindow),
         ]
       : scope.type === "feed"

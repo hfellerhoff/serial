@@ -18,17 +18,27 @@ import {
 } from "drizzle-zod";
 import { z } from "zod";
 import {
-  FEED_ITEM_ORIENTATION,
-  feedItemOrientationSchema,
-  VIEW_CONTENT_TYPE,
   VIEW_LAYOUT,
   VIEW_LAYOUT_ITEM_TYPE,
   VIEW_READ_STATUS,
-  viewContentTypeSchema,
   viewLayoutItemTypeSchema,
   viewLayoutSchema,
   viewReadStatusSchema,
 } from "./constants";
+import type { ContentPlatform } from "~/lib/content/descriptor";
+import {
+  CONTENT_PLATFORM,
+  CONTENT_TYPE,
+  contentPlatformSchema,
+  contentTypeSchema,
+  OBSERVATION_SOURCE,
+  observationSourceSchema,
+  videoOrientationSchema,
+} from "~/lib/content/descriptor";
+import {
+  contentFilterSchema,
+  DEFAULT_CONTENT_FILTER,
+} from "~/lib/views/contentFilter";
 import {
   boundedNumberIdsSchema,
   MAX_BULK_MUTATION_ITEMS,
@@ -257,26 +267,18 @@ export const feeds = sqliteTable(
     ),
   ],
 );
-export const platformsSchema = z.enum([
-  "youtube",
-  "peertube",
-  "nebula",
-  "website",
-]);
-export type FeedPlatform = z.infer<typeof platformsSchema>;
-
 export const openLocationSchema = z.enum(["serial", "origin"]);
 export type FeedOpenLocation = z.infer<typeof openLocationSchema>;
 
 export const PLATFORM_DEFAULT_OPEN_LOCATION: Partial<
-  Record<FeedPlatform, FeedOpenLocation>
+  Record<ContentPlatform, FeedOpenLocation>
 > = {
   nebula: "origin",
 };
 
 export const feedsSchema = createSelectSchema(feeds).merge(
   z.object({
-    platform: platformsSchema,
+    platform: contentPlatformSchema,
     openLocation: openLocationSchema,
   }),
 );
@@ -302,6 +304,11 @@ export const feedItems = sqliteTable(
     thumbnail: text("thumbnail", { length: 512 }).notNull().default(""),
     content: text("content").notNull().default(""),
     contentSnippet: text("content_snippet").notNull().default(""),
+    contentType: text("content_type", {
+      enum: [CONTENT_TYPE.TEXT, CONTENT_TYPE.VIDEO],
+    })
+      .notNull()
+      .default(CONTENT_TYPE.TEXT),
     isWatched: integer("is_watched", { mode: "boolean" })
       .notNull()
       .default(false),
@@ -363,8 +370,9 @@ export const applicationFeedItemSchema = feedItemSchema
   .omit({ normalizedUrl: true })
   .merge(
     z.object({
-      platform: platformsSchema,
-      orientation: feedItemOrientationSchema.optional(),
+      platform: contentPlatformSchema,
+      contentType: contentTypeSchema,
+      orientation: videoOrientationSchema.nullable(),
     }),
   )
   .required();
@@ -425,7 +433,53 @@ export const bookmarks = sqliteTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     sourceUrl: text("source_url").notNull(),
+    effectiveUrl: text("effective_url").notNull().default(""),
     canonicalUrl: text("canonical_url").notNull(),
+    platform: text("platform", {
+      enum: [
+        CONTENT_PLATFORM.WEBSITE,
+        CONTENT_PLATFORM.YOUTUBE,
+        CONTENT_PLATFORM.PEERTUBE,
+        CONTENT_PLATFORM.NEBULA,
+      ],
+    })
+      .notNull()
+      .default(CONTENT_PLATFORM.WEBSITE),
+    contentType: text("content_type", {
+      enum: [CONTENT_TYPE.TEXT, CONTENT_TYPE.VIDEO],
+    })
+      .notNull()
+      .default(CONTENT_TYPE.TEXT),
+    orientation: text("orientation", {
+      enum: ["horizontal", "vertical"],
+    }),
+    contentId: text("content_id"),
+    classificationSource: text("classification_source", {
+      enum: [
+        OBSERVATION_SOURCE.EXTENSION_LIVE_DOM,
+        OBSERVATION_SOURCE.SERVER_STATIC_FETCH,
+        OBSERVATION_SOURCE.URL,
+      ],
+    })
+      .notNull()
+      .default(OBSERVATION_SOURCE.URL),
+    classifierVersion: integer("classifier_version").notNull().default(1),
+    title: text("title").notNull().default(""),
+    description: text("description"),
+    author: text("author"),
+    siteName: text("site_name"),
+    publishedAt: integer("published_at", { mode: "timestamp" }),
+    thumbnailUrl: text("thumbnail_url"),
+    iconUrl: text("icon_url"),
+    previewSource: text("preview_source", {
+      enum: [
+        OBSERVATION_SOURCE.EXTENSION_LIVE_DOM,
+        OBSERVATION_SOURCE.SERVER_STATIC_FETCH,
+        OBSERVATION_SOURCE.URL,
+      ],
+    })
+      .notNull()
+      .default(OBSERVATION_SOURCE.URL),
     isSaved: integer("is_saved", { mode: "boolean" }).notNull().default(true),
     isRead: integer("is_read", { mode: "boolean" }).notNull().default(false),
     progress: integer("progress", { mode: "number" }).notNull().default(0),
@@ -450,6 +504,11 @@ export const bookmarks = sqliteTable(
     unique("bookmark_user_id_canonical_url_unique").on(
       table.userId,
       table.canonicalUrl,
+    ),
+    unique("bookmark_user_id_platform_content_id_unique").on(
+      table.userId,
+      table.platform,
+      table.contentId,
     ),
     index("bookmark_user_id_idx").on(table.userId),
     index("bookmark_user_saved_saved_at_idx").on(
@@ -479,13 +538,7 @@ export const pageCaptures = sqliteTable("page_capture", {
   bookmarkId: text("bookmark_id")
     .primaryKey()
     .references(() => bookmarks.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  author: text("author"),
-  publishedAt: integer("published_at", { mode: "timestamp" }),
   contentHtml: text("content_html").notNull(),
-  effectiveUrl: text("effective_url").notNull(),
-  iconUrl: text("icon_url"),
-  representativeImageUrl: text("representative_image_url"),
   contentHash: text("content_hash").notNull(),
   captureSource: text("capture_source", {
     enum: ["extension-live-dom", "server-static-fetch"],
@@ -497,7 +550,15 @@ export const pageCaptures = sqliteTable("page_capture", {
     .notNull(),
 });
 
-export const bookmarkSchema = createSelectSchema(bookmarks);
+export const bookmarkSchema = createSelectSchema(bookmarks).merge(
+  z.object({
+    platform: contentPlatformSchema,
+    contentType: contentTypeSchema,
+    orientation: videoOrientationSchema.nullable(),
+    classificationSource: observationSourceSchema,
+    previewSource: observationSourceSchema,
+  }),
+);
 export const pageCaptureSchema = createSelectSchema(pageCaptures);
 export type DatabaseBookmark = typeof bookmarks.$inferSelect;
 export type DatabasePageCapture = typeof pageCaptures.$inferSelect;
@@ -535,12 +596,9 @@ export const views = sqliteTable(
     readStatus: integer("read_status", { mode: "number" })
       .notNull()
       .default(VIEW_READ_STATUS.UNREAD),
-    orientation: text("orientation", { length: 16 })
+    contentFilter: integer("content_filter", { mode: "number" })
       .notNull()
-      .default(FEED_ITEM_ORIENTATION.HORIZONTAL),
-    contentType: text("content_type", { length: 32 })
-      .notNull()
-      .default(VIEW_CONTENT_TYPE.LONGFORM),
+      .default(DEFAULT_CONTENT_FILTER),
     layout: text("layout", { length: 32 }).notNull().default(VIEW_LAYOUT.LIST),
     placement: integer("placement", { mode: "number" }).notNull().default(-1),
     createdAt: integer("created_at", { mode: "timestamp" })
@@ -556,7 +614,9 @@ export const views = sqliteTable(
   ],
 );
 
-export const viewSchema = createSelectSchema(views);
+export const viewSchema = createSelectSchema(views).merge(
+  z.object({ contentFilter: contentFilterSchema }),
+);
 export type DatabaseView = typeof views.$inferSelect;
 
 export const viewSections = sqliteTable(
@@ -730,8 +790,7 @@ export const createViewSchema = createInsertSchema(views)
   .merge(
     z.object({
       readStatus: viewReadStatusSchema.optional(),
-      orientation: feedItemOrientationSchema.optional(),
-      contentType: viewContentTypeSchema.optional(),
+      contentFilter: contentFilterSchema.optional(),
       layout: viewLayoutSchema.optional(),
       daysWindow: z.number().lte(30).optional(),
       placement: z.number().gte(-1).optional(),
@@ -749,7 +808,7 @@ export const updateViewSchema = createUpdateSchema(views).merge(
     id: z.number(),
     categoryIds: boundedNumberIdsSchema,
     feedIds: boundedNumberIdsSchema,
-    contentType: viewContentTypeSchema.optional(),
+    contentFilter: contentFilterSchema.optional(),
     layout: viewLayoutSchema.optional(),
     viewSections: z
       .array(viewSectionInputSchema)

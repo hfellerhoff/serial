@@ -1,7 +1,12 @@
 import { and, eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createBookmarkTestDatabase } from "./database";
-import type { TrustedCapture } from "~/server/bookmarks/contracts";
+import type {
+  BookmarkObservationResult,
+  CaptureFailureReason,
+  TrustedPageCapture,
+} from "~/server/bookmarks/contracts";
+import { buildUrlFallbackObservation } from "~/server/bookmarks/extract";
 import {
   deleteBookmark,
   getBookmarkCapture,
@@ -36,21 +41,49 @@ let cleanup: Cleanup;
 function trustedCapture(
   canonicalUrl: string,
   contentHash = "a".repeat(64),
-): TrustedCapture {
-  return {
-    title: "Captured article",
-    author: "Author",
-    publishedAt: new Date("2025-01-01T00:00:00Z"),
+): BookmarkObservationResult {
+  const capture: TrustedPageCapture = {
     contentHtml: "<article><p>Captured content</p></article>",
-    effectiveUrl: canonicalUrl,
-    canonicalUrl,
-    iconUrl: `${new URL(canonicalUrl).origin}/icon.png`,
-    representativeImageUrl: `${new URL(canonicalUrl).origin}/image.jpg`,
     contentHash,
     captureSource: "extension-live-dom",
     extractorVersion: "mozilla-readability-0.6",
     sanitizerPolicyVersion: 1,
     capturedAt: new Date(),
+  };
+  return {
+    observation: {
+      effectiveUrl: canonicalUrl,
+      canonicalUrl,
+      classification: {
+        platform: "website",
+        contentType: "text",
+        orientation: null,
+        contentId: null,
+        classificationSource: "extension-live-dom",
+        classifierVersion: 1,
+      },
+      preview: {
+        title: "Captured article",
+        description: null,
+        author: "Author",
+        siteName: null,
+        publishedAt: new Date("2025-01-01T00:00:00Z"),
+        iconUrl: `${new URL(canonicalUrl).origin}/icon.png`,
+        thumbnailUrl: `${new URL(canonicalUrl).origin}/image.jpg`,
+        previewSource: "extension-live-dom",
+      },
+      capture,
+    },
+  };
+}
+
+function failedObservation(
+  sourceUrl: string,
+  captureFailureReason: CaptureFailureReason,
+): BookmarkObservationResult {
+  return {
+    observation: buildUrlFallbackObservation(sourceUrl),
+    captureFailureReason,
   };
 }
 
@@ -87,7 +120,7 @@ async function saveCaptured(
     userId,
     sourceUrl,
     bookmarkId,
-    captureAttempt: { ok: true, capture },
+    observationResult: capture,
   });
 }
 
@@ -105,19 +138,19 @@ describe("Bookmark persistence", () => {
       database,
       userId: "user-one",
       sourceUrl: url,
-      captureAttempt: { ok: false, reason: "unextractable" },
+      observationResult: failedObservation(url, "unextractable"),
     });
     const refreshed = await persistBookmarkSave({
       database,
       userId: "user-one",
       sourceUrl: `${url}#fragment`,
-      captureAttempt: { ok: false, reason: "timeout" },
+      observationResult: failedObservation(`${url}#fragment`, "timeout"),
     });
     const otherUser = await persistBookmarkSave({
       database,
       userId: "user-two",
       sourceUrl: url,
-      captureAttempt: { ok: false, reason: "unextractable" },
+      observationResult: failedObservation(url, "unextractable"),
     });
 
     expect(first.disposition).toBe("created");
@@ -137,7 +170,7 @@ describe("Bookmark persistence", () => {
         userId: "user-two",
         sourceUrl: url,
         bookmarkId: first.bookmark.id,
-        captureAttempt: { ok: false, reason: "unextractable" },
+        observationResult: failedObservation(url, "unextractable"),
       }),
     ).rejects.toThrow("Bookmark not found");
     expect(await database.select().from(bookmarks)).toHaveLength(2);
@@ -174,7 +207,10 @@ describe("Bookmark persistence", () => {
       userId: "user-one",
       sourceUrl: "https://other.example/failed-refresh",
       bookmarkId: created.bookmark.id,
-      captureAttempt: { ok: false, reason: "timeout" },
+      observationResult: failedObservation(
+        "https://other.example/failed-refresh",
+        "timeout",
+      ),
     });
     expect(failed.capture).toEqual({ status: "preserved", reason: "timeout" });
     expect(failed.bookmark.canonicalUrl).toBe(url);
@@ -209,6 +245,123 @@ describe("Bookmark persistence", () => {
         bookmarkId: created.bookmark.id,
       }),
     ).toBeNull();
+  });
+
+  it("deletes a capture when the descriptor changes to a disallowed combination", async () => {
+    const url = "https://example.com/video";
+    const created = await saveCaptured("user-one", url);
+    const videoObservation = trustedCapture(url);
+    videoObservation.observation.classification = {
+      ...videoObservation.observation.classification,
+      contentType: "video",
+    };
+    videoObservation.observation.capture = null;
+    videoObservation.captureFailureReason = "unsupported_content";
+
+    const refreshed = await persistBookmarkSave({
+      database,
+      userId: "user-one",
+      sourceUrl: url,
+      bookmarkId: created.bookmark.id,
+      observationResult: videoObservation,
+    });
+
+    expect(refreshed.bookmark.contentType).toBe("video");
+    expect(refreshed.capture).toEqual({
+      status: "unavailable",
+      reason: "unsupported_content",
+    });
+    expect(
+      await getBookmarkCapture({
+        database,
+        userId: "user-one",
+        bookmarkId: created.bookmark.id,
+      }),
+    ).toBeNull();
+  });
+
+  it("matches validated provider identity before canonical URL", async () => {
+    const contentId = "dQw4w9WgXcQ";
+    const firstUrl = `https://youtube.com/watch?v=${contentId}`;
+    const secondUrl = `https://youtu.be/${contentId}`;
+    const firstObservation = failedObservation(firstUrl, "unsupported_content");
+    firstObservation.observation.classification = {
+      platform: "youtube",
+      contentType: "video",
+      orientation: null,
+      contentId,
+      classificationSource: "url",
+      classifierVersion: 1,
+    };
+    const first = await persistBookmarkSave({
+      database,
+      userId: "user-one",
+      sourceUrl: firstUrl,
+      observationResult: firstObservation,
+    });
+    const secondObservation = failedObservation(
+      secondUrl,
+      "unsupported_content",
+    );
+    secondObservation.observation.classification = {
+      ...firstObservation.observation.classification,
+    };
+    const refreshed = await persistBookmarkSave({
+      database,
+      userId: "user-one",
+      sourceUrl: secondUrl,
+      observationResult: secondObservation,
+    });
+    const otherUser = await persistBookmarkSave({
+      database,
+      userId: "user-two",
+      sourceUrl: secondUrl,
+      observationResult: secondObservation,
+    });
+
+    expect(refreshed.disposition).toBe("refreshed");
+    expect(refreshed.bookmark.id).toBe(first.bookmark.id);
+    expect(otherUser.bookmark.id).not.toBe(first.bookmark.id);
+  });
+
+  it("carries a valid capture from a removed duplicate into the oldest survivor", async () => {
+    const captured = await saveCaptured(
+      "user-one",
+      "https://example.com/captured",
+    );
+    const survivor = await saveCaptured(
+      "user-one",
+      "https://example.com/survivor",
+    );
+    await database
+      .update(bookmarks)
+      .set({ createdAt: new Date("2020-01-01T00:00:00Z") })
+      .where(eq(bookmarks.id, survivor.bookmark.id));
+    await database
+      .delete(pageCaptures)
+      .where(eq(pageCaptures.bookmarkId, survivor.bookmark.id));
+
+    const consolidated = await persistBookmarkSave({
+      database,
+      userId: "user-one",
+      sourceUrl: "https://example.com/captured",
+      bookmarkId: survivor.bookmark.id,
+      observationResult: failedObservation(
+        "https://example.com/captured",
+        "timeout",
+      ),
+    });
+
+    expect(consolidated.disposition).toBe("consolidated");
+    expect(consolidated.bookmark.id).toBe(survivor.bookmark.id);
+    expect(consolidated.removedBookmarkIds).toEqual([captured.bookmark.id]);
+    expect(
+      await getBookmarkCapture({
+        database,
+        userId: "user-one",
+        bookmarkId: survivor.bookmark.id,
+      }),
+    ).toMatchObject({ status: "capture" });
   });
 
   it("consolidates canonical collisions into the oldest Bookmark and unions organization", async () => {

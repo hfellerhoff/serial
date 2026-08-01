@@ -3,8 +3,11 @@ import { useFetchViews, useSetViews, viewsStore } from "./store";
 import { INBOX_VIEW_ID, INBOX_VIEW_PLACEMENT, useUpdateViewFilter } from ".";
 import type { ApplicationView } from "~/server/db/schema";
 import { orpc } from "~/lib/orpc";
-import { useRevalidateView } from "~/lib/data/store";
+import { feedItemsStore, useRevalidateView } from "~/lib/data/store";
 import { useFetchViewFeeds } from "~/lib/data/view-feeds/store";
+import { mixedContentStore } from "~/lib/data/mixed-content/store";
+import { bookmarksStore } from "~/lib/data/bookmarks/store";
+import { feedCategoriesStore } from "~/lib/data/feed-categories/store";
 
 export function useCreateViewMutation() {
   const setViews = useSetViews();
@@ -50,16 +53,30 @@ export function useQuickCreateViewMutation() {
 }
 
 export function useEditViewMutation() {
-  const setViews = useSetViews();
-  const fetchViews = useFetchViews();
-  const fetchViewFeeds = useFetchViewFeeds();
-
   return useMutation(
     orpc.view.update.mutationOptions({
-      onSuccess: async () => {
-        setViews([]);
-        await fetchViews();
-        await fetchViewFeeds();
+      onSuccess: (updatedView) => {
+        if (!updatedView) return;
+        viewsStore.getState().update(updatedView.id, updatedView);
+        const nextViews = viewsStore.getState().views;
+        for (const bookmark of Object.values(
+          bookmarksStore.getState().snapshot(),
+        )) {
+          mixedContentStore.getState().reprojectUpsert({
+            bookmark,
+            previousBookmark: undefined,
+            feedItems: feedItemsStore.getState().feedItemsDict,
+            views: nextViews,
+          });
+        }
+        const feedItems = feedItemsStore.getState().feedItemsDict;
+        mixedContentStore.getState().reprojectFeedItems({
+          itemIds: Object.keys(feedItems),
+          feedItems,
+          bookmarks: bookmarksStore.getState().snapshot(),
+          views: nextViews,
+          feedCategories: feedCategoriesStore.getState().feedCategories,
+        });
       },
     }),
   );

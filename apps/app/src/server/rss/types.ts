@@ -1,11 +1,12 @@
 import { z } from "zod";
-import type { FeedPlatform, feeds } from "~/server/db/schema";
+import type { feeds } from "~/server/db/schema";
+import type { ContentPlatform } from "~/lib/content/descriptor";
 
 export type NewFeedDetails = Omit<
   typeof feeds.$inferInsert,
   "id" | "createdAt" | "updatedAt" | "userId"
 > & {
-  platform: FeedPlatform;
+  platform: ContentPlatform;
 };
 
 export type RSSContent = {

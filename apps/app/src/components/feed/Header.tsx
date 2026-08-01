@@ -16,8 +16,7 @@ export function Header() {
 
   const isContentPage =
     location.pathname.includes("/read/") ||
-    location.pathname.includes("/watch/") ||
-    location.pathname.includes("/bookmark/");
+    location.pathname.includes("/watch/");
 
   useShortcut("h", () => {
     if (location.pathname === "/") return;

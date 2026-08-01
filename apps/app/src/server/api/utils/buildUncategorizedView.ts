@@ -6,12 +6,8 @@ import {
   INBOX_VIEW_ID,
   INBOX_VIEW_PLACEMENT,
 } from "~/lib/data/views/constants";
-import {
-  FEED_ITEM_ORIENTATION,
-  VIEW_CONTENT_TYPE,
-  VIEW_LAYOUT,
-  VIEW_READ_STATUS,
-} from "~/server/db/constants";
+import { VIEW_LAYOUT, VIEW_READ_STATUS } from "~/server/db/constants";
+import { DEFAULT_CONTENT_FILTER } from "~/lib/views/contentFilter";
 
 export function buildUncategorizedView(
   userId: string,
@@ -35,8 +31,7 @@ export function buildUncategorizedView(
     id: INBOX_VIEW_ID,
     name: "Uncategorized",
     daysWindow: 0,
-    orientation: FEED_ITEM_ORIENTATION.HORIZONTAL,
-    contentType: VIEW_CONTENT_TYPE.LONGFORM,
+    contentFilter: DEFAULT_CONTENT_FILTER,
     layout: VIEW_LAYOUT.LIST,
     readStatus: VIEW_READ_STATUS.UNREAD,
     placement: INBOX_VIEW_PLACEMENT,

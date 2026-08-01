@@ -5,14 +5,24 @@ import { useRef } from "react";
 import { CustomVideoPlayer } from "./CustomVideoPlayer";
 import classes from "./ResponsiveVideo.module.css";
 import type React from "react";
+import type {
+  ContentPlatform,
+  VideoOrientation,
+} from "~/lib/content/descriptor";
 import { useFlagState } from "~/lib/hooks/useFlagState";
 import { useFeedItemValue } from "~/lib/data/store";
+import { useBookmarkValue } from "~/lib/data/bookmarks";
+import { effectiveVideoOrientation } from "~/lib/content/descriptor";
 
 interface IResponsiveVideoProps {
   videoID?: string;
   feedItemId?: string;
+  bookmarkId?: string;
   videoSrc?: string;
   isInactive: boolean;
+  platform?: ContentPlatform;
+  orientation?: VideoOrientation | null;
+  originalUrl?: string;
 }
 
 interface IEmbedProps extends IResponsiveVideoProps {
@@ -37,17 +47,16 @@ function YouTubeEmbed(props: IEmbedProps) {
   );
 }
 
-function PeerTubeEmbed(props: IEmbedProps) {
-  const feedItem = useFeedItemValue(props.videoID ?? "");
-  const baseUrl = feedItem?.url.split("/w/")[0];
-
+function PeerTubeEmbed(
+  props: IEmbedProps & { origin: string; providerVideoId: string },
+) {
   return (
     <>
       <iframe
         width="1600"
         height="900"
-        src={`${baseUrl}/videos/embed/${props.videoID}`}
-        title="YouTube video player"
+        src={`${props.origin}/videos/embed/${props.providerVideoId}`}
+        title="PeerTube video player"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
         className="border-none"
@@ -65,17 +74,24 @@ export default function ResponsiveVideo(props: IResponsiveVideoProps) {
   const [videoPlayer] = useFlagState("CUSTOM_VIDEO_PLAYER");
 
   const feedItem = useFeedItemValue(props.feedItemId ?? "");
-  const isVertical = feedItem?.orientation === "vertical";
+  const bookmark = useBookmarkValue(props.bookmarkId ?? "");
+  const orientation = effectiveVideoOrientation(
+    props.orientation ?? feedItem?.orientation ?? bookmark?.orientation ?? null,
+  );
+  const isVertical = orientation === "vertical";
 
-  const feedItemPlatform = feedItem?.platform ?? "youtube";
+  const platform = props.platform ?? feedItem?.platform ?? bookmark?.platform;
+  const peerTubeSeparator = props.videoID?.lastIndexOf("|") ?? -1;
+  const peerTubeIdentity =
+    platform === "peertube" && props.videoID && peerTubeSeparator > 0
+      ? {
+          origin: props.videoID.slice(0, peerTubeSeparator),
+          providerVideoId: props.videoID.slice(peerTubeSeparator + 1),
+        }
+      : null;
 
-  if (videoPlayer === "serial" && feedItemPlatform === "youtube") {
-    return (
-      <CustomVideoPlayer
-        {...props}
-        orientation={feedItem?.orientation ?? "horizontal"}
-      />
-    );
+  if (videoPlayer === "serial" && platform === "youtube") {
+    return <CustomVideoPlayer {...props} orientation={orientation} />;
   }
 
   return (
@@ -92,11 +108,16 @@ export default function ResponsiveVideo(props: IResponsiveVideoProps) {
       >
         {props.videoID && (
           <>
-            {feedItemPlatform === "youtube" && (
+            {platform === "youtube" && (
               <YouTubeEmbed {...props} containerRef={containerRef} />
             )}
-            {feedItemPlatform === "peertube" && (
-              <PeerTubeEmbed {...props} containerRef={containerRef} />
+            {peerTubeIdentity && (
+              <PeerTubeEmbed
+                {...props}
+                containerRef={containerRef}
+                origin={peerTubeIdentity.origin}
+                providerVideoId={peerTubeIdentity.providerVideoId}
+              />
             )}
           </>
         )}

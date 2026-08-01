@@ -96,6 +96,9 @@ async function seedBookmark(input: {
   savedUpdatedAt?: Date;
   readUpdatedAt?: Date;
   userId?: string;
+  effectiveUrl?: string;
+  title?: string;
+  author?: string;
 }) {
   const canonicalUrl =
     input.canonicalUrl ?? `https://bookmarks.example/${input.id}`;
@@ -104,6 +107,9 @@ async function seedBookmark(input: {
     userId: input.userId ?? "user-one",
     sourceUrl: canonicalUrl,
     canonicalUrl,
+    effectiveUrl: input.effectiveUrl ?? canonicalUrl,
+    title: input.title,
+    author: input.author,
     isSaved: input.isSaved ?? true,
     isRead: input.isRead ?? false,
     createdAt: input.createdAt ?? NOW,
@@ -119,7 +125,7 @@ async function seedView(id: number, name: string) {
     id,
     userId: "user-one",
     name,
-    contentType: "longform",
+    contentFilter: 3,
     layout: "list",
   });
 }
@@ -564,16 +570,18 @@ describe("mixed-content projection", () => {
       canonicalUrl: "https://example.com/shared",
       userId: "user-two",
     });
-    await seedBookmark({ id: "captured-bookmark" });
+    await seedBookmark({
+      id: "captured-bookmark",
+      effectiveUrl: "https://bookmarks.example/captured-bookmark",
+      title: "Captured",
+      author: "Writer",
+    });
     await database
       .insert(bookmarkViews)
       .values({ bookmarkId: "captured-bookmark", viewId: 10 });
     await database.insert(pageCaptures).values({
       bookmarkId: "captured-bookmark",
-      title: "Captured",
-      author: "Writer",
       contentHtml: "<p>Body</p>",
-      effectiveUrl: "https://bookmarks.example/captured-bookmark",
       contentHash: "hash",
       captureSource: "extension-live-dom",
       extractorVersion: "test",

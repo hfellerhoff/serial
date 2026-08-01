@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { readExtensionBearerToken } from "~/lib/extension-auth";
 import {
   BOOKMARK_CAPTURE_LIMITS,
@@ -98,13 +99,18 @@ const DEFAULT_ROUTE_DEPENDENCIES: ExtensionBookmarkRouteDependencies = {
   authenticate: authenticatedExtensionUser,
   save: saveBookmarkFromExtension,
   notify: async (userId, result) => {
-    if (result.removedBookmarkId) {
-      await publishBookmarkDeletion({
-        userId,
-        id: result.removedBookmarkId,
-        canonicalUrl: result.bookmark.canonicalUrl,
-      });
-    }
+    const removedBookmarkIds =
+      result.removedBookmarkIds ??
+      (result.removedBookmarkId ? [result.removedBookmarkId] : []);
+    await Promise.all(
+      removedBookmarkIds.map((removedBookmarkId) =>
+        publishBookmarkDeletion({
+          userId,
+          id: removedBookmarkId,
+          canonicalUrl: result.bookmark.canonicalUrl,
+        }),
+      ),
+    );
     await publishBookmarkUpsert({
       database: db,
       userId,
@@ -112,6 +118,13 @@ const DEFAULT_ROUTE_DEPENDENCIES: ExtensionBookmarkRouteDependencies = {
     });
   },
 };
+
+const extensionBookmarkRequestSchema = z.strictObject({
+  contractVersion: z.literal(EXTENSION_BOOKMARK_CONTRACT_VERSION),
+  sourceUrl: z.string(),
+  bookmarkId: z.string().min(1).optional(),
+  capture: extensionCaptureCandidateSchema,
+});
 
 export async function saveExtensionBookmark(
   request: Request,
@@ -138,53 +151,18 @@ export async function saveExtensionBookmark(
 
   try {
     const rawBody = await readBoundedJson(request);
-    if (
-      typeof rawBody !== "object" ||
-      rawBody === null ||
-      Array.isArray(rawBody)
-    ) {
+    const parsedRequest = extensionBookmarkRequestSchema.safeParse(rawBody);
+    if (!parsedRequest.success) {
       return jsonResponse({ error: "The bookmark request is invalid" }, 400);
     }
-    const rawRecord = rawBody as Record<string, unknown>;
-    const allowedKeys = new Set([
-      "contractVersion",
-      "sourceUrl",
-      "bookmarkId",
-      "capture",
-    ]);
-    const validEnvelope =
-      Object.keys(rawRecord).every((key) => allowedKeys.has(key)) &&
-      typeof rawRecord.contractVersion === "number" &&
-      typeof rawRecord.sourceUrl === "string" &&
-      (rawRecord.bookmarkId === undefined ||
-        (typeof rawRecord.bookmarkId === "string" &&
-          rawRecord.bookmarkId.length > 0));
-    if (!validEnvelope) {
-      return jsonResponse({ error: "The bookmark request is invalid" }, 400);
-    }
-
-    const unsupportedContract =
-      rawRecord.contractVersion !== EXTENSION_BOOKMARK_CONTRACT_VERSION;
-    const parsedCapture = extensionCaptureCandidateSchema.safeParse(
-      rawRecord.capture,
-    );
+    const bookmarkRequest = parsedRequest.data;
 
     const result = await dependencies.save({
       database: db,
       userId: authenticatedUser.id,
-      sourceUrl: rawRecord.sourceUrl as string,
-      bookmarkId: rawRecord.bookmarkId as string | undefined,
-      capture:
-        !unsupportedContract &&
-        rawRecord.capture !== undefined &&
-        parsedCapture.success
-          ? parsedCapture.data
-          : undefined,
-      unsupportedContract,
-      captureFailureReason:
-        rawRecord.capture !== undefined && !parsedCapture.success
-          ? "invalid_capture"
-          : undefined,
+      sourceUrl: bookmarkRequest.sourceUrl,
+      bookmarkId: bookmarkRequest.bookmarkId,
+      capture: bookmarkRequest.capture,
     });
     await dependencies.notify?.(authenticatedUser.id, result);
     return jsonResponse(result, result.disposition === "created" ? 201 : 200);

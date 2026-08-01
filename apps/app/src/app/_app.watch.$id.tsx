@@ -11,6 +11,13 @@ import { useFeedItemValue } from "~/lib/data/store";
 import { useOpenOriginalShortcut } from "~/lib/hooks/useOpenOriginalShortcut";
 import { useRefreshFeedItem } from "~/lib/hooks/useRefreshFeedItem";
 import { useRetentionPin } from "~/lib/hooks/useRetentionPin";
+import { useBookmarkValue } from "~/lib/data/bookmarks";
+import { BookmarkVideoDisplay } from "~/components/content-player/BookmarkVideoDisplay";
+import { ContentRendererFallback } from "~/components/content-renderer/ContentRendererFallback";
+import {
+  contentDestination,
+  resolveContentItem,
+} from "~/lib/data/content-items/resolver";
 
 export const Route = createFileRoute("/_app/watch/$id")({
   component: WatchVideoPage,
@@ -18,14 +25,46 @@ export const Route = createFileRoute("/_app/watch/$id")({
 
 function WatchVideoPage() {
   const params = Route.useParams();
-  useRetentionPin("feed-item", params.id);
+  const bookmark = useBookmarkValue(params.id);
+  const feedItem = useFeedItemValue(params.id);
+  const resolution = resolveContentItem({ bookmark, feedItem });
+  if (resolution.status === "ambiguous") {
+    return <p className="p-6 text-center">This content ID is ambiguous.</p>;
+  }
+  if (resolution.status === "missing") {
+    return <p className="p-6 text-center">Loading content…</p>;
+  }
+  const destination = contentDestination(resolution.item);
+  if (destination.renderer !== "watch") {
+    return <ContentRendererFallback destination={destination} />;
+  }
+  return (
+    <VideoPage
+      id={params.id}
+      bookmark={
+        resolution.item.entityKind === "bookmark"
+          ? resolution.item.entity
+          : undefined
+      }
+    />
+  );
+}
+
+function VideoPage({
+  id,
+  bookmark,
+}: {
+  id: string;
+  bookmark?: NonNullable<ReturnType<typeof useBookmarkValue>>;
+}) {
+  useRetentionPin(bookmark ? "bookmark" : "feed-item", id);
 
   const { view } = useView();
   const { zoom, isVertical } = useZoom();
 
   const isInactive = useIsInactive();
-  const feedItem = useFeedItemValue(params.id);
-  useRefreshFeedItem(params.id);
+  const feedItem = useFeedItemValue(id);
+  useRefreshFeedItem(bookmark ? "" : id);
 
   useEffect(() => {
     if (isInactive) {
@@ -40,7 +79,7 @@ function WatchVideoPage() {
   }, [isInactive]);
 
   // Shortcut to open original URL
-  useOpenOriginalShortcut(feedItem?.url);
+  useOpenOriginalShortcut(bookmark?.sourceUrl ?? feedItem?.url);
 
   const isWindowedVertical = view === "windowed" && isVertical;
   const isWindowedHorizontal = view === "windowed" && !isVertical;
@@ -68,7 +107,11 @@ function WatchVideoPage() {
           "sm:py-6": view === "windowed",
         })}
       >
-        <VideoDisplay id={params.id} isInactive={isInactive} />
+        {bookmark ? (
+          <BookmarkVideoDisplay bookmark={bookmark} isInactive={isInactive} />
+        ) : (
+          <VideoDisplay id={id} isInactive={isInactive} />
+        )}
       </div>
     </div>
   );

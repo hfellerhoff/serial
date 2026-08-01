@@ -11,6 +11,7 @@ import { ColorThemePopoverButton } from "~/components/color-theme/ColorThemePopo
 import { Button } from "~/components/ui/button";
 import { useSidebar } from "~/components/ui/sidebar";
 import { useFeedItemValue } from "~/lib/data/store";
+import { useBookmarkValue } from "~/lib/data/bookmarks";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 
 function EditFeedButton() {
@@ -19,12 +20,13 @@ function EditFeedButton() {
   const contentId = pathname.split("/read/")[1]!;
 
   const feedItem = useFeedItemValue(videoId || contentId || "");
+  const bookmark = useBookmarkValue(videoId || contentId || "");
 
   const [selectedFeedForEditing, setSelectedFeedForEditing] = useState<
     null | number
   >(null);
 
-  return (
+  return bookmark ? null : (
     <>
       <Button
         variant="outline"

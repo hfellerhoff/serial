@@ -2,19 +2,26 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ViewContentTypeInput, ViewLayoutInput, ViewTimeInput } from "./inputs";
-import type { ViewContentType, ViewLayout } from "~/server/db/constants";
+import {
+  ViewContentFilterInput,
+  ViewLayoutInput,
+  ViewTimeInput,
+} from "./inputs";
+import type { ViewLayout } from "~/server/db/constants";
+import type { ContentFilter } from "~/lib/views/contentFilter";
 import { Button } from "~/components/ui/button";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { useEditViewMutation } from "~/lib/data/views/mutations";
 import { useViews } from "~/lib/data/views";
 import {
-  VIEW_CONTENT_TYPE,
   VIEW_LAYOUT,
   VIEW_READ_STATUS,
-  viewContentTypeSchema,
   viewLayoutSchema,
 } from "~/server/db/constants";
+import {
+  contentFilterSchema,
+  DEFAULT_CONTENT_FILTER,
+} from "~/lib/views/contentFilter";
 
 export function BulkEditViewsDialog({
   selectedViewIds,
@@ -30,7 +37,9 @@ export function BulkEditViewsDialog({
   const { views } = useViews();
 
   const [daysWindow, setDaysWindow] = useState<number | null>(null);
-  const [contentType, setContentType] = useState<ViewContentType | null>(null);
+  const [contentFilter, setContentFilter] = useState<ContentFilter | null>(
+    null,
+  );
   const [layout, setLayout] = useState<ViewLayout | null>(null);
 
   // Prefill if all selected views share the same value
@@ -48,13 +57,15 @@ export function BulkEditViewsDialog({
       : null;
     setDaysWindow(sharedDays);
 
-    const firstContentType = viewContentTypeSchema.safeParse(first.contentType);
-    const sharedContentType =
-      firstContentType.success &&
-      selected.every((v) => v.contentType === first.contentType)
-        ? firstContentType.data
+    const firstContentFilter = contentFilterSchema.safeParse(
+      first.contentFilter,
+    );
+    const sharedContentFilter =
+      firstContentFilter.success &&
+      selected.every((view) => view.contentFilter === first.contentFilter)
+        ? firstContentFilter.data
         : null;
-    setContentType(sharedContentType);
+    setContentFilter(sharedContentFilter);
 
     const firstLayout = viewLayoutSchema.safeParse(first.layout);
     const sharedLayout =
@@ -79,7 +90,7 @@ export function BulkEditViewsDialog({
         name: view.name,
         daysWindow: daysWindow ?? view.daysWindow,
         readStatus: VIEW_READ_STATUS.UNREAD,
-        contentType: contentType ?? undefined,
+        contentFilter: contentFilter ?? undefined,
         layout: layout ?? undefined,
         categoryIds: view.categoryIds,
         feedIds: view.feedIds,
@@ -108,9 +119,9 @@ export function BulkEditViewsDialog({
           daysWindow={daysWindow ?? 0}
           setDaysWindow={(value) => setDaysWindow(value)}
         />
-        <ViewContentTypeInput
-          contentType={contentType ?? VIEW_CONTENT_TYPE.LONGFORM}
-          setContentType={(value) => setContentType(value)}
+        <ViewContentFilterInput
+          contentFilter={contentFilter ?? DEFAULT_CONTENT_FILTER}
+          setContentFilter={(value) => setContentFilter(value)}
         />
         <ViewLayoutInput
           layout={layout ?? VIEW_LAYOUT.LIST}

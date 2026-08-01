@@ -1,9 +1,7 @@
 import { z } from "zod";
+import { VIDEO_ORIENTATION } from "~/lib/content/descriptor";
 
-export const FEED_ITEM_ORIENTATION = {
-  HORIZONTAL: "horizontal",
-  VERTICAL: "vertical",
-} as const;
+export const FEED_ITEM_ORIENTATION = VIDEO_ORIENTATION;
 export const feedItemOrientationSchema = z.enum([
   FEED_ITEM_ORIENTATION.HORIZONTAL,
   FEED_ITEM_ORIENTATION.VERTICAL,
@@ -15,20 +13,6 @@ export const VIEW_READ_STATUS = {
   ANY: 2,
 } as const;
 export const viewReadStatusSchema = z.number().gte(0).lte(2);
-
-export const VIEW_CONTENT_TYPE = {
-  ALL: "all",
-  LONGFORM: "longform",
-  HORIZONTAL_VIDEO: "horizontal-video",
-  VERTICAL_VIDEO: "vertical-video",
-} as const;
-export const viewContentTypeSchema = z.enum([
-  VIEW_CONTENT_TYPE.ALL,
-  VIEW_CONTENT_TYPE.LONGFORM,
-  VIEW_CONTENT_TYPE.HORIZONTAL_VIDEO,
-  VIEW_CONTENT_TYPE.VERTICAL_VIDEO,
-]);
-export type ViewContentType = z.infer<typeof viewContentTypeSchema>;
 
 export const VIEW_LAYOUT = {
   LIST: "list",

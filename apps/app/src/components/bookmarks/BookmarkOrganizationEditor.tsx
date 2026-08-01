@@ -47,6 +47,7 @@ const CAPTURE_FAILURE_MESSAGES: Record<
   unsupported_capture_version: "This capture format is not supported.",
   rate_limited: "Capture is temporarily rate limited.",
   capacity_limited: "Capture capacity is temporarily unavailable.",
+  unsupported_content: "This content opens on its original site.",
 };
 
 function CaptureFeedback({ feedback }: { feedback: SaveFeedback }) {

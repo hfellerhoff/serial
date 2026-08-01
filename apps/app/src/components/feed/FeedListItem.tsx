@@ -8,12 +8,12 @@ import {
   ItemTitle,
 } from "@serial/ui";
 import type * as React from "react";
-import type { FeedPlatform } from "~/server/db/schema";
+import type { ContentPlatform } from "~/lib/content/descriptor";
 import { YoutubeIcon } from "~/components/brand-icons";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { cn } from "~/lib/utils";
 
-function PlatformIcon({ platform }: { platform: FeedPlatform }) {
+function PlatformIcon({ platform }: { platform: ContentPlatform }) {
   switch (platform) {
     case "youtube":
       return <YoutubeIcon size={16} />;
@@ -32,7 +32,7 @@ function FeedMedia({
 }: {
   imageUrl?: string;
   title: string;
-  platform: FeedPlatform;
+  platform: ContentPlatform;
 }) {
   if (!imageUrl) {
     return (
@@ -55,7 +55,7 @@ export function FeedAvatar({
 }: {
   imageUrl?: string;
   title: string;
-  platform: FeedPlatform;
+  platform: ContentPlatform;
   fallback?: React.ReactNode;
 }) {
   return (
@@ -92,7 +92,7 @@ export function FeedListItem({
   title: string;
   titleHref?: string;
   description?: React.ReactNode;
-  platform: FeedPlatform;
+  platform: ContentPlatform;
   imageUrl?: string;
   media?: React.ReactNode;
   leading?: React.ReactNode;

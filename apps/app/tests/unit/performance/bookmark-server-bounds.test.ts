@@ -119,7 +119,7 @@ describe("Bookmark server performance bounds", () => {
       id: 10,
       userId: "bounds-user",
       name: "Everything",
-      contentType: "all",
+      contentFilter: 7,
     });
     await session.database.insert(contentCategories).values({
       id: 20,

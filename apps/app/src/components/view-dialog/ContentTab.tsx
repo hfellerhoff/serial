@@ -2,12 +2,12 @@
 
 import {
   ViewCategoriesInput,
-  ViewContentTypeInput,
+  ViewContentFilterInput,
   ViewFeedsInput,
   ViewNameInput,
   ViewTimeInput,
 } from "./inputs";
-import type { ViewContentType } from "~/server/db/constants";
+import type { ContentFilter } from "~/lib/views/contentFilter";
 
 interface ContentTabProps {
   name: string;
@@ -19,8 +19,8 @@ interface ContentTabProps {
   setSelectedFeedIds: (feedIds: number[]) => void;
   daysTimeWindow: number;
   setDaysTimeWindow: (daysTimeWindow: number) => void;
-  contentType: ViewContentType;
-  setContentType: (contentType: ViewContentType) => void;
+  contentFilter: ContentFilter;
+  setContentFilter: (contentFilter: ContentFilter) => void;
 }
 
 export function ContentTab({
@@ -33,8 +33,8 @@ export function ContentTab({
   setSelectedFeedIds,
   daysTimeWindow,
   setDaysTimeWindow,
-  contentType,
-  setContentType,
+  contentFilter,
+  setContentFilter,
 }: ContentTabProps) {
   return (
     <div className="grid gap-6">
@@ -51,9 +51,9 @@ export function ContentTab({
         daysWindow={daysTimeWindow}
         setDaysWindow={setDaysTimeWindow}
       />
-      <ViewContentTypeInput
-        contentType={contentType}
-        setContentType={setContentType}
+      <ViewContentFilterInput
+        contentFilter={contentFilter}
+        setContentFilter={setContentFilter}
       />
     </div>
   );

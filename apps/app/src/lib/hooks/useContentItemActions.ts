@@ -7,6 +7,7 @@ import { useFeedItemActions } from "./useFeedItemActions";
 import { useBookmarkValue } from "~/lib/data/bookmarks";
 import { useUpdateBookmarkStateMutation } from "~/lib/data/bookmarks/mutations";
 import { saveHomeScrollPosition } from "~/lib/scroll";
+import { contentDestination } from "~/lib/data/content-items/resolver";
 
 export function useContentItemActions(itemId: string) {
   const router = useRouter();
@@ -40,16 +41,16 @@ export function useContentItemActions(itemId: string) {
 
   const openItem = useCallback(() => {
     if (!bookmark) return feedItemActions.openItem();
-    if (bookmark.captureHash) {
+    const destination = contentDestination({
+      entityKind: "bookmark",
+      entity: bookmark,
+    });
+    if (!destination.external) {
       saveHomeScrollPosition();
-      void router.navigate({ to: `/bookmark/${bookmark.id}` });
+      void router.navigate({ to: destination.href });
       return;
     }
-    window.open(
-      bookmark.effectiveUrl || bookmark.sourceUrl,
-      "_blank",
-      "noopener,noreferrer",
-    );
+    window.open(destination.href, "_blank", "noopener,noreferrer");
   }, [bookmark, feedItemActions, router]);
 
   const openOriginal = useCallback(() => {

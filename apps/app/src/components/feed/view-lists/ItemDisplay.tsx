@@ -12,11 +12,10 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import type { ApplicationBookmark } from "~/server/mixed-content/projection";
-import { VIEW_CONTENT_TYPE } from "~/server/db/constants";
+import { CONTENT_TYPE } from "~/lib/content/descriptor";
 import { KeyboardShortcutDisplay } from "~/components/ButtonWithShortcut";
 import { Button } from "~/components/ui/button";
 import { visibilityFilterAtom } from "~/lib/data/atoms";
-import { getContentTypeFromItem } from "~/lib/data/feed-items";
 import { useFeedItemsSetWatchLaterValueMutation } from "~/lib/data/feed-items/mutations";
 import { getDataSubscriptionClientId } from "~/lib/data/clientChannel";
 import { useFeeds as useFeedsArray } from "~/lib/data/feeds/store";
@@ -36,6 +35,7 @@ import {
   useUpdateBookmarkStateMutation,
 } from "~/lib/data/bookmarks/mutations";
 import { useDialogStore } from "~/components/feed/dialogStore";
+import { contentDestination } from "~/lib/data/content-items/resolver";
 
 export type ItemSize = "standard" | "large";
 type WatchedDatePrefix = "read" | "watched";
@@ -122,11 +122,10 @@ function ItemMeta({
 
 // Thumbnail components for consistent styling across layouts
 
-function getWatchedDatePrefix(
-  item: Parameters<typeof getContentTypeFromItem>[0],
-): WatchedDatePrefix {
-  const contentType = getContentTypeFromItem(item);
-  return contentType === VIEW_CONTENT_TYPE.LONGFORM ? "read" : "watched";
+function getWatchedDatePrefix(item: {
+  contentType: "text" | "video";
+}): WatchedDatePrefix {
+  return item.contentType === CONTENT_TYPE.TEXT ? "read" : "watched";
 }
 
 type ThumbnailType =
@@ -136,7 +135,7 @@ function getThumbnailType(
   item: {
     thumbnail?: string;
     platform: string;
-    orientation?: string;
+    orientation?: string | null;
   },
   feed?: { imageUrl?: string },
   layout?: ThumbnailLayout,
@@ -310,6 +309,19 @@ function EmptyThumbnail() {
   );
 }
 
+function BookmarkEmptyThumbnail() {
+  return (
+    <div className="absolute inset-0 grid place-items-center bg-transparent">
+      <div
+        data-testid="empty-thumbnail-placeholder"
+        className="bg-muted text-muted-foreground grid h-10 w-10 place-items-center rounded"
+      >
+        <BookmarkIcon size={16} />
+      </div>
+    </div>
+  );
+}
+
 type ItemActionsLayout = "list" | "large-list" | "grid";
 
 interface ItemActionsProps {
@@ -428,7 +440,7 @@ interface ItemThumbnailProps {
     thumbnail?: string;
     title: string;
     platform: string;
-    orientation?: string;
+    orientation?: string | null;
     progress?: number;
     duration?: number;
   };
@@ -484,7 +496,7 @@ function BookmarkThumbnail({
   bookmark: ApplicationBookmark;
   layout: ThumbnailLayout;
 }) {
-  const thumbnailType = bookmark.representativeImageUrl ? "article" : "icon";
+  const thumbnailType = bookmark.thumbnailUrl ? "article" : "icon";
   return (
     <ThumbnailContainer
       layout={layout}
@@ -492,9 +504,9 @@ function BookmarkThumbnail({
       progress={bookmark.progress}
       duration={bookmark.duration}
     >
-      {bookmark.representativeImageUrl ? (
+      {bookmark.thumbnailUrl ? (
         <img
-          src={bookmark.representativeImageUrl}
+          src={bookmark.thumbnailUrl}
           alt=""
           loading="lazy"
           decoding="async"
@@ -513,7 +525,7 @@ function BookmarkThumbnail({
           />
         </div>
       ) : (
-        <EmptyThumbnail />
+        <BookmarkEmptyThumbnail />
       )}
     </ThumbnailContainer>
   );
@@ -617,10 +629,11 @@ function BookmarkItemDisplay({
   grid: boolean;
 }) {
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
-  const hasCapture = Boolean(bookmark.captureHash);
-  const href = hasCapture
-    ? `/bookmark/${bookmark.id}`
-    : bookmark.effectiveUrl || bookmark.sourceUrl;
+  const destination = contentDestination({
+    entityKind: "bookmark",
+    entity: bookmark,
+  });
+  const href = destination.href;
   const isLarge = size === "large";
   const shouldDimReadSavedItem =
     visibilityFilter === "later" && bookmark.isRead;
@@ -641,9 +654,9 @@ function BookmarkItemDisplay({
       >
         <Link
           to={href}
-          target={hasCapture ? undefined : "_blank"}
-          rel={hasCapture ? undefined : "noopener noreferrer"}
-          onClick={hasCapture ? saveHomeScrollPosition : undefined}
+          target={destination.external ? "_blank" : undefined}
+          rel={destination.external ? "noopener noreferrer" : undefined}
+          onClick={destination.external ? undefined : saveHomeScrollPosition}
           className={clsx(
             "flex h-full flex-1 flex-col rounded p-2 text-left",
             shouldDimReadSavedItem && "opacity-50",
@@ -658,7 +671,9 @@ function BookmarkItemDisplay({
             <ItemTitle title={bookmark.title} lineClamp={isLarge ? 1 : 2} />
             <ItemMeta
               author={bookmark.author ?? undefined}
-              feedName={new URL(bookmark.sourceUrl).hostname}
+              feedName={
+                bookmark.siteName ?? new URL(bookmark.sourceUrl).hostname
+              }
               postedAt={date}
               className="pt-0.5"
             />
@@ -687,9 +702,9 @@ function BookmarkItemDisplay({
     >
       <Link
         to={href}
-        target={hasCapture ? undefined : "_blank"}
-        rel={hasCapture ? undefined : "noopener noreferrer"}
-        onClick={hasCapture ? saveHomeScrollPosition : undefined}
+        target={destination.external ? "_blank" : undefined}
+        rel={destination.external ? "noopener noreferrer" : undefined}
+        onClick={destination.external ? undefined : saveHomeScrollPosition}
         className={clsx(
           "flex w-full flex-1 flex-col gap-4 px-6 pt-4 text-left md:flex-row md:items-center md:rounded md:px-2 md:py-2",
           isLarge ? "pb-1 md:pb-2" : "pb-4 md:h-20 md:py-0",
@@ -708,11 +723,11 @@ function BookmarkItemDisplay({
         <div className="flex h-full flex-1 flex-col justify-center pr-2">
           <ItemTitle title={bookmark.title} lineClamp={2} />
           {isLarge && (
-            <ItemContentSnippet snippet={bookmark.author ?? undefined} />
+            <ItemContentSnippet snippet={bookmark.description ?? undefined} />
           )}
           <ItemMeta
             author={bookmark.author ?? undefined}
-            feedName={new URL(bookmark.sourceUrl).hostname}
+            feedName={bookmark.siteName ?? new URL(bookmark.sourceUrl).hostname}
             postedAt={date}
           />
         </div>
@@ -749,12 +764,15 @@ function FeedItemDisplay({
 
   const feed = feeds.find((f) => f.id === item.feedId);
 
-  const itemDestination = item.platform === "website" ? "read" : "watch";
-
+  const destination = contentDestination({
+    entityKind: "feed-item",
+    entity: item,
+  });
   const shouldOpenInSerial =
-    feed?.openLocation === "serial" || !feed?.openLocation;
+    destination.renderer !== "origin" &&
+    (feed?.openLocation === "serial" || !feed?.openLocation);
 
-  const href = shouldOpenInSerial ? `/${itemDestination}/${item.id}` : item.url;
+  const href = shouldOpenInSerial ? destination.href : item.url;
 
   const target = shouldOpenInSerial ? undefined : "_blank";
   const rel = shouldOpenInSerial ? undefined : "noopener noreferrer";

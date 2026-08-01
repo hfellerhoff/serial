@@ -11,6 +11,13 @@ function extensionCandidate(
   return {
     effectiveUrl: "https://example.com/article",
     title: "Article",
+    descriptor: {
+      platform: "website",
+      contentType: "text",
+      orientation: null,
+      contentId: null,
+      classifierVersion: 1,
+    },
     contentHtml:
       '<article><p>Content</p><script>alert("bad")</script></article>',
     extractorVersion: "mozilla-readability-0.6",
@@ -29,14 +36,20 @@ describe("Page capture preparation", () => {
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.capture).toMatchObject({
+    expect(result.result.observation).toMatchObject({
       canonicalUrl: "https://example.com/canonical",
-      captureSource: "extension-live-dom",
-      extractorVersion: "mozilla-readability-0.6",
-      sanitizerPolicyVersion: 1,
+      capture: {
+        captureSource: "extension-live-dom",
+        extractorVersion: "mozilla-readability-0.6",
+        sanitizerPolicyVersion: 1,
+      },
     });
-    expect(result.capture.contentHtml).not.toContain("script");
-    expect(result.capture.contentHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.result.observation.capture?.contentHtml).not.toContain(
+      "script",
+    );
+    expect(result.result.observation.capture?.contentHash).toMatch(
+      /^[a-f0-9]{64}$/,
+    );
   });
 
   it("degrades unknown extractor and sanitizer versions", () => {
@@ -70,18 +83,18 @@ describe("Page capture preparation", () => {
         <script>steal()</script>
       </article></main></body></html>`,
     });
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.capture).toMatchObject({
+    expect(result.observation).toMatchObject({
       canonicalUrl: "https://example.com/final",
       effectiveUrl: "https://example.com/final",
-      iconUrl: "https://example.com/favicon.ico",
-      representativeImageUrl: "https://example.com/image.jpg",
-      captureSource: "server-static-fetch",
+      preview: {
+        iconUrl: "https://example.com/favicon.ico",
+        thumbnailUrl: "https://example.com/image.jpg",
+      },
+      capture: { captureSource: "server-static-fetch" },
     });
-    expect(result.capture.contentHtml).toContain(
+    expect(result.observation.capture?.contentHtml).toContain(
       'href="https://example.com/next"',
     );
-    expect(result.capture.contentHtml).not.toContain("script");
+    expect(result.observation.capture?.contentHtml).not.toContain("script");
   });
 });

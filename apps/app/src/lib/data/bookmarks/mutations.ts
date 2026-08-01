@@ -37,10 +37,11 @@ export function useSaveBookmarkMutation() {
         const previousBookmark = bookmarksStore
           .getState()
           .getBookmark(bookmark.id);
-        if (result.removedBookmarkId) {
+        for (const removedBookmarkId of result.removedBookmarkIds ??
+          (result.removedBookmarkId ? [result.removedBookmarkId] : [])) {
           const removedBookmark = bookmarksStore
             .getState()
-            .getBookmark(result.removedBookmarkId);
+            .getBookmark(removedBookmarkId);
           if (removedBookmark) removeProjectedBookmark(removedBookmark);
         }
         projectBookmark(bookmark, previousBookmark);

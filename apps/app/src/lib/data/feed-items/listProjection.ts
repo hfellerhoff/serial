@@ -1,11 +1,12 @@
 import { INBOX_VIEW_ID } from "../views/constants";
-import { isFeedCompatibleWithContentType } from "./filters";
+import { isFeedCompatibleWithContentFilter } from "./filters";
 import type {
   ApplicationFeedItem,
   ApplicationView,
   DatabaseFeedCategory,
 } from "~/server/db/schema";
 import { VIEW_LAYOUT_ITEM_TYPE } from "~/server/db/constants";
+import { contentFilterAllowsDescriptor } from "~/lib/views/contentFilter";
 
 export type FeedItemListProjection = Pick<
   ApplicationFeedItem,
@@ -14,6 +15,7 @@ export type FeedItemListProjection = Pick<
   | "isWatched"
   | "isWatchLater"
   | "isWatchedUpdatedAt"
+  | "contentType"
   | "orientation"
   | "platform"
   | "postedAt"
@@ -113,15 +115,11 @@ export function hasFeedItemListProjectionChanged(
     previousItem.isWatchLater !== nextItem.isWatchLater ||
     previousItem.isWatchedUpdatedAt?.getTime() !==
       nextItem.isWatchedUpdatedAt?.getTime() ||
+    previousItem.contentType !== nextItem.contentType ||
     previousItem.orientation !== nextItem.orientation ||
     previousItem.platform !== nextItem.platform ||
     previousItem.postedAt.getTime() !== nextItem.postedAt.getTime()
   );
-}
-
-function isVideoContent(item: FeedItemListProjection): boolean {
-  const videoPlatforms = ["youtube", "peertube", "nebula"];
-  return videoPlatforms.includes(item.platform);
 }
 
 export function createFeedItemFilterPredicate({
@@ -169,14 +167,20 @@ export function createFeedItemFilterPredicate({
           filterIndex.customViewsByCategoryId
             .get(categoryId)
             ?.some((view) =>
-              isFeedCompatibleWithContentType(item.platform, view.contentType),
+              isFeedCompatibleWithContentFilter(
+                item.platform,
+                view.contentFilter,
+              ),
             ) ?? false,
       );
       const wouldAppearViaDirectAssignment =
         filterIndex.customViewsByFeedId
           .get(item.feedId)
           ?.some((view) =>
-            isFeedCompatibleWithContentType(item.platform, view.contentType),
+            isFeedCompatibleWithContentFilter(
+              item.platform,
+              view.contentFilter,
+            ),
           ) ?? false;
 
       if (wouldAppearViaCategory || wouldAppearViaDirectAssignment) {
@@ -194,23 +198,11 @@ export function createFeedItemFilterPredicate({
       return false;
     }
 
-    if (viewFilter?.contentType) {
-      const contentType = viewFilter.contentType;
-      if (contentType === "longform" && item.orientation === "vertical") {
-        return false;
-      }
-      if (
-        contentType === "horizontal-video" &&
-        (!isVideoContent(item) || item.orientation !== "horizontal")
-      ) {
-        return false;
-      }
-      if (
-        contentType === "vertical-video" &&
-        (!isVideoContent(item) || item.orientation !== "vertical")
-      ) {
-        return false;
-      }
+    if (
+      viewFilter &&
+      !contentFilterAllowsDescriptor(viewFilter.contentFilter, item)
+    ) {
+      return false;
     }
 
     if (cutoffTime !== undefined && item.postedAt.getTime() < cutoffTime) {

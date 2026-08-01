@@ -45,6 +45,13 @@ import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { ArticleSidebars } from "~/components/feed/read/ArticleSidebars";
 import { useRetentionPin } from "~/lib/hooks/useRetentionPin";
+import { useBookmarkValue } from "~/lib/data/bookmarks";
+import { BookmarkReader } from "~/components/content-reader/BookmarkReader";
+import { ContentRendererFallback } from "~/components/content-renderer/ContentRendererFallback";
+import {
+  contentDestination,
+  resolveContentItem,
+} from "~/lib/data/content-items/resolver";
 
 const parser = unified()
   .use(rehypeParse, { fragment: true })
@@ -67,13 +74,33 @@ export const Route = createFileRoute("/_app/read/$id")({
 
 function ReadPage() {
   const params = Route.useParams();
+  const bookmark = useBookmarkValue(params.id);
+  const feedItem = useFeedItemValue(params.id);
+  const resolution = resolveContentItem({ bookmark, feedItem });
+  if (resolution.status === "ambiguous") {
+    return <p className="p-6 text-center">This content ID is ambiguous.</p>;
+  }
+  if (resolution.status === "missing") {
+    return <p className="p-6 text-center">Loading content…</p>;
+  }
+  const destination = contentDestination(resolution.item);
+  if (destination.renderer !== "read") {
+    return <ContentRendererFallback destination={destination} />;
+  }
+  if (resolution.item.entityKind === "bookmark") {
+    return <BookmarkReader id={params.id} />;
+  }
+  return <FeedReader id={params.id} />;
+}
+
+function FeedReader({ id }: { id: string }) {
   const router = useRouter();
-  useRetentionPin("feed-item", params.id);
+  useRetentionPin("feed-item", id);
 
   const [articleStyle] = useFlagState("ARTICLE_STYLE");
 
-  const feedItem = useFeedItemValue(params.id);
-  useRefreshFeedItem(params.id);
+  const feedItem = useFeedItemValue(id);
+  useRefreshFeedItem(id);
 
   const { feeds } = useFeeds();
   const feedCategories = useFeedCategories();
@@ -124,7 +151,7 @@ function ReadPage() {
 
   // Save progress 500ms after last scroll event
   useDebouncedSaveProgress({
-    contentId: params.id,
+    contentId: id,
     getProgress: () => {
       const elements = getElements(articleRef.current);
       const closestVisibleIndex = getClosestVisibleElement(elements);
@@ -159,7 +186,7 @@ function ReadPage() {
       active = false;
       unsubscribe();
     };
-  }, [params.id, router]);
+  }, [id, router]);
 
   // Truncation alert
   const { mutate: editFeed } = useEditFeedMutation();
@@ -237,10 +264,10 @@ function ReadPage() {
         )}
         <span className="line-clamp-1 font-sans text-sm">{feed?.name}</span>
       </div>
-      <div key={params.id} className="relative w-full">
+      <div key={id} className="relative w-full">
         <ArticleSidebars
           article={articleElement}
-          contentKey={`${params.id}:${articleStyle}:${zoom}:${content}`}
+          contentKey={`${id}:${articleStyle}:${zoom}:${content}`}
           scrollToElement={scrollToElement}
         />
         <div
@@ -293,7 +320,7 @@ function ReadPage() {
           },
         )}
       >
-        <ContentActions contentID={params.id} />
+        <ContentActions contentID={id} />
       </div>
     </div>
   );

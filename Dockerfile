@@ -81,7 +81,9 @@ COPY --from=build-base /usr/src/app/apps/app/tsconfig.json ./tsconfig.json
 COPY --from=build-base /usr/src/app/apps/app/src/server/db ./src/server/db
 COPY --from=build-base /usr/src/app/apps/app/src/env.js ./src/env.js
 COPY --from=build-base /usr/src/app/apps/app/src/lib/extension-auth.ts ./src/lib/extension-auth.ts
+COPY --from=build-base /usr/src/app/apps/app/src/lib/content/descriptor.ts ./src/lib/content/descriptor.ts
 COPY --from=build-base /usr/src/app/apps/app/src/lib/schemas/bulk.ts ./src/lib/schemas/bulk.ts
+COPY --from=build-base /usr/src/app/apps/app/src/lib/views/contentFilter.ts ./src/lib/views/contentFilter.ts
 COPY --from=build-base /usr/src/app/packages/extension-identity /usr/src/app/packages/extension-identity
 
 # Catch missing transitive imports in the migration runtime before deployment.

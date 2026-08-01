@@ -3,13 +3,14 @@
 import { useLocation } from "@tanstack/react-router";
 import { useAtom } from "jotai";
 import { useCallback, useEffect, useState } from "react";
-import type { FeedPlatform } from "~/server/db/schema";
+import type { ContentPlatform } from "~/lib/content/descriptor";
 import {
   articleZoomAtom,
   longformVideoZoomAtom,
   shortformVideoZoomAtom,
 } from "~/lib/data/atoms";
 import { useFeedItemValue } from "~/lib/data/store";
+import { useBookmarkValue } from "~/lib/data/bookmarks";
 
 export const MIN_ZOOM = 0;
 export const MAX_ZOOM = 6;
@@ -17,8 +18,8 @@ export const MAX_ZOOM = 6;
 export const MIN_ZOOM_VERTICAL = 0;
 export const MAX_ZOOM_VERTICAL = 3;
 
-const VIDEO_PLATFORMS: FeedPlatform[] = ["youtube", "peertube"];
-const ARTICLE_PLATFORMS: FeedPlatform[] = ["website"];
+const VIDEO_PLATFORMS: ContentPlatform[] = ["youtube", "peertube"];
+const ARTICLE_PLATFORMS: ContentPlatform[] = ["website"];
 
 export function useZoom() {
   const { pathname } = useLocation();
@@ -28,9 +29,11 @@ export function useZoom() {
   const [zoom, setZoom] = useState(MIN_ZOOM);
 
   const feedItem = useFeedItemValue(videoId || contentId || "");
+  const bookmark = useBookmarkValue(videoId || contentId || "");
 
-  const platform = feedItem?.platform ?? "";
-  const isVertical = feedItem?.orientation === "vertical";
+  const platform = feedItem?.platform ?? bookmark?.platform ?? "";
+  const isVertical =
+    (feedItem?.orientation ?? bookmark?.orientation) === "vertical";
 
   const minZoom = isVertical ? MIN_ZOOM_VERTICAL : MIN_ZOOM;
   const maxZoom = isVertical ? MAX_ZOOM_VERTICAL : MAX_ZOOM;
