@@ -100,7 +100,21 @@ export type ClientAuditResult = {
   };
 };
 
-export function evaluateClientAuditOperationBudgets(result: ClientAuditResult) {
+export type ClientAuditBudgetMeasurements = Pick<
+  ClientAuditResult,
+  "synchronizationBytes" | "persistenceMutationBytes" | "retention"
+> & {
+  operations: {
+    [Operation in keyof ClientAuditResult["operations"]]: Omit<
+      ClientAuditResult["operations"][Operation],
+      "heapDeltaBytes"
+    >;
+  };
+};
+
+export function evaluateClientAuditOperationBudgets(
+  result: ClientAuditBudgetMeasurements,
+) {
   const violations = Object.entries(result.operations).flatMap(
     ([operation, metrics]) =>
       metrics.durationMs > CLIENT_OPERATION_DURATION_BUDGET_MS
@@ -254,7 +268,7 @@ export function evaluateClientAuditOperationBudgets(result: ClientAuditResult) {
     for (const [metricName, budget] of Object.entries(metricBudgets)) {
       checkMaximum(
         `${operationName} ${metricName}`,
-        operation[metricName as keyof ClientAuditOperation],
+        operation[metricName as keyof typeof operation],
         budget,
       );
     }

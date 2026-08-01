@@ -137,12 +137,17 @@ const artifact = {
 const serialized = await format(JSON.stringify(artifact), { parser: "json" });
 
 if (process.argv.includes("--check")) {
-  const current = await readFile(OUTPUT_PATH, "utf8").catch(() => "");
-  if (current !== serialized) {
+  const coveredFiles = new Set(coverage.map((entry) => entry.file));
+  const missingFindingPaths = Object.values(findingPaths)
+    .flat()
+    .filter((file) => !coveredFiles.has(file));
+  if (missingFindingPaths.length > 0) {
     console.error(
-      "Client audit coverage is stale. Run benchmark:client:coverage.",
+      `Client audit finding paths are missing from current source coverage: ${missingFindingPaths.join(", ")}`,
     );
     process.exitCode = 1;
+  } else {
+    console.log(`Checked ${coverage.length} applicable client files.`);
   }
 } else {
   await writeFile(OUTPUT_PATH, serialized, "utf8");

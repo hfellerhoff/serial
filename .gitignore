@@ -75,3 +75,8 @@ data/libsql
 playwright-report
 test-results
 .playwright-mcp
+
+# generated benchmark evidence (local-only; durable evidence belongs in ../agents)
+/apps/app/benchmarks/**/*.json
+/apps/app/benchmarks/**/*.md
+!/apps/app/benchmarks/README.md

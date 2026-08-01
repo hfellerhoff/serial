@@ -4,7 +4,7 @@ import {
   evaluateClientAuditOperationBudgets,
   runClientAuditProfile,
 } from "../../../scripts/performance/client-audit-model";
-import type { ClientAuditResult } from "../../../scripts/performance/client-audit-model";
+import type { ClientAuditBudgetMeasurements } from "../../../scripts/performance/client-audit-model";
 
 describe("client performance audit model", () => {
   it.each([
@@ -100,17 +100,17 @@ describe("client performance audit model", () => {
   }, 30_000);
 
   it("keeps the retained stress profile within explicit operation budgets", async () => {
-    const result = JSON.parse(
+    const baselines = JSON.parse(
       await readFile(
         new URL(
-          "../../../benchmarks/results/client-stress.json",
+          "../../fixtures/performance/budget-baselines.json",
           import.meta.url,
         ),
         "utf8",
       ),
-    ) as ClientAuditResult;
+    ) as { client: ClientAuditBudgetMeasurements };
 
-    expect(evaluateClientAuditOperationBudgets(result)).toEqual([]);
+    expect(evaluateClientAuditOperationBudgets(baselines.client)).toEqual([]);
   });
 
   it("rejects deliberately reintroduced fan-out, payload, and retention regressions", () => {

@@ -7,9 +7,8 @@ latency are at most `1.5 ×` the matching production operation. A bounded page
 must also stay bounded by driver-observed materialized rows. Timing noise is a
 reason to improve the experiment, never to raise the ceiling.
 
-The original benchmark checkpoint recorded the full-library mixed projection
-as a failure. The retained local small, representative, and stress artifacts
-now record the bounded remediation and pass every warm/cold visibility cell.
+The harness keeps the comparison and structural gates executable without
+requiring generated reports in source control. Result files are local-only.
 
 ## Run from a clean checkout
 
@@ -115,17 +114,6 @@ section metadata required by the current production operation. The allowance
 therefore permits one additional bounded Bookmark page, not the user's entire
 Bookmark or Feed-item collection.
 
-## Remediated local evidence
-
-The retained 2026-07-31 artifacts pass every measured cell without averaging
-across workloads:
-
-| Profile        | Median ratio range | p95 ratio range | Candidate max rows | Structural budget |
-| -------------- | -----------------: | --------------: | -----------------: | ----------------: |
-| small          |         1.24–1.38× |      1.21–1.47× |              61–73 |               100 |
-| representative |         1.15–1.31× |      1.19–1.33× |                 75 |               198 |
-| stress         |         1.19–1.32× |      1.17–1.38× |                 75 |               408 |
-
 The structural regression suite separately locks first and cursor View pages,
 Tag pages, point publication lookups, maximum 500-Bookmark bulk updates, and
 the selected Bookmark ordering index. Capture, ownership, organization,
@@ -135,15 +123,15 @@ exists.
 
 ## Which evidence runs where
 
-| Environment or tool                          | Role                                                                                          | Gate status                                                                                     |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| local file libSQL/SQLite                     | Fast iteration, fixture validation, deterministic statement/row guards, query-plan inspection | Structural guards are hard CI candidates; latency is diagnostic                                 |
-| `turso dev`                                  | Exercises the libSQL network protocol and driver transfer on a developer machine              | Required before performance-ticket closure; artifact retained                                   |
-| Dedicated networked Turso benchmark database | Production-like latency, transfer, and tail evidence                                          | Median and p95 1.5× gate; manual or scheduled because shared-network noise must be controlled   |
-| `EXPLAIN QUERY PLAN`                         | Index use, full scans, temp sorting, correlated-subquery evidence                             | Review evidence; plan changes are interpreted, not reduced to a brittle text snapshot           |
-| Driver instrumentation                       | SQL count, DB duration, and materialized rows                                                 | Statement/row limits are deterministic structural gates                                         |
-| Browser profiler                             | Hydration, synchronization, cache mutation, rendering, long tasks, and heap growth            | Production Chromium budgets are hard gates; development measurements remain diagnostic          |
-| CI                                           | Fixture/model tests, inventory freshness, then bounded statement/row guards                   | Hard and deterministic; hosted timing is retained but does not replace scheduled Turso evidence |
+| Environment or tool                          | Role                                                                                          | Gate status                                                                                   |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| local file libSQL/SQLite                     | Fast iteration, fixture validation, deterministic statement/row guards, query-plan inspection | Structural guards are hard CI candidates; latency is diagnostic                               |
+| `turso dev`                                  | Exercises the libSQL network protocol and driver transfer on a developer machine              | Required before performance-ticket closure; output stays local or is attached to the ticket   |
+| Dedicated networked Turso benchmark database | Production-like latency, transfer, and tail evidence                                          | Median and p95 1.5× gate; manual or scheduled because shared-network noise must be controlled |
+| `EXPLAIN QUERY PLAN`                         | Index use, full scans, temp sorting, correlated-subquery evidence                             | Review evidence; plan changes are interpreted, not reduced to a brittle text snapshot         |
+| Driver instrumentation                       | SQL count, DB duration, and materialized rows                                                 | Statement/row limits are deterministic structural gates                                       |
+| Browser profiler                             | Hydration, synchronization, cache mutation, rendering, long tasks, and heap growth            | Production Chromium budgets are hard gates; development measurements remain diagnostic        |
+| CI                                           | Fixture/model tests, current-source inventory checks, then bounded statement/row guards       | Hard and deterministic; hosted timing does not replace scheduled Turso evidence               |
 
 For `turso dev` or a remote target, provision and migrate a dedicated benchmark
 database first. The runner refuses external seeding without the explicit safety
@@ -159,7 +147,7 @@ pnpm benchmark:app --profile representative --cache all \
 For a hosted database, add `--auth-token <token>` and keep credentials outside
 artifacts and version control.
 
-## Production baseline and retained artifacts
+## Production baseline and local outputs
 
 The pre-Bookmark production reference is `090d075f`. The executable baseline is
 the preserved Feed View-page behavior that Bookmark mixed pages extend. Before
@@ -167,7 +155,7 @@ accepting a new baseline, compare the relevant Feed query and filter code with
 that reference and explain any intentional production change in the artifact's
 review note. Never compare the candidate with an older or smaller fixture.
 
-Retain JSON artifacts using this pattern:
+Write local JSON artifacts using this pattern:
 
 ```text
 benchmarks/results/<environment>-<profile>-<git-sha>.json
@@ -175,20 +163,22 @@ benchmarks/results/<environment>-<profile>-<git-sha>.json
 
 An artifact contains its git commit, branch, reference baseline, fixture counts,
 method, raw samples and statement observations, distribution summaries,
-structural counts, ratios, and gate result.
-Attach production-like artifacts to the relevant performance ticket or pull
-request. Do not commit credentials, database URLs, or raw user data.
+structural counts, ratios, and gate result. The result directory and generated
+ledgers are ignored by Git. Attach production-like evidence to the relevant
+performance ticket or pull request when it must be retained. Do not commit
+artifacts, credentials, database URLs, or raw user data to product source.
 
 ## Database-facing inventory and comparison operations
 
-`benchmarks/app-query-inventory.json` is generated from all TypeScript and TSX
-under `src`, `server`, `tests`, and `scripts` (excluding migrations). It records database
+`pnpm benchmark:inventory` generates the ignored local
+`benchmarks/app-query-inventory.json` from all TypeScript and TSX under `src`,
+`server`, `tests`, and `scripts` (excluding migrations). It records database
 client creation and every direct select, insert, update, delete, transaction,
 batch, execute, and relational find call, grouped across request procedures,
 synchronization/projection, background and maintenance tasks, Bookmark capture,
 authentication, administration, database infrastructure, and test-only
-infrastructure. `pnpm benchmark:inventory:check` fails when the checked-in
-inventory is stale.
+infrastructure. `pnpm benchmark:inventory:check` scans current source directly
+and does not require the generated ledger.
 
 The following production comparisons define the audit queue. The page pair is
 implemented by this checkpoint; subsequent audit tickets add or reuse registered
@@ -209,13 +199,9 @@ Capture fetching, RSS parsing, Redis/KV access, browser rendering, and publisher
 delivery remain in the repository-wide inventory even when they are not SQL page
 pairs. Their audit evidence uses the environment/tool division above.
 
-## Client and synchronization audit
+## Client coverage
 
-The retained client audit, executable profiles, per-file coverage ledger, and
-prioritized findings are documented in [CLIENT-AUDIT.md](CLIENT-AUDIT.md).
-
-## Server and database audit
-
-The repository-wide server/database review, prioritized findings, and named
-coverage ledger are retained in
-[`server-database-audit.md`](server-database-audit.md).
+`pnpm benchmark:client:coverage` writes an ignored local coverage ledger.
+`pnpm benchmark:client:coverage:check` scans current client source and validates
+that every configured finding path still belongs to the applicable coverage
+set; it does not require a committed report.

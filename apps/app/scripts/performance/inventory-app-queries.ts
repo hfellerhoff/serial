@@ -167,16 +167,18 @@ function buildInventory() {
   };
 }
 
-const serialized = await format(JSON.stringify(buildInventory()), {
+const inventory = buildInventory();
+const serialized = await format(JSON.stringify(inventory), {
   filepath: OUTPUT_PATH,
 });
 if (process.argv.includes("--check")) {
-  const existing = readFileSync(OUTPUT_PATH, "utf8");
-  if (existing !== serialized) {
-    process.stderr.write(
-      "App query inventory is stale. Run pnpm benchmark:inventory and commit the result.\n",
-    );
+  if (inventory.accessCount === 0) {
+    process.stderr.write("App query inventory found no database accesses.\n");
     process.exitCode = 1;
+  } else {
+    process.stdout.write(
+      `Checked ${inventory.accessCount} direct database accesses from current source.\n`,
+    );
   }
 } else {
   mkdirSync(dirname(OUTPUT_PATH), { recursive: true });

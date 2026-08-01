@@ -7,19 +7,24 @@ import {
 
 describe("client browser performance budgets", () => {
   it("keeps the retained representative production-browser profile in budget", async () => {
-    const artifact = JSON.parse(
+    const baselines = JSON.parse(
       await readFile(
         new URL(
-          "../../../benchmarks/results/browser-client-representative.json",
+          "../../fixtures/performance/budget-baselines.json",
           import.meta.url,
         ),
         "utf8",
       ),
-    ) as Record<string, Parameters<typeof evaluateClientBrowserScenario>[1]>;
+    ) as {
+      browser: Record<
+        string,
+        Parameters<typeof evaluateClientBrowserScenario>[1]
+      >;
+    };
     const violations = Object.keys(CLIENT_BROWSER_BUDGETS).flatMap((scenario) =>
       evaluateClientBrowserScenario(
         scenario as keyof typeof CLIENT_BROWSER_BUDGETS,
-        artifact[scenario]!,
+        baselines.browser[scenario]!,
       ).map((violation) => `${scenario}: ${violation}`),
     );
 
