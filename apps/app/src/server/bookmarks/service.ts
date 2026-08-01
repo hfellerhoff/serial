@@ -460,6 +460,33 @@ export async function updateBookmarkState(input: {
   return updated;
 }
 
+export async function updateBookmarksReadState(input: {
+  database: BookmarkDatabase;
+  userId: string;
+  bookmarkIds: string[];
+  isRead: boolean;
+}) {
+  const bookmarkIds = [...new Set(input.bookmarkIds)];
+  if (bookmarkIds.length === 0) return [];
+  const now = new Date();
+  return input.database.transaction(async (transaction) => {
+    const updated = await transaction
+      .update(bookmarks)
+      .set({ isRead: input.isRead, readUpdatedAt: now, updatedAt: now })
+      .where(
+        and(
+          eq(bookmarks.userId, input.userId),
+          inArray(bookmarks.id, bookmarkIds),
+        ),
+      )
+      .returning();
+    if (updated.length !== bookmarkIds.length) {
+      throw new BookmarkNotFoundError("Bookmark not found");
+    }
+    return updated;
+  });
+}
+
 async function verifyOrganizationOwnership(input: {
   database: BookmarkQueryDatabase;
   userId: string;

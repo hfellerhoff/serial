@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   chooseCanonicalUrl,
   normalizeBookmarkUrl,
+  normalizedBookmarkUrlOverride,
   resolveOptionalHttpUrl,
 } from "~/server/bookmarks/url";
 
@@ -15,6 +16,17 @@ describe("bookmark URL identity", () => {
     expect(normalizeBookmarkUrl("http://example.com/path/")).toBe(
       "http://example.com/path/",
     );
+  });
+
+  it("stores a Feed URL override only when normalization changes it", () => {
+    expect(
+      normalizedBookmarkUrlOverride("https://example.com/article?from=rss"),
+    ).toBeNull();
+    expect(
+      normalizedBookmarkUrlOverride(
+        "https://example.com/article?from=rss#section",
+      ),
+    ).toBe("https://example.com/article?from=rss");
   });
 
   it("rejects credentials and non-HTTP schemes", () => {

@@ -103,6 +103,30 @@ export function processPublishedChunks(payloads: PublishedChunk[]) {
       }
       continue;
     }
+    if (chunk.type === "bookmark-upsert-batch") {
+      const previousBookmarks = new Map(
+        chunk.bookmarks.map((bookmark) => [
+          bookmark.id,
+          bookmarksStore.getState().getBookmark(bookmark.id),
+        ]),
+      );
+      bookmarksStore.getState().upsertMany(chunk.bookmarks);
+      for (const bookmark of chunk.bookmarks) {
+        const affected = mixedContentStore.getState().reprojectUpsert({
+          bookmark,
+          previousBookmark: previousBookmarks.get(bookmark.id),
+          feedItems: feedItemsStore.getState().feedItemsDict,
+          views: viewsStore.getState().views,
+        });
+        for (const scope of affected) {
+          affectedScopes.set(
+            JSON.stringify([scope.scope, scope.visibility]),
+            scope,
+          );
+        }
+      }
+      continue;
+    }
     bookmarksStore.getState().remove(chunk.id);
     const affected = mixedContentStore.getState().reprojectDeletion({
       bookmarkId: chunk.id,

@@ -1085,7 +1085,10 @@ async function queryLightweightItemsForView(
   } = params;
 
   let itemsData: Array<
-    Omit<typeof feedItems.$inferSelect, "content" | "contentSnippet"> & {
+    Omit<
+      typeof feedItems.$inferSelect,
+      "content" | "contentSnippet" | "normalizedUrl"
+    > & {
       placement?: number;
     }
   >;

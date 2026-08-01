@@ -25,6 +25,7 @@ import type {
   RSSContent,
   RSSFeedWithMetadata,
 } from "./types";
+import { normalizedBookmarkUrlOverride } from "~/server/bookmarks/url";
 import { env } from "~/env";
 import { dbSemaphore } from "~/lib/semaphore";
 import { workerPool } from "~/lib/workerPool";
@@ -165,6 +166,13 @@ async function insertFeedItems(
 
   const feedItemList: Array<typeof feedItems.$inferInsert> = items.map(
     (item) => {
+      let normalizedUrl: string | null = null;
+      try {
+        normalizedUrl = normalizedBookmarkUrlOverride(item.url);
+      } catch {
+        // Invalid item URLs retain their existing Feed behavior but cannot
+        // participate in Bookmark canonical suppression.
+      }
       return {
         feedId,
         contentId: item.id,
@@ -174,6 +182,7 @@ async function insertFeedItems(
         author: item.author,
         thumbnail: item.thumbnail,
         url: item.url,
+        normalizedUrl,
         postedAt: new Date(item.publishedDate),
         orientation: checkFeedItemIsVerticalFromUrl(item.url),
       } satisfies typeof feedItems.$inferInsert;
@@ -187,6 +196,7 @@ async function insertFeedItems(
       .select({
         url: feedItems.url,
         contentHash: feedItems.contentHash,
+        normalizedUrl: feedItems.normalizedUrl,
       })
       .from(feedItems)
       .where(
@@ -205,8 +215,12 @@ async function insertFeedItems(
   const changedItems = feedItemListWithHash.filter((incoming) => {
     const existing = existingByUrl.get(incoming.url);
     if (!existing) return true; // new item
-    // null hash means pre-migration row — force re-write to populate hash
-    return existing.contentHash !== incoming.contentHash;
+    // Refresh pre-migration hashes and sparse normalization overrides even
+    // when the Feed content itself is otherwise unchanged.
+    return (
+      existing.contentHash !== incoming.contentHash ||
+      (existing.normalizedUrl ?? null) !== incoming.normalizedUrl
+    );
   });
 
   if (changedItems.length === 0) {
@@ -226,6 +240,7 @@ async function insertFeedItems(
             "contentHash",
             "contentId",
             "contentSnippet",
+            "normalizedUrl",
             "createdAt",
             "orientation",
             "postedAt",

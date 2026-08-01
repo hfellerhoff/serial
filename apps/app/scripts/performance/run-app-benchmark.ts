@@ -110,6 +110,10 @@ async function measureOperation(input: {
           authToken: input.authToken,
         });
   session.instrumentation.reset();
+  // Full-collection fixtures are intentionally large enough to provoke GC.
+  // Collect between paired samples so an unrelated pause cannot become one
+  // operation's p95 while preserving the measured operation itself.
+  globalThis.gc?.();
   const beforeMemory = process.memoryUsage();
   const startedAt = performance.now();
   let result:

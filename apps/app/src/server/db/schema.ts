@@ -296,6 +296,9 @@ export const feedItems = sqliteTable(
     title: text("title", { length: 512 }).notNull(),
     author: text("author", { length: 512 }).notNull(),
     url: text("url", { length: 512 }).notNull(),
+    // Stored only when production URL normalization changes the Feed URL.
+    // Most rows remain null and compare through COALESCE(normalizedUrl, url).
+    normalizedUrl: text("normalized_url", { length: 4096 }),
     thumbnail: text("thumbnail", { length: 512 }).notNull().default(""),
     content: text("content").notNull().default(""),
     contentSnippet: text("content_snippet").notNull().default(""),
@@ -357,6 +360,7 @@ export const feedItemSchema = createSelectSchema(feedItems);
 export type DatabaseFeedItem = typeof feedItems.$inferSelect;
 
 export const applicationFeedItemSchema = feedItemSchema
+  .omit({ normalizedUrl: true })
   .merge(
     z.object({
       platform: platformsSchema,
@@ -448,6 +452,26 @@ export const bookmarks = sqliteTable(
       table.canonicalUrl,
     ),
     index("bookmark_user_id_idx").on(table.userId),
+    index("bookmark_user_saved_saved_at_idx").on(
+      table.userId,
+      table.isSaved,
+      table.savedUpdatedAt,
+      table.id,
+    ),
+    index("bookmark_user_saved_read_read_at_idx").on(
+      table.userId,
+      table.isSaved,
+      table.isRead,
+      table.readUpdatedAt,
+      table.id,
+    ),
+    index("bookmark_user_saved_read_created_at_idx").on(
+      table.userId,
+      table.isSaved,
+      table.isRead,
+      table.createdAt,
+      table.id,
+    ),
   ],
 );
 
