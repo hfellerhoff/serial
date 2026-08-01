@@ -345,6 +345,30 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
     );
   });
 
+  it("commits a bulk Bookmark upsert with one entity-store notification", () => {
+    const first = bookmark({ id: "batch-one" });
+    const second = bookmark({ id: "batch-two" });
+    let notifications = 0;
+    const unsubscribe = bookmarksStore.subscribe(() => notifications++);
+
+    processPublishedChunks([
+      {
+        source: "bookmark",
+        chunk: {
+          type: "bookmark-upsert-batch",
+          bookmarks: [first, second],
+        },
+      },
+    ]);
+
+    unsubscribe();
+    expect(notifications).toBe(1);
+    expect(bookmarksStore.getState().snapshot()).toMatchObject({
+      [first.id]: first,
+      [second.id]: second,
+    });
+  });
+
   it("replaces one changed bucket without deleting cached entities in unchanged buckets", () => {
     const first = bookmark({ id: "bucket-source" });
     let secondIndex = 0;

@@ -7,9 +7,9 @@ latency are at most `1.5 ×` the matching production operation. A bounded page
 must also stay bounded by driver-observed materialized rows. Timing noise is a
 reason to improve the experiment, never to raise the ceiling.
 
-The benchmark checkpoint records the current mixed projection as a failure.
-That is expected evidence for the server/database and client/synchronization
-audit tickets; it is not an exemption from the gate.
+The original benchmark checkpoint recorded the full-library mixed projection
+as a failure. The retained local small, representative, and stress artifacts
+now record the bounded remediation and pass every warm/cold visibility cell.
 
 ## Run from a clean checkout
 
@@ -55,13 +55,18 @@ distributions.
 | -------------- | ---------: | --------: | ----: | --------------: | ------------------: |
 | small          |      1,000 |       100 |     3 |               2 |                   7 |
 | representative |     10,000 |     1,000 |    10 |               3 |                  15 |
-| stress         |     50,000 |     5,000 |    25 |               3 |                  15 |
+| stress         |     50,000 |     5,000 |    25 |               3 |                  40 |
 
 For each cache profile and visibility, the runner alternates which operation
 goes first, discards all warmups, and records every later sample. `warm` reuses
 one client connection. `cold` creates a fresh client for each operation while
 keeping the seeded database unchanged. This is a cold driver/connection start,
 not a claim that the operating system page cache has been flushed.
+
+The runner exposes and invokes V8 garbage collection between samples, outside
+the timed operation. This prevents an unrelated full-fixture collection pause
+from becoming one operation's tail measurement. Stress uses 40 repetitions so
+nearest-rank p95 is not the single slowest sample.
 
 The initial executable pair uses the unassigned all-content View:
 
@@ -109,6 +114,24 @@ The baseline already loads the user-level View, Feed, Tag, assignment, and
 section metadata required by the current production operation. The allowance
 therefore permits one additional bounded Bookmark page, not the user's entire
 Bookmark or Feed-item collection.
+
+## Remediated local evidence
+
+The retained 2026-07-31 artifacts pass every measured cell without averaging
+across workloads:
+
+| Profile        | Median ratio range | p95 ratio range | Candidate max rows | Structural budget |
+| -------------- | -----------------: | --------------: | -----------------: | ----------------: |
+| small          |         1.23–1.36× |      1.11–1.41× |              61–73 |               100 |
+| representative |         1.11–1.29× |      0.87–1.31× |                 75 |               198 |
+| stress         |         1.20–1.31× |      1.07–1.31× |                 75 |               408 |
+
+The structural regression suite separately locks first and cursor View pages,
+Tag pages, point publication lookups, maximum 500-Bookmark bulk updates, and
+the selected Bookmark ordering index. Capture, ownership, organization,
+deletion, and canonical consolidation retain direct persistence coverage; they
+use absolute statement/row bounds where no semantically valid production ratio
+exists.
 
 ## Which evidence runs where
 

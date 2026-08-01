@@ -3,7 +3,32 @@
 This audit reviews the server, database, capture, authentication,
 administration, background-task, benchmark, and server-facing route surface at
 `44b2c4e2` (the Bookmark benchmark merge on `beta`). It is an audit, not a
-remediation change. Critical and high findings remain release blockers.
+remediation change. The original findings below remain the historical audit;
+the 2026-07-31 remediation addendum records their current disposition.
+
+## Remediation addendum
+
+SDB-01 through SDB-04 are resolved. Mixed pages now execute two independently
+bounded SQL candidate queries, merge at most two `limit + 1` windows, and load
+capture and organization data only for Bookmark entities on the returned page.
+Feed-item canonical URLs are persisted and indexed Bookmark visibility/order
+access is backed by composite indexes. First, cursor, sectioned, Tag,
+Uncategorized, collision, and ownership semantics retain direct regression
+coverage.
+
+The retained small, representative, and stress artifacts pass all 18
+warm/cold visibility cells. Median ratios range from 1.11× to 1.36×, p95 ratios
+from 0.87× to 1.41×, and the largest candidate materialization is 75 rows
+against budgets of 100, 198, and 408. The stress fixture no longer produces a
+library-sized heap delta per page.
+
+SDB-02's View/visibility multiplier was removed by on-demand mixed-scope
+loading; reconnect no longer launches one mixed projection per scope. SDB-03's
+publication lookup is a true user-owned point query, while the 500-Bookmark
+read path uses one deduplicated set-based update, one bounded reload, and
+50-entity publisher batches. SDB-10 is covered by the retained paired page
+artifacts plus deterministic statement/row and query-plan guards for operations
+without a valid production timing comparator.
 
 ## Method and evidence
 

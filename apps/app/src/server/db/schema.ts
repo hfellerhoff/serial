@@ -296,6 +296,7 @@ export const feedItems = sqliteTable(
     title: text("title", { length: 512 }).notNull(),
     author: text("author", { length: 512 }).notNull(),
     url: text("url", { length: 512 }).notNull(),
+    canonicalUrl: text("canonical_url", { length: 4096 }),
     thumbnail: text("thumbnail", { length: 512 }).notNull().default(""),
     content: text("content").notNull().default(""),
     contentSnippet: text("content_snippet").notNull().default(""),
@@ -351,12 +352,14 @@ export const feedItems = sqliteTable(
       example.isWatched,
       example.isWatchedUpdatedAt,
     ),
+    index("feed_item_canonical_url_idx").on(example.canonicalUrl),
   ],
 );
 export const feedItemSchema = createSelectSchema(feedItems);
 export type DatabaseFeedItem = typeof feedItems.$inferSelect;
 
 export const applicationFeedItemSchema = feedItemSchema
+  .omit({ canonicalUrl: true })
   .merge(
     z.object({
       platform: platformsSchema,
@@ -448,6 +451,26 @@ export const bookmarks = sqliteTable(
       table.canonicalUrl,
     ),
     index("bookmark_user_id_idx").on(table.userId),
+    index("bookmark_user_saved_saved_at_idx").on(
+      table.userId,
+      table.isSaved,
+      table.savedUpdatedAt,
+      table.id,
+    ),
+    index("bookmark_user_saved_read_read_at_idx").on(
+      table.userId,
+      table.isSaved,
+      table.isRead,
+      table.readUpdatedAt,
+      table.id,
+    ),
+    index("bookmark_user_saved_read_created_at_idx").on(
+      table.userId,
+      table.isSaved,
+      table.isRead,
+      table.createdAt,
+      table.id,
+    ),
   ],
 );
 

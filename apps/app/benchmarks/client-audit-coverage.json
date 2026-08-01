@@ -2016,7 +2016,7 @@
     {
       "file": "src/lib/data/subscriptionCoordinator.ts",
       "classification": "state-sync-persistence",
-      "lines": 120,
+      "lines": 144,
       "status": "finding",
       "findings": ["CL-01"],
       "result": "Reviewed; contributes to CL-01."

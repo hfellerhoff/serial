@@ -25,6 +25,7 @@ import type {
   RSSContent,
   RSSFeedWithMetadata,
 } from "./types";
+import { normalizeBookmarkUrl } from "~/server/bookmarks/url";
 import { env } from "~/env";
 import { dbSemaphore } from "~/lib/semaphore";
 import { workerPool } from "~/lib/workerPool";
@@ -165,6 +166,13 @@ async function insertFeedItems(
 
   const feedItemList: Array<typeof feedItems.$inferInsert> = items.map(
     (item) => {
+      let canonicalUrl: string | null = null;
+      try {
+        canonicalUrl = normalizeBookmarkUrl(item.url);
+      } catch {
+        // Invalid item URLs retain their existing Feed behavior but cannot
+        // participate in Bookmark canonical suppression.
+      }
       return {
         feedId,
         contentId: item.id,
@@ -174,6 +182,7 @@ async function insertFeedItems(
         author: item.author,
         thumbnail: item.thumbnail,
         url: item.url,
+        canonicalUrl,
         postedAt: new Date(item.publishedDate),
         orientation: checkFeedItemIsVerticalFromUrl(item.url),
       } satisfies typeof feedItems.$inferInsert;
@@ -226,6 +235,7 @@ async function insertFeedItems(
             "contentHash",
             "contentId",
             "contentSnippet",
+            "canonicalUrl",
             "createdAt",
             "orientation",
             "postedAt",

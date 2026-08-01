@@ -8,6 +8,7 @@ import {
   persistBookmarkSave,
   setBookmarkTag,
   setBookmarkView,
+  updateBookmarksReadState,
   updateBookmarkState,
 } from "~/server/bookmarks/service";
 import {
@@ -367,6 +368,40 @@ describe("Bookmark persistence", () => {
     expect(progressed.progressUpdatedAt.getTime()).toBeGreaterThan(
       oldTimestamp.getTime(),
     );
+  });
+
+  it("updates a deduplicated owned Bookmark batch and rejects mixed ownership atomically", async () => {
+    const first = await saveCaptured("user-one", "https://example.com/first");
+    const second = await saveCaptured("user-one", "https://example.com/second");
+    const foreign = await saveCaptured(
+      "user-two",
+      "https://example.com/foreign",
+    );
+
+    const updated = await updateBookmarksReadState({
+      database,
+      userId: "user-one",
+      bookmarkIds: [first.bookmark.id, first.bookmark.id, second.bookmark.id],
+      isRead: true,
+    });
+
+    expect(updated.map(({ id }) => id).sort()).toEqual(
+      [first.bookmark.id, second.bookmark.id].sort(),
+    );
+    expect(updated.every(({ isRead }) => isRead)).toBe(true);
+    await expect(
+      updateBookmarksReadState({
+        database,
+        userId: "user-one",
+        bookmarkIds: [first.bookmark.id, foreign.bookmark.id],
+        isRead: false,
+      }),
+    ).rejects.toThrow("Bookmark not found");
+    expect(
+      await database.query.bookmarks.findFirst({
+        where: eq(bookmarks.id, first.bookmark.id),
+      }),
+    ).toMatchObject({ isRead: true });
   });
 
   it("keeps Bookmarks independent of Feeds and cascades hard deletion", async () => {
