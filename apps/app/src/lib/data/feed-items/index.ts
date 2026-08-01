@@ -13,6 +13,7 @@ import {
 } from "../store";
 import { useFeedCategories } from "../feed-categories/store";
 import { useCustomViewsData } from "../views";
+import { getMixedScopeKey, mixedContentStore } from "../mixed-content/store";
 import {
   createFeedItemFilterIndex,
   createFeedItemFilterPredicate,
@@ -234,4 +235,27 @@ export const useFilteredFeedItemsOrder = () => {
     viewFilter,
     visibilityFilter,
   ]);
+};
+
+export const useFilteredContentOrder = () => {
+  const feedItemsOrder = useFilteredFeedItemsOrder();
+  const visibilityFilter = useAtomValue(visibilityFilterAtom);
+  const categoryFilter = useAtomValue(categoryFilterAtom);
+  const feedFilter = useAtomValue(feedFilterAtom);
+  const viewFilter = useAtomValue(viewFilterAtom);
+  const mixedScopes = mixedContentStore.useScopes();
+
+  if (feedFilter >= 0) return feedItemsOrder;
+  const scope =
+    categoryFilter >= 0
+      ? ({ type: "tag", tagId: categoryFilter } as const)
+      : viewFilter
+        ? ({ type: "view", viewId: viewFilter.id } as const)
+        : null;
+  if (!scope) return feedItemsOrder;
+  return (
+    mixedScopes[getMixedScopeKey(scope, visibilityFilter)]?.references.map(
+      (reference) => reference.entityId,
+    ) ?? []
+  );
 };

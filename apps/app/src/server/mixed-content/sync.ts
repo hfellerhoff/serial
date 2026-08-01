@@ -127,11 +127,12 @@ export async function publishBookmarkUpsert(input: {
   bookmarkId: string;
 }) {
   const bookmark = await loadApplicationBookmark(input);
-  if (!bookmark) return;
+  if (!bookmark) return null;
   await publisher.publish(getUserChannel(input.userId), {
     source: "bookmark",
     chunk: { type: "bookmark-upsert", bookmark },
   });
+  return bookmark;
 }
 
 export async function publishBookmarkUpsertBatch(input: {

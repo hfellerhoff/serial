@@ -167,7 +167,11 @@ export function SidebarFeeds() {
                 asChild
                 onClick={() => launchDialog("add-feed")}
               >
-                <ButtonWithShortcut shortcut="a" variant="ghost">
+                <ButtonWithShortcut
+                  shortcut="a"
+                  variant="ghost"
+                  aria-label="Add Feed or Bookmark"
+                >
                   <PlusIcon />
                 </ButtonWithShortcut>
               </SidebarMenuButton>
@@ -294,7 +298,7 @@ export function SidebarFeeds() {
             </SidebarMenuButton>
             <SidebarMenuButton
               size="default-icon"
-              asChild
+              aria-label="Add Feed or Bookmark"
               onClick={() => launchDialog("add-feed")}
             >
               <PlusIcon />

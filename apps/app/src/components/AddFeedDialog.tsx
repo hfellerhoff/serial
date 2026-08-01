@@ -21,6 +21,8 @@ import { Switch } from "./ui/switch";
 import { ToggleGroupItem } from "./ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import type { FeedOpenLocation, FeedPlatform } from "~/server/db/schema";
+import type { BookmarkSaveResult } from "~/server/bookmarks/contracts";
+import type { ApplicationBookmark } from "~/server/mixed-content/projection";
 import { useFeedCategories } from "~/lib/data/feed-categories";
 import { useFeeds } from "~/lib/data/feeds";
 import {
@@ -39,6 +41,9 @@ import { useContentCategories } from "~/lib/data/content-categories";
 import { useCreateContentCategoryMutation } from "~/lib/data/content-categories/mutations";
 import { useQuickCreateViewMutation } from "~/lib/data/views/mutations";
 import { VIEW_LAYOUT_ITEM_TYPE } from "~/server/db/constants";
+import { getAssumedFeedPlatform } from "~/server/rss/validateFeedUrl";
+import { useSaveBookmarkMutation } from "~/lib/data/bookmarks/mutations";
+import { BookmarkOrganizationEditor } from "~/components/bookmarks/BookmarkOrganizationEditor";
 
 function useViewOptions() {
   const { views } = useViews();
@@ -60,11 +65,20 @@ function toggleSelectedId(
 }
 
 export function AddFeedDialog() {
-  const [isAddingFeed, setIsAddingFeed] = useState(false);
+  const [pendingAction, setPendingAction] = useState<
+    "feed" | "bookmark" | null
+  >(null);
+  const [bookmarkFeedback, setBookmarkFeedback] = useState<
+    | (BookmarkSaveResult<ApplicationBookmark> & {
+        bookmark: ApplicationBookmark;
+      })
+    | null
+  >(null);
   const dialogContentRef = useRef<HTMLDivElement>(null);
   const urlInputRef = useRef<HTMLInputElement>(null);
   const discovery = useFeedDiscovery();
   const { mutateAsync: createFeed } = useCreateFeedMutation();
+  const { mutateAsync: saveBookmark } = useSaveBookmarkMutation();
 
   const dialog = useDialogStore((store) => store.dialog);
   const onDialogOpenChange = useDialogStore((store) => store.onOpenChange);
@@ -88,14 +102,15 @@ export function AddFeedDialog() {
     onDialogOpenChange(open);
 
     if (!open) {
-      setIsAddingFeed(false);
+      setPendingAction(null);
+      setBookmarkFeedback(null);
       discovery.reset();
     }
   };
 
   const handleSelectFeed = async (feed: { url: string }) => {
-    if (isAddingFeed) return;
-    setIsAddingFeed(true);
+    if (pendingAction) return;
+    setPendingAction("feed");
 
     const createFeedPromise = createFeed({
       url: feed.url,
@@ -118,7 +133,24 @@ export function AddFeedDialog() {
     } catch {
       // Error handled by toast.promise
     } finally {
-      setIsAddingFeed(false);
+      setPendingAction(null);
+    }
+  };
+
+  const handleSelectBookmark = async (sourceUrl: string) => {
+    if (pendingAction) return;
+    setPendingAction("bookmark");
+    try {
+      const result = await saveBookmark({ sourceUrl });
+      setBookmarkFeedback(
+        result as BookmarkSaveResult<ApplicationBookmark> & {
+          bookmark: ApplicationBookmark;
+        },
+      );
+    } catch {
+      toast.error("Could not save Bookmark");
+    } finally {
+      setPendingAction(null);
     }
   };
 
@@ -166,25 +198,42 @@ export function AddFeedDialog() {
         ref={dialogContentRef}
         hideClose
         overlayClassName="bg-black/40"
-        className="top-[var(--feed-command-viewport-top,0px)] left-0 h-[var(--feed-command-viewport-height,100dvh)] max-h-[var(--feed-command-viewport-height,100dvh)] w-screen max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden border-0 p-0 sm:top-1/2 sm:left-1/2 sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] sm:max-w-2xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:border sm:[@media(min-height:600px)]:top-1/3"
+        className="top-[var(--feed-command-viewport-top,0px)] left-0 h-[var(--feed-command-viewport-height,100dvh)] max-h-[var(--feed-command-viewport-height,100dvh)] w-screen max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden border-0 p-0 sm:top-1/2 sm:left-1/2 sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:border sm:[@media(min-height:600px)]:top-1/3"
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           urlInputRef.current?.focus();
         }}
       >
-        <DialogTitle className="sr-only">Find a feed</DialogTitle>
+        <DialogTitle className="sr-only">
+          {bookmarkFeedback ? "Organize Bookmark" : "Find a feed or Bookmark"}
+        </DialogTitle>
         <DialogDescription className="sr-only">
           Paste a website, channel, or RSS feed URL.
         </DialogDescription>
-        <FeedDiscoveryCommand
-          url={discovery.url}
-          onUrlChange={discovery.handleUrlChange}
-          onDiscover={discovery.discoverFeeds}
-          onSelectFeed={(feed) => void handleSelectFeed(feed)}
-          discoveredFeeds={discovery.discoveredFeeds}
-          state={isAddingFeed ? "adding" : discovery.discoveryState}
-          inputRef={urlInputRef}
-        />
+        {bookmarkFeedback ? (
+          <BookmarkOrganizationEditor
+            bookmarkId={bookmarkFeedback.bookmark.id}
+            feedback={bookmarkFeedback}
+            onClose={() => onOpenChange(false)}
+          />
+        ) : (
+          <FeedDiscoveryCommand
+            url={discovery.url}
+            onUrlChange={discovery.handleUrlChange}
+            onDiscover={discovery.discoverFeeds}
+            onSelectFeed={(feed) => void handleSelectFeed(feed)}
+            onSelectBookmark={(url) => void handleSelectBookmark(url)}
+            bookmarkPlatform={getAssumedFeedPlatform(discovery.url)}
+            discoveredFeeds={discovery.discoveredFeeds}
+            state={pendingAction ? "adding" : discovery.discoveryState}
+            loadingLabel={
+              pendingAction === "bookmark"
+                ? "Saving Bookmark and capturing page…"
+                : "Adding feed…"
+            }
+            inputRef={urlInputRef}
+          />
+        )}
         <DialogClose asChild>
           <Button
             className="absolute top-2 right-2 sm:hidden"

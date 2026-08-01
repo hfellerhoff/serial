@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { useLocation } from "@tanstack/react-router";
 import { useShortcut } from "./useShortcut";
-import { useFeedItemActions } from "./useFeedItemActions";
+import { useContentItemActions } from "./useContentItemActions";
 import { useLoadMoreItems } from "./useLoadMoreItems";
 import {
   FEED_ITEM_SCROLL,
@@ -161,7 +161,7 @@ export function useFeedItemNavigation(
   } | null>(null);
   const scrollToItem = useScrollToFeedItem();
 
-  const selectedItemActions = useFeedItemActions(selectedItemId ?? "");
+  const selectedItemActions = useContentItemActions(selectedItemId ?? "");
   const showInstapaperAction = useShowInstapaperAction(selectedItemId ?? "");
   const { mutateAsync: saveToInstapaper } = useSaveToInstapaperMutation(
     selectedItemId ?? "",

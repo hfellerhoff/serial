@@ -49,12 +49,15 @@ export const save = protectedProcedure
         canonicalUrl: result.bookmark.canonicalUrl,
       });
     }
-    await publishBookmarkUpsert({
+    const applicationBookmark = await publishBookmarkUpsert({
       database: context.db,
       userId: context.user.id,
       bookmarkId: result.bookmark.id,
     });
-    return result;
+    return {
+      ...result,
+      bookmark: applicationBookmark ?? result.bookmark,
+    };
   });
 
 export const getCapture = protectedProcedure
@@ -94,12 +97,12 @@ export const updateState = protectedProcedure
       userId: context.user.id,
       ...input,
     });
-    await publishBookmarkUpsert({
+    const applicationBookmark = await publishBookmarkUpsert({
       database: context.db,
       userId: context.user.id,
       bookmarkId: bookmark.id,
     });
-    return bookmark;
+    return applicationBookmark ?? bookmark;
   });
 
 export const setView = protectedProcedure
@@ -116,7 +119,7 @@ export const setView = protectedProcedure
       userId: context.user.id,
       ...input,
     });
-    await publishBookmarkUpsert({
+    return publishBookmarkUpsert({
       database: context.db,
       userId: context.user.id,
       bookmarkId: input.bookmarkId,
@@ -137,7 +140,7 @@ export const setTag = protectedProcedure
       userId: context.user.id,
       ...input,
     });
-    await publishBookmarkUpsert({
+    return publishBookmarkUpsert({
       database: context.db,
       userId: context.user.id,
       bookmarkId: input.bookmarkId,

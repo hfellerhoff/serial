@@ -4,24 +4,8 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useState } from "react";
 import { FlameIcon } from "lucide-react";
 import { PaginationLoader } from "./view-lists/PaginationLoader";
-import {
-  categoryFilterAtom,
-  feedFilterAtom,
-  selectedItemIdAtom,
-  viewFilterAtom,
-  visibilityFilterAtom,
-} from "~/lib/data/atoms";
-import { useFilteredFeedItemsOrder } from "~/lib/data/feed-items";
-import {
-  setBulkWatchedValue,
-  useBulkSetWatchedValueMutation,
-} from "~/lib/data/feed-items/mutations";
-import {
-  feedItemsStore,
-  useFetchMoreItems,
-  useFetchMoreItemsForCategory,
-  useFetchMoreItemsForFeed,
-} from "~/lib/data/store";
+import { selectedItemIdAtom, visibilityFilterAtom } from "~/lib/data/atoms";
+import { useFilteredContentOrder } from "~/lib/data/feed-items";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
@@ -34,6 +18,9 @@ import {
   clearRetainedEntityPins,
   setRetainedEntityPins,
 } from "~/lib/data/page-retention";
+import { bookmarksStore } from "~/lib/data/bookmarks/store";
+import { setMixedReadValue } from "~/lib/data/mixed-content/mutations";
+import { useLoadMoreItems } from "~/lib/hooks/useLoadMoreItems";
 
 let nextUndoRetentionOwnerId = 0;
 
@@ -43,17 +30,8 @@ export function MarkVisibleAsReadButton() {
   const scrollToItem = useScrollToFeedItem();
 
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
-  const viewFilter = useAtomValue(viewFilterAtom);
-  const categoryFilter = useAtomValue(categoryFilterAtom);
-  const feedFilter = useAtomValue(feedFilterAtom);
-
-  const filteredItemIds = useFilteredFeedItemsOrder();
-
-  const fetchMoreItems = useFetchMoreItems();
-  const fetchMoreItemsForFeed = useFetchMoreItemsForFeed();
-  const fetchMoreItemsForCategory = useFetchMoreItemsForCategory();
-
-  const bulkMutation = useBulkSetWatchedValueMutation();
+  const filteredItemIds = useFilteredContentOrder();
+  const { handleRefresh } = useLoadMoreItems();
 
   const selectFirstRenderedItem = useCallback(() => {
     requestAnimationFrame(() => {
@@ -70,59 +48,40 @@ export function MarkVisibleAsReadButton() {
 
     setIsLoading(true);
     try {
-      const feedItemsDict = feedItemsStore.getState().feedItemsDict;
-      const items = filteredItemIds
-        .map((id) => ({
-          id,
-          feedId: feedItemsDict[id]?.feedId ?? 0,
-        }))
-        .filter((item) => item.feedId > 0);
+      const references = filteredItemIds.map((entityId) => ({
+        entityId,
+        entityKind: bookmarksStore.getState().getBookmark(entityId)
+          ? ("bookmark" as const)
+          : ("feed-item" as const),
+        sectionPlacement: null,
+        normalizedAt: new Date(0),
+      }));
 
-      if (items.length === 0) return;
-
-      await bulkMutation.mutateAsync({ items, isWatched: true });
+      await setMixedReadValue({ references, isRead: true });
 
       const undoRetentionOwner = `undo:mark-visible:${++nextUndoRetentionOwnerId}`;
       setRetainedEntityPins(undoRetentionOwner, {
-        feedItemIds: items.map((item) => item.id),
+        bookmarkIds: references
+          .filter((reference) => reference.entityKind === "bookmark")
+          .map((reference) => reference.entityId),
+        feedItemIds: references
+          .filter((reference) => reference.entityKind === "feed-item")
+          .map((reference) => reference.entityId),
       });
-
-      // Determine active filter type (priority: feed > category > view)
-      const activeFilterType =
-        feedFilter >= 0 ? "feed" : categoryFilter >= 0 ? "category" : "view";
 
       // Force one refill request after the mutation. Marking items as read can
       // make a previously exhausted page eligible for fresh unread content.
       try {
-        switch (activeFilterType) {
-          case "feed": {
-            await fetchMoreItemsForFeed(feedFilter, visibilityFilter, {
-              force: true,
-            });
-            break;
-          }
-          case "category": {
-            await fetchMoreItemsForCategory(categoryFilter, visibilityFilter, {
-              force: true,
-            });
-            break;
-          }
-          default: {
-            if (viewFilter?.id) {
-              await fetchMoreItems(viewFilter.id, visibilityFilter, {
-                force: true,
-              });
-            }
-          }
-        }
+        await handleRefresh();
       } finally {
         // The refill response reflects the completed mark-as-read mutation.
         // Exposing Undo afterward prevents a fast shortcut from restoring the
         // item before that older response replaces the scope membership.
         showUndoToast({
-          message: `Marked ${items.length} item${items.length === 1 ? "" : "s"} as read`,
+          message: `Marked ${references.length} item${references.length === 1 ? "" : "s"} as read`,
           onUndo: async () => {
-            await setBulkWatchedValue({ items, isWatched: false });
+            await setMixedReadValue({ references, isRead: false });
+            await handleRefresh();
           },
           onDismiss: () => clearRetainedEntityPins(undoRetentionOwner),
         });

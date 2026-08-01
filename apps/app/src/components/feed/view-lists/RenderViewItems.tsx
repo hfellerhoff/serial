@@ -34,19 +34,16 @@ import {
 } from "~/lib/data/atoms";
 import { useFeedCategories } from "~/lib/data/feed-categories";
 import { useFeeds } from "~/lib/data/feeds";
-import { useFilteredFeedItemsOrder } from "~/lib/data/feed-items";
+import { useFilteredContentOrder } from "~/lib/data/feed-items";
 import {
-  setBulkWatchedValue,
-  useBulkSetWatchedValueMutation,
-} from "~/lib/data/feed-items/mutations";
-import {
-  feedItemsStore,
   useFetchFeedItemsLastFetchedAt,
   useHasInitialData,
 } from "~/lib/data/store";
 import { useFeedItemNavigation } from "~/lib/hooks/useFeedItemNavigation";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 import { showUndoToast } from "~/lib/undo";
+import { bookmarksStore } from "~/lib/data/bookmarks/store";
+import { setMixedReadValue } from "~/lib/data/mixed-content/mutations";
 
 function getNextAvailableItemAfterSection(
   sectionIndex: number,
@@ -107,7 +104,6 @@ function SectionHeading({
   const [isLoading, setIsLoading] = useState(false);
   const [isStuck, setIsStuck] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const bulkMutation = useBulkSetWatchedValueMutation();
 
   useEffect(() => {
     if (!sentinelRef.current) return;
@@ -124,24 +120,23 @@ function SectionHeading({
 
     setIsLoading(true);
     try {
-      const feedItemsDict = feedItemsStore.getState().feedItemsDict;
-      const items = sectionItems
-        .map((id) => ({
-          id,
-          feedId: feedItemsDict[id]?.feedId ?? 0,
-        }))
-        .filter((item) => item.feedId > 0);
+      const references = sectionItems.map((entityId) => ({
+        entityId,
+        entityKind: bookmarksStore.getState().getBookmark(entityId)
+          ? ("bookmark" as const)
+          : ("feed-item" as const),
+        sectionPlacement: null,
+        normalizedAt: new Date(0),
+      }));
 
-      if (items.length === 0) return;
-
-      await bulkMutation.mutateAsync({ items, isWatched: true });
+      await setMixedReadValue({ references, isRead: true });
 
       onMarkAsRead?.(sectionIndex);
 
       showUndoToast({
-        message: `Marked ${items.length} item${items.length === 1 ? "" : "s"} as read`,
+        message: `Marked ${references.length} item${references.length === 1 ? "" : "s"} as read`,
         onUndo: async () => {
-          await setBulkWatchedValue({ items, isWatched: false });
+          await setMixedReadValue({ references, isRead: false });
         },
       });
     } finally {
@@ -292,7 +287,7 @@ export function RenderViewItems() {
   const feedItemsLastFetchedAt = useFetchFeedItemsLastFetchedAt();
   const hasInitialData = useHasInitialData();
 
-  const filteredFeedItemsOrder = useFilteredFeedItemsOrder();
+  const filteredFeedItemsOrder = useFilteredContentOrder();
 
   const currentView = useAtomValue(viewFilterAtom);
   const {
@@ -353,12 +348,19 @@ export function RenderViewItems() {
     return <FeedLoading />;
   }
 
-  if (hasFetchedFeeds && !feeds.length) {
+  if (
+    hasFetchedFeeds &&
+    !feeds.length &&
+    Object.keys(bookmarksStore.getState().snapshot()).length === 0
+  ) {
     return <FeedEmptyState />;
   }
 
   // Show skeletons while feed items are being fetched
-  if (feedItemsLastFetchedAt === null && filteredFeedItemsOrder.length === 0) {
+  if (
+    (feedItemsLastFetchedAt === null || paginationState?.isFetching) &&
+    filteredFeedItemsOrder.length === 0
+  ) {
     switch (baseLayout) {
       case VIEW_LAYOUT.LARGE_LIST:
         return <LargeListSkeleton />;

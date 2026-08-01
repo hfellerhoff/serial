@@ -8,12 +8,14 @@ interface ArticleImageLightboxProps {
   src: string;
   alt?: string;
   className?: string;
+  protectedRemote?: boolean;
 }
 
 export function ArticleImageLightbox({
   src,
   alt,
   className,
+  protectedRemote = false,
 }: ArticleImageLightboxProps) {
   const [open, setOpen] = useState(false);
 
@@ -28,7 +30,14 @@ export function ArticleImageLightbox({
         style={{ display: "block", cursor: "zoom-in" }}
         onClick={toggle}
       >
-        <img src={src} alt={alt} className={className} />
+        <img
+          src={src}
+          alt={alt}
+          className={className}
+          loading={protectedRemote ? "lazy" : undefined}
+          decoding={protectedRemote ? "async" : undefined}
+          referrerPolicy={protectedRemote ? "no-referrer" : undefined}
+        />
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogPortal>
@@ -46,6 +55,7 @@ export function ArticleImageLightbox({
             <img
               src={src}
               alt={alt}
+              referrerPolicy={protectedRemote ? "no-referrer" : undefined}
               className="rounded object-contain"
               style={{ maxWidth: "100%", maxHeight: "100%" }}
             />

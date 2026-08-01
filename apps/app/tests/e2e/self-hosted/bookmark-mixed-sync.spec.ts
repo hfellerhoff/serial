@@ -92,7 +92,9 @@ test.describe("Bookmark mixed-content synchronization", () => {
     const mixedScopeKeys = (await persistedKeys(page)).filter(
       (key) => typeof key === "string" && key.startsWith(mixedScopePrefix),
     );
-    expect(mixedScopeKeys).toEqual([]);
+    expect(mixedScopeKeys).toEqual([
+      `${mixedScopePrefix}${encodeURIComponent(`view:${viewId}:unread`)}`,
+    ]);
     expect(viewId).toBeGreaterThan(0);
   });
 });

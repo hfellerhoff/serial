@@ -46,10 +46,12 @@ export type { LoadedMixedScope } from "./page-retention";
 
 type MixedContentStore = {
   scopes: Record<string, LoadedMixedScope>;
+  fetchingScopes: Record<string, boolean>;
   suppressedReferences: SuppressedReferences;
   projectionIndexes: ProjectionIndexes;
   projectionIndexesComplete: boolean;
   reset: () => void;
+  setScopeFetching: (scopeKey: string, isFetching: boolean) => void;
   applyPage: (input: {
     scope: MixedContentScope;
     visibility: VisibilityFilter;
@@ -73,16 +75,25 @@ const vanillaMixedContentStore = createStore<MixedContentStore>()(
   persist<MixedContentStore, [], [], PersistedMixedContentState>(
     (set, get) => ({
       scopes: {},
+      fetchingScopes: {},
       suppressedReferences: {},
       projectionIndexes: emptyProjectionIndexes(),
       projectionIndexesComplete: true,
       reset: () =>
         set({
           scopes: {},
+          fetchingScopes: {},
           suppressedReferences: {},
           projectionIndexes: emptyProjectionIndexes(),
           projectionIndexesComplete: true,
         }),
+      setScopeFetching: (scopeKey, isFetching) =>
+        set((state) => ({
+          fetchingScopes: {
+            ...state.fetchingScopes,
+            [scopeKey]: isFetching,
+          },
+        })),
       applyPage: ({ scope, visibility, page, replacesScope, feedItems }) => {
         const key = getMixedScopeKey(scope, visibility);
         const current = get();

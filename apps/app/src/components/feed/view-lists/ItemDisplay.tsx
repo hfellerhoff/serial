@@ -3,13 +3,16 @@
 import { Link } from "@tanstack/react-router";
 import clsx from "clsx";
 import { useAtomValue } from "jotai";
+import { toast } from "sonner";
 import {
   ArchiveIcon,
   BookmarkCheckIcon,
   BookmarkIcon,
   CopyIcon,
   SendIcon,
+  Trash2Icon,
 } from "lucide-react";
+import type { ApplicationBookmark } from "~/server/mixed-content/projection";
 import { VIEW_CONTENT_TYPE } from "~/server/db/constants";
 import { KeyboardShortcutDisplay } from "~/components/ButtonWithShortcut";
 import { Button } from "~/components/ui/button";
@@ -28,6 +31,11 @@ import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { useFeedItemActions } from "~/lib/hooks/useFeedItemActions";
 import { useShowShortcuts } from "~/lib/hooks/useShowShortcuts";
 import { saveHomeScrollPosition } from "~/lib/scroll";
+import { useBookmarkValue } from "~/lib/data/bookmarks";
+import {
+  useDeleteBookmarkMutation,
+  useUpdateBookmarkStateMutation,
+} from "~/lib/data/bookmarks/mutations";
 
 export type ItemSize = "standard" | "large";
 type WatchedDatePrefix = "read" | "watched";
@@ -478,6 +486,259 @@ function ItemThumbnail({
   );
 }
 
+function BookmarkThumbnail({
+  bookmark,
+  layout,
+}: {
+  bookmark: ApplicationBookmark;
+  layout: ThumbnailLayout;
+}) {
+  const thumbnailType = bookmark.representativeImageUrl ? "article" : "icon";
+  return (
+    <ThumbnailContainer
+      layout={layout}
+      thumbnailType={thumbnailType}
+      progress={bookmark.progress}
+      duration={bookmark.duration}
+    >
+      {bookmark.representativeImageUrl ? (
+        <img
+          src={bookmark.representativeImageUrl}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : (
+        <div className="absolute inset-0 grid place-items-center">
+          {bookmark.iconUrl ? (
+            <img
+              src={bookmark.iconUrl}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              referrerPolicy="no-referrer"
+              className="size-10 rounded object-contain"
+            />
+          ) : (
+            <BookmarkIcon className="text-muted-foreground size-8" />
+          )}
+        </div>
+      )}
+    </ThumbnailContainer>
+  );
+}
+
+function BookmarkActions({
+  bookmark,
+  layout,
+  isSelected,
+}: {
+  bookmark: ApplicationBookmark;
+  layout: ItemActionsLayout;
+  isSelected?: boolean;
+}) {
+  const { mutate: updateState } = useUpdateBookmarkStateMutation(bookmark.id);
+  const { mutate: deleteBookmark } = useDeleteBookmarkMutation();
+  const showShortcuts = useShowShortcuts();
+  const isGrid = layout === "grid";
+  const isStandardList = layout === "list";
+
+  return (
+    <div
+      className={clsx(
+        "md:bg-background/90 flex flex-row items-center md:absolute md:right-2 md:bottom-2 md:rounded-lg md:shadow-sm",
+        {
+          "md:hidden md:group-hover:flex": !(showShortcuts && isSelected),
+          "-ml-2 justify-start px-6 pb-2 md:ml-0 md:px-0 md:pb-0":
+            isStandardList,
+          "-ml-2 justify-start gap-1 px-2 pb-2 md:ml-0 md:px-0 md:pb-0": isGrid,
+        },
+      )}
+    >
+      <Button
+        size="icon"
+        variant="ghost"
+        aria-label="Copy Bookmark URL"
+        className={clsx({ "h-8 w-8 p-0": isGrid })}
+        onClick={() => {
+          void navigator.clipboard
+            .writeText(bookmark.sourceUrl)
+            .then(() => toast.success("Link copied"))
+            .catch(() => toast.error("Could not copy URL"));
+        }}
+      >
+        <CopyIcon size={isGrid ? 14 : 16} />
+      </Button>
+      <Button
+        size="icon"
+        variant="ghost"
+        aria-label={bookmark.isSaved ? "Remove Saved" : "Add Saved"}
+        className={clsx({ "h-8 w-8 p-0": isGrid })}
+        onClick={() =>
+          updateState({
+            bookmarkId: bookmark.id,
+            isSaved: !bookmark.isSaved,
+          })
+        }
+      >
+        {bookmark.isSaved ? (
+          <BookmarkCheckIcon size={isGrid ? 14 : 16} />
+        ) : (
+          <BookmarkIcon size={isGrid ? 14 : 16} />
+        )}
+      </Button>
+      <Button
+        size="icon"
+        variant="ghost"
+        aria-label={bookmark.isRead ? "Mark unread" : "Archive Bookmark"}
+        className={clsx({ "h-8 w-8 p-0": isGrid })}
+        onClick={() =>
+          updateState({
+            bookmarkId: bookmark.id,
+            isRead: !bookmark.isRead,
+          })
+        }
+      >
+        <ArchiveIcon size={isGrid ? 14 : 16} />
+      </Button>
+      <Button
+        size="icon"
+        variant="ghost"
+        aria-label="Delete Bookmark"
+        className={clsx({ "h-8 w-8 p-0": isGrid })}
+        onClick={() => deleteBookmark({ bookmarkId: bookmark.id })}
+      >
+        <Trash2Icon size={isGrid ? 14 : 16} />
+      </Button>
+    </div>
+  );
+}
+
+function BookmarkItemDisplay({
+  bookmark,
+  size,
+  isSelected,
+  onSelect,
+  grid,
+}: {
+  bookmark: ApplicationBookmark;
+  size: ItemSize;
+  isSelected?: boolean;
+  onSelect?: () => void;
+  grid: boolean;
+}) {
+  const visibilityFilter = useAtomValue(visibilityFilterAtom);
+  const hasCapture = Boolean(bookmark.captureHash);
+  const href = hasCapture
+    ? `/bookmark/${bookmark.id}`
+    : bookmark.effectiveUrl || bookmark.sourceUrl;
+  const isLarge = size === "large";
+  const shouldDimReadSavedItem =
+    visibilityFilter === "later" && bookmark.isRead;
+  const date =
+    visibilityFilter === "later"
+      ? bookmark.savedUpdatedAt
+      : visibilityFilter === "read"
+        ? bookmark.readUpdatedAt
+        : bookmark.publishedAt || bookmark.createdAt;
+
+  if (grid) {
+    return (
+      <article
+        data-item-id={bookmark.id}
+        data-entity-kind="bookmark"
+        onMouseEnter={onSelect}
+        className="group relative flex h-full w-full flex-col"
+      >
+        <Link
+          to={href}
+          target={hasCapture ? undefined : "_blank"}
+          rel={hasCapture ? undefined : "noopener noreferrer"}
+          onClick={hasCapture ? saveHomeScrollPosition : undefined}
+          className={clsx(
+            "flex h-full flex-1 flex-col rounded p-2 text-left",
+            shouldDimReadSavedItem && "opacity-50",
+            isSelected && "md:bg-muted",
+          )}
+        >
+          <BookmarkThumbnail
+            bookmark={bookmark}
+            layout={isLarge ? "large-grid" : "grid"}
+          />
+          <div className="flex flex-1 flex-col justify-center pt-2">
+            <ItemTitle title={bookmark.title} lineClamp={isLarge ? 1 : 2} />
+            <ItemMeta
+              author={bookmark.author ?? undefined}
+              feedName={new URL(bookmark.sourceUrl).hostname}
+              postedAt={date}
+              className="pt-0.5"
+            />
+          </div>
+        </Link>
+        <BookmarkActions
+          bookmark={bookmark}
+          layout="grid"
+          isSelected={isSelected}
+        />
+      </article>
+    );
+  }
+
+  return (
+    <article
+      data-item-id={bookmark.id}
+      data-entity-kind="bookmark"
+      onMouseEnter={onSelect}
+      className={clsx(
+        "group relative flex flex-1 justify-stretch gap-2 md:mx-4 md:my-2",
+        isLarge
+          ? "flex-col md:flex-row md:items-center"
+          : "items-center md:h-20",
+      )}
+    >
+      <Link
+        to={href}
+        target={hasCapture ? undefined : "_blank"}
+        rel={hasCapture ? undefined : "noopener noreferrer"}
+        onClick={hasCapture ? saveHomeScrollPosition : undefined}
+        className={clsx(
+          "flex w-full flex-1 flex-col gap-4 px-6 pt-4 text-left md:flex-row md:items-center md:rounded md:px-2 md:py-2",
+          isLarge ? "pb-1 md:pb-2" : "pb-4 md:h-20 md:py-0",
+          shouldDimReadSavedItem && "opacity-50",
+          isSelected && "md:bg-muted",
+        )}
+      >
+        <div
+          className={clsx("grid place-items-center", isLarge ? "w-44" : "w-16")}
+        >
+          <BookmarkThumbnail
+            bookmark={bookmark}
+            layout={isLarge ? "large-list" : "list"}
+          />
+        </div>
+        <div className="flex h-full flex-1 flex-col justify-center pr-2">
+          <ItemTitle title={bookmark.title} lineClamp={2} />
+          {isLarge && (
+            <ItemContentSnippet snippet={bookmark.author ?? undefined} />
+          )}
+          <ItemMeta
+            author={bookmark.author ?? undefined}
+            feedName={new URL(bookmark.sourceUrl).hostname}
+            postedAt={date}
+          />
+        </div>
+      </Link>
+      <BookmarkActions
+        bookmark={bookmark}
+        layout={isLarge ? "large-list" : "list"}
+        isSelected={isSelected}
+      />
+    </article>
+  );
+}
+
 interface ItemDisplayProps {
   contentId: string;
   size?: ItemSize;
@@ -486,7 +747,7 @@ interface ItemDisplayProps {
   sectionItemType?: "feed" | "tag";
 }
 
-export function ItemDisplay({
+function FeedItemDisplay({
   contentId,
   size = "standard",
   isSelected,
@@ -603,7 +864,7 @@ interface GridItemDisplayProps {
   sectionItemType?: "feed" | "tag";
 }
 
-export function GridItemDisplay({
+function FeedGridItemDisplay({
   contentId,
   size = "standard",
   isSelected,
@@ -679,4 +940,36 @@ export function GridItemDisplay({
       />
     </article>
   );
+}
+
+export function ItemDisplay(props: ItemDisplayProps) {
+  const bookmark = useBookmarkValue(props.contentId);
+  if (bookmark) {
+    return (
+      <BookmarkItemDisplay
+        bookmark={bookmark}
+        size={props.size ?? "standard"}
+        isSelected={props.isSelected}
+        onSelect={props.onSelect}
+        grid={false}
+      />
+    );
+  }
+  return <FeedItemDisplay {...props} />;
+}
+
+export function GridItemDisplay(props: GridItemDisplayProps) {
+  const bookmark = useBookmarkValue(props.contentId);
+  if (bookmark) {
+    return (
+      <BookmarkItemDisplay
+        bookmark={bookmark}
+        size={props.size ?? "standard"}
+        isSelected={props.isSelected}
+        onSelect={props.onSelect}
+        grid
+      />
+    );
+  }
+  return <FeedGridItemDisplay {...props} />;
 }

@@ -33,6 +33,7 @@ import { Route as ApiDemoProvisionRouteImport } from './app/api.demo.provision'
 import { Route as ApiAuthSplatRouteImport } from './app/api/auth.$'
 import { Route as AppWatchIdRouteImport } from './app/_app.watch.$id'
 import { Route as AppReadIdRouteImport } from './app/_app.read.$id'
+import { Route as AppBookmarkIdRouteImport } from './app/_app.bookmark.$id'
 import { Route as AppAdminUsersRouteImport } from './app/_app.admin.users'
 import { Route as AppAdminStatsRouteImport } from './app/_app.admin.stats'
 import { Route as AppAdminSettingsRouteImport } from './app/_app.admin.settings'
@@ -159,6 +160,11 @@ const AppReadIdRoute = AppReadIdRouteImport.update({
   path: '/read/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBookmarkIdRoute = AppBookmarkIdRouteImport.update({
+  id: '/bookmark/$id',
+  path: '/bookmark/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
   id: '/admin/users',
   path: '/admin/users',
@@ -211,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AppAdminSettingsRoute
   '/admin/stats': typeof AppAdminStatsRoute
   '/admin/users': typeof AppAdminUsersRoute
+  '/bookmark/$id': typeof AppBookmarkIdRoute
   '/read/$id': typeof AppReadIdRoute
   '/watch/$id': typeof AppWatchIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AppAdminSettingsRoute
   '/admin/stats': typeof AppAdminStatsRoute
   '/admin/users': typeof AppAdminUsersRoute
+  '/bookmark/$id': typeof AppBookmarkIdRoute
   '/read/$id': typeof AppReadIdRoute
   '/watch/$id': typeof AppWatchIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -275,6 +283,7 @@ export interface FileRoutesById {
   '/_app/admin/settings': typeof AppAdminSettingsRoute
   '/_app/admin/stats': typeof AppAdminStatsRoute
   '/_app/admin/users': typeof AppAdminUsersRoute
+  '/_app/bookmark/$id': typeof AppBookmarkIdRoute
   '/_app/read/$id': typeof AppReadIdRoute
   '/_app/watch/$id': typeof AppWatchIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -308,6 +317,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/stats'
     | '/admin/users'
+    | '/bookmark/$id'
     | '/read/$id'
     | '/watch/$id'
     | '/api/auth/$'
@@ -339,6 +349,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/stats'
     | '/admin/users'
+    | '/bookmark/$id'
     | '/read/$id'
     | '/watch/$id'
     | '/api/auth/$'
@@ -371,6 +382,7 @@ export interface FileRouteTypes {
     | '/_app/admin/settings'
     | '/_app/admin/stats'
     | '/_app/admin/users'
+    | '/_app/bookmark/$id'
     | '/_app/read/$id'
     | '/_app/watch/$id'
     | '/api/auth/$'
@@ -565,6 +577,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReadIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/bookmark/$id': {
+      id: '/_app/bookmark/$id'
+      path: '/bookmark/$id'
+      fullPath: '/bookmark/$id'
+      preLoaderRoute: typeof AppBookmarkIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/users': {
       id: '/_app/admin/users'
       path: '/admin/users'
@@ -622,6 +641,7 @@ interface AppRouteChildren {
   AppAdminSettingsRoute: typeof AppAdminSettingsRoute
   AppAdminStatsRoute: typeof AppAdminStatsRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
+  AppBookmarkIdRoute: typeof AppBookmarkIdRoute
   AppReadIdRoute: typeof AppReadIdRoute
   AppWatchIdRoute: typeof AppWatchIdRoute
   AppAdminIndexRoute: typeof AppAdminIndexRoute
@@ -640,6 +660,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminSettingsRoute: AppAdminSettingsRoute,
   AppAdminStatsRoute: AppAdminStatsRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
+  AppBookmarkIdRoute: AppBookmarkIdRoute,
   AppReadIdRoute: AppReadIdRoute,
   AppWatchIdRoute: AppWatchIdRoute,
   AppAdminIndexRoute: AppAdminIndexRoute,

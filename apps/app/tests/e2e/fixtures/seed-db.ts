@@ -84,6 +84,22 @@ export async function getFeedItemProgress(tursoPort: number, id: string) {
   return feedItem?.progress ?? null;
 }
 
+export async function getBookmarkState(tursoPort: number, id: string) {
+  const { db, client } = getDb(tursoPort);
+  const bookmark = await db
+    .select({
+      isSaved: schema.bookmarks.isSaved,
+      isRead: schema.bookmarks.isRead,
+      progress: schema.bookmarks.progress,
+      duration: schema.bookmarks.duration,
+    })
+    .from(schema.bookmarks)
+    .where(eq(schema.bookmarks.id, id))
+    .get();
+  client.close();
+  return bookmark ?? null;
+}
+
 export async function setFeedItemContent(
   tursoPort: number,
   id: string,
@@ -173,7 +189,11 @@ export async function seedBookmarkProjectionData(
     bookmarkId,
     title: "Captured Bookmark",
     author: "Bookmark Author",
-    contentHtml: "<p>Captured Bookmark body</p>",
+    contentHtml: `<p>Captured Bookmark body</p>
+      <p><a href="https://example.com/next">External reader link</a></p>
+      <img src="https://images.example.com/reader.jpg" alt="Reader image" onerror="steal()">
+      <div data-serial-embed="youtube" data-video-id="dQw4w9WgXcQ" data-start="42"></div>
+      <script data-testid="unsafe-capture-script">steal()</script>`,
     effectiveUrl: item.url,
     contentHash: `hash-${bookmarkId}`,
     captureSource: "extension-live-dom",
@@ -182,7 +202,7 @@ export async function seedBookmarkProjectionData(
     capturedAt: now,
   });
   client.close();
-  return { bookmarkId, viewId: userView.views.id };
+  return { bookmarkId, viewId: userView.views.id, sourceUrl: item.url };
 }
 
 export async function getViewsForUser(tursoPort: number, email: string) {

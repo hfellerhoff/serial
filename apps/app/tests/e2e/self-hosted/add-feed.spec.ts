@@ -154,25 +154,13 @@ test.describe("add feed manually", () => {
     await feedSearch.fill(
       `http://127.0.0.1:${SELF_HOSTED_RSS_SERVER_PORT}/missing-feed`,
     );
-    const noFeedsFound = dialog.getByText("No feeds found for URL.");
-    await expect(noFeedsFound).toBeVisible({ timeout: 10000 });
-    await expect(
-      noFeedsFound.locator("xpath=preceding-sibling::*[name()='svg']"),
-    ).toBeVisible();
-    const failureState = dialog.getByTestId("feed-discovery-failure-state");
-    await expectVerticalPosition(commandList, failureState, 1 / 2);
-
-    await page.setViewportSize({ width: 390, height: 300 });
-    await expect(dialog).toHaveCSS("height", "300px");
-    await expectVerticalPosition(commandList, failureState, 1 / 3);
-    await page.setViewportSize({ width: 1920, height: 1080 });
+    const bookmarkFallback = dialog.getByRole("option", {
+      name: /Bookmark page to read later/,
+    });
+    await expect(bookmarkFallback).toBeVisible({ timeout: 10000 });
+    await expect(dialog.getByText("No feeds found for URL.")).toHaveCount(0);
 
     await expect(dialog.getByText(/Find feeds at/)).toHaveCount(0);
-    await dialog.getByRole("button", { name: "Retry" }).click();
-    await expect(
-      dialog.getByRole("option", { name: "Finding feeds…" }),
-    ).toBeVisible();
-    await expect(noFeedsFound).toBeVisible({ timeout: 10000 });
 
     await feedSearch.fill(feedUrl);
     await expect(

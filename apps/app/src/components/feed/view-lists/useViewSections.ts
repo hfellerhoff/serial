@@ -14,6 +14,7 @@ import {
   viewLayoutSchema,
 } from "~/server/db/constants";
 import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
+import { bookmarksStore } from "~/lib/data/bookmarks/store";
 
 export interface ViewSection {
   name: string;
@@ -33,6 +34,7 @@ export function useViewSections(
   const { contentCategories } = useContentCategories();
   const feedItemsProjection = useFeedItemsListProjection();
   const feedCategories = useFeedCategories();
+  bookmarksStore.useRevision();
   const filterIndex = useMemo(
     () => createFeedItemFilterIndex(feedCategories.feedCategories, []),
     [feedCategories.feedCategories],
@@ -66,6 +68,7 @@ export function useViewSections(
 
     const feedItemsDict = feedItemsProjection.getItems();
     const assignedItemIds = new Set<string>();
+    const bookmarkTagIdsById = new Map<string, Set<number>>();
     const feedIdsInFeedSections = new Set<number>();
     const feedNameById = new Map(feeds.map((feed) => [feed.id, feed.name]));
     const categoryNameById = new Map(
@@ -84,6 +87,23 @@ export function useViewSections(
     for (const li of currentView.viewSections) {
       const sectionItems = filteredFeedItemsOrder.filter((itemId) => {
         if (assignedItemIds.has(itemId)) return false;
+
+        const bookmark = bookmarksStore.getState().getBookmark(itemId);
+        if (bookmark) {
+          let bookmarkTagIds = bookmarkTagIdsById.get(itemId);
+          if (!bookmarkTagIds) {
+            bookmarkTagIds = new Set(bookmark.tagIds);
+            bookmarkTagIdsById.set(itemId, bookmarkTagIds);
+          }
+          if (
+            li.itemType === VIEW_LAYOUT_ITEM_TYPE.TAG &&
+            bookmarkTagIds.has(li.itemId)
+          ) {
+            assignedItemIds.add(itemId);
+            return true;
+          }
+          return false;
+        }
 
         const item = feedItemsDict[itemId];
         if (!item) return false;

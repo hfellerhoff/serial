@@ -10,6 +10,7 @@ import {
 } from "~/lib/data/page-retention";
 import { getSavedHomeRenderedItemCount } from "~/lib/scroll";
 import { ITEMS_PER_PAGE } from "~/server/api/constants";
+import { bookmarksStore } from "~/lib/data/bookmarks/store";
 
 function getInitialRenderCount(itemIds: string[], listKey: string) {
   const savedRenderedItemCount = getSavedHomeRenderedItemCount(listKey);
@@ -46,7 +47,14 @@ export function useItemWindow(itemIds: string[], listKey: string) {
 
   useEffect(() => {
     const owner = `visible-list:${listKey}`;
-    setRetainedEntityPins(owner, { feedItemIds: visibleItems });
+    const bookmarkIds = visibleItems.filter((id) =>
+      bookmarksStore.getState().getBookmark(id),
+    );
+    const bookmarkIdSet = new Set(bookmarkIds);
+    setRetainedEntityPins(owner, {
+      bookmarkIds,
+      feedItemIds: visibleItems.filter((id) => !bookmarkIdSet.has(id)),
+    });
     return () => clearRetainedEntityPins(owner);
   }, [listKey, visibleItems]);
 

@@ -70,6 +70,50 @@ const feeds: Record<string, string> = {
 const server = createServer((req, res) => {
   const url = req.url ?? "/";
 
+  if (url === "/bookmark/success") {
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.end(`<!doctype html><html><head>
+      <title>Deterministic Bookmark Fixture</title>
+      <link rel="canonical" href="${BASE}/bookmark/success">
+      <link rel="icon" href="${BASE}/bookmark/icon.png">
+      <meta property="og:image" content="${BASE}/bookmark/image.jpg">
+    </head><body><main><article>
+      <h1>Deterministic Bookmark Fixture</h1>
+      <p>Reader-oriented fixture content with enough text for deterministic extraction and native rendering.</p>
+      <p><a href="${BASE}/bookmark/next">A protected external link</a></p>
+      <iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?start=42"></iframe>
+    </article></main></body></html>`);
+    return;
+  }
+  if (url === "/bookmark/redirect") {
+    res.writeHead(302, { Location: "/bookmark/success" });
+    res.end();
+    return;
+  }
+  if (url === "/bookmark/failure") {
+    res.writeHead(503, { "Content-Type": "text/plain" });
+    res.end("fixture failure");
+    return;
+  }
+  if (url === "/bookmark/oversized") {
+    res.writeHead(200, {
+      "Content-Type": "text/html",
+      "Content-Length": String(5 * 1024 * 1024 + 1),
+    });
+    res.end("x".repeat(5 * 1024 * 1024 + 1));
+    return;
+  }
+  if (url === "/bookmark/unsupported") {
+    res.writeHead(200, { "Content-Type": "image/png" });
+    res.end("not an image");
+    return;
+  }
+  if (url === "/bookmark/unextractable") {
+    res.writeHead(200, { "Content-Type": "text/html" });
+    res.end("<!doctype html><title>Empty fixture</title><p>Too little.</p>");
+    return;
+  }
+
   if (url === "/") {
     res.writeHead(200);
     res.end("RSS test server");
