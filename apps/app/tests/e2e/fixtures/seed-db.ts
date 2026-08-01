@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { createClient } from "@libsql/client";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/libsql";
 import { createId } from "@paralleldrive/cuid2";
 import { hashPassword } from "better-auth/crypto";
@@ -1112,6 +1112,70 @@ export async function seedViewLayoutData(
   client.close();
 
   return { feedIds, tagIds, feedItemIds, email, password };
+}
+
+export async function seedSavedViewClientStateData(
+  tursoPort: number,
+  appPort: number,
+) {
+  const fixture = await seedViewLayoutData(tursoPort, appPort);
+  const { db, client } = getDb(tursoPort);
+  const testUser = await db
+    .select()
+    .from(schema.user)
+    .where(eq(schema.user.email, fixture.email))
+    .get();
+  if (!testUser) {
+    client.close();
+    throw new Error("Saved View client-state seed user was not found");
+  }
+
+  const now = new Date();
+  const viewName = `Client State View ${uniqueId()}`;
+  const [targetView] = await db
+    .insert(schema.views)
+    .values({
+      userId: testUser.id,
+      name: viewName,
+      daysWindow: 0,
+      readStatus: 0,
+      orientation: "horizontal",
+      contentType: "all",
+      layout: "list",
+      placement: 1,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+  if (!targetView) {
+    client.close();
+    throw new Error("Saved View client-state View was not created");
+  }
+
+  await db.insert(schema.viewFeeds).values(
+    fixture.feedIds.map((feedId) => ({
+      viewId: targetView.id,
+      feedId,
+    })),
+  );
+  const targetItemId = fixture.feedItemIds[0];
+  const initiallySavedItemIds = fixture.feedItemIds.slice(1, 36);
+  if (!targetItemId || initiallySavedItemIds.length !== 35) {
+    client.close();
+    throw new Error("Saved View client-state items were not created");
+  }
+  await db
+    .update(schema.feedItems)
+    .set({ isWatchLater: true, isWatchLaterUpdatedAt: now })
+    .where(inArray(schema.feedItems.id, initiallySavedItemIds));
+
+  client.close();
+  return {
+    ...fixture,
+    targetItemId,
+    targetViewId: targetView.id,
+    viewName,
+  };
 }
 
 /**

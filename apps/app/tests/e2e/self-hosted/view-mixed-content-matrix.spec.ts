@@ -8,7 +8,11 @@ import {
   SELF_HOSTED_APP_PORT,
   SELF_HOSTED_TURSO_PORT,
 } from "../fixtures/ports";
-import { cleanupUser, seedMixedViewSectionCase } from "../fixtures/seed-db";
+import {
+  cleanupUser,
+  seedMixedViewSectionCase,
+  seedSavedViewClientStateData,
+} from "../fixtures/seed-db";
 import type { Locator, Page } from "@playwright/test";
 
 const caseNames = MIXED_VIEW_SECTION_CASES.map(mixedViewSectionCaseName);
@@ -283,6 +287,129 @@ test.describe("exhaustive mixed-content View section matrix", () => {
       }
     });
   }
+
+  test("shows a feed item immediately after saving it and entering its View", async ({
+    page,
+  }) => {
+    test.setTimeout(45_000);
+    const fixture = await seedMixedViewSectionCase(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+      {
+        feedSectionFeedItem: true,
+        tagSectionFeedItem: false,
+        tagSectionBookmark: false,
+        uncategorizedFeedItem: false,
+        uncategorizedBookmark: false,
+      },
+      "unread",
+    );
+    testEmail = fixture.email;
+
+    await signIn({
+      page,
+      email: fixture.email,
+      password: fixture.password,
+    });
+    const feedMain = page
+      .locator("main")
+      .filter({
+        has: page.getByRole("heading", { name: "Serial", exact: true }),
+      })
+      .last();
+    await feedMain.getByRole("radio", { name: "All", exact: true }).click();
+
+    const item = feedMain.locator(
+      `article[data-item-id="${fixture.items.feedSectionFeedItem}"]`,
+    );
+    await expect(item).toBeVisible({ timeout: 30_000 });
+    await item.getByRole("link").hover();
+    await page.keyboard.press("s");
+
+    await page.getByRole("tab", { name: "Saved", exact: false }).click();
+    await feedMain
+      .getByRole("radio", { name: fixture.viewName, exact: true })
+      .click();
+    await expect(item).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("refreshes a loaded View when a newly saved item enters its visibility", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    const fixture = await seedSavedViewClientStateData(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+    );
+    testEmail = fixture.email;
+
+    await signIn({
+      page,
+      email: fixture.email,
+      password: fixture.password,
+    });
+    const feedMain = page
+      .locator("main")
+      .filter({
+        has: page.getByRole("heading", { name: "Serial", exact: true }),
+      })
+      .last();
+    const targetViewChip = feedMain.getByRole("radio", {
+      name: fixture.viewName,
+      exact: true,
+    });
+
+    await page.getByRole("tab", { name: "Saved", exact: false }).click();
+    await targetViewChip.click();
+    await expect(feedMain.locator("article[data-item-id]").first()).toBeVisible(
+      {
+        timeout: 30_000,
+      },
+    );
+    await page.mouse.wheel(0, 10_000);
+
+    const loadedScopeKey =
+      `serial-mixed-content-store-v2::normalized:v1::record:scopes:` +
+      encodeURIComponent(`view:${fixture.targetViewId}:later`);
+    await expect
+      .poll(
+        async () => {
+          const keys = await page.evaluate(async () => {
+            const database = await new Promise<IDBDatabase>(
+              (resolve, reject) => {
+                const request = indexedDB.open("keyval-store");
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+              },
+            );
+            try {
+              return await new Promise<IDBValidKey[]>((resolve, reject) => {
+                const transaction = database.transaction("keyval", "readonly");
+                const request = transaction.objectStore("keyval").getAllKeys();
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+              });
+            } finally {
+              database.close();
+            }
+          });
+          return keys.includes(loadedScopeKey);
+        },
+        { timeout: 30_000 },
+      )
+      .toBe(true);
+
+    await page.getByRole("tab", { name: "Unread", exact: false }).click();
+    const targetItem = feedMain.locator(
+      `article[data-item-id="${fixture.targetItemId}"]`,
+    );
+    await expect(targetItem).toBeVisible({ timeout: 30_000 });
+    await targetItem.getByRole("link").hover();
+    await page.keyboard.press("s");
+
+    await page.getByRole("tab", { name: "Saved", exact: false }).click();
+    await expect(targetItem).toBeVisible({ timeout: 5_000 });
+  });
 
   test("renders mixed Feed items and Bookmarks in configured sections in Read", async ({
     page,

@@ -12,6 +12,10 @@ import {
 import { feedItemsStore } from "~/lib/data/store";
 import { dataSubscriptionActions } from "~/lib/data/useDataSubscription";
 import { useFilteredFeedItemsOrder } from "~/lib/data/feed-items";
+import {
+  getMixedScopeKey,
+  mixedContentStore,
+} from "~/lib/data/mixed-content/store";
 import { ITEMS_PER_PAGE } from "~/server/api/constants";
 
 const validatingCombos = new Set<string>();
@@ -77,16 +81,32 @@ export function useValidateViewItems() {
       });
     }
 
-    void dataSubscriptionActions
-      .requestItemsByVisibility(
+    const mixedScope = { type: "view", viewId } as const;
+    const mixedScopeKey = getMixedScopeKey(mixedScope, visibilityFilter);
+    const hasLoadedMixedScope =
+      mixedContentStore.getState().scopes[mixedScopeKey] !== undefined;
+
+    void Promise.all([
+      dataSubscriptionActions.requestItemsByVisibility(
         viewId,
         visibilityFilter,
         undefined,
         undefined,
         manifest.length > 0 ? manifest : undefined,
-      )
-      .finally(() => {
-        validatingCombos.delete(key);
-      });
+      ),
+      // A loaded mixed scope is authoritative for View ordering. Refresh it
+      // when entering a View or changing visibility so a newly saved feed item
+      // cannot remain hidden behind its stale persisted membership. Unloaded
+      // scopes keep using the local projection, which avoids a loading flash.
+      hasLoadedMixedScope
+        ? dataSubscriptionActions.requestMixedContentPage(
+            mixedScope,
+            visibilityFilter,
+            null,
+          )
+        : Promise.resolve(),
+    ]).finally(() => {
+      validatingCombos.delete(key);
+    });
   }, [viewFilter, visibilityFilter, feedFilter, categoryFilter]);
 }

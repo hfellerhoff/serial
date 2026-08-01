@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
   SELF_HOSTED_APP_PORT,
+  SELF_HOSTED_RSS_SERVER_PORT,
   SELF_HOSTED_TURSO_PORT,
 } from "../fixtures/ports";
 import {
@@ -183,5 +184,78 @@ test.describe("Bookmark mixed-content synchronization", () => {
         return state.__serialSkeletonSeen;
       }),
     ).toBe(false);
+  });
+
+  test("shows a newly saved Bookmark immediately when entering its assigned View", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    const { email, password, feedItemId } = await seedArticleData(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+    );
+    testEmail = email;
+    const { bookmarkId } = await seedBookmarkProjectionData(
+      SELF_HOSTED_TURSO_PORT,
+      email,
+      feedItemId,
+    );
+    await seedBookmarkViewFilterData(
+      SELF_HOSTED_TURSO_PORT,
+      email,
+      bookmarkId,
+      feedItemId,
+    );
+
+    await signIn({ page, email, password });
+    await page.getByRole("tab", { name: /Saved/ }).click();
+
+    const feedMain = page
+      .locator("main")
+      .filter({
+        has: page.getByRole("heading", { name: "Serial", exact: true }),
+      })
+      .last();
+    const bookmarkViewChip = feedMain.getByRole("radio", {
+      name: "Bookmark View",
+      exact: true,
+    });
+    await bookmarkViewChip.click();
+    await expect(
+      feedMain.locator(`article[data-item-id="${bookmarkId}"]`),
+    ).toBeVisible({ timeout: 30_000 });
+
+    await feedMain.getByRole("radio", { name: "All", exact: true }).click();
+    await page.getByRole("button", { name: "Add Feed or Bookmark" }).click();
+    const dialog = page.getByRole("dialog");
+    const sourceUrl =
+      `http://127.0.0.1:${SELF_HOSTED_RSS_SERVER_PORT}/missing-feed` +
+      `?bookmark-state=${Date.now()}`;
+    await dialog
+      .getByPlaceholder("Paste a URL or search for a feed...")
+      .fill(sourceUrl);
+    await dialog
+      .getByRole("option", { name: /Bookmark page to read later/ })
+      .click();
+
+    const viewsField = dialog.locator(
+      '[data-slot="selectable-chip-list"][data-label="Views"]',
+    );
+    const assignedView = viewsField.getByRole("button", {
+      name: "Bookmark View",
+      exact: true,
+    });
+    await expect(assignedView).toBeVisible({ timeout: 20_000 });
+    await assignedView.click();
+    await expect(assignedView).toHaveAttribute("aria-pressed", "true");
+    await dialog.getByRole("button", { name: "Done" }).click();
+    await expect(dialog).toHaveCount(0);
+
+    await bookmarkViewChip.click();
+    await expect(
+      feedMain.locator('article[data-entity-kind="bookmark"]', {
+        hasText: "127.0.0.1",
+      }),
+    ).toBeVisible({ timeout: 5_000 });
   });
 });
