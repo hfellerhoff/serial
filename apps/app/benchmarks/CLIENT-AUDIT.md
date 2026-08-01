@@ -47,6 +47,13 @@ SERIAL_CLIENT_PERFORMANCE_PRODUCTION=1 SERIAL_RUN_CLIENT_PERFORMANCE=1 \
   tests/e2e/self-hosted/client-performance-audit.spec.ts --reporter=line
 ```
 
+The client gate enforces more than the 50 ms operation ceiling. It also fails
+for oversized synchronization pages or normalized persistence writes, retention
+growth after the pagination plateau, excess mounted items, and notification,
+projection, or authoritative-refill fan-out beyond each operation's explicit
+budget. The regression suite injects over-budget fan-out, payload, and retention
+measurements to prove those failure paths remain live.
+
 Retained evidence:
 
 - [small deterministic profile](results/client-small.json)

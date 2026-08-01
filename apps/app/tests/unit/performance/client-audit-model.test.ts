@@ -113,6 +113,24 @@ describe("client performance audit model", () => {
     expect(evaluateClientAuditOperationBudgets(result)).toEqual([]);
   });
 
+  it("rejects deliberately reintroduced fan-out, payload, and retention regressions", () => {
+    const result = runClientAuditProfile("small");
+    result.operations.bookmarkProgressEvent.authoritativeRefills =
+      result.fixture.loadedMixedScopes;
+    result.synchronizationBytes.maximumResponsePage =
+      result.synchronizationBytes.responseBudget + 1;
+    result.retention.afterTwentyFourPages.entities =
+      result.retention.afterTwelvePages.entities + 1;
+
+    expect(evaluateClientAuditOperationBudgets(result)).toEqual(
+      expect.arrayContaining([
+        `bookmarkProgressEvent authoritativeRefills: ${result.fixture.loadedMixedScopes} > 0`,
+        `Bookmark synchronization response-page bytes: ${result.synchronizationBytes.responseBudget + 1} > ${result.synchronizationBytes.responseBudget}`,
+        `retained entities after pagination plateau: ${result.retention.afterTwelvePages.entities + 1} > ${result.retention.afterTwelvePages.entities}`,
+      ]),
+    );
+  });
+
   it("plateaus repeated pagination within memory, IndexedDB, and mounted-item budgets", () => {
     const result = runClientAuditProfile("small");
 
