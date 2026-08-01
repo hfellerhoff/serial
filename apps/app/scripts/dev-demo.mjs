@@ -1,9 +1,32 @@
 import { randomInt } from "node:crypto";
+import { mkdir, open } from "node:fs/promises";
 import net from "node:net";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 
 const MIN_FIVE_DIGIT_PORT = 10_000;
 const MAX_TCP_PORT = 65_535;
+const DEFAULT_DEMO_DATABASE_PATH = fileURLToPath(
+  new URL("../serial-demo.db", import.meta.url),
+);
+
+async function ensureDemoDatabase(databasePath) {
+  await mkdir(dirname(databasePath), { recursive: true });
+
+  let databaseFile;
+  try {
+    databaseFile = await open(databasePath, "wx");
+    return true;
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "EEXIST") {
+      return false;
+    }
+    throw error;
+  } finally {
+    await databaseFile?.close();
+  }
+}
 
 async function findAvailablePort(excludedPorts = new Set()) {
   while (true) {
@@ -65,6 +88,10 @@ function waitForPort(port, process) {
 
 const appPort = await findAvailablePort();
 const databasePort = await findAvailablePort(new Set([appPort]));
+const databasePath = resolve(
+  process.env.SERIAL_DEMO_DB_FILE ?? DEFAULT_DEMO_DATABASE_PATH,
+);
+const initializedDatabase = await ensureDemoDatabase(databasePath);
 const demoEnvironment = {
   ...process.env,
   PUBLIC_BASE_URL: `http://localhost:${appPort}`,
@@ -76,6 +103,11 @@ const demoEnvironment = {
 
 console.log(`Demo app:      http://localhost:${appPort}`);
 console.log(`Demo database: http://127.0.0.1:${databasePort}`);
+console.log(
+  initializedDatabase
+    ? `Initialized demo database at ${databasePath}`
+    : `Using demo database at ${databasePath}`,
+);
 
 const databaseProcess = spawn(
   "pnpm",
@@ -84,7 +116,7 @@ const databaseProcess = spawn(
     "turso",
     "dev",
     "--db-file",
-    "serial-demo.db",
+    databasePath,
     "--port",
     String(databasePort),
   ],
