@@ -23,6 +23,15 @@ async function clearQueryCache(page: Page) {
   });
 }
 
+async function waitForHomeData(page: Page) {
+  await expect(page.getByRole("heading", { name: "Serial" })).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(page.locator("main main h2").first()).toBeVisible({
+    timeout: 30_000,
+  });
+}
+
 test.describe("invite flow", () => {
   let adminEmail: string;
   let invitedEmail: string;
@@ -58,6 +67,7 @@ test.describe("invite flow", () => {
       email: adminEmail,
       password,
     });
+    await waitForHomeData(page);
 
     // ── 2. Navigate to admin invites page ─────────────────────────────
     await page.goto("/admin/invites");
@@ -201,6 +211,7 @@ test.describe("invite flow", () => {
       email: adminEmail,
       password,
     });
+    await waitForHomeData(page);
 
     // ── 2. Navigate to admin invites page ───────────────────────────
     await page.goto("/admin/invites");
