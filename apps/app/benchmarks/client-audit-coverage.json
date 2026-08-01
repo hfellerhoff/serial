@@ -1840,7 +1840,7 @@
     {
       "file": "src/lib/data/feed-items/mutations.ts",
       "classification": "state-sync-persistence",
-      "lines": 280,
+      "lines": 275,
       "status": "clean",
       "findings": [],
       "result": "Reviewed; no independent data-volume, synchronization, persistence, network-fan-out, render-amplification, or memory-growth finding."
@@ -2000,7 +2000,7 @@
     {
       "file": "src/lib/data/store.ts",
       "classification": "state-sync-persistence",
-      "lines": 2163,
+      "lines": 2166,
       "status": "finding",
       "findings": ["CL-02", "CL-03", "CL-04"],
       "result": "Reviewed; contributes to CL-02, CL-03, CL-04."

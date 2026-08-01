@@ -15,6 +15,12 @@ const ARTICLE_HTML = Array.from(
     `<p>Paragraph ${i + 1}: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.</p>`,
 ).join("\n");
 
+const PAGE_CAPTURE_READER_HTML = Array.from(
+  { length: 100 },
+  (_, index) =>
+    `<section><h2>Captured section ${index + 1}</h2><p>Captured performance body ${index + 1}. This representative sanitized Page capture exercises the shared article renderer without fetching external resources.</p><blockquote>Captured quotation ${index + 1}</blockquote></section>`,
+).join("\n");
+
 function getDb(tursoPort: number) {
   const client = createClient({ url: `http://127.0.0.1:${tursoPort}` });
   return { db: drizzle({ client, schema }), client };
@@ -46,6 +52,11 @@ export async function seedClientPerformanceData(
   const email = `${userId}@benchmark.invalid`;
   const password = "testpassword123";
   await seedBenchmarkFixture({ database: db, profileName, userId });
+  const pageCaptureFeedItemId = `${userId}-feed-item-000008`;
+  await db
+    .update(schema.feedItems)
+    .set({ content: PAGE_CAPTURE_READER_HTML })
+    .where(eq(schema.feedItems.id, pageCaptureFeedItemId));
   const hashedPassword = await hashPassword(password);
   const now = new Date();
   await db.insert(schema.account).values({

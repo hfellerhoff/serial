@@ -30,6 +30,8 @@ function scheduleTask(task: object, condition: boolean) {
 
 export default defineConfig(({ mode }) => {
   const isDemoBuild = mode === "demo";
+  const isClientPerformanceBuild =
+    process.env.SERIAL_CLIENT_PERFORMANCE_PRODUCTION === "1";
   const plugins = [
     tailwindcss(),
     tanstackStart({
@@ -45,6 +47,8 @@ export default defineConfig(({ mode }) => {
       preset: "node",
       serverDir: "server",
       experimental: { vite: {}, tasks: true },
+      rollupConfig: { external: ["jsdom"] },
+      rolldownConfig: { external: ["jsdom"] },
       scheduledTasks: {
         ...scheduleTask(
           { "* * * * *": ["feeds:background-refresh"] },
@@ -78,6 +82,9 @@ export default defineConfig(({ mode }) => {
       port: 3000,
     },
     resolve: {
+      alias: isClientPerformanceBuild
+        ? { "react-dom/client": "react-dom/profiling" }
+        : undefined,
       tsconfigPaths: true,
     },
     plugins,

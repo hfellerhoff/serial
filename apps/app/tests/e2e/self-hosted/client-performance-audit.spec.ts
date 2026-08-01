@@ -5,6 +5,10 @@ import { format } from "prettier";
 import { SELF_HOSTED_TURSO_PORT } from "../fixtures/ports";
 import { cleanupUser, seedClientPerformanceData } from "../fixtures/seed-db";
 import { signIn } from "../fixtures/auth";
+import {
+  CLIENT_BROWSER_BUDGETS,
+  evaluateClientBrowserScenario,
+} from "../../../scripts/performance/client-browser-budgets";
 import type { Page } from "@playwright/test";
 
 test.skip(
@@ -24,6 +28,7 @@ type BrowserMetrics = {
   rpcRequests: number;
   rpcTransferBytes: number;
   heapBytes: number | null;
+  storageBytes: number | null;
 };
 
 type PerformanceWindow = Window & {
@@ -92,7 +97,7 @@ async function collectMetrics(
   inputUsableContentMs: number | null = null,
 ): Promise<BrowserMetrics> {
   return page.evaluate(
-    ({
+    async ({
       startedAt,
       requests,
       transferBytes,
@@ -111,6 +116,7 @@ async function collectMetrics(
           };
         }
       ).__SERIAL_BROWSER_AUDIT__;
+      const storageEstimate = await navigator.storage.estimate();
       return {
         durationMs: performance.now() - startedAt,
         usableContentMs,
@@ -135,6 +141,7 @@ async function collectMetrics(
               memory?: { usedJSHeapSize: number };
             }
           ).memory?.usedJSHeapSize ?? null,
+        storageBytes: storageEstimate.usage ?? null,
       };
     },
     {
@@ -272,25 +279,71 @@ test("profiles representative cold load, warm hydration, reconnect, pagination, 
     const readerStartedAt = await page.evaluate(() => performance.now());
     await page
       .getByText(/Fixture item \d+/)
+      .filter({ hasNotText: "Fixture item 8" })
       .first()
-      .click();
+      .click({ timeout: 30_000 });
     await expect(page.getByText(/Fixture body \d+/)).toBeVisible({
       timeout: 30_000,
     });
-    const reader = await collectMetrics(page, readerStartedAt, network);
+    const readerUsableContentMs = await page.evaluate(
+      (startedAt) => performance.now() - startedAt,
+      readerStartedAt,
+    );
+    const reader = await collectMetrics(
+      page,
+      readerStartedAt,
+      network,
+      readerUsableContentMs,
+    );
 
+    await page.goto(`/?client-performance-audit=1`);
+    await expect(page.getByText("Fixture item 8", { exact: true })).toBeVisible(
+      {
+        timeout: 30_000,
+      },
+    );
+    await page.waitForTimeout(2_200);
+    await resetBrowserMetrics(page);
+    resetNetwork();
+    const pageCaptureReaderStartedAt = await page.evaluate(() =>
+      performance.now(),
+    );
+    await page
+      .getByText("Fixture item 8", { exact: true })
+      .click({ timeout: 30_000 });
+    await expect(page.getByText("Captured performance body 100.")).toBeVisible({
+      timeout: 30_000,
+    });
+    const pageCaptureReaderUsableContentMs = await page.evaluate(
+      (startedAt) => performance.now() - startedAt,
+      pageCaptureReaderStartedAt,
+    );
+    const pageCaptureReader = await collectMetrics(
+      page,
+      pageCaptureReaderStartedAt,
+      network,
+      pageCaptureReaderUsableContentMs,
+    );
+
+    const productionProfile =
+      process.env.SERIAL_CLIENT_PERFORMANCE_PRODUCTION === "1";
     const artifact = {
       generatedAt: new Date().toISOString(),
-      environment: "local-self-hosted-chromium",
+      environment: productionProfile
+        ? "local-self-hosted-production-chromium"
+        : "local-self-hosted-development-chromium",
       profile,
       coldLoad,
       warmHydration,
       reconnect,
       pagination,
       reader,
+      pageCaptureReader,
     };
     const output = path.resolve(
-      "benchmarks/results/browser-client-representative.json",
+      productionProfile
+        ? "benchmarks/results/browser-client-representative.json"
+        : "benchmarks/results/browser-client-development-representative.json",
     );
     await mkdir(path.dirname(output), { recursive: true });
     await writeFile(
@@ -298,6 +351,16 @@ test("profiles representative cold load, warm hydration, reconnect, pagination, 
       await format(JSON.stringify(artifact), { parser: "json" }),
       "utf8",
     );
+    if (productionProfile) {
+      const violations = Object.keys(CLIENT_BROWSER_BUDGETS).flatMap(
+        (scenario) =>
+          evaluateClientBrowserScenario(
+            scenario as keyof typeof CLIENT_BROWSER_BUDGETS,
+            artifact[scenario as keyof typeof CLIENT_BROWSER_BUDGETS],
+          ).map((violation) => `${scenario}: ${violation}`),
+      );
+      expect(violations, "production browser performance budgets").toEqual([]);
+    }
   } finally {
     await cleanupUser(SELF_HOSTED_TURSO_PORT, email);
   }

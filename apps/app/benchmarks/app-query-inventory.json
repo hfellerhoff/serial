@@ -7,7 +7,7 @@
     "scripts/**/*.ts(x)"
   ],
   "exclusions": ["node_modules", "src/server/db/migrations"],
-  "accessCount": 448,
+  "accessCount": 449,
   "areas": {
     "Bookmark and capture": 21,
     "administration": 33,
@@ -15,9 +15,9 @@
     "authentication": 17,
     "background and maintenance tasks": 20,
     "database infrastructure": 3,
-    "request procedures": 163,
+    "request procedures": 162,
     "synchronization and projection": 10,
-    "test-only infrastructure": 139
+    "test-only infrastructure": 141
   },
   "entries": [
     {
@@ -1541,14 +1541,6 @@
       "expression": "context.db.query.feeds.findFirst"
     },
     {
-      "file": "src/server/api/routers/mixedContentRouter.ts",
-      "area": "request procedures",
-      "symbol": "synchronize",
-      "line": 99,
-      "method": "select",
-      "expression": "context.db\n        .select"
-    },
-    {
       "file": "src/server/api/routers/subscriptionRouter.ts",
       "area": "request procedures",
       "symbol": "currentUser",
@@ -2559,8 +2551,16 @@
     {
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
-      "symbol": "setFeedItemAsYouTubeVideo",
+      "symbol": "feedItem",
       "line": 106,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "setFeedItemAsYouTubeVideo",
+      "line": 117,
       "method": "update",
       "expression": "db\n    .update"
     },
@@ -2568,7 +2568,7 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "setFeedItemAsYouTubeVideo",
-      "line": 110,
+      "line": 121,
       "method": "update",
       "expression": "db\n    .update"
     },
@@ -2576,7 +2576,7 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "seedBookmarkProjectionData",
-      "line": 124,
+      "line": 135,
       "method": "select",
       "expression": "db.select"
     },
@@ -2584,7 +2584,7 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "seedBookmarkProjectionData",
-      "line": 125,
+      "line": 136,
       "method": "select",
       "expression": "db\n      .select"
     },
@@ -2592,7 +2592,7 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "seedBookmarkProjectionData",
-      "line": 130,
+      "line": 141,
       "method": "select",
       "expression": "db\n      .select"
     },
@@ -2600,7 +2600,7 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "seedBookmarkProjectionData",
-      "line": 144,
+      "line": 155,
       "method": "insert",
       "expression": "db.insert"
     },
@@ -2608,7 +2608,7 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "seedBookmarkProjectionData",
-      "line": 157,
+      "line": 168,
       "method": "insert",
       "expression": "db.insert"
     },
@@ -2616,7 +2616,7 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "seedBookmarkProjectionData",
-      "line": 161,
+      "line": 172,
       "method": "insert",
       "expression": "db.insert"
     },
@@ -2624,7 +2624,15 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "userViews",
-      "line": 179,
+      "line": 190,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "testUser",
+      "line": 246,
       "method": "select",
       "expression": "db\n    .select"
     },
@@ -2632,39 +2640,31 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "client",
-      "line": 19,
+      "line": 25,
       "method": "createClient",
       "expression": "createClient"
     },
     {
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
-      "symbol": "getDb",
-      "line": 20,
-      "method": "drizzle",
-      "expression": "drizzle"
-    },
-    {
-      "file": "tests/e2e/fixtures/seed-db.ts",
-      "area": "test-only infrastructure",
-      "symbol": "testUser",
-      "line": 235,
-      "method": "select",
-      "expression": "db\n    .select"
-    },
-    {
-      "file": "tests/e2e/fixtures/seed-db.ts",
-      "area": "test-only infrastructure",
       "symbol": "seedArticleData",
-      "line": 246,
+      "line": 257,
       "method": "insert",
       "expression": "db.insert"
     },
     {
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
+      "symbol": "getDb",
+      "line": 26,
+      "method": "drizzle",
+      "expression": "drizzle"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
       "symbol": "seedArticleData",
-      "line": 261,
+      "line": 272,
       "method": "insert",
       "expression": "db\n    .insert"
     },
@@ -2672,7 +2672,7 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "seedArticleData",
-      "line": 280,
+      "line": 291,
       "method": "insert",
       "expression": "db.insert"
     },
@@ -2680,7 +2680,7 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "testUser",
-      "line": 310,
+      "line": 321,
       "method": "select",
       "expression": "db\n    .select"
     },
@@ -2688,7 +2688,7 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "tags",
-      "line": 318,
+      "line": 329,
       "method": "insert",
       "expression": "db\n    .insert"
     },
@@ -2696,7 +2696,7 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "createdViews",
-      "line": 332,
+      "line": 343,
       "method": "insert",
       "expression": "db\n    .insert"
     },
@@ -2704,31 +2704,31 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "seedAddFeedSelectionData",
-      "line": 352,
+      "line": 363,
       "method": "insert",
       "expression": "db.insert"
     },
     {
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
-      "symbol": "cleanupUser",
-      "line": 36,
-      "method": "delete",
-      "expression": "db.delete"
-    },
-    {
-      "file": "tests/e2e/fixtures/seed-db.ts",
-      "area": "test-only infrastructure",
       "symbol": "testUser",
-      "line": 401,
+      "line": 412,
       "method": "select",
       "expression": "db\n    .select"
     },
     {
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
+      "symbol": "cleanupUser",
+      "line": 42,
+      "method": "delete",
+      "expression": "db.delete"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
       "symbol": "seedYouTubeVideoData",
-      "line": 411,
+      "line": 422,
       "method": "insert",
       "expression": "db.insert"
     },
@@ -2736,7 +2736,7 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "seedYouTubeVideoData",
-      "line": 424,
+      "line": 435,
       "method": "insert",
       "expression": "db\n    .insert"
     },
@@ -2744,7 +2744,47 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "seedYouTubeVideoData",
-      "line": 445,
+      "line": 456,
+      "method": "insert",
+      "expression": "db.insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "testUser",
+      "line": 521,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedMultipleArticleData",
+      "line": 532,
+      "method": "insert",
+      "expression": "db.insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedMultipleArticleData",
+      "line": 547,
+      "method": "insert",
+      "expression": "db\n    .insert"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedClientPerformanceData",
+      "line": 56,
+      "method": "update",
+      "expression": "db\n    .update"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
+      "symbol": "seedMultipleArticleData",
+      "line": 570,
       "method": "insert",
       "expression": "db.insert"
     },
@@ -2752,7 +2792,7 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "seedClientPerformanceData",
-      "line": 51,
+      "line": 62,
       "method": "insert",
       "expression": "db.insert"
     },
@@ -2760,39 +2800,7 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "testUser",
-      "line": 510,
-      "method": "select",
-      "expression": "db\n    .select"
-    },
-    {
-      "file": "tests/e2e/fixtures/seed-db.ts",
-      "area": "test-only infrastructure",
-      "symbol": "seedMultipleArticleData",
-      "line": 521,
-      "method": "insert",
-      "expression": "db.insert"
-    },
-    {
-      "file": "tests/e2e/fixtures/seed-db.ts",
-      "area": "test-only infrastructure",
-      "symbol": "seedMultipleArticleData",
-      "line": 536,
-      "method": "insert",
-      "expression": "db\n    .insert"
-    },
-    {
-      "file": "tests/e2e/fixtures/seed-db.ts",
-      "area": "test-only infrastructure",
-      "symbol": "seedMultipleArticleData",
-      "line": 559,
-      "method": "insert",
-      "expression": "db.insert"
-    },
-    {
-      "file": "tests/e2e/fixtures/seed-db.ts",
-      "area": "test-only infrastructure",
-      "symbol": "testUser",
-      "line": 629,
+      "line": 640,
       "method": "select",
       "expression": "db\n    .select"
     },
@@ -2800,23 +2808,15 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "tags",
-      "line": 640,
+      "line": 651,
       "method": "insert",
       "expression": "db\n    .insert"
     },
     {
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
-      "symbol": "feedItem",
-      "line": 66,
-      "method": "select",
-      "expression": "db\n    .select"
-    },
-    {
-      "file": "tests/e2e/fixtures/seed-db.ts",
-      "area": "test-only infrastructure",
       "symbol": "seedViewLayoutData",
-      "line": 665,
+      "line": 676,
       "method": "insert",
       "expression": "db\n      .insert"
     },
@@ -2824,7 +2824,7 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "seedViewLayoutData",
-      "line": 691,
+      "line": 702,
       "method": "insert",
       "expression": "db.insert"
     },
@@ -2832,7 +2832,7 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "seedViewLayoutData",
-      "line": 711,
+      "line": 722,
       "method": "insert",
       "expression": "db.insert"
     },
@@ -2840,7 +2840,7 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "client",
-      "line": 745,
+      "line": 756,
       "method": "createClient",
       "expression": "createClient"
     },
@@ -2848,15 +2848,23 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "userResult",
-      "line": 748,
+      "line": 759,
       "method": "execute",
       "expression": "client.execute"
     },
     {
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
+      "symbol": "feedItem",
+      "line": 77,
+      "method": "select",
+      "expression": "db\n    .select"
+    },
+    {
+      "file": "tests/e2e/fixtures/seed-db.ts",
+      "area": "test-only infrastructure",
       "symbol": "result",
-      "line": 806,
+      "line": 817,
       "method": "execute",
       "expression": "client.execute"
     },
@@ -2864,17 +2872,9 @@
       "file": "tests/e2e/fixtures/seed-db.ts",
       "area": "test-only infrastructure",
       "symbol": "setFeedItemContent",
-      "line": 82,
+      "line": 93,
       "method": "update",
       "expression": "db\n    .update"
-    },
-    {
-      "file": "tests/e2e/fixtures/seed-db.ts",
-      "area": "test-only infrastructure",
-      "symbol": "feedItem",
-      "line": 95,
-      "method": "select",
-      "expression": "db\n    .select"
     },
     {
       "file": "tests/e2e/self-hosted/bookmark-mixed-sync.spec.ts",
@@ -2885,10 +2885,18 @@
       "expression": "database.transaction"
     },
     {
+      "file": "tests/e2e/self-hosted/bookmark-mixed-sync.spec.ts",
+      "area": "test-only infrastructure",
+      "symbol": "transaction",
+      "line": 43,
+      "method": "transaction",
+      "expression": "database.transaction"
+    },
+    {
       "file": "tests/e2e/self-hosted/client-performance-audit.spec.ts",
       "area": "test-only infrastructure",
       "symbol": "transaction",
-      "line": 203,
+      "line": 210,
       "method": "transaction",
       "expression": "database.transaction"
     },
