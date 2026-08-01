@@ -305,7 +305,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
         if (items.length === 0) return;
 
         const state = get();
-        const feedItemsDict = { ...state.feedItemsDict };
+        const feedItemsDict = state.feedItemsDict;
         const projectionChangedItems: ApplicationFeedItem[] = [];
 
         for (const item of items) {
@@ -314,6 +314,9 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           ) {
             projectionChangedItems.push(item);
           }
+          // Feed-item entities are normalized by id. Mutating only changed
+          // entries keeps batch cost proportional to the incoming page or
+          // optimistic selection instead of cloning the whole library.
           feedItemsDict[item.id] = item;
         }
 

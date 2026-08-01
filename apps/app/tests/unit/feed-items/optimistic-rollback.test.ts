@@ -2,8 +2,11 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { ApplicationFeedItem } from "~/server/db/schema";
 import {
   applyOptimisticWatchedValue,
+  applyOptimisticWatchedValues,
   resolveOptimisticWatchedValue,
   rollbackOptimisticWatchedValue,
+  rollbackOptimisticWatchedValues,
+  settleOptimisticWatchedValues,
 } from "~/lib/data/feed-items/mutations";
 import { feedItemsStore } from "~/lib/data/store";
 
@@ -92,5 +95,69 @@ describe("optimistic feed item mutations", () => {
       feedItemsStore.getState().feedItemsDict[previousFeedItem.id];
     expect(resolvedItem?.isWatched).toBe(true);
     expect(resolvedItem?.updatedAt).toBe(serverUpdatedAt);
+  });
+
+  it("applies and settles bulk updates with one store notification per phase", () => {
+    const items = Array.from({ length: 100 }, (_, index) =>
+      makeItem({ id: `item-${index}` }),
+    );
+    feedItemsStore.getState().setFeedItems(items);
+    const normalizedDictionary = feedItemsStore.getState().feedItemsDict;
+    let notifications = 0;
+    const unsubscribe = feedItemsStore.subscribe(() => notifications++);
+
+    const contexts = applyOptimisticWatchedValues(items, true);
+    expect(notifications).toBe(1);
+    expect(contexts).toHaveLength(100);
+    expect(feedItemsStore.getState().feedItemsDict).toBe(normalizedDictionary);
+
+    settleOptimisticWatchedValues(
+      contexts,
+      items.map((item) => ({
+        id: item.id,
+        isWatched: true,
+        isWatchedUpdatedAt: new Date("2026-01-02T00:00:00Z"),
+        updatedAt: new Date("2026-01-02T00:00:00Z"),
+      })),
+    );
+    expect(notifications).toBe(2);
+    expect(
+      Object.values(feedItemsStore.getState().feedItemsDict).every(
+        (item) => item.isWatched,
+      ),
+    ).toBe(true);
+    unsubscribe();
+  });
+
+  it("rolls a failed bulk update back with one store notification", () => {
+    const items = Array.from({ length: 100 }, (_, index) =>
+      makeItem({ id: `item-${index}` }),
+    );
+    feedItemsStore.getState().setFeedItems(items);
+    const contexts = applyOptimisticWatchedValues(items, true);
+    let notifications = 0;
+    const unsubscribe = feedItemsStore.subscribe(() => notifications++);
+
+    rollbackOptimisticWatchedValues(contexts);
+
+    expect(notifications).toBe(1);
+    expect(
+      Object.values(feedItemsStore.getState().feedItemsDict).every(
+        (item) => !item.isWatched,
+      ),
+    ).toBe(true);
+    unsubscribe();
+  });
+
+  it("keeps missing and empty optimistic batches notification-free", () => {
+    let notifications = 0;
+    const unsubscribe = feedItemsStore.subscribe(() => notifications++);
+
+    expect(applyOptimisticWatchedValues([], true)).toEqual([]);
+    rollbackOptimisticWatchedValue(undefined);
+    rollbackOptimisticWatchedValues([]);
+
+    expect(notifications).toBe(0);
+    unsubscribe();
   });
 });

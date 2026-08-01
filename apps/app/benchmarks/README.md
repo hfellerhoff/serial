@@ -119,7 +119,7 @@ Bookmark or Feed-item collection.
 | Dedicated networked Turso benchmark database | Production-like latency, transfer, and tail evidence                                          | Median and p95 1.5× gate; manual or scheduled because shared-network noise must be controlled   |
 | `EXPLAIN QUERY PLAN`                         | Index use, full scans, temp sorting, correlated-subquery evidence                             | Review evidence; plan changes are interpreted, not reduced to a brittle text snapshot           |
 | Driver instrumentation                       | SQL count, DB duration, and materialized rows                                                 | Statement/row limits are deterministic structural gates                                         |
-| Browser profiler                             | Hydration, synchronization, cache mutation, rendering, long tasks, and heap growth            | Manual audit evidence for client paths; not a server-query substitute                           |
+| Browser profiler                             | Hydration, synchronization, cache mutation, rendering, long tasks, and heap growth            | Production Chromium budgets are hard gates; development measurements remain diagnostic          |
 | CI                                           | Fixture/model tests, inventory freshness, then bounded statement/row guards                   | Hard and deterministic; hosted timing is retained but does not replace scheduled Turso evidence |
 
 For `turso dev` or a remote target, provision and migrate a dedicated benchmark

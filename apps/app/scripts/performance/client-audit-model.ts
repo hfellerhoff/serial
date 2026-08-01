@@ -35,6 +35,8 @@ const VISIBILITIES: VisibilityFilter[] = ["unread", "read", "later"];
 const FIXTURE_TIME = new Date("2026-01-15T12:00:00.000Z");
 const NORMALIZED_PERSISTENCE_MUTATION_BUDGET_BYTES = 512 * 1_024;
 
+export const CLIENT_OPERATION_DURATION_BUDGET_MS = 50;
+
 export type ClientAuditOperation = {
   durationMs: number;
   heapDeltaBytes: number;
@@ -97,6 +99,16 @@ export type ClientAuditResult = {
     normalizedPersistenceMutation: ClientAuditOperation;
   };
 };
+
+export function evaluateClientAuditOperationBudgets(result: ClientAuditResult) {
+  return Object.entries(result.operations).flatMap(([operation, metrics]) =>
+    metrics.durationMs > CLIENT_OPERATION_DURATION_BUDGET_MS
+      ? [
+          `${operation}: ${metrics.durationMs.toFixed(1)}ms > ${CLIENT_OPERATION_DURATION_BUDGET_MS}ms`,
+        ]
+      : [],
+  );
+}
 
 type RetentionPlateauMetrics = {
   pages: number;
@@ -540,12 +552,12 @@ export function runClientAuditProfile(
 
   fixture = seedClientFixture(profileName);
   const feedProgressBurst = measure(() => {
-    for (const item of fixture.feedItems.slice(0, 100)) {
-      feedItemsStore.getState().setFeedItem(item.id, {
+    feedItemsStore.getState().setFeedItems(
+      fixture.feedItems.slice(0, 100).map((item) => ({
         ...item,
         progress: (item.progress ?? 0) + 1,
-      });
-    }
+      })),
+    );
     return 0;
   });
 
