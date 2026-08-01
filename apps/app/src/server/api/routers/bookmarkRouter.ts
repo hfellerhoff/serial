@@ -6,13 +6,16 @@ import {
   saveBookmarkFromApp,
   setBookmarkTag,
   setBookmarkView,
+  updateBookmarksReadState,
   updateBookmarkState,
 } from "~/server/bookmarks/service";
 import { normalizeBookmarkUrl } from "~/server/bookmarks/url";
 import {
   publishBookmarkDeletion,
   publishBookmarkUpsert,
+  publishBookmarkUpsertBatch,
 } from "~/server/mixed-content/sync";
+import { loadApplicationBookmarksById } from "~/server/mixed-content/projection";
 
 const bookmarkIdSchema = z.string().min(1);
 const bookmarkUrlSchema = z.string().superRefine((value, context) => {
@@ -149,25 +152,20 @@ export const setBulkReadValue = protectedProcedure
     }),
   )
   .handler(async ({ context, input }) => {
-    const updated = await Promise.all(
-      input.bookmarkIds.map((bookmarkId) =>
-        updateBookmarkState({
-          database: context.db,
-          userId: context.user.id,
-          bookmarkId,
-          isRead: input.isRead,
-        }),
-      ),
-    );
-    await Promise.all(
-      updated.map((bookmark) =>
-        publishBookmarkUpsert({
-          database: context.db,
-          userId: context.user.id,
-          bookmarkId: bookmark.id,
-        }),
-      ),
-    );
+    const updated = await updateBookmarksReadState({
+      database: context.db,
+      userId: context.user.id,
+      ...input,
+    });
+    const applicationBookmarks = await loadApplicationBookmarksById({
+      database: context.db,
+      userId: context.user.id,
+      bookmarkIds: updated.map(({ id }) => id),
+    });
+    await publishBookmarkUpsertBatch({
+      userId: context.user.id,
+      bookmarks: applicationBookmarks,
+    });
     return updated;
   });
 

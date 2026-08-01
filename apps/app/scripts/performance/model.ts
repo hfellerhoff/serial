@@ -20,7 +20,7 @@ export const BENCHMARK_PROFILES = {
     bookmarks: 5_000,
     views: 25,
     warmups: 3,
-    repetitions: 15,
+    repetitions: 40,
   },
 } as const;
 

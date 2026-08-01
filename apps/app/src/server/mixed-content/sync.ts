@@ -1,4 +1,4 @@
-import { loadApplicationBookmarks } from "./projection";
+import { loadApplicationBookmarksById } from "./projection";
 import type {
   ApplicationBookmark,
   MixedContentPage,
@@ -30,6 +30,7 @@ export type BookmarkSyncBucketPage = {
 export type BookmarkSyncChunk =
   | BookmarkSyncBucketPage
   | { type: "bookmark-upsert"; bookmark: ApplicationBookmark }
+  | { type: "bookmark-upsert-batch"; bookmarks: ApplicationBookmark[] }
   | { type: "bookmark-delete"; id: string; canonicalUrl: string };
 
 export type MixedContentChunk = {
@@ -113,7 +114,10 @@ export async function loadApplicationBookmark(input: {
   userId: string;
   bookmarkId: string;
 }) {
-  const bookmarks = await loadApplicationBookmarks(input);
+  const bookmarks = await loadApplicationBookmarksById({
+    ...input,
+    bookmarkIds: [input.bookmarkId],
+  });
   return bookmarks.find((bookmark) => bookmark.id === input.bookmarkId) ?? null;
 }
 
@@ -128,6 +132,24 @@ export async function publishBookmarkUpsert(input: {
     source: "bookmark",
     chunk: { type: "bookmark-upsert", bookmark },
   });
+}
+
+export async function publishBookmarkUpsertBatch(input: {
+  userId: string;
+  bookmarks: ApplicationBookmark[];
+}) {
+  for (let index = 0; index < input.bookmarks.length; index += 50) {
+    // Each event is bounded so publisher and SSE buffers cannot accumulate a
+    // single library-sized payload.
+    // react-doctor-disable-next-line react-doctor/async-await-in-loop
+    await publisher.publish(getUserChannel(input.userId), {
+      source: "bookmark",
+      chunk: {
+        type: "bookmark-upsert-batch",
+        bookmarks: input.bookmarks.slice(index, index + 50),
+      },
+    });
+  }
 }
 
 export async function publishBookmarkDeletion(input: {
