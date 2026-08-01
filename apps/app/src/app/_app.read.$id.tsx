@@ -48,6 +48,7 @@ import { useRetentionPin } from "~/lib/hooks/useRetentionPin";
 import { useBookmarkValue } from "~/lib/data/bookmarks";
 import { BookmarkReader } from "~/components/content-reader/BookmarkReader";
 import { ContentRendererFallback } from "~/components/content-renderer/ContentRendererFallback";
+import { getArticleWidthLayout } from "~/components/content-reader/articleWidth";
 import {
   contentDestination,
   resolveContentItem,
@@ -57,16 +58,6 @@ const parser = unified()
   .use(rehypeParse, { fragment: true })
   .use(rehypeSanitize)
   .use(rehypeStringify);
-
-const MAX_WIDTH_MAP: Record<number, string> = {
-  [0]: "container-xl",
-  [1]: "container-2xl",
-  [2]: "container-3xl",
-  [3]: "container-4xl",
-  [4]: "container-5xl",
-  [5]: "container-6xl",
-  [6]: "container-7xl",
-};
 
 export const Route = createFileRoute("/_app/read/$id")({
   component: ReadPage,
@@ -109,6 +100,7 @@ function FeedReader({ id }: { id: string }) {
   const feed = feeds.find((f) => f.id === feedItem?.feedId);
 
   const { zoom } = useZoom();
+  const articleWidthLayout = getArticleWidthLayout(zoom);
 
   let content = feedItem?.content ?? "";
 
@@ -238,19 +230,11 @@ function FeedReader({ id }: { id: string }) {
 
   return (
     <div
-      className={clsx("mx-auto grid h-full w-full place-items-center", {
-        "max-w-xl": zoom === 0,
-        "max-w-2xl": zoom === 1,
-        "max-w-3xl": zoom === 2,
-        "max-w-4xl": zoom === 3,
-        "max-w-5xl": zoom === 4,
-        "max-w-6xl": zoom === 5,
-        "max-w-7xl": zoom === 6,
-      })}
-      style={{
-        // @ts-expect-error This is fine and works
-        [`--article-max-width`]: `var(--${MAX_WIDTH_MAP[zoom]})`,
-      }}
+      className={clsx(
+        "mx-auto grid h-full w-full place-items-center",
+        articleWidthLayout.className,
+      )}
+      style={articleWidthLayout.style}
     >
       <div className="mb-4 flex w-full items-center gap-3 px-6 sm:pt-6">
         {feed?.imageUrl ? (

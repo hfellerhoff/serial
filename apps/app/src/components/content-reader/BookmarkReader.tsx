@@ -14,7 +14,9 @@ import {
 import type { DatabasePageCapture } from "~/server/db/schema";
 import { BookmarkArticleContent } from "~/components/bookmarks/BookmarkArticleContent";
 import { BookmarkReaderActions } from "~/components/bookmarks/BookmarkReaderActions";
+import { getArticleWidthLayout } from "~/components/content-reader/articleWidth";
 import { ArticleSidebars } from "~/components/feed/read/ArticleSidebars";
+import { useZoom } from "~/components/feed/watch/[id]/useZoom";
 import classes from "~/components/feed/read/article.module.css";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
@@ -47,6 +49,8 @@ export function BookmarkReader({ id }: { id: string }) {
   );
   const setBarsHidden = useSetAtom(barsHiddenAtom);
   const barsHidden = useAtomValue(barsHiddenAtom);
+  const { zoom } = useZoom();
+  const articleWidthLayout = getArticleWidthLayout(zoom);
   useRetentionPin("bookmark", id);
   useOpenOriginalShortcut(bookmark?.sourceUrl);
 
@@ -139,7 +143,13 @@ export function BookmarkReader({ id }: { id: string }) {
   }
 
   return (
-    <div className="mx-auto grid h-full w-full max-w-3xl place-items-center">
+    <div
+      className={clsx(
+        "mx-auto grid h-full w-full place-items-center",
+        articleWidthLayout.className,
+      )}
+      style={articleWidthLayout.style}
+    >
       <div className="mb-4 flex w-full items-center gap-3 px-6 sm:pt-6">
         {bookmark.iconUrl ? (
           <img

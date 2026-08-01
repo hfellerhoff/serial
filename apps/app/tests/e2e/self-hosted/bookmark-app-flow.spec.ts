@@ -75,6 +75,34 @@ test.describe("Bookmark Serial-app flow", () => {
       /^https:\/\/www\.youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/,
     );
 
+    const readerArticle = page.locator("article");
+    const initialArticleWidth = await readerArticle.evaluate(
+      (article) => article.getBoundingClientRect().width,
+    );
+    await page
+      .locator("header button")
+      .filter({ has: page.locator("svg.lucide-plus") })
+      .click();
+    await expect
+      .poll(() =>
+        readerArticle.evaluate(
+          (article) => article.getBoundingClientRect().width,
+        ),
+      )
+      .toBeGreaterThan(initialArticleWidth);
+
+    await page
+      .locator("header button")
+      .filter({ has: page.locator("svg.lucide-minus") })
+      .click();
+    await expect
+      .poll(() =>
+        readerArticle.evaluate(
+          (article) => article.getBoundingClientRect().width,
+        ),
+      )
+      .toBe(initialArticleWidth);
+
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.getByRole("button", { name: "Archive" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Unsave" })).toBeVisible();
