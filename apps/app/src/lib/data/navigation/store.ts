@@ -1,5 +1,6 @@
 import { createStore } from "zustand";
 import { createSelectorHooks } from "../createSelectorHooks";
+import { viewsStore } from "../views/store";
 import type {
   NavigationAvailability,
   NavigationSnapshot,
@@ -26,7 +27,7 @@ let refetchRequested = false;
 let requestGeneration = 0;
 
 const vanillaNavigationSnapshotStore = createStore<NavigationSnapshotStore>()(
-  (set) => ({
+  (set, get) => ({
     snapshot: EMPTY_SNAPSHOT,
     fetchStatus: "idle",
     reset: () => {
@@ -34,7 +35,10 @@ const vanillaNavigationSnapshotStore = createStore<NavigationSnapshotStore>()(
       refetchRequested = false;
       set({ snapshot: EMPTY_SNAPSHOT, fetchStatus: "idle" });
     },
-    set: (snapshot) => set({ snapshot, fetchStatus: "success" }),
+    set: (snapshot) => {
+      viewsStore.getState().setViewAvailability(snapshot.views);
+      set({ snapshot, fetchStatus: "success" });
+    },
     fetch: async () => {
       if (activeFetch) {
         refetchRequested = true;
@@ -49,7 +53,7 @@ const vanillaNavigationSnapshotStore = createStore<NavigationSnapshotStore>()(
             const snapshot =
               await orpcRouterClient.initial.getNavigationSnapshot();
             if (fetchGeneration === requestGeneration) {
-              set({ snapshot, fetchStatus: "success" });
+              get().set(snapshot);
             }
           } catch (error) {
             if (fetchGeneration === requestGeneration) {

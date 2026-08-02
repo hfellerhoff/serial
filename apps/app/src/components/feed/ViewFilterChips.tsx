@@ -13,19 +13,25 @@ import {
   MAX_VIEW_SHORTCUTS,
   VIEW_SHORTCUT_KEYS,
 } from "~/lib/constants/shortcuts";
-import {
-  getNavigationAvailability,
-  useNavigationSnapshot,
-  useNavigationSnapshotStatus,
-} from "~/lib/data/navigation/store";
+import { getNavigationAvailability } from "~/lib/data/navigation/store";
 import { Skeleton } from "~/components/ui/skeleton";
 
+const VIEW_FILTER_SKELETON_WIDTHS = ["w-16", "w-22", "w-18", "w-26"];
+
+function ViewFilterChipSkeletons() {
+  return (
+    <div className="flex max-w-[calc(100vw-3rem)] flex-wrap gap-1 md:max-w-lg">
+      {VIEW_FILTER_SKELETON_WIDTHS.map((width) => (
+        <Skeleton className={clsx("h-8", width)} key={width} />
+      ))}
+    </div>
+  );
+}
+
 export function ViewFilterChips() {
-  const { views } = useViews();
+  const { views, viewAvailability, hasFetchedViews } = useViews();
   const [viewFilter] = useAtom(viewFilterIdAtom);
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
-  const navigationSnapshot = useNavigationSnapshot();
-  const navigationSnapshotStatus = useNavigationSnapshotStatus();
 
   const updateViewFilter = useUpdateViewFilter();
 
@@ -45,14 +51,8 @@ export function ViewFilterChips() {
     );
   }
 
-  if (navigationSnapshotStatus !== "success") {
-    return (
-      <div className="flex max-w-[calc(100vw-3rem)] flex-wrap gap-1 md:max-w-lg">
-        {views.map((view) => (
-          <Skeleton className="h-8 w-20" key={view.id} />
-        ))}
-      </div>
-    );
+  if (!hasFetchedViews) {
+    return <ViewFilterChipSkeletons />;
   }
 
   return (
@@ -72,7 +72,7 @@ export function ViewFilterChips() {
           <ToggleGroupItem
             className={clsx("relative", {
               "opacity-50": !getNavigationAvailability(
-                navigationSnapshot.views,
+                viewAvailability,
                 view.id,
               )[visibilityFilter],
             })}

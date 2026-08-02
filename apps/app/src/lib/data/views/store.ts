@@ -4,12 +4,14 @@ import { createSelectorHooks } from "../createSelectorHooks";
 import { createIDBStorage } from "../idb-storage";
 import { sortViewsByPlacement } from "./utils";
 import type { ApplicationView } from "~/server/db/schema";
+import type { NavigationAvailability } from "~/server/navigation/snapshot";
 import { orpcRouterClient } from "~/lib/orpc";
 
 export type ViewsStore = {
   reset: () => void;
   views: ApplicationView[];
   viewsDict: Record<number, ApplicationView>;
+  viewAvailability: Record<number, NavigationAvailability>;
   fetchStatus: "idle" | "fetching" | "success";
   fetch: () => Promise<void>;
   set: (views: ApplicationView[]) => void;
@@ -17,7 +19,15 @@ export type ViewsStore = {
   update: (id: number, view: Partial<ApplicationView>) => void;
   remove: (id: number) => void;
   removeFeedReferences: (feedIds: number[]) => void;
+  setViewAvailability: (
+    availability: Record<number, NavigationAvailability>,
+  ) => void;
 };
+
+export type PersistedViewsState = Pick<
+  ViewsStore,
+  "views" | "viewsDict" | "viewAvailability"
+>;
 
 export function removeFeedReferencesFromViews(
   views: ApplicationView[],
@@ -32,17 +42,19 @@ export function removeFeedReferencesFromViews(
   }));
 }
 
-const vanillaViewsStore = createStore<ViewsStore>()(
-  persist(
+export const viewsStoreApi = createStore<ViewsStore>()(
+  persist<ViewsStore, [], [], PersistedViewsState>(
     (set, get) => ({
       reset: () =>
         set({
           views: [],
           viewsDict: {},
+          viewAvailability: {},
           fetchStatus: "idle",
         }),
       views: [],
       viewsDict: {},
+      viewAvailability: {},
       fetchStatus: "idle",
 
       fetch: async () => {
@@ -133,14 +145,18 @@ const vanillaViewsStore = createStore<ViewsStore>()(
 
         set({ views: updatedViews, viewsDict });
       },
+      setViewAvailability: (viewAvailability) => {
+        set({ viewAvailability });
+      },
     }),
     {
       name: "serial-views-store",
-      storage: createIDBStorage(),
+      storage: createIDBStorage<PersistedViewsState>(),
       version: 1,
       partialize: (state) => ({
         views: state.views,
         viewsDict: state.viewsDict,
+        viewAvailability: state.viewAvailability,
       }),
       merge: (persistedState, currentState) => {
         const merged = {
@@ -156,12 +172,13 @@ const vanillaViewsStore = createStore<ViewsStore>()(
   ),
 );
 
-export const viewsStore = createSelectorHooks(vanillaViewsStore);
+export const viewsStore = createSelectorHooks(viewsStoreApi);
 
 export const {
   useViews,
   useFetchStatus: useViewsFetchStatus,
   useFetch: useFetchViews,
   useSet: useSetViews,
+  useViewAvailability,
   useRemoveFeedReferences,
 } = viewsStore;

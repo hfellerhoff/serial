@@ -9,7 +9,7 @@ import {
   viewsAtom,
 } from "../atoms";
 import { INBOX_VIEW_ID, INBOX_VIEW_PLACEMENT } from "./constants";
-import { useViewsFetchStatus } from "./store";
+import { useViewAvailability, useViewsFetchStatus } from "./store";
 import type { ApplicationView } from "~/server/db/schema";
 
 export { INBOX_VIEW_ID, INBOX_VIEW_PLACEMENT };
@@ -50,9 +50,11 @@ export function useUpdateViewFilter() {
 export function useViews() {
   const views = useAtomValue(viewsAtom);
   const fetchStatus = useViewsFetchStatus();
+  const viewAvailability = useViewAvailability();
 
   return {
     views,
+    viewAvailability,
     hasFetchedViews: fetchStatus === "success",
   };
 }
