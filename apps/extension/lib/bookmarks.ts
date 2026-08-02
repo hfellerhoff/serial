@@ -4,6 +4,7 @@ import {
 } from "@serial/bookmark-capture";
 import type {
   BookmarkWorkspace,
+  DiscoveredFeed,
   ExtensionBookmark,
   ExtensionCaptureCandidate,
   ExtensionPageObservation,
@@ -14,6 +15,7 @@ import type {
 export type {
   BookmarkCaptureOutcome,
   BookmarkWorkspace,
+  DiscoveredFeed,
   ExtensionBookmark,
   OrganizationOption,
   ViewOrganizationOption,
@@ -21,6 +23,7 @@ export type {
 
 export type BookmarkMessage =
   | { type: "bookmark.capture-active" }
+  | { type: "bookmark.discover-feeds"; sourceUrl: string }
   | {
       type: "bookmark.set-view";
       bookmarkId: string;
@@ -42,6 +45,7 @@ export type BookmarkMessageResponse =
   | { ok: true; status: "base" | "ineligible" }
   | { ok: true; status: "removed" | "feed-added" }
   | { ok: true; status: "saved"; workspace: BookmarkWorkspace }
+  | { ok: true; status: "feeds-discovered"; feeds: DiscoveredFeed[] }
   | { ok: true; status: "updated"; bookmark: ExtensionBookmark }
   | {
       ok: true;

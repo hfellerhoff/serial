@@ -16,6 +16,7 @@ import type { BookmarkWorkspace } from "../../lib/bookmarks";
 import { ExtensionHeader } from "./ExtensionHeader";
 import { PopupLayout } from "./PopupLayout";
 import { useBookmarkWorkspace } from "./useBookmarkWorkspace";
+import type { FeedDiscoveryStatus } from "./useBookmarkWorkspace";
 
 export function BookmarkEditorPopupLayout({
   children,
@@ -36,13 +37,36 @@ export function FeedDiscovery({
   workspace,
   pendingFeedUrls,
   addedFeedUrls,
+  status,
   onAddFeed,
 }: {
   workspace: BookmarkWorkspace;
   pendingFeedUrls: string[];
   addedFeedUrls: string[];
+  status: FeedDiscoveryStatus;
   onAddFeed: (url: string) => void;
 }) {
+  if (status === "loading") {
+    return (
+      <div
+        className="grid gap-2 border-t pt-5"
+        role="status"
+        aria-label="Finding Feeds on this page"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Feeds on this page</h2>
+          <Rss className="text-muted-foreground size-4" />
+        </div>
+        <Item size="xs" variant="outline" className="flex-nowrap">
+          <ItemContent className="min-w-0 gap-2">
+            <div className="bg-muted h-3.5 w-2/3 animate-pulse rounded" />
+            <div className="bg-muted h-3 w-4/5 animate-pulse rounded" />
+          </ItemContent>
+          <div className="bg-muted size-8 shrink-0 animate-pulse rounded-md" />
+        </Item>
+      </div>
+    );
+  }
   if (workspace.feeds.length === 0) return null;
   const pendingFeedUrlSet = new Set(pendingFeedUrls);
   const addedFeedUrlSet = new Set(addedFeedUrls);
@@ -174,6 +198,7 @@ export function BookmarkWorkspaceView({
                 workspace={workspace}
                 pendingFeedUrls={controller.pendingFeedUrls}
                 addedFeedUrls={controller.addedFeedUrls}
+                status={controller.feedDiscoveryStatus}
                 onAddFeed={(url) => void controller.addFeed(url)}
               />
             </>

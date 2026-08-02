@@ -1,4 +1,5 @@
 import { CONTENT_CAPABILITIES } from "./capabilities";
+import { BOOKMARK_CAPTURE_LIMITS } from "./policy";
 import type {
   BookmarkContentPlatform,
   BookmarkContentType,
@@ -64,6 +65,42 @@ export type DiscoveredFeed = {
   url: string;
   title?: string;
 };
+
+export function parseExtensionDiscoveredFeeds(
+  value: unknown,
+): DiscoveredFeed[] | null {
+  if (
+    !Array.isArray(value) ||
+    value.length > BOOKMARK_CAPTURE_LIMITS.discoveredFeeds
+  ) {
+    return null;
+  }
+
+  const feeds: DiscoveredFeed[] = [];
+  for (const entry of value) {
+    if (!isRecord(entry) || typeof entry.url !== "string") return null;
+    try {
+      const url = new URL(entry.url);
+      if (
+        (url.protocol !== "http:" && url.protocol !== "https:") ||
+        url.username ||
+        url.password
+      ) {
+        return null;
+      }
+    } catch {
+      return null;
+    }
+    if (entry.title !== undefined && typeof entry.title !== "string") {
+      return null;
+    }
+    feeds.push({
+      url: entry.url,
+      ...(typeof entry.title === "string" ? { title: entry.title } : {}),
+    });
+  }
+  return feeds;
+}
 
 export type ExtensionBookmark = {
   id: string;

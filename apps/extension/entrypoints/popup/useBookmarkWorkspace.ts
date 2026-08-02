@@ -14,6 +14,8 @@ import type {
 type WorkspaceStatus =
   "loading" | "base" | "ineligible" | "saved" | "removed" | "error";
 
+export type FeedDiscoveryStatus = "idle" | "loading" | "loaded" | "error";
+
 async function sendBookmarkMessage(message: BookmarkMessage) {
   const response = (await browser.runtime.sendMessage(
     message,
@@ -30,12 +32,15 @@ export function useBookmarkWorkspace(input: {
 }) {
   const [status, setStatus] = useState<WorkspaceStatus>("loading");
   const [workspace, setWorkspace] = useState<BookmarkWorkspace | null>(null);
+  const [feedDiscoveryStatus, setFeedDiscoveryStatus] =
+    useState<FeedDiscoveryStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [pendingOrganization, setPendingOrganization] = useState<string[]>([]);
   const [pendingFeedUrls, setPendingFeedUrls] = useState<string[]>([]);
   const [addedFeedUrls, setAddedFeedUrls] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const attemptedToken = useRef<string | null>(null);
+  const feedDiscoveryGeneration = useRef(0);
   const workspaceRef = useRef<BookmarkWorkspace | null>(null);
   const pendingOrganizationRef = useRef<Set<string> | null>(null);
   if (pendingOrganizationRef.current === null) {
@@ -77,8 +82,42 @@ export function useBookmarkWorkspace(input: {
     [onAuthExpired],
   );
 
+  const discoverFeeds = useCallback(
+    async (savedWorkspace: BookmarkWorkspace, generation: number) => {
+      setFeedDiscoveryStatus("loading");
+      try {
+        const response = await sendBookmarkMessage({
+          type: "bookmark.discover-feeds",
+          sourceUrl: savedWorkspace.bookmark.sourceUrl,
+        });
+        if (feedDiscoveryGeneration.current !== generation) return;
+        if (!response.ok) {
+          if (response.authExpired) onAuthExpired();
+          setFeedDiscoveryStatus("error");
+          return;
+        }
+        if (response.status !== "feeds-discovered") {
+          throw new Error("Serial returned an unexpected Feed-discovery state");
+        }
+        const currentWorkspace = workspaceRef.current;
+        if (currentWorkspace?.bookmark.id === savedWorkspace.bookmark.id) {
+          replaceWorkspace({ ...currentWorkspace, feeds: response.feeds });
+        }
+        setFeedDiscoveryStatus("loaded");
+      } catch {
+        if (feedDiscoveryGeneration.current === generation) {
+          setFeedDiscoveryStatus("error");
+        }
+      }
+    },
+    [onAuthExpired, replaceWorkspace],
+  );
+
   const captureActive = useCallback(async () => {
+    const generation = feedDiscoveryGeneration.current + 1;
+    feedDiscoveryGeneration.current = generation;
     setStatus("loading");
+    setFeedDiscoveryStatus("idle");
     setError(null);
     try {
       const response = await sendBookmarkMessage({
@@ -95,6 +134,11 @@ export function useBookmarkWorkspace(input: {
       }
       replaceWorkspace(response.workspace);
       setStatus("saved");
+      if (response.workspace.feeds.length > 0) {
+        setFeedDiscoveryStatus("loaded");
+      } else {
+        void discoverFeeds(response.workspace, generation);
+      }
     } catch (captureError) {
       setError(
         captureError instanceof Error
@@ -103,7 +147,7 @@ export function useBookmarkWorkspace(input: {
       );
       setStatus("error");
     }
-  }, [handleFailure, replaceWorkspace]);
+  }, [discoverFeeds, handleFailure, replaceWorkspace]);
 
   useEffect(() => {
     if (attemptedToken.current === session.token) return;
@@ -215,6 +259,7 @@ export function useBookmarkWorkspace(input: {
         return false;
       }
       if (response.status === "removed") {
+        feedDiscoveryGeneration.current += 1;
         setStatus("removed");
         return true;
       }
@@ -324,6 +369,7 @@ export function useBookmarkWorkspace(input: {
   return {
     status,
     workspace,
+    feedDiscoveryStatus,
     error,
     pendingOrganization,
     pendingFeedUrls,

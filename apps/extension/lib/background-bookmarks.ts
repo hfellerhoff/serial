@@ -1,6 +1,7 @@
 import {
   EXTENSION_FEED_ADD_REQUEST_TIMEOUT_MS,
   parseExtensionBookmark,
+  parseExtensionDiscoveredFeeds,
   parseExtensionBookmarkWorkspace,
   type ExtensionCaptureCandidate,
   type ExtensionPageObservation,
@@ -194,6 +195,42 @@ async function captureActiveBookmark(
   return { ok: true, status: "saved", workspace };
 }
 
+async function discoverBookmarkFeeds(
+  session: ExtensionAuthSession,
+  sourceUrl: string,
+  dependencies: BookmarkBackgroundDependencies,
+): Promise<BookmarkMessageResponse> {
+  const request = await authenticatedApiRequest(
+    session,
+    "/api/extension/bookmark-feed-discovery",
+    {
+      method: "POST",
+      body: JSON.stringify({ sourceUrl }),
+    },
+    dependencies,
+  );
+  if (request.authExpired) {
+    return { ok: false, authExpired: true, error: "Reconnect to Serial" };
+  }
+  if (!request.response.ok) {
+    return {
+      ok: false,
+      authExpired: false,
+      error: apiError(request.payload, "Serial could not discover Feeds"),
+    };
+  }
+  const feeds = isRecord(request.payload)
+    ? parseExtensionDiscoveredFeeds(request.payload.feeds)
+    : null;
+  return feeds
+    ? { ok: true, status: "feeds-discovered", feeds }
+    : {
+        ok: false,
+        authExpired: false,
+        error: "This Serial instance returned incompatible Feed results",
+      };
+}
+
 export async function handleBookmarkMessage(
   message: BookmarkMessage,
   dependencies: BookmarkBackgroundDependencies,
@@ -206,6 +243,13 @@ export async function handleBookmarkMessage(
   try {
     if (message.type === "bookmark.capture-active") {
       return captureActiveBookmark(session, dependencies);
+    }
+    if (message.type === "bookmark.discover-feeds") {
+      return await discoverBookmarkFeeds(
+        session,
+        message.sourceUrl,
+        dependencies,
+      );
     }
     const request =
       message.type === "bookmark.add-feed"

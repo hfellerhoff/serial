@@ -29,6 +29,7 @@ import { Route as AppAdminIndexRouteImport } from './app/_app.admin.index'
 import { Route as ApiRpcSplatRouteImport } from './app/api/rpc.$'
 import { Route as ApiExtensionFeedsRouteImport } from './app/api.extension.feeds'
 import { Route as ApiExtensionBookmarksRouteImport } from './app/api.extension.bookmarks'
+import { Route as ApiExtensionBookmarkFeedDiscoveryRouteImport } from './app/api.extension.bookmark-feed-discovery'
 import { Route as ApiExtensionAuthSplatRouteImport } from './app/api/extension-auth.$'
 import { Route as ApiDemoProvisionRouteImport } from './app/api.demo.provision'
 import { Route as ApiAuthSplatRouteImport } from './app/api/auth.$'
@@ -140,6 +141,12 @@ const ApiExtensionBookmarksRoute = ApiExtensionBookmarksRouteImport.update({
   path: '/api/extension/bookmarks',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiExtensionBookmarkFeedDiscoveryRoute =
+  ApiExtensionBookmarkFeedDiscoveryRouteImport.update({
+    id: '/api/extension/bookmark-feed-discovery',
+    path: '/api/extension/bookmark-feed-discovery',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiExtensionAuthSplatRoute = ApiExtensionAuthSplatRouteImport.update({
   id: '/api/extension-auth/$',
   path: '/api/extension-auth/$',
@@ -222,6 +229,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/demo/provision': typeof ApiDemoProvisionRoute
   '/api/extension-auth/$': typeof ApiExtensionAuthSplatRoute
+  '/api/extension/bookmark-feed-discovery': typeof ApiExtensionBookmarkFeedDiscoveryRoute
   '/api/extension/bookmarks': typeof ApiExtensionBookmarksRoute
   '/api/extension/feeds': typeof ApiExtensionFeedsRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
@@ -254,6 +262,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/demo/provision': typeof ApiDemoProvisionRoute
   '/api/extension-auth/$': typeof ApiExtensionAuthSplatRoute
+  '/api/extension/bookmark-feed-discovery': typeof ApiExtensionBookmarkFeedDiscoveryRoute
   '/api/extension/bookmarks': typeof ApiExtensionBookmarksRoute
   '/api/extension/feeds': typeof ApiExtensionFeedsRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
@@ -288,6 +297,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/demo/provision': typeof ApiDemoProvisionRoute
   '/api/extension-auth/$': typeof ApiExtensionAuthSplatRoute
+  '/api/extension/bookmark-feed-discovery': typeof ApiExtensionBookmarkFeedDiscoveryRoute
   '/api/extension/bookmarks': typeof ApiExtensionBookmarksRoute
   '/api/extension/feeds': typeof ApiExtensionFeedsRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
@@ -322,6 +332,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/demo/provision'
     | '/api/extension-auth/$'
+    | '/api/extension/bookmark-feed-discovery'
     | '/api/extension/bookmarks'
     | '/api/extension/feeds'
     | '/api/rpc/$'
@@ -354,6 +365,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/demo/provision'
     | '/api/extension-auth/$'
+    | '/api/extension/bookmark-feed-discovery'
     | '/api/extension/bookmarks'
     | '/api/extension/feeds'
     | '/api/rpc/$'
@@ -387,6 +399,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/demo/provision'
     | '/api/extension-auth/$'
+    | '/api/extension/bookmark-feed-discovery'
     | '/api/extension/bookmarks'
     | '/api/extension/feeds'
     | '/api/rpc/$'
@@ -403,6 +416,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiDemoProvisionRoute: typeof ApiDemoProvisionRoute
   ApiExtensionAuthSplatRoute: typeof ApiExtensionAuthSplatRoute
+  ApiExtensionBookmarkFeedDiscoveryRoute: typeof ApiExtensionBookmarkFeedDiscoveryRoute
   ApiExtensionBookmarksRoute: typeof ApiExtensionBookmarksRoute
   ApiExtensionFeedsRoute: typeof ApiExtensionFeedsRoute
   ApiRpcSplatRoute: typeof ApiRpcSplatRoute
@@ -550,6 +564,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiExtensionBookmarksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/extension/bookmark-feed-discovery': {
+      id: '/api/extension/bookmark-feed-discovery'
+      path: '/api/extension/bookmark-feed-discovery'
+      fullPath: '/api/extension/bookmark-feed-discovery'
+      preLoaderRoute: typeof ApiExtensionBookmarkFeedDiscoveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/extension-auth/$': {
       id: '/api/extension-auth/$'
       path: '/api/extension-auth/$'
@@ -695,6 +716,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiDemoProvisionRoute: ApiDemoProvisionRoute,
   ApiExtensionAuthSplatRoute: ApiExtensionAuthSplatRoute,
+  ApiExtensionBookmarkFeedDiscoveryRoute:
+    ApiExtensionBookmarkFeedDiscoveryRoute,
   ApiExtensionBookmarksRoute: ApiExtensionBookmarksRoute,
   ApiExtensionFeedsRoute: ApiExtensionFeedsRoute,
   ApiRpcSplatRoute: ApiRpcSplatRoute,

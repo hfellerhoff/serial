@@ -16,18 +16,41 @@ const workspace = {
 function renderFeedDiscovery(input: {
   pendingFeedUrls?: string[];
   addedFeedUrls?: string[];
+  status?: "idle" | "loading" | "loaded" | "error";
+  workspace?: BookmarkWorkspace;
 }) {
   return renderToStaticMarkup(
     createElement(FeedDiscovery, {
-      workspace,
+      workspace: input.workspace ?? workspace,
       pendingFeedUrls: input.pendingFeedUrls ?? [],
       addedFeedUrls: input.addedFeedUrls ?? [],
+      status: input.status ?? "loaded",
       onAddFeed: vi.fn(),
     }),
   );
 }
 
 describe("extension Feed discovery actions", () => {
+  it("shows one item skeleton only while remote discovery is loading", () => {
+    const loadingMarkup = renderFeedDiscovery({
+      status: "loading",
+      workspace: { ...workspace, feeds: [] },
+    });
+    const loadedMarkup = renderFeedDiscovery({
+      status: "loaded",
+      workspace: { ...workspace, feeds: [] },
+    });
+    const failedMarkup = renderFeedDiscovery({
+      status: "error",
+      workspace: { ...workspace, feeds: [] },
+    });
+
+    expect(loadingMarkup).toContain('aria-label="Finding Feeds on this page"');
+    expect(loadingMarkup).toContain("animate-pulse");
+    expect(loadedMarkup).not.toContain("animate-pulse");
+    expect(failedMarkup).not.toContain("animate-pulse");
+  });
+
   it("replaces the Add icon with a spinner throughout initial ingestion", () => {
     const markup = renderFeedDiscovery({ pendingFeedUrls: [FEED_URL] });
 

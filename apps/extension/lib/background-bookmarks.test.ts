@@ -25,6 +25,28 @@ function workspacePayload(feeds?: unknown) {
   };
 }
 
+function authenticatedDependencies(
+  fetchFromInstance: (
+    input: string | URL | Request,
+    init?: RequestInit,
+    options?: { timeoutMs?: number },
+  ) => Promise<Response>,
+) {
+  return {
+    readStoredSession: vi.fn(() =>
+      Promise.resolve({
+        version: 1,
+        instance: "https://serial.example",
+        token: "serial_ext_test",
+        expiresAt: Date.now() + 60_000,
+        user: { id: "user-one", name: "User", email: "u@example.com" },
+      } as never),
+    ),
+    clearSession: vi.fn(),
+    fetchFromInstance,
+  };
+}
+
 describe("extension Bookmark page eligibility", () => {
   it("treats every path on the connected Serial origin as the base extension", () => {
     expect(
@@ -70,19 +92,7 @@ describe("extension Bookmark Feed discovery", () => {
 
     await handleBookmarkMessage(
       { type: "bookmark.add-feed", url: "https://example.com/feed.xml" },
-      {
-        readStoredSession: vi.fn(() =>
-          Promise.resolve({
-            version: 1,
-            instance: "https://serial.example",
-            token: "serial_ext_test",
-            expiresAt: Date.now() + 60_000,
-            user: { id: "user-one", name: "User", email: "u@example.com" },
-          } as never),
-        ),
-        clearSession: vi.fn(),
-        fetchFromInstance,
-      },
+      authenticatedDependencies(fetchFromInstance),
     );
 
     expect(fetchFromInstance).toHaveBeenCalledWith(
@@ -112,5 +122,97 @@ describe("extension Bookmark Feed discovery", () => {
         [],
       ),
     ).toBeNull();
+  });
+
+  it("runs remote discovery as a separate authenticated message", async () => {
+    const fetchFromInstance = vi.fn(() =>
+      Promise.resolve(
+        Response.json({
+          feeds: [
+            {
+              url: "https://example.com/discovered.xml",
+              title: "Discovered Feed",
+            },
+          ],
+        }),
+      ),
+    );
+
+    const response = await handleBookmarkMessage(
+      {
+        type: "bookmark.discover-feeds",
+        sourceUrl: "https://example.com/article",
+      },
+      authenticatedDependencies(fetchFromInstance),
+    );
+
+    expect(fetchFromInstance).toHaveBeenCalledWith(
+      "https://serial.example/api/extension/bookmark-feed-discovery",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ sourceUrl: "https://example.com/article" }),
+      }),
+      undefined,
+    );
+    expect(response).toEqual({
+      ok: true,
+      status: "feeds-discovered",
+      feeds: [
+        {
+          url: "https://example.com/discovered.xml",
+          title: "Discovered Feed",
+        },
+      ],
+    });
+  });
+
+  it("reports empty, failed, and timed-out discovery independently", async () => {
+    const empty = await handleBookmarkMessage(
+      {
+        type: "bookmark.discover-feeds",
+        sourceUrl: "https://example.com/article",
+      },
+      authenticatedDependencies(
+        vi.fn(() => Promise.resolve(Response.json({ feeds: [] }))),
+      ),
+    );
+    expect(empty).toEqual({ ok: true, status: "feeds-discovered", feeds: [] });
+
+    const failed = await handleBookmarkMessage(
+      {
+        type: "bookmark.discover-feeds",
+        sourceUrl: "https://example.com/article",
+      },
+      authenticatedDependencies(
+        vi.fn(() =>
+          Promise.resolve(
+            Response.json(
+              { error: "Unable to discover Feeds" },
+              { status: 500 },
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(failed).toEqual({
+      ok: false,
+      authExpired: false,
+      error: "Unable to discover Feeds",
+    });
+
+    const timedOut = await handleBookmarkMessage(
+      {
+        type: "bookmark.discover-feeds",
+        sourceUrl: "https://example.com/article",
+      },
+      authenticatedDependencies(
+        vi.fn(() => Promise.reject(new Error("request timed out"))),
+      ),
+    );
+    expect(timedOut).toEqual({
+      ok: false,
+      authExpired: false,
+      error: "Unable to reach the Serial instance",
+    });
   });
 });

@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from "vitest";
-import { discoverFeeds as discoverFeedsFromUrl } from "feedscout";
 
 import type { saveBookmarkFromExtension } from "~/server/bookmarks/service";
 import {
@@ -19,7 +18,6 @@ vi.mock("~/server/bookmarks/service", () => ({
   setBookmarkTag: vi.fn(),
   setBookmarkView: vi.fn(),
 }));
-vi.mock("feedscout", () => ({ discoverFeeds: vi.fn() }));
 
 const TOKEN = `serial_ext_${"a".repeat(43)}`;
 
@@ -191,68 +189,17 @@ describe("extension Bookmark HTTP contract", () => {
     });
   });
 
-  it("uses Serial Feed discovery when the page declares no Feeds", async () => {
-    vi.mocked(discoverFeedsFromUrl).mockResolvedValue([
-      {
-        url: "https://example.com/discovered.xml",
-        title: "Discovered Feed",
-        isValid: true,
-      },
-    ] as never);
-
+  it("returns the saved Bookmark immediately when the page declares no Feeds", async () => {
     const response = await saveExtensionBookmark(
       bookmarkRequest(supportedRequest({ feeds: [] })),
       dependencies(),
     );
 
-    expect(discoverFeedsFromUrl).toHaveBeenCalledWith(
-      "https://example.com/article",
-      expect.objectContaining({
-        methods: ["platform", "html", "headers", "guess"],
-        concurrency: 2,
-        maxUris: 8,
-        fetchFn: expect.any(Function),
-      }),
-    );
-    await expect(response.json()).resolves.toMatchObject({
-      feeds: [
-        {
-          url: "https://example.com/discovered.xml",
-          title: "Discovered Feed",
-        },
-      ],
-    });
-  });
-
-  it("does not start fallback discovery until the Bookmark save is accepted", async () => {
-    let acceptSave: (() => void) | undefined;
-    const saveAccepted = new Promise<void>((resolve) => {
-      acceptSave = resolve;
-    });
-    const discover = vi.fn(() => Promise.resolve([]));
-    const deps = dependencies();
-    deps.save.mockImplementation(async () => {
-      await saveAccepted;
-      return successfulResult("created");
-    });
-
-    const responsePromise = saveExtensionBookmark(
-      bookmarkRequest(supportedRequest({ feeds: [] })),
-      { ...deps, discover },
-    );
-    await Promise.resolve();
-    expect(discover).not.toHaveBeenCalled();
-
-    acceptSave?.();
-    await responsePromise;
-    expect(discover).toHaveBeenCalledWith(
-      "user-one",
-      "https://example.com/article",
-    );
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toMatchObject({ feeds: [] });
   });
 
   it("prefers page-declared Feeds without running server discovery", async () => {
-    vi.mocked(discoverFeedsFromUrl).mockClear();
     const declaredFeeds = [
       {
         url: "https://example.com/declared.xml",
@@ -266,7 +213,6 @@ describe("extension Bookmark HTTP contract", () => {
     );
 
     expect(response.status).toBe(201);
-    expect(discoverFeedsFromUrl).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toMatchObject({
       feeds: declaredFeeds,
     });

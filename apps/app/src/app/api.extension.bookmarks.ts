@@ -26,8 +26,6 @@ import {
   publishBookmarkDeletion,
   publishBookmarkUpsert,
 } from "~/server/mixed-content/sync";
-import { discoverFeeds as discoverFeedsForUrl } from "~/server/feeds/discovery";
-import { captureException } from "~/server/logger";
 import {
   extensionPreflightResponse,
   extensionJsonResponse as jsonResponse,
@@ -46,7 +44,6 @@ type ExtensionBookmarkRouteDependencies = {
     result: Awaited<ReturnType<typeof saveBookmarkFromExtension>>,
   ) => ReturnType<typeof publishBookmarkUpsert>;
   workspace?: typeof loadExtensionBookmarkWorkspace;
-  discover?: typeof discoverFeedsForUrl;
 };
 
 const DEFAULT_ROUTE_DEPENDENCIES: ExtensionBookmarkRouteDependencies = {
@@ -72,7 +69,6 @@ const DEFAULT_ROUTE_DEPENDENCIES: ExtensionBookmarkRouteDependencies = {
     });
   },
   workspace: loadExtensionBookmarkWorkspace,
-  discover: discoverFeedsForUrl,
 };
 
 const extensionBookmarkRequestSchema = z.strictObject({
@@ -113,19 +109,6 @@ export async function saveExtensionBookmark(
       capture: bookmarkRequest.capture,
       captureFailureReason: bookmarkRequest.captureFailureReason,
     });
-    const discoveredFeeds =
-      bookmarkRequest.feeds.length > 0
-        ? bookmarkRequest.feeds
-        : await (dependencies.discover ?? discoverFeedsForUrl)(
-            authenticatedUser.id,
-            bookmarkRequest.sourceUrl,
-          ).catch((error) => {
-            captureException(error, {
-              context: "extension-bookmark-feed-discovery",
-              url: bookmarkRequest.sourceUrl,
-            });
-            return [];
-          });
     const publishedBookmark = await dependencies.notify?.(
       authenticatedUser.id,
       result,
@@ -140,14 +123,14 @@ export async function saveExtensionBookmark(
       workspace
         ? {
             ...result,
-            feeds: discoveredFeeds,
+            feeds: bookmarkRequest.feeds,
             bookmark: workspace.bookmark,
             workspace: {
               views: workspace.views,
               tags: workspace.tags,
             },
           }
-        : { ...result, feeds: discoveredFeeds },
+        : { ...result, feeds: bookmarkRequest.feeds },
       result.disposition === "created" ? 201 : 200,
     );
   } catch (error) {
