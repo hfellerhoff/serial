@@ -4,6 +4,7 @@ import { expect, test } from "@playwright/test";
 import { DEMO_RSS_SERVER_PORT, DEMO_TURSO_PORT } from "../fixtures/ports";
 import { resetDb } from "../fixtures/reset-db";
 import { readOpmlFixture } from "../fixtures/opml";
+import { openSidebar } from "../fixtures/sidebar";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -71,9 +72,8 @@ test.describe("demo instance full import flow", () => {
     // Give the client a moment to hydrate and load initial data
     await page.waitForTimeout(2000);
 
-    // Open right sidebar to verify feeds
-    await page.keyboard.press("Backslash");
-    await page.waitForTimeout(500);
+    // Open the full sidebar to verify feeds
+    await openSidebar(page);
 
     const feedsSection = page.locator('[data-sidebar="group"]').filter({
       has: page.locator('[data-sidebar="group-label"]', { hasText: "Feeds" }),
@@ -240,8 +240,7 @@ test.describe("demo instance full import flow", () => {
     });
 
     // ── 6. Update Appearance Settings ─────────────────────────────────
-    await page.keyboard.press("Backslash");
-    await page.waitForTimeout(500);
+    await openSidebar(page);
 
     const appearanceButton = page
       .locator('[data-sidebar="menu-button"]')

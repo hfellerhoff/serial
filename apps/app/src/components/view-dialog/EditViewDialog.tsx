@@ -87,16 +87,6 @@ export function EditViewDialog({
     return ids;
   }, [selectedFeedIds, selectedCategories, feedCategories]);
 
-  const tagIdsInView = useMemo(() => {
-    const ids = new Set(selectedCategories);
-    for (const fc of feedCategories) {
-      if (feedIdsInView.has(fc.feedId)) {
-        ids.add(fc.categoryId);
-      }
-    }
-    return ids;
-  }, [selectedCategories, feedIdsInView, feedCategories]);
-
   useEffect(() => {
     if (!selectedViewId) return;
 
@@ -123,7 +113,8 @@ export function EditViewDialog({
     setViewSections(initialViewSections);
   }, [initialViewSections]);
 
-  // Auto-remove view sections for feeds/tags that are no longer in the view
+  // Feed subsections must still resolve to View content. Tag subsections are
+  // independent headings and remain valid without View membership or content.
   useEffect(() => {
     setViewSections((prev) =>
       prev.filter((item) => {
@@ -131,12 +122,12 @@ export function EditViewDialog({
           return feedIdsInView.has(item.itemId);
         }
         if (item.itemType === "tag") {
-          return tagIdsInView.has(item.itemId);
+          return true;
         }
         return false;
       }),
     );
-  }, [feedIdsInView, tagIdsInView]);
+  }, [feedIdsInView]);
 
   const handleSave = async () => {
     if (selectedViewId === null) return;

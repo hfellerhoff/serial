@@ -12,6 +12,7 @@ import {
   getViewsForUser,
 } from "../fixtures/seed-db";
 import { readOpmlFixture } from "../fixtures/opml";
+import { openSidebar } from "../fixtures/sidebar";
 import type { Page } from "@playwright/test";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -73,11 +74,6 @@ async function importSectionedOpml(
   });
 }
 
-async function openLeftSidebar(page: Page) {
-  await page.keyboard.press("Backslash");
-  await page.waitForTimeout(300);
-}
-
 test.describe("import categorization modes", () => {
   test.use({ viewport: { width: 1920, height: 1080 } });
 
@@ -116,7 +112,7 @@ test.describe("import categorization modes", () => {
 
     // Go home and open the sidebar so we can inspect Views and Tags groups
     await page.goto("/");
-    await openLeftSidebar(page);
+    await openSidebar(page);
 
     const viewsSection = page
       .locator('[data-sidebar="group"]')
@@ -188,7 +184,7 @@ test.describe("import categorization modes", () => {
     await importSectionedOpml(page, "tags");
 
     await page.goto("/");
-    await openLeftSidebar(page);
+    await openSidebar(page);
 
     const viewsSection = page
       .locator('[data-sidebar="group"]')
@@ -256,7 +252,7 @@ test.describe("import categorization modes", () => {
     await importSectionedOpml(page, "ignore");
 
     await page.goto("/");
-    await openLeftSidebar(page);
+    await openSidebar(page);
 
     const viewsSection = page
       .locator('[data-sidebar="group"]')

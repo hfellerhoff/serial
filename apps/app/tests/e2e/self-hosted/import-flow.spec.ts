@@ -12,6 +12,7 @@ import {
   verifyUserCleanup,
 } from "../fixtures/seed-db";
 import { readOpmlFixture } from "../fixtures/opml";
+import { openSidebar } from "../fixtures/sidebar";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -213,8 +214,8 @@ test.describe("full user lifecycle", () => {
     await page.getByRole("link", { name: /back to home/i }).click();
     await expect(page).toHaveURL("/");
 
-    // Open right sidebar to verify feeds
-    await page.keyboard.press("Backslash");
+    // Open the full sidebar to verify feeds
+    await openSidebar(page);
     const feedsSection = page.locator('[data-sidebar="group"]').filter({
       has: page.locator('[data-sidebar="group-label"]', { hasText: "Feeds" }),
     });
@@ -396,9 +397,8 @@ test.describe("full user lifecycle", () => {
     });
 
     // ── 6. Update Appearance Settings ───────────────────────────────
-    // Open left sidebar so Appearance is reachable
-    await page.keyboard.press("Backslash");
-    await page.waitForTimeout(500);
+    // Open the full sidebar so Appearance is reachable
+    await openSidebar(page);
 
     // Click Appearance in the left sidebar bottom nav
     const appearanceButton = page
@@ -479,8 +479,8 @@ test.describe("full user lifecycle", () => {
 
     // The add-feed button ('+') is always visible in the header — use it to
     // verify the page loaded, then navigate to the profile via the sidebar.
-    // Open the left sidebar so the user menu becomes accessible.
-    await page.keyboard.press("Backslash");
+    // Open the full sidebar so the user menu becomes accessible.
+    await openSidebar(page);
 
     // Wait for sidebar animation to complete
     const userMenuButton = page.locator(
