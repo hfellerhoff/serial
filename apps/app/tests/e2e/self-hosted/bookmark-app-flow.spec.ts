@@ -143,7 +143,10 @@ test.describe("Bookmark Serial-app flow", () => {
     await expect(page.getByRole("button", { name: "Unsave" })).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Open in Website" }),
-    ).toBeVisible();
+    ).toHaveCount(0);
+    await expect(
+      page.locator("header > span").last().getByRole("button"),
+    ).toHaveCount(2);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
