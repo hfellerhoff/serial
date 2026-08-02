@@ -1,5 +1,6 @@
 import {
-  CONTENT_CAPABILITIES,
+  parseExtensionBookmark,
+  parseExtensionBookmarkWorkspace,
   type ExtensionCaptureCandidate,
   type ExtensionPageObservation,
 } from "@serial/bookmark-capture";
@@ -11,9 +12,6 @@ import type {
   BookmarkMessage,
   BookmarkMessageResponse,
   BookmarkWorkspace,
-  ExtensionBookmark,
-  OrganizationOption,
-  ViewOrganizationOption,
 } from "./bookmarks";
 
 type BookmarkBackgroundDependencies = {
@@ -91,109 +89,11 @@ function parsedObservation(
   return value as unknown as ExtensionPageObservation;
 }
 
-function parseBookmark(value: unknown): ExtensionBookmark | null {
-  if (!isRecord(value)) return null;
-  const { contentType, id, platform, sourceUrl, title, viewIds, tagIds } =
-    value;
-  if (
-    typeof id !== "string" ||
-    typeof sourceUrl !== "string" ||
-    typeof title !== "string" ||
-    typeof platform !== "string" ||
-    !Object.hasOwn(CONTENT_CAPABILITIES, platform) ||
-    typeof contentType !== "string" ||
-    !Object.hasOwn(
-      CONTENT_CAPABILITIES[platform as keyof typeof CONTENT_CAPABILITIES],
-      contentType,
-    ) ||
-    !Array.isArray(viewIds) ||
-    !viewIds.every((entry) => typeof entry === "number") ||
-    !Array.isArray(tagIds) ||
-    !tagIds.every((entry) => typeof entry === "number")
-  ) {
-    return null;
-  }
-  const nullableString = (candidate: unknown) =>
-    typeof candidate === "string" ? candidate : null;
-  return {
-    id,
-    sourceUrl,
-    platform: platform as ExtensionBookmark["platform"],
-    contentType: contentType as ExtensionBookmark["contentType"],
-    title,
-    author: nullableString(value.author),
-    siteName: nullableString(value.siteName),
-    thumbnailUrl: nullableString(value.thumbnailUrl),
-    iconUrl: nullableString(value.iconUrl),
-    captureHash: nullableString(value.captureHash),
-    viewIds,
-    tagIds,
-  };
-}
-
 export function parseWorkspace(
   value: unknown,
   fallbackFeeds: ExtensionPageObservation["feeds"],
 ): BookmarkWorkspace | null {
-  if (!isRecord(value) || !isRecord(value.workspace)) return null;
-  const bookmark = parseBookmark(value.bookmark);
-  const options = (candidate: unknown): OrganizationOption[] =>
-    Array.isArray(candidate)
-      ? candidate.filter(
-          (entry): entry is { id: number; name: string } =>
-            isRecord(entry) &&
-            typeof entry.id === "number" &&
-            typeof entry.name === "string",
-        )
-      : [];
-  const viewOptions = (candidate: unknown): ViewOrganizationOption[] =>
-    Array.isArray(candidate)
-      ? candidate.flatMap((entry) => {
-          if (
-            !isRecord(entry) ||
-            typeof entry.id !== "number" ||
-            typeof entry.name !== "string" ||
-            !Array.isArray(entry.tagIds) ||
-            !entry.tagIds.every((id) => typeof id === "number")
-          ) {
-            return [];
-          }
-          return [{ id: entry.id, name: entry.name, tagIds: entry.tagIds }];
-        })
-      : [];
-  const disposition = value.disposition;
-  const capture = value.capture;
-  const feeds = Array.isArray(value.feeds)
-    ? value.feeds.flatMap((entry) => {
-        if (!isRecord(entry) || typeof entry.url !== "string") return [];
-        return [
-          {
-            url: entry.url,
-            ...(typeof entry.title === "string" ? { title: entry.title } : {}),
-          },
-        ];
-      })
-    : fallbackFeeds;
-  if (
-    !bookmark ||
-    (disposition !== "created" &&
-      disposition !== "refreshed" &&
-      disposition !== "consolidated") ||
-    !isRecord(capture) ||
-    (capture.status !== "captured" &&
-      capture.status !== "preserved" &&
-      capture.status !== "unavailable")
-  ) {
-    return null;
-  }
-  return {
-    bookmark,
-    views: viewOptions(value.workspace.views),
-    tags: options(value.workspace.tags),
-    feeds,
-    disposition,
-    capture: capture as BookmarkWorkspace["capture"],
-  };
+  return parseExtensionBookmarkWorkspace(value, fallbackFeeds);
 }
 
 async function authenticatedApiRequest(
@@ -368,7 +268,9 @@ export async function handleBookmarkMessage(
       return { ok: true, status: "feed-added" };
     }
     const payload = request.payload;
-    const bookmark = isRecord(payload) ? parseBookmark(payload.bookmark) : null;
+    const bookmark = isRecord(payload)
+      ? parseExtensionBookmark(payload.bookmark)
+      : null;
     if (bookmark && isRecord(payload) && isRecord(payload.createdOption)) {
       const created = payload.createdOption;
       const option = isRecord(created.option) ? created.option : null;

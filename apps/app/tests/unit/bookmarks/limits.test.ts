@@ -45,4 +45,23 @@ describe("capture limits", () => {
       reason: "capacity_limited",
     });
   });
+
+  it("shares deployment fetch capacity between capture and Feed discovery", () => {
+    const limiter = new CaptureLimiter(1);
+    const capture = limiter.acquire("one", "app");
+    expect(capture.ok).toBe(true);
+    expect(limiter.acquire("two", "discovery")).toEqual({
+      ok: false,
+      reason: "capacity_limited",
+    });
+    if (capture.ok) capture.release();
+
+    const discovery = limiter.acquire("two", "discovery");
+    expect(discovery.ok).toBe(true);
+    expect(limiter.acquire("three", "app")).toEqual({
+      ok: false,
+      reason: "capacity_limited",
+    });
+    if (discovery.ok) discovery.release();
+  });
 });

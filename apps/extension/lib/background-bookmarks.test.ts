@@ -70,4 +70,16 @@ describe("extension Bookmark Feed discovery", () => {
       localFeeds,
     );
   });
+
+  it("rejects an unknown capture failure reason", () => {
+    expect(
+      parseWorkspace(
+        {
+          ...workspacePayload(),
+          capture: { status: "unavailable", reason: "future_reason" },
+        },
+        [],
+      ),
+    ).toBeNull();
+  });
 });

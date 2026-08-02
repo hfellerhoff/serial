@@ -1,6 +1,8 @@
 import { getContentCapability } from "@serial/bookmark-capture";
-import type { BookmarkContentDescriptor } from "@serial/bookmark-capture";
-import type { BookmarkEditorFeedback } from "./bookmark-editor";
+import type {
+  BookmarkContentDescriptor,
+  BookmarkEditorFeedback,
+} from "@serial/bookmark-capture";
 
 export const BOOKMARK_ORIGIN_FALLBACK_MESSAGE =
   "This bookmark will open in the original site.";

@@ -1,12 +1,13 @@
-import { Agent, fetch } from "undici";
+import { fetch } from "undici";
 import { BOOKMARK_CAPTURE_LIMITS } from "./contracts";
 import {
   BlockedCaptureTargetError,
+  createPinnedDispatcher,
   resolvePublicAddresses,
   validateServerCaptureUrl,
 } from "./ssrf";
 import type { CaptureFailureReason } from "./contracts";
-import type { LookupFunction } from "node:net";
+import type { Agent } from "undici";
 
 export type StaticHtmlFetchResult =
   | { ok: true; html: string; effectiveUrl: string; redirectCount: number }
@@ -45,25 +46,9 @@ type CaptureFetchDependencies = {
 
 const DEFAULT_FETCH_DEPENDENCIES: CaptureFetchDependencies = {
   resolveAddresses: resolvePublicAddresses,
-  createDispatcher: ({ address, family, hostname }) =>
-    new Agent({
-      connect: {
-        lookup: pinnedLookup(address, family),
-        servername: hostname,
-      },
-    }),
+  createDispatcher: createPinnedDispatcher,
   fetch,
 };
-
-function pinnedLookup(address: string, family: 4 | 6): LookupFunction {
-  return (_hostname, options, callback) => {
-    if (typeof options === "object" && options.all) {
-      callback(null, [{ address, family }]);
-      return;
-    }
-    callback(null, address, family);
-  };
-}
 
 async function readBoundedBody(response: Awaited<ReturnType<typeof fetch>>) {
   if (!response.body) return "";

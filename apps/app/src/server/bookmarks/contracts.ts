@@ -1,5 +1,14 @@
 import { z } from "zod";
-import { BOOKMARK_CAPTURE_LIMITS } from "@serial/bookmark-capture";
+import {
+  BOOKMARK_CAPTURE_FAILURE_REASONS,
+  BOOKMARK_CAPTURE_LIMITS,
+  EXTENSION_CAPTURE_FAILURE_REASONS,
+} from "@serial/bookmark-capture";
+import type {
+  BookmarkCaptureOutcome,
+  BookmarkSaveResult,
+  CaptureFailureReason,
+} from "@serial/bookmark-capture";
 import type {
   BookmarkClassification,
   BookmarkPreview,
@@ -14,38 +23,20 @@ import {
 export {
   BOOKMARK_CAPTURE_LIMITS,
   EXTENSION_BOOKMARK_CONTRACT_VERSION,
+  EXTENSION_CAPTURE_FAILURE_REASONS,
   READABILITY_EXTRACTOR_VERSION,
   SANITIZER_POLICY_VERSION,
 } from "@serial/bookmark-capture";
 
-const captureFailureReasonSchema = z.enum([
-  "blocked_target",
-  "timeout",
-  "http_error",
-  "not_html",
-  "too_large",
-  "unextractable",
-  "invalid_capture",
-  "unsupported_capture_version",
-  "rate_limited",
-  "capacity_limited",
-  "unsupported_content",
-]);
+export type {
+  BookmarkCaptureOutcome,
+  BookmarkSaveResult,
+  CaptureFailureReason,
+} from "@serial/bookmark-capture";
 
-export type CaptureFailureReason = z.infer<typeof captureFailureReasonSchema>;
-
-export type BookmarkCaptureOutcome =
-  | { status: "captured" }
-  | { status: "preserved"; reason: CaptureFailureReason }
-  | { status: "unavailable"; reason: CaptureFailureReason };
-
-export type BookmarkSaveResult<TBookmark> = {
-  disposition: "created" | "refreshed" | "consolidated";
-  bookmark: TBookmark;
-  capture: BookmarkCaptureOutcome;
-  removedBookmarkId?: string;
-  removedBookmarkIds?: string[];
-};
+export const captureFailureReasonSchema = z.enum(
+  BOOKMARK_CAPTURE_FAILURE_REASONS,
+);
 
 const boundedString = (maxCodePoints: number) =>
   z.string().refine((value) => [...value].length <= maxCodePoints);

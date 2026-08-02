@@ -4,10 +4,11 @@ import {
   READABILITY_EXTRACTOR_VERSION,
   SANITIZER_POLICY_VERSION,
 } from "./policy";
+import type {
+  DiscoveredFeed,
+  ExtensionCaptureFailureReason,
+} from "./contracts";
 import { sanitizeCaptureHtml } from "./sanitize";
-
-export type CaptureFailureReason =
-  "too_large" | "unextractable" | "invalid_capture" | "unsupported_content";
 
 export type ExtensionContentDescriptor = {
   platform: "website" | "youtube" | "peertube" | "nebula";
@@ -33,15 +34,10 @@ export type ExtensionCaptureCandidate = {
   sanitizerPolicyVersion?: number;
 };
 
-export type DiscoveredFeed = {
-  url: string;
-  title?: string;
-};
-
 export type ExtensionPageObservation = {
   sourceUrl: string;
   capture: ExtensionCaptureCandidate;
-  captureFailureReason?: CaptureFailureReason;
+  captureFailureReason?: ExtensionCaptureFailureReason;
   feeds: DiscoveredFeed[];
 };
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   BOOKMARK_CAPTURE_LIMITS,
   EXTENSION_BOOKMARK_CONTRACT_VERSION,
+  EXTENSION_CAPTURE_FAILURE_REASONS,
   extensionCaptureCandidateSchema,
   extensionDiscoveredFeedsSchema,
 } from "~/server/bookmarks/contracts";
@@ -134,14 +135,7 @@ const extensionBookmarkRequestSchema = z.strictObject({
   sourceUrl: z.string(),
   bookmarkId: z.string().min(1).optional(),
   capture: extensionCaptureCandidateSchema,
-  captureFailureReason: z
-    .enum([
-      "too_large",
-      "unextractable",
-      "invalid_capture",
-      "unsupported_content",
-    ])
-    .optional(),
+  captureFailureReason: z.enum(EXTENSION_CAPTURE_FAILURE_REASONS).optional(),
   feeds: extensionDiscoveredFeedsSchema.optional().default([]),
 });
 
@@ -164,10 +158,19 @@ export async function saveExtensionBookmark(
       return jsonResponse({ error: "The bookmark request is invalid" }, 400);
     }
     const bookmarkRequest = parsedRequest.data;
-    const discoveryPromise =
+    const result = await dependencies.save({
+      database: db,
+      userId: authenticatedUser.id,
+      sourceUrl: bookmarkRequest.sourceUrl,
+      bookmarkId: bookmarkRequest.bookmarkId,
+      capture: bookmarkRequest.capture,
+      captureFailureReason: bookmarkRequest.captureFailureReason,
+    });
+    const discoveredFeeds =
       bookmarkRequest.feeds.length > 0
-        ? Promise.resolve(bookmarkRequest.feeds)
-        : (dependencies.discover ?? discoverFeedsForUrl)(
+        ? bookmarkRequest.feeds
+        : await (dependencies.discover ?? discoverFeedsForUrl)(
+            authenticatedUser.id,
             bookmarkRequest.sourceUrl,
           ).catch((error) => {
             captureException(error, {
@@ -176,17 +179,6 @@ export async function saveExtensionBookmark(
             });
             return [];
           });
-    const [result, discoveredFeeds] = await Promise.all([
-      dependencies.save({
-        database: db,
-        userId: authenticatedUser.id,
-        sourceUrl: bookmarkRequest.sourceUrl,
-        bookmarkId: bookmarkRequest.bookmarkId,
-        capture: bookmarkRequest.capture,
-        captureFailureReason: bookmarkRequest.captureFailureReason,
-      }),
-      discoveryPromise,
-    ]);
     const publishedBookmark = await dependencies.notify?.(
       authenticatedUser.id,
       result,

@@ -527,4 +527,6 @@ export const bulkSetActive = protectedProcedure
 
 export const discoverFeeds = protectedProcedure
   .input(z.object({ url: z.url() }))
-  .handler(({ input }) => discoverFeedsForUrl(input.url));
+  .handler(({ input, context }) =>
+    discoverFeedsForUrl(context.user.id, input.url),
+  );

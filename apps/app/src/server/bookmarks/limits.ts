@@ -1,6 +1,6 @@
 import { env } from "~/env";
 
-type CaptureSurface = "app" | "extension";
+type CaptureSurface = "app" | "extension" | "discovery";
 
 type SurfacePolicy = {
   attempts: number;
@@ -11,6 +11,7 @@ type SurfacePolicy = {
 const SURFACE_POLICIES: Record<CaptureSurface, SurfacePolicy> = {
   app: { attempts: 10, windowMs: 10 * 60 * 1_000, activePerUser: 1 },
   extension: { attempts: 30, windowMs: 10 * 60 * 1_000, activePerUser: 2 },
+  discovery: { attempts: 30, windowMs: 10 * 60 * 1_000, activePerUser: 2 },
 };
 
 export type CaptureLease =
@@ -42,14 +43,15 @@ export class CaptureLimiter {
     }
 
     const activeForUser = this.active.get(key) ?? 0;
+    const usesServerCapacity = surface === "app" || surface === "discovery";
     const serverCapacityReached =
-      surface === "app" && this.activeServerFetches >= this.maxServerFetches;
+      usesServerCapacity && this.activeServerFetches >= this.maxServerFetches;
     if (activeForUser >= policy.activePerUser || serverCapacityReached) {
       return { ok: false, reason: "capacity_limited" };
     }
 
     this.active.set(key, activeForUser + 1);
-    if (surface === "app") this.activeServerFetches += 1;
+    if (usesServerCapacity) this.activeServerFetches += 1;
     let released = false;
 
     return {
@@ -60,7 +62,7 @@ export class CaptureLimiter {
         const active = this.active.get(key) ?? 1;
         if (active <= 1) this.active.delete(key);
         else this.active.set(key, active - 1);
-        if (surface === "app") this.activeServerFetches -= 1;
+        if (usesServerCapacity) this.activeServerFetches -= 1;
       },
     };
   }

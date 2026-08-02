@@ -3,63 +3,22 @@ import {
   EXTENSION_BOOKMARK_CONTRACT_VERSION,
 } from "@serial/bookmark-capture";
 import type {
-  BookmarkContentPlatform,
-  BookmarkContentType,
+  BookmarkWorkspace,
   DiscoveredFeed,
+  ExtensionBookmark,
   ExtensionCaptureCandidate,
   ExtensionPageObservation,
+  OrganizationOption,
+  ViewOrganizationOption,
 } from "@serial/bookmark-capture";
 
-export type ExtensionBookmark = {
-  id: string;
-  sourceUrl: string;
-  platform: BookmarkContentPlatform;
-  contentType: BookmarkContentType;
-  title: string;
-  author: string | null;
-  siteName: string | null;
-  thumbnailUrl: string | null;
-  iconUrl: string | null;
-  captureHash: string | null;
-  viewIds: number[];
-  tagIds: number[];
-};
-
-export type OrganizationOption = {
-  id: number;
-  name: string;
-};
-
-export type ViewOrganizationOption = OrganizationOption & {
-  tagIds: number[];
-};
-
-export type BookmarkCaptureOutcome =
-  | { status: "captured" }
-  | {
-      status: "preserved" | "unavailable";
-      reason:
-        | "blocked_target"
-        | "timeout"
-        | "http_error"
-        | "not_html"
-        | "too_large"
-        | "unextractable"
-        | "invalid_capture"
-        | "unsupported_capture_version"
-        | "rate_limited"
-        | "capacity_limited"
-        | "unsupported_content";
-    };
-
-export type BookmarkWorkspace = {
-  bookmark: ExtensionBookmark;
-  views: ViewOrganizationOption[];
-  tags: OrganizationOption[];
-  feeds: DiscoveredFeed[];
-  disposition: "created" | "refreshed" | "consolidated";
-  capture: BookmarkCaptureOutcome;
-};
+export type {
+  BookmarkCaptureOutcome,
+  BookmarkWorkspace,
+  ExtensionBookmark,
+  OrganizationOption,
+  ViewOrganizationOption,
+} from "@serial/bookmark-capture";
 
 export type BookmarkMessage =
   | { type: "bookmark.capture-active" }

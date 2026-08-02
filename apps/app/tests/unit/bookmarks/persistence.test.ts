@@ -46,11 +46,12 @@ let cleanup: Cleanup;
 function trustedCapture(
   canonicalUrl: string,
   contentHash = "a".repeat(64),
+  captureSource: TrustedPageCapture["captureSource"] = "extension-live-dom",
 ): BookmarkObservationResult {
   const capture: TrustedPageCapture = {
     contentHtml: "<article><p>Captured content</p></article>",
     contentHash,
-    captureSource: "extension-live-dom",
+    captureSource,
     extractorVersion: "mozilla-readability-0.6",
     sanitizerPolicyVersion: 1,
     capturedAt: new Date(),
@@ -439,6 +440,71 @@ describe("Bookmark persistence", () => {
         bookmarkId: survivor.bookmark.id,
       }),
     ).toMatchObject({ status: "capture" });
+  });
+
+  it("keeps the highest-quality duplicate capture and resets survivor progress", async () => {
+    const extensionCapture = await saveCaptured(
+      "user-one",
+      "https://example.com/extension",
+      undefined,
+      trustedCapture(
+        "https://example.com/extension",
+        "e".repeat(64),
+        "extension-live-dom",
+      ),
+    );
+    const survivor = await saveCaptured(
+      "user-one",
+      "https://example.com/server",
+      undefined,
+      trustedCapture(
+        "https://example.com/server",
+        "s".repeat(64),
+        "server-static-fetch",
+      ),
+    );
+    await database
+      .update(bookmarks)
+      .set({
+        createdAt: new Date("2020-01-01T00:00:00Z"),
+        progress: 9,
+        duration: 20,
+      })
+      .where(eq(bookmarks.id, survivor.bookmark.id));
+    await database
+      .update(pageCaptures)
+      .set({ capturedAt: new Date("2030-01-01T00:00:00Z") })
+      .where(eq(pageCaptures.bookmarkId, survivor.bookmark.id));
+
+    const consolidated = await persistBookmarkSave({
+      database,
+      userId: "user-one",
+      sourceUrl: "https://example.com/extension",
+      bookmarkId: survivor.bookmark.id,
+      observationResult: failedObservation(
+        "https://example.com/extension",
+        "timeout",
+      ),
+    });
+
+    expect(consolidated).toMatchObject({
+      disposition: "consolidated",
+      bookmark: { id: survivor.bookmark.id, progress: 0, duration: 0 },
+      removedBookmarkIds: [extensionCapture.bookmark.id],
+    });
+    expect(
+      await getBookmarkCapture({
+        database,
+        userId: "user-one",
+        bookmarkId: survivor.bookmark.id,
+      }),
+    ).toMatchObject({
+      status: "capture",
+      capture: {
+        contentHash: "e".repeat(64),
+        captureSource: "extension-live-dom",
+      },
+    });
   });
 
   it("consolidates canonical collisions into the oldest Bookmark and unions organization", async () => {

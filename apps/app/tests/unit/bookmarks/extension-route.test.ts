@@ -207,7 +207,12 @@ describe("extension Bookmark HTTP contract", () => {
 
     expect(discoverFeedsFromUrl).toHaveBeenCalledWith(
       "https://example.com/article",
-      { methods: ["platform", "html", "headers", "guess"] },
+      expect.objectContaining({
+        methods: ["platform", "html", "headers", "guess"],
+        concurrency: 2,
+        maxUris: 8,
+        fetchFn: expect.any(Function),
+      }),
     );
     await expect(response.json()).resolves.toMatchObject({
       feeds: [
@@ -217,6 +222,33 @@ describe("extension Bookmark HTTP contract", () => {
         },
       ],
     });
+  });
+
+  it("does not start fallback discovery until the Bookmark save is accepted", async () => {
+    let acceptSave: (() => void) | undefined;
+    const saveAccepted = new Promise<void>((resolve) => {
+      acceptSave = resolve;
+    });
+    const discover = vi.fn(() => Promise.resolve([]));
+    const deps = dependencies();
+    deps.save.mockImplementation(async () => {
+      await saveAccepted;
+      return successfulResult("created");
+    });
+
+    const responsePromise = saveExtensionBookmark(
+      bookmarkRequest(supportedRequest({ feeds: [] })),
+      { ...deps, discover },
+    );
+    await Promise.resolve();
+    expect(discover).not.toHaveBeenCalled();
+
+    acceptSave?.();
+    await responsePromise;
+    expect(discover).toHaveBeenCalledWith(
+      "user-one",
+      "https://example.com/article",
+    );
   });
 
   it("prefers page-declared Feeds without running server discovery", async () => {

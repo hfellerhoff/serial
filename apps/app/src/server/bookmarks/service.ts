@@ -282,21 +282,15 @@ async function consolidateBookmarks(
         .from(pageCaptures)
         .where(inArray(pageCaptures.bookmarkId, candidateIds)),
     ]);
-  const survivorCapture = candidateCaptures.find(
-    (capture) => capture.bookmarkId === survivor.id,
-  );
-  const preservedCapture =
-    survivorCapture ??
-    [...candidateCaptures].sort((left, right) => {
-      const sourceDifference = compareObservationSources(
-        right.captureSource,
-        left.captureSource,
-      );
-      return (
-        sourceDifference ||
-        right.capturedAt.getTime() - left.capturedAt.getTime()
-      );
-    })[0];
+  const preservedCapture = [...candidateCaptures].sort((left, right) => {
+    const sourceDifference = compareObservationSources(
+      right.captureSource,
+      left.captureSource,
+    );
+    return (
+      sourceDifference || right.capturedAt.getTime() - left.capturedAt.getTime()
+    );
+  })[0];
   const uniqueViewIds = [
     ...new Set(viewAssignments.map(({ viewId }) => viewId)),
   ];
@@ -343,11 +337,8 @@ async function consolidateBookmarks(
       ),
     );
   }
-  if (!survivorCapture && preservedCapture) {
-    await database.insert(pageCaptures).values({
-      ...preservedCapture,
-      bookmarkId: survivor.id,
-    });
+  if (preservedCapture && preservedCapture.bookmarkId !== survivor.id) {
+    await replaceCapture(database, survivor.id, preservedCapture);
   }
   await database
     .update(bookmarks)
@@ -359,6 +350,9 @@ async function consolidateBookmarks(
       }),
       isRead: ordered.every((bookmark) => bookmark.isRead),
       readUpdatedAt: input.now,
+      progress: 0,
+      duration: 0,
+      progressUpdatedAt: input.now,
     })
     .where(eq(bookmarks.id, survivor.id));
   const refreshedSurvivor = await findOwnedBookmark(

@@ -6,7 +6,10 @@ import {
   InfoIcon,
   RefreshCwIcon,
 } from "lucide-react";
-import type { BookmarkContentDescriptor } from "@serial/bookmark-capture";
+import type {
+  BookmarkContentDescriptor,
+  BookmarkEditorFeedback,
+} from "@serial/bookmark-capture";
 import type { ReactNode } from "react";
 
 import {
@@ -21,28 +24,10 @@ import {
 } from "./selectable-chip-list";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
-export type BookmarkEditorCaptureOutcome =
-  | { status: "captured" }
-  | {
-      status: "preserved" | "unavailable";
-      reason:
-        | "blocked_target"
-        | "timeout"
-        | "http_error"
-        | "not_html"
-        | "too_large"
-        | "unextractable"
-        | "invalid_capture"
-        | "unsupported_capture_version"
-        | "rate_limited"
-        | "capacity_limited"
-        | "unsupported_content";
-    };
-
-export type BookmarkEditorFeedback = {
-  capture: BookmarkEditorCaptureOutcome;
-  disposition: "created" | "refreshed" | "consolidated";
-};
+export type {
+  BookmarkCaptureOutcome as BookmarkEditorCaptureOutcome,
+  BookmarkEditorFeedback,
+} from "@serial/bookmark-capture";
 
 export function BookmarkEditor({
   bookmark,

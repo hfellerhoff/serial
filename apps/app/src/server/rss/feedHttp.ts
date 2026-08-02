@@ -1,5 +1,14 @@
+import { fetch } from "undici";
+import {
+  createPinnedDispatcher,
+  resolvePublicAddresses,
+  validatePublicHttpUrl,
+} from "~/server/http/publicHttp";
+import type { Agent } from "undici";
+
 export type FeedHttpReadOptions = {
   headers?: HeadersInit;
+  method?: "GET" | "HEAD";
   maxBodyBytes?: number;
   maxHeaderBytes?: number;
   maxRedirects?: number;
@@ -21,6 +30,24 @@ const DEFAULT_MAX_REDIRECTS = 5;
 const DEFAULT_TOTAL_DURATION_MS = 15_000;
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
+type FeedHttpDependencies = {
+  validateTarget: typeof validatePublicHttpUrl;
+  resolveAddresses: typeof resolvePublicAddresses;
+  createDispatcher: (input: {
+    address: string;
+    family: 4 | 6;
+    hostname: string;
+  }) => Agent;
+  fetch: typeof fetch;
+};
+
+const DEFAULT_FEED_HTTP_DEPENDENCIES: FeedHttpDependencies = {
+  validateTarget: validatePublicHttpUrl,
+  resolveAddresses: resolvePublicAddresses,
+  createDispatcher: createPinnedDispatcher,
+  fetch,
+};
+
 function assertHeadersWithinBudget(headers: Headers, maxHeaderBytes: number) {
   let headerBytes = 0;
   for (const [name, value] of headers) {
@@ -31,124 +58,121 @@ function assertHeadersWithinBudget(headers: Headers, maxHeaderBytes: number) {
   }
 }
 
-async function fetchWithRedirectBudget(
-  initialUrl: string,
-  options: FeedHttpReadOptions,
-  signal: AbortSignal,
-): Promise<Response> {
-  const maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
-  const maxHeaderBytes = options.maxHeaderBytes ?? DEFAULT_MAX_HEADER_BYTES;
-  let requestUrl = initialUrl;
-
-  for (let redirectCount = 0; ; redirectCount++) {
-    const response = await fetch(requestUrl, {
-      headers: options.headers,
-      redirect: "manual",
-      signal,
-    });
-    try {
-      assertHeadersWithinBudget(response.headers, maxHeaderBytes);
-    } catch (error) {
-      await response.body?.cancel();
-      throw error;
-    }
-
-    if (!REDIRECT_STATUSES.has(response.status)) {
-      return response;
-    }
-
-    if (redirectCount >= maxRedirects) {
-      await response.body?.cancel();
-      const redirectLabel = maxRedirects === 1 ? "redirect" : "redirects";
-      throw new Error(`Feed request exceeded ${maxRedirects} ${redirectLabel}`);
-    }
-
-    const location = response.headers.get("location");
-    await response.body?.cancel();
-    if (!location) {
-      throw new Error("Feed redirect response is missing Location");
-    }
-
-    const redirectUrl = new URL(location, requestUrl);
-    if (redirectUrl.protocol !== "http:" && redirectUrl.protocol !== "https:") {
-      throw new Error("Feed redirect uses an unsupported protocol");
-    }
-    requestUrl = redirectUrl.toString();
-  }
-}
-
 export async function readFeedHttp(
   url: string,
   options: FeedHttpReadOptions = {},
+  dependencyOverrides: Partial<FeedHttpDependencies> = {},
 ): Promise<FeedHttpResponse> {
+  const dependencies = {
+    ...DEFAULT_FEED_HTTP_DEPENDENCIES,
+    ...dependencyOverrides,
+  };
   const maxBodyBytes = options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
+  const maxHeaderBytes = options.maxHeaderBytes ?? DEFAULT_MAX_HEADER_BYTES;
+  const maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
   const totalDurationMs = options.totalDurationMs ?? DEFAULT_TOTAL_DURATION_MS;
   const abortController = new AbortController();
   const timeout = setTimeout(() => abortController.abort(), totalDurationMs);
+  let requestUrl = url;
 
   try {
-    const response = await fetchWithRedirectBudget(
-      url,
-      options,
-      abortController.signal,
-    );
-    const declaredBodyBytes = Number(response.headers.get("content-length"));
-    const responseMayHaveBody =
-      response.status !== 204 &&
-      response.status !== 205 &&
-      response.status !== 304;
-    if (
-      responseMayHaveBody &&
-      Number.isFinite(declaredBodyBytes) &&
-      declaredBodyBytes > maxBodyBytes
-    ) {
-      await response.body?.cancel();
-      throw new Error(
-        `Feed response Content-Length exceeds ${maxBodyBytes} bytes`,
-      );
-    }
-    const reader = response.body?.getReader();
+    for (let redirectCount = 0; ; redirectCount += 1) {
+      const target = dependencies.validateTarget(requestUrl);
+      const addresses = await dependencies.resolveAddresses(target.hostname);
+      const pinned = addresses[0]!;
+      const dispatcher = dependencies.createDispatcher({
+        address: pinned.address,
+        family: pinned.family === 6 ? 6 : 4,
+        hostname: target.hostname,
+      });
 
-    if (!reader) {
-      return {
-        headers: response.headers,
-        ok: response.ok,
-        status: response.status,
-        statusText: response.statusText,
-        text: "",
-        url: response.url,
-      };
-    }
+      try {
+        const requestHeaders = options.headers
+          ? Object.fromEntries(new Headers(options.headers))
+          : undefined;
+        const response = await dependencies.fetch(target, {
+          dispatcher,
+          headers: requestHeaders,
+          method: options.method ?? "GET",
+          redirect: "manual",
+          signal: abortController.signal,
+        });
+        const responseHeaders = new Headers(
+          Array.from(response.headers.entries()),
+        );
+        assertHeadersWithinBudget(responseHeaders, maxHeaderBytes);
 
-    const chunks: Uint8Array[] = [];
-    let totalBytes = 0;
+        if (REDIRECT_STATUSES.has(response.status)) {
+          if (redirectCount >= maxRedirects) {
+            await response.body?.cancel();
+            const redirectLabel =
+              maxRedirects === 1 ? "redirect" : "redirects";
+            throw new Error(
+              `Feed request exceeded ${maxRedirects} ${redirectLabel}`,
+            );
+          }
+          const location = response.headers.get("location");
+          await response.body?.cancel();
+          if (!location) {
+            throw new Error("Feed redirect response is missing Location");
+          }
+          requestUrl = new URL(location, target).toString();
+          continue;
+        }
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      totalBytes += value.byteLength;
-      if (totalBytes > maxBodyBytes) {
-        await reader.cancel();
-        throw new Error(`Feed response body exceeds ${maxBodyBytes} bytes`);
+        const declaredBodyBytes = Number(
+          response.headers.get("content-length"),
+        );
+        const responseMayHaveBody =
+          options.method !== "HEAD" &&
+          response.status !== 204 &&
+          response.status !== 205 &&
+          response.status !== 304;
+        if (
+          responseMayHaveBody &&
+          Number.isFinite(declaredBodyBytes) &&
+          declaredBodyBytes > maxBodyBytes
+        ) {
+          await response.body?.cancel();
+          throw new Error(
+            `Feed response Content-Length exceeds ${maxBodyBytes} bytes`,
+          );
+        }
+        const reader = responseMayHaveBody
+          ? response.body?.getReader()
+          : undefined;
+        const chunks: Uint8Array[] = [];
+        let totalBytes = 0;
+        while (reader) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          totalBytes += value.byteLength;
+          if (totalBytes > maxBodyBytes) {
+            await reader.cancel();
+            throw new Error(`Feed response body exceeds ${maxBodyBytes} bytes`);
+          }
+          chunks.push(value);
+        }
+
+        const body = new Uint8Array(totalBytes);
+        let offset = 0;
+        for (const chunk of chunks) {
+          body.set(chunk, offset);
+          offset += chunk.byteLength;
+        }
+
+        return {
+          headers: responseHeaders,
+          ok: response.ok,
+          status: response.status,
+          statusText: response.statusText,
+          text: new TextDecoder().decode(body),
+          url: response.url || target.toString(),
+        };
+      } finally {
+        await dispatcher.close();
       }
-      chunks.push(value);
     }
-
-    const body = new Uint8Array(totalBytes);
-    let offset = 0;
-    for (const chunk of chunks) {
-      body.set(chunk, offset);
-      offset += chunk.byteLength;
-    }
-
-    return {
-      headers: response.headers,
-      ok: response.ok,
-      status: response.status,
-      statusText: response.statusText,
-      text: new TextDecoder().decode(body),
-      url: response.url,
-    };
   } catch (error) {
     if (abortController.signal.aborted) {
       throw new Error(
