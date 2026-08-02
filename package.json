@@ -29,6 +29,7 @@
     "test:e2e": "pnpm --filter @serial/app test:e2e",
     "test:e2e:main": "pnpm --filter @serial/app test:e2e:main",
     "test:e2e:self-hosted": "pnpm --filter @serial/app test:e2e:self-hosted",
+    "test:e2e:self-hosted-bootstrap": "pnpm --filter @serial/app test:e2e:self-hosted-bootstrap",
     "test:e2e:demo": "pnpm --filter @serial/app test:e2e:demo"
   },
   "devDependencies": {

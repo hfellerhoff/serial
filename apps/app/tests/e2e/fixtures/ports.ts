@@ -17,6 +17,16 @@ export const SELF_HOSTED_APP_PORT = getPort(
   3001,
 );
 
+/** Ports for the isolated first-admin self-hosted test environment */
+export const SELF_HOSTED_BOOTSTRAP_TURSO_PORT = getPort(
+  "SERIAL_TEST_SELF_HOSTED_BOOTSTRAP_TURSO_PORT",
+  8084,
+);
+export const SELF_HOSTED_BOOTSTRAP_APP_PORT = getPort(
+  "SERIAL_TEST_SELF_HOSTED_BOOTSTRAP_APP_PORT",
+  3007,
+);
+
 /** Ports for the "demo" test environment */
 export const DEMO_TURSO_PORT = getPort("SERIAL_TEST_DEMO_TURSO_PORT", 8083);
 export const DEMO_APP_PORT = getPort("SERIAL_TEST_DEMO_APP_PORT", 3005);

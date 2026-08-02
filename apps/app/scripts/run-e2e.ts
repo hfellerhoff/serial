@@ -2,7 +2,8 @@ import { randomInt } from "node:crypto";
 import net from "node:net";
 import { spawn, spawnSync } from "node:child_process";
 
-type TestEnvironment = "main" | "self-hosted" | "demo";
+type TestEnvironment =
+  "main" | "self-hosted" | "self-hosted-bootstrap" | "demo";
 
 const MIN_FIVE_DIGIT_PORT = 10_000;
 const MAX_TCP_PORT = 65_535;
@@ -28,6 +29,12 @@ const environments: Record<
     appPortVariable: "SERIAL_TEST_SELF_HOSTED_APP_PORT",
     tursoPortVariable: "SERIAL_TEST_SELF_HOSTED_TURSO_PORT",
     rssPortVariable: "SERIAL_TEST_SELF_HOSTED_RSS_PORT",
+  },
+  "self-hosted-bootstrap": {
+    config: "playwright.self-hosted-bootstrap.config.ts",
+    appPortVariable: "SERIAL_TEST_SELF_HOSTED_BOOTSTRAP_APP_PORT",
+    tursoPortVariable: "SERIAL_TEST_SELF_HOSTED_BOOTSTRAP_TURSO_PORT",
+    rssPortVariable: "SERIAL_TEST_SELF_HOSTED_BOOTSTRAP_RSS_PORT",
   },
   demo: {
     config: "playwright.demo.config.ts",
@@ -79,10 +86,11 @@ const [environmentName, ...playwrightArguments] = process.argv.slice(2);
 if (
   environmentName !== "main" &&
   environmentName !== "self-hosted" &&
+  environmentName !== "self-hosted-bootstrap" &&
   environmentName !== "demo"
 ) {
   console.error(
-    "Usage: run-e2e.ts <main|self-hosted|demo> [...playwright args]",
+    "Usage: run-e2e.ts <main|self-hosted|self-hosted-bootstrap|demo> [...playwright args]",
   );
   process.exit(1);
 }
