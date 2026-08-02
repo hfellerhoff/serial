@@ -84,8 +84,9 @@ export function BookmarkEditor({
 
   return (
     <div
+      data-slot="bookmark-editor"
       className={cn(
-        "flex max-h-[min(100dvh,44rem)] min-h-0 flex-col overflow-y-auto",
+        "flex min-h-0 min-w-0 flex-col",
         className,
       )}
     >
@@ -125,7 +126,7 @@ export function BookmarkEditor({
         </div>
       </div>
 
-      <div className="grid flex-1 content-start gap-6 px-6 py-5">
+      <div className="grid min-w-0 flex-1 content-start gap-6 px-6 py-5">
         <SelectableChipList
           label="Views"
           options={viewOptions}

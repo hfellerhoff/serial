@@ -83,8 +83,42 @@ describe("shouldShowBookmarkEditorFeedback", () => {
     expect(markup).toContain("lucide-refresh-cw");
     expect(markup).toContain(`aria-label="${message}"`);
     expect(markup).not.toContain('role="status"');
-    expect(markup.match(/overflow-y-auto/g)).toHaveLength(1);
+    expect(markup).toContain('data-slot="bookmark-editor"');
+    expect(markup).toContain("min-w-0");
+    expect(markup).not.toContain("overflow-y-auto");
+    expect(markup).not.toContain("max-h-");
     expect(markup.match(/px-6/g)?.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("keeps long organization labels within the editor container", () => {
+    const longLabel = "A View name that is much wider than its parent surface";
+    const markup = renderToStaticMarkup(
+      createElement(BookmarkEditor, {
+        bookmark: {
+          title:
+            "A Bookmark title that is also much wider than its parent surface",
+          author: "An equally long Bookmark author name",
+          sourceUrl: "https://example.com/article",
+          platform: "website",
+          contentType: "text",
+        },
+        viewOptions: [{ id: 1, label: longLabel }],
+        selectedViewIds: [],
+        onToggleView: () => undefined,
+        onCreateView: () => undefined,
+        tagOptions: [{ id: 2, label: longLabel }],
+        selectedTagIds: [],
+        onToggleTag: () => undefined,
+        onCreateTag: () => undefined,
+        isDeleting: false,
+        onDelete: () => undefined,
+        onDone: () => undefined,
+      }),
+    );
+
+    expect(markup.match(/max-w-full/g)).toHaveLength(2);
+    expect(markup.match(/class="truncate"/g)).toHaveLength(2);
+    expect(markup.match(/min-w-0/g)?.length).toBeGreaterThanOrEqual(6);
   });
 
   it("hides routine first-save outcomes", () => {

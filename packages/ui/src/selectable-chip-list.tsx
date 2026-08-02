@@ -193,7 +193,7 @@ export function SelectableChipList({
 
   return (
     <div
-      className="grid gap-2"
+      className="grid min-w-0 gap-2"
       data-slot="selectable-chip-list"
       data-label={label}
     >
@@ -292,7 +292,7 @@ export function SelectableChipList({
       {totalCount > 0 ? (
         <div
           ref={chipContainerRef}
-          className="relative flex flex-wrap content-start gap-1 overflow-hidden"
+          className="relative flex min-w-0 flex-wrap content-start gap-1 overflow-hidden"
         >
           {renderOptions.map((option) => {
             const isSelected = selectedSet.has(option.id);
@@ -307,7 +307,7 @@ export function SelectableChipList({
                   badgeVariants({
                     variant: isSelected ? "default" : "outline",
                   }),
-                  "cursor-pointer",
+                  "max-w-full min-w-0 shrink cursor-pointer [&>svg]:shrink-0",
                   isPrioritized && !isSelected && "border-primary/50",
                   !isPrioritized && !isSelected && "border-dashed",
                 )}
@@ -320,7 +320,7 @@ export function SelectableChipList({
                     className="text-muted-foreground"
                   />
                 )}
-                {option.label}
+                <span className="truncate">{option.label}</span>
               </button>
             );
           })}

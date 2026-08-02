@@ -178,10 +178,15 @@ export function EditBookmarkDialog({
           Organize this Bookmark into Views and Tags.
         </DialogDescription>
         {bookmarkId && (
-          <BookmarkOrganizationEditor
-            bookmarkId={bookmarkId}
-            onClose={onClose}
-          />
+          <div
+            data-slot="bookmark-editor-dialog-viewport"
+            className="max-h-[min(100dvh,44rem)] min-w-0 overflow-x-hidden overflow-y-auto"
+          >
+            <BookmarkOrganizationEditor
+              bookmarkId={bookmarkId}
+              onClose={onClose}
+            />
+          </div>
         )}
       </DialogContent>
     </Dialog>

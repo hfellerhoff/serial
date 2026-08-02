@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   Alert,
   AlertDescription,
@@ -16,6 +17,21 @@ import { ExtensionHeader } from "./ExtensionHeader";
 import { PopupLayout } from "./PopupLayout";
 import { useBookmarkWorkspace } from "./useBookmarkWorkspace";
 
+export function BookmarkEditorPopupLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return (
+    <main
+      data-slot="extension-bookmark-editor-viewport"
+      className="h-full min-w-0 overflow-x-hidden overflow-y-auto [&>[data-slot=bookmark-editor]]:min-h-full"
+    >
+      {children}
+    </main>
+  );
+}
+
 export function FeedDiscovery({
   workspace,
   pendingFeedUrls,
@@ -31,7 +47,7 @@ export function FeedDiscovery({
   const pendingFeedUrlSet = new Set(pendingFeedUrls);
   const addedFeedUrlSet = new Set(addedFeedUrls);
   return (
-    <div className="grid gap-2 border-t pt-5">
+    <div className="grid min-w-0 gap-2 border-t pt-5">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">Feeds on this page</h2>
         <Rss className="text-muted-foreground size-4" />
@@ -44,10 +60,12 @@ export function FeedDiscovery({
             key={feed.url}
             size="xs"
             variant="outline"
-            className="flex-nowrap"
+            className="min-w-0 flex-nowrap"
           >
             <ItemContent className="min-w-0">
-              <ItemTitle>{feed.title || new URL(feed.url).hostname}</ItemTitle>
+              <ItemTitle className="max-w-full">
+                {feed.title || new URL(feed.url).hostname}
+              </ItemTitle>
               <ItemDescription className="truncate">{feed.url}</ItemDescription>
             </ItemContent>
             <Button
@@ -125,47 +143,48 @@ export function BookmarkWorkspaceView({
     }
     const error = externalError || controller.error;
     return (
-      <BookmarkEditor
-        className="h-full"
-        bookmark={workspace.bookmark}
-        feedback={workspace}
-        viewOptions={workspace.views.map((view) => ({
-          id: view.id,
-          label: view.name,
-        }))}
-        selectedViewIds={workspace.bookmark.viewIds}
-        onToggleView={(id) => void controller.toggleOrganization("view", id)}
-        onCreateView={(name) => controller.createOrganization("view", name)}
-        tagOptions={workspace.tags.map((tag) => ({
-          id: tag.id,
-          label: tag.name,
-        }))}
-        selectedTagIds={workspace.bookmark.tagIds}
-        prioritizedTagIds={prioritizedTagIds}
-        onToggleTag={(id) => void controller.toggleOrganization("tag", id)}
-        onCreateTag={(name) => controller.createOrganization("tag", name)}
-        afterOrganization={
-          <>
-            {error && (
-              <Alert variant="destructive">
-                <Info />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            <FeedDiscovery
-              workspace={workspace}
-              pendingFeedUrls={controller.pendingFeedUrls}
-              addedFeedUrls={controller.addedFeedUrls}
-              onAddFeed={(url) => void controller.addFeed(url)}
-            />
-          </>
-        }
-        isDeleting={controller.isDeleting}
-        onDelete={async () => {
-          if (await controller.removeBookmark()) window.close();
-        }}
-        onDone={() => window.close()}
-      />
+      <BookmarkEditorPopupLayout>
+        <BookmarkEditor
+          bookmark={workspace.bookmark}
+          feedback={workspace}
+          viewOptions={workspace.views.map((view) => ({
+            id: view.id,
+            label: view.name,
+          }))}
+          selectedViewIds={workspace.bookmark.viewIds}
+          onToggleView={(id) => void controller.toggleOrganization("view", id)}
+          onCreateView={(name) => controller.createOrganization("view", name)}
+          tagOptions={workspace.tags.map((tag) => ({
+            id: tag.id,
+            label: tag.name,
+          }))}
+          selectedTagIds={workspace.bookmark.tagIds}
+          prioritizedTagIds={prioritizedTagIds}
+          onToggleTag={(id) => void controller.toggleOrganization("tag", id)}
+          onCreateTag={(name) => controller.createOrganization("tag", name)}
+          afterOrganization={
+            <>
+              {error && (
+                <Alert variant="destructive">
+                  <Info />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              <FeedDiscovery
+                workspace={workspace}
+                pendingFeedUrls={controller.pendingFeedUrls}
+                addedFeedUrls={controller.addedFeedUrls}
+                onAddFeed={(url) => void controller.addFeed(url)}
+              />
+            </>
+          }
+          isDeleting={controller.isDeleting}
+          onDelete={async () => {
+            if (await controller.removeBookmark()) window.close();
+          }}
+          onDone={() => window.close()}
+        />
+      </BookmarkEditorPopupLayout>
     );
   }
 
