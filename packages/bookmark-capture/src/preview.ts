@@ -4,6 +4,7 @@ import type {
 } from "./capabilities";
 import { boundedText, metaContent, resolvedHttpUrl } from "./metadata";
 import { BOOKMARK_CAPTURE_LIMITS } from "./policy";
+import { selectBookmarkPreviewThumbnail } from "./thumbnail";
 
 export type PreviewArticleMetadata = {
   title?: string | null;
@@ -27,6 +28,7 @@ type PreviewExtractionInput = {
   effectiveUrl: string;
   article: PreviewArticleMetadata | null;
   inspectStructuredData: boolean;
+  contentId: string | null;
 };
 
 type PreviewStrategy = (
@@ -364,10 +366,17 @@ function youtubeVideoPreview(
     ],
     BOOKMARK_CAPTURE_LIMITS.authorCodePoints,
   );
+  const thumbnailUrl = selectBookmarkPreviewThumbnail({
+    platform: "youtube",
+    contentType: "video",
+    contentId: input.contentId,
+    observedThumbnailUrl: preview.thumbnailUrl,
+  });
   return {
     ...preview,
     ...(liveTitle ? { title: liveTitle } : {}),
     ...(liveAuthor ? { author: liveAuthor } : {}),
+    ...(thumbnailUrl ? { thumbnailUrl } : {}),
   };
 }
 

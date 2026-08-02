@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { createClient } from "@libsql/client";
 import { eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/libsql";
@@ -45,6 +45,28 @@ export async function cleanupUser(tursoPort: number, email: string) {
   const { db, client } = getDb(tursoPort);
   await db.delete(schema.user).where(eq(schema.user.email, email));
   client.close();
+}
+
+export async function seedExtensionSession(tursoPort: number, email: string) {
+  const { db, client } = getDb(tursoPort);
+  const testUser = await db
+    .select({ id: schema.user.id })
+    .from(schema.user)
+    .where(eq(schema.user.email, email))
+    .get();
+  if (!testUser) {
+    client.close();
+    throw new Error("Extension session seed user was not found");
+  }
+  const token = `serial_ext_${randomBytes(32).toString("base64url")}`;
+  const tokenHash = createHash("sha256").update(token).digest("base64url");
+  await db.insert(schema.extensionSession).values({
+    tokenHash,
+    userId: testUser.id,
+    expiresAt: new Date(Date.now() + 60_000),
+  });
+  client.close();
+  return token;
 }
 
 export async function seedClientPerformanceData(

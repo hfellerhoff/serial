@@ -1,4 +1,5 @@
 import { Readability } from "@mozilla/readability";
+import { selectBookmarkPreviewThumbnail } from "@serial/bookmark-capture";
 import { JSDOM } from "jsdom";
 import {
   BOOKMARK_CAPTURE_LIMITS,
@@ -29,7 +30,6 @@ import {
   createFallbackPreview,
   isValidNativeContentIdForUrl,
   mergePreview,
-  youtubeThumbnailUrl,
 } from "~/lib/content/classification";
 import {
   CONTENT_PLATFORM,
@@ -115,12 +115,13 @@ export function buildUrlFallbackObservation(
   const normalized = normalizeBookmarkUrl(sourceUrl);
   const classification = classifyUrl(normalized);
   let preview = createFallbackPreview(normalized);
-  if (classification.platform === CONTENT_PLATFORM.YOUTUBE) {
-    preview = mergePreview(preview, {
-      source: OBSERVATION_SOURCE.URL,
-      thumbnailUrl: youtubeThumbnailUrl(classification.contentId),
-    });
-  }
+  preview = mergePreview(preview, {
+    source: OBSERVATION_SOURCE.URL,
+    thumbnailUrl: selectBookmarkPreviewThumbnail({
+      ...classification,
+      observedThumbnailUrl: preview.thumbnailUrl,
+    }),
+  });
   return buildObservation({
     sourceUrl: normalized,
     effectiveUrl: normalized,
@@ -205,14 +206,13 @@ function extensionPreview(input: {
       BOOKMARK_CAPTURE_LIMITS.siteNameCodePoints,
     ),
     publishedAt: optionalPublishedAt(input.candidate.publishedAt),
-    thumbnailUrl:
-      resolveOptionalHttpUrl(
+    thumbnailUrl: selectBookmarkPreviewThumbnail({
+      ...input.classification,
+      observedThumbnailUrl: resolveOptionalHttpUrl(
         input.candidate.thumbnailUrl,
         input.effectiveUrl,
-      ) ??
-      (input.classification.platform === CONTENT_PLATFORM.YOUTUBE
-        ? youtubeThumbnailUrl(input.classification.contentId)
-        : null),
+      ),
+    }),
     iconUrl: resolveOptionalHttpUrl(
       input.candidate.iconUrl,
       input.effectiveUrl,
@@ -359,17 +359,16 @@ function staticPreviewCandidate(input: {
       article?.publishedTime ??
         metaContent(document, 'meta[property="article:published_time"]'),
     ),
-    thumbnailUrl:
-      resolveOptionalHttpUrl(
+    thumbnailUrl: selectBookmarkPreviewThumbnail({
+      ...classification,
+      observedThumbnailUrl: resolveOptionalHttpUrl(
         metaContent(
           document,
           'meta[property="og:image"], meta[name="twitter:image"]',
         ),
         effectiveUrl,
-      ) ??
-      (classification.platform === CONTENT_PLATFORM.YOUTUBE
-        ? youtubeThumbnailUrl(classification.contentId)
-        : null),
+      ),
+    }),
     iconUrl: resolveOptionalHttpUrl(
       document.querySelector('link[rel~="icon"]')?.getAttribute("href"),
       effectiveUrl,

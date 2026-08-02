@@ -6,6 +6,9 @@ import {
 } from "@serial/bookmark-capture";
 import { serializeBookmarkRequest } from "./bookmarks";
 
+const YOUTUBE_THUMBNAIL_URL =
+  "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg";
+
 function pageDocument(body: string, head = "") {
   return new JSDOM(
     `<!doctype html><html><head><title>Fixture article</title>${head}</head><body>${body}</body></html>`,
@@ -61,6 +64,26 @@ describe("extension live DOM Bookmark capture", () => {
     expect(result.capture.title).toBe("Current Short title");
     expect(result.capture.author).toBe("Current Shorts channel");
   });
+
+  it.each([
+    ["Watch", "https://www.youtube.com/watch?v=dQw4w9WgXcQ"],
+    ["Shorts", "https://www.youtube.com/shorts/dQw4w9WgXcQ"],
+  ])(
+    "prefers the detected YouTube thumbnail for %s pages",
+    (_pageType, url) => {
+      const document = new JSDOM(
+        `<!doctype html><html><head>
+          <title>YouTube video</title>
+          <meta property="og:image" content="https://metadata.example/standard-youtube.jpg">
+        </head><body></body></html>`,
+        { url },
+      ).window.document;
+
+      const result = extractPageObservation(document);
+
+      expect(result.capture.thumbnailUrl).toBe(YOUTUBE_THUMBNAIL_URL);
+    },
+  );
 
   it("chooses the strongest social-image metadata independently of document order", () => {
     const document = pageDocument(
@@ -226,9 +249,11 @@ describe("extension live DOM Bookmark capture", () => {
       contentType: fixture.contentType,
     });
     expect(result.capture.title).toBe("General preview title");
-    expect(result.capture.thumbnailUrl).toBe(
-      `${new URL(fixture.url).origin}/general-cover.jpg`,
-    );
+    const expectedThumbnailUrl =
+      fixture.platform === "youtube" && fixture.contentType === "video"
+        ? YOUTUBE_THUMBNAIL_URL
+        : `${new URL(fixture.url).origin}/general-cover.jpg`;
+    expect(result.capture.thumbnailUrl).toBe(expectedThumbnailUrl);
   });
 
   it("extracts a clone, resolves lazy and relative URLs, and discovers Feeds", () => {

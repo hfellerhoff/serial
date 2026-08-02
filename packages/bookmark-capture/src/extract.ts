@@ -254,6 +254,7 @@ export function extractPageObservation(
     inspectStructuredData: !tooLarge,
     platform: descriptor.platform,
     contentType: descriptor.contentType,
+    contentId: descriptor.contentId,
   });
   const capture: ExtensionCaptureCandidate = {
     effectiveUrl,

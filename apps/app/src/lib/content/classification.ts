@@ -339,9 +339,3 @@ export function mergePreview(
   if (candidateWins && usedCandidate) next.previewSource = candidate.source;
   return next;
 }
-
-export function youtubeThumbnailUrl(contentId: string | null) {
-  return contentId && YOUTUBE_VIDEO_ID.test(contentId)
-    ? `https://i.ytimg.com/vi/${contentId}/hqdefault.jpg`
-    : null;
-}

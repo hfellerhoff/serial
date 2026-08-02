@@ -8,6 +8,7 @@ import {
   getBookmarkState,
   seedArticleData,
   seedBookmarkProjectionData,
+  seedExtensionSession,
 } from "../fixtures/seed-db";
 import { signIn } from "../fixtures/auth";
 
@@ -172,6 +173,58 @@ test.describe("Bookmark Serial-app flow", () => {
         };
       })
       .toEqual({ isSaved: false, isRead: true, hasProgress: true });
+  });
+
+  test("renders the detected YouTube thumbnail instead of page metadata", async ({
+    page,
+    request,
+  }) => {
+    const { email, password } = await seedArticleData(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+    );
+    testEmail = email;
+    const token = await seedExtensionSession(SELF_HOSTED_TURSO_PORT, email);
+    const videoId = "dQw4w9WgXcQ";
+    const sourceUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const saveResponse = await request.post("/api/extension/bookmarks", {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        contractVersion: 2,
+        sourceUrl,
+        capture: {
+          effectiveUrl: sourceUrl,
+          title: "Detected YouTube Bookmark",
+          thumbnailUrl: "https://metadata.example/standard-youtube.jpg",
+          descriptor: {
+            platform: "youtube",
+            contentType: "video",
+            orientation: null,
+            contentId: videoId,
+            classifierVersion: 1,
+          },
+        },
+        feeds: [],
+      },
+    });
+    expect(saveResponse.status()).toBe(201);
+    const saved = (await saveResponse.json()) as { bookmark: { id: string } };
+
+    await page.route("https://i.ytimg.com/**", (route) => route.abort());
+    await signIn({ page, email, password });
+    await page
+      .getByRole("radio", { name: "Uncategorized", exact: true })
+      .click();
+    await page.getByRole("tab", { name: /Saved/ }).click();
+    const bookmarkCard = page.locator(
+      `article[data-item-id="${saved.bookmark.id}"][data-entity-kind="bookmark"]`,
+    );
+    await expect(bookmarkCard).toContainText("Detected YouTube Bookmark", {
+      timeout: 30_000,
+    });
+    await expect(
+      bookmarkCard.getByRole("img", { name: "Detected YouTube Bookmark" }),
+    ).toHaveAttribute("src", `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`);
   });
 
   test("refreshes a duplicate without losing organization when capture fails", async ({

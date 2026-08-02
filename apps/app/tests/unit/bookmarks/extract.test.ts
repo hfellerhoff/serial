@@ -6,6 +6,9 @@ import {
   prepareExtensionCapture,
 } from "~/server/bookmarks/extract";
 
+const YOUTUBE_ID = "dQw4w9WgXcQ";
+const YOUTUBE_THUMBNAIL_URL = `https://i.ytimg.com/vi/${YOUTUBE_ID}/hqdefault.jpg`;
+
 function extensionCandidate(
   overrides: Partial<ExtensionCaptureCandidate> = {},
 ): ExtensionCaptureCandidate {
@@ -77,6 +80,38 @@ describe("Page capture preparation", () => {
     ).toEqual({ ok: false, reason: "unsupported_capture_version" });
   });
 
+  it.each([
+    ["Watch", `https://www.youtube.com/watch?v=${YOUTUBE_ID}`, null],
+    ["Shorts", `https://www.youtube.com/shorts/${YOUTUBE_ID}`, "vertical"],
+  ] as const)(
+    "trusts the detected YouTube thumbnail ahead of %s page metadata",
+    (_pageType, sourceUrl, orientation) => {
+      const result = prepareExtensionCapture({
+        sourceUrl,
+        candidate: extensionCandidate({
+          effectiveUrl: sourceUrl,
+          thumbnailUrl: "https://metadata.example/standard-youtube.jpg",
+          descriptor: {
+            platform: "youtube",
+            contentType: "video",
+            orientation,
+            contentId: YOUTUBE_ID,
+            classifierVersion: 1,
+          },
+          contentHtml: undefined,
+          extractorVersion: undefined,
+          sanitizerPolicyVersion: undefined,
+        }),
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.result.observation.preview.thumbnailUrl).toBe(
+        YOUTUBE_THUMBNAIL_URL,
+      );
+    },
+  );
+
   it("extracts static reader content without trusting a cross-origin canonical", () => {
     const result = extractStaticCapture({
       sourceUrl: "https://example.com/submitted",
@@ -106,6 +141,20 @@ describe("Page capture preparation", () => {
       'href="https://example.com/next"',
     );
     expect(result.observation.capture?.contentHtml).not.toContain("script");
+  });
+
+  it("prefers the detected YouTube thumbnail during static extraction", () => {
+    const sourceUrl = `https://www.youtube.com/watch?v=${YOUTUBE_ID}`;
+    const result = extractStaticCapture({
+      sourceUrl,
+      effectiveUrl: sourceUrl,
+      html: `<!doctype html><html><head>
+        <title>YouTube video</title>
+        <meta property="og:image" content="https://metadata.example/standard-youtube.jpg">
+      </head><body></body></html>`,
+    });
+
+    expect(result.observation.preview.thumbnailUrl).toBe(YOUTUBE_THUMBNAIL_URL);
   });
 
   it("rejects an oversized DOM before parsing structured data or cloning", () => {

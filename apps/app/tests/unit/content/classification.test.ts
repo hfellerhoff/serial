@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import {
+  selectBookmarkPreviewThumbnail,
+  youtubeThumbnailUrl,
+} from "@serial/bookmark-capture";
 import type { BookmarkClassification } from "~/lib/content/classification";
 import {
   classifyDocument,
@@ -7,7 +11,6 @@ import {
   isValidNativeContentIdForUrl,
   mergeClassification,
   mergePreview,
-  youtubeThumbnailUrl,
 } from "~/lib/content/classification";
 
 const YOUTUBE_ID = "dQw4w9WgXcQ";
@@ -159,4 +162,29 @@ describe("content classification", () => {
     expect(youtubeThumbnailUrl(YOUTUBE_ID)).toContain(YOUTUBE_ID);
     expect(youtubeThumbnailUrl("invalid")).toBeNull();
   });
+
+  it.each([
+    ["youtube", "video", YOUTUBE_ID, true],
+    ["youtube", "text", null, false],
+    ["website", "video", null, false],
+    ["peertube", "video", PEERTUBE_ID, false],
+    ["nebula", "video", "episode", false],
+  ] as const)(
+    "applies detected thumbnail precedence only to %s %s content",
+    (platform, contentType, contentId, expectsDetectedThumbnail) => {
+      const observedThumbnailUrl = "https://example.com/observed.jpg";
+      expect(
+        selectBookmarkPreviewThumbnail({
+          platform,
+          contentType,
+          contentId,
+          observedThumbnailUrl,
+        }),
+      ).toBe(
+        expectsDetectedThumbnail
+          ? youtubeThumbnailUrl(YOUTUBE_ID)
+          : observedThumbnailUrl,
+      );
+    },
+  );
 });
