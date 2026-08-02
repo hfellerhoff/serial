@@ -28,6 +28,7 @@ export function useBookmarkWorkspace(input: {
   const [error, setError] = useState<string | null>(null);
   const [pendingOrganization, setPendingOrganization] = useState<string[]>([]);
   const [pendingFeedUrls, setPendingFeedUrls] = useState<string[]>([]);
+  const [addedFeedUrls, setAddedFeedUrls] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const attemptedToken = useRef<string | null>(null);
   const { onAuthExpired, session } = input;
@@ -230,6 +231,10 @@ export function useBookmarkWorkspace(input: {
           );
           return;
         }
+        setPendingFeedUrls((values) => values.filter((value) => value !== url));
+        setAddedFeedUrls((values) =>
+          values.includes(url) ? values : [...values, url],
+        );
       } catch {
         setError("Unable to add the Feed");
         setPendingFeedUrls((values) => values.filter((value) => value !== url));
@@ -243,7 +248,8 @@ export function useBookmarkWorkspace(input: {
     workspace,
     error,
     pendingOrganization,
-    addedFeedUrls: pendingFeedUrls,
+    pendingFeedUrls,
+    addedFeedUrls,
     isDeleting,
     retry: captureActive,
     toggleOrganization,

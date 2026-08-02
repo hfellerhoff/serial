@@ -2,11 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { addExtensionFeed } from "~/app/api.extension.feeds";
 import { authenticatedExtensionUser } from "~/server/auth/extensionRequest";
 import { createFeedsForUser } from "~/server/feeds/create";
+import { fetchAndInsertFeedData } from "~/server/rss/fetchFeeds";
 
 vi.mock("~/server/auth/extensionRequest", () => ({
   authenticatedExtensionUser: vi.fn(),
 }));
 vi.mock("~/server/feeds/create", () => ({ createFeedsForUser: vi.fn() }));
+vi.mock("~/server/rss/fetchFeeds", () => ({
+  fetchAndInsertFeedData: vi.fn(),
+}));
+vi.mock("~/server/logger", () => ({ captureException: vi.fn() }));
 vi.mock("~/server/db", () => ({ db: {} }));
 
 function request(body: unknown, contentType = "application/json") {
@@ -24,6 +29,11 @@ describe("extension Feed HTTP contract", () => {
   beforeEach(() => {
     vi.mocked(authenticatedExtensionUser).mockReset();
     vi.mocked(createFeedsForUser).mockReset();
+    vi.mocked(fetchAndInsertFeedData).mockReset();
+    vi.mocked(fetchAndInsertFeedData).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield { status: "success", id: 1, feedItems: [] };
+    });
   });
 
   it("requires a valid extension session", async () => {
@@ -36,6 +46,7 @@ describe("extension Feed HTTP contract", () => {
   });
 
   it("adds a discovered Feed for the authenticated user", async () => {
+    let ingestionCompleted = false;
     vi.mocked(authenticatedExtensionUser).mockResolvedValue({
       id: "user-one",
     } as never);
@@ -44,6 +55,11 @@ describe("extension Feed HTTP contract", () => {
       deactivatedCount: 0,
       maxActiveFeeds: 100,
     } as never);
+    vi.mocked(fetchAndInsertFeedData).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield { status: "success", id: 1, feedItems: [] };
+      ingestionCompleted = true;
+    });
     const response = await addExtensionFeed(
       request({ url: "https://example.com/feed.xml" }),
     );
@@ -57,6 +73,34 @@ describe("extension Feed HTTP contract", () => {
         viewIds: [],
       }),
     );
+    expect(fetchAndInsertFeedData).toHaveBeenCalledWith(
+      expect.objectContaining({ db: expect.anything() }),
+      [expect.objectContaining({ id: 1 })],
+    );
+    expect(ingestionCompleted).toBe(true);
+  });
+
+  it("finishes the Add request after a failed initial ingestion attempt", async () => {
+    const ingestionError = new Error("Feed host became unavailable");
+    vi.mocked(authenticatedExtensionUser).mockResolvedValue({
+      id: "user-one",
+    } as never);
+    vi.mocked(createFeedsForUser).mockResolvedValue({
+      feeds: [{ id: 1 }],
+      deactivatedCount: 0,
+      maxActiveFeeds: 100,
+    } as never);
+    vi.mocked(fetchAndInsertFeedData).mockImplementation(async function* () {
+      await Promise.resolve();
+      if (ingestionError) throw ingestionError;
+      yield { status: "success", id: 1, feedItems: [] };
+    });
+
+    const response = await addExtensionFeed(
+      request({ url: "https://example.com/feed.xml" }),
+    );
+
+    expect(response.status).toBe(201);
   });
 
   it("rejects malformed and non-JSON requests", async () => {

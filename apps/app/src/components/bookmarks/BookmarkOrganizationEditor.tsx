@@ -114,6 +114,7 @@ export function BookmarkOrganizationEditor({
 
   return (
     <BookmarkEditor
+      headerClassName="pr-12"
       bookmark={bookmark}
       feedback={feedback}
       viewOptions={viewOptions}

@@ -1,5 +1,4 @@
 import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
-import { discoverFeeds as discoverFeedsFromUrl } from "feedscout";
 import { z } from "zod";
 import {
   findExistingFeedThatMatches,
@@ -33,6 +32,7 @@ import {
 import { getEffectivePlanConfig } from "~/server/subscriptions/plans";
 import { VIEW_LAYOUT_ITEM_TYPE } from "~/server/db/constants";
 import { createFeedsForUser } from "~/server/feeds/create";
+import { discoverFeeds as discoverFeedsForUrl } from "~/server/feeds/discovery";
 import {
   boundedNumberIdsSchema,
   boundedStringsSchema,
@@ -392,47 +392,6 @@ export const update = protectedProcedure
     });
   });
 
-async function discoverYouTubeFeeds(url: string) {
-  if (!url.includes("youtube.com/@") && !url.includes("youtube.com/channel/")) {
-    return null;
-  }
-
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch YouTube channel page: ${response.status} ${response.statusText}`,
-      );
-    }
-    const text = await response.text();
-
-    const rssFeedUrlMatches = text.matchAll(
-      /<link rel="alternate" type="application\/rss\+xml" title="RSS" href="(https:\/\/www\.youtube\.com\/feeds\/videos\.xml\?channel_id=[^&]{24})">/gm,
-    );
-
-    const channelNameMatch =
-      /<meta property="og:title" content="([^"]+)">/.exec(text);
-    const channelName = channelNameMatch?.[1];
-
-    const feedUrls = Array.from(rssFeedUrlMatches).flatMap((match) =>
-      match[1] ? [match[1]] : [],
-    );
-
-    if (feedUrls.length === 0) {
-      return null;
-    }
-
-    return feedUrls.map((feedUrl) => ({
-      url: feedUrl,
-      title: channelName,
-      format: "atom" as const,
-    }));
-  } catch (e) {
-    captureException(e, { context: "youtube-feed-discovery", url });
-    return null;
-  }
-}
-
 export const bulkDelete = protectedProcedure
   .input(z.object({ feedIds: boundedNumberIdsSchema }))
   .handler(async ({ context, input }) => {
@@ -568,52 +527,4 @@ export const bulkSetActive = protectedProcedure
 
 export const discoverFeeds = protectedProcedure
   .input(z.object({ url: z.url() }))
-  .handler(async ({ input }) => {
-    const [youtubeResult, feedscoutResult] = await Promise.allSettled([
-      discoverYouTubeFeeds(input.url),
-      discoverFeedsFromUrl(input.url, {
-        methods: ["platform", "html", "headers", "guess"],
-      }),
-    ]);
-
-    const discoveredFeeds: Array<{
-      url: string;
-      title?: string;
-      format?: string;
-    }> = [];
-
-    if (youtubeResult.status === "fulfilled" && youtubeResult.value) {
-      discoveredFeeds.push(...youtubeResult.value);
-    } else if (youtubeResult.status === "rejected") {
-      captureException(youtubeResult.reason, {
-        context: "feed-discovery-youtube",
-        url: input.url,
-      });
-    }
-
-    if (feedscoutResult.status === "fulfilled") {
-      const feedscoutFeeds = feedscoutResult.value.filter((f) => f.isValid);
-      discoveredFeeds.push(...feedscoutFeeds);
-    } else if (feedscoutResult.status === "rejected") {
-      captureException(feedscoutResult.reason, {
-        context: "feed-discovery-feedscout",
-        url: input.url,
-      });
-    }
-
-    // Deduplicate by URL and filter out invalid YouTube feeds
-    const seen = new Set<string>();
-    return discoveredFeeds.filter((feed) => {
-      if (seen.has(feed.url)) return false;
-      seen.add(feed.url);
-
-      // Filter out YouTube feeds without channel_id
-      if (
-        feed.url.includes("youtube.com") &&
-        !feed.url.includes("channel_id=")
-      ) {
-        return false;
-      }
-      return true;
-    });
-  });
+  .handler(({ input }) => discoverFeedsForUrl(input.url));

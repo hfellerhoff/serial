@@ -1,11 +1,16 @@
 "use client";
 
-import { BookmarkCheckIcon, RefreshCwIcon } from "lucide-react";
+import {
+  BookmarkCheckIcon,
+  ExternalLinkIcon,
+  InfoIcon,
+  RefreshCwIcon,
+} from "lucide-react";
 import type { BookmarkContentDescriptor } from "@serial/bookmark-capture";
 import type { ReactNode } from "react";
 
 import {
-  BOOKMARK_ORIGIN_FALLBACK_MESSAGE,
+  getBookmarkEditorFeedbackPresentation,
   shouldShowBookmarkEditorFeedback,
 } from "./bookmark-editor.utils";
 import { Button } from "./button";
@@ -14,6 +19,7 @@ import {
   SelectableChipList,
   type SelectableChipOption,
 } from "./selectable-chip-list";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 export type BookmarkEditorCaptureOutcome =
   | { status: "captured" }
@@ -38,52 +44,6 @@ export type BookmarkEditorFeedback = {
   disposition: "created" | "refreshed" | "consolidated";
 };
 
-const CAPTURE_FAILURE_MESSAGES: Record<
-  Exclude<BookmarkEditorCaptureOutcome, { status: "captured" }>["reason"],
-  string
-> = {
-  blocked_target: "This address cannot be captured safely.",
-  timeout: "The page took too long to capture.",
-  http_error: "The page did not return usable content.",
-  not_html: "The address did not return a web page.",
-  too_large: "The page was too large to capture.",
-  unextractable: "Serial could not extract reader-oriented content.",
-  invalid_capture: "The extracted page did not pass Serial’s safety checks.",
-  unsupported_capture_version: "This capture format is not supported.",
-  rate_limited: "Capture is temporarily rate limited.",
-  capacity_limited: "Capture capacity is temporarily unavailable.",
-  unsupported_content: BOOKMARK_ORIGIN_FALLBACK_MESSAGE,
-};
-
-function CaptureFeedback({ feedback }: { feedback: BookmarkEditorFeedback }) {
-  if (feedback.capture.status === "captured") {
-    if (feedback.disposition === "created") return null;
-    return (
-      <p className="text-muted-foreground flex items-center gap-2 text-sm">
-        <RefreshCwIcon className="size-4" />
-        Existing Bookmark refreshed. Its Views and Tags were preserved.
-      </p>
-    );
-  }
-
-  const preserved = feedback.capture.status === "preserved";
-  if (feedback.capture.reason === "unsupported_content") {
-    return (
-      <p className="text-muted-foreground text-sm" role="status">
-        {CAPTURE_FAILURE_MESSAGES.unsupported_content}
-      </p>
-    );
-  }
-  return (
-    <p className="text-muted-foreground text-sm" role="status">
-      {CAPTURE_FAILURE_MESSAGES[feedback.capture.reason]}{" "}
-      {preserved
-        ? "The previous Page capture is still available."
-        : "This Bookmark will open the original page."}
-    </p>
-  );
-}
-
 export function BookmarkEditor({
   bookmark,
   feedback,
@@ -98,6 +58,7 @@ export function BookmarkEditor({
   onCreateTag,
   afterOrganization,
   className,
+  headerClassName,
   isDeleting,
   onDelete,
   onDone,
@@ -119,39 +80,67 @@ export function BookmarkEditor({
   onCreateTag: (name: string) => void | Promise<void>;
   afterOrganization?: ReactNode;
   className?: string;
+  headerClassName?: string;
   isDeleting: boolean;
   onDelete: () => void | Promise<void>;
   onDone: () => void;
 }) {
   const showFeedback = shouldShowBookmarkEditorFeedback(feedback, bookmark);
+  const feedbackPresentation =
+    feedback && showFeedback
+      ? getBookmarkEditorFeedbackPresentation(feedback)
+      : null;
+  const FeedbackIcon =
+    feedbackPresentation?.icon === "refresh"
+      ? RefreshCwIcon
+      : feedbackPresentation?.icon === "origin"
+        ? ExternalLinkIcon
+        : InfoIcon;
 
   return (
     <div
       className={cn(
-        "flex max-h-[min(100dvh,44rem)] min-h-0 flex-col",
+        "flex max-h-[min(100dvh,44rem)] min-h-0 flex-col overflow-y-auto",
         className,
       )}
     >
-      <div className="shrink-0 border-b px-6 py-5 pr-12">
+      <div
+        className={cn(
+          "bg-background sticky top-0 z-10 shrink-0 border-b px-6 py-5",
+          headerClassName,
+        )}
+      >
         <div className="flex items-start gap-3">
           <div className="bg-muted text-muted-foreground mt-0.5 flex size-9 shrink-0 items-center justify-center rounded">
             <BookmarkCheckIcon className="size-4" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h2 className="line-clamp-2 font-semibold">{bookmark.title}</h2>
             <p className="text-muted-foreground truncate text-sm">
               {bookmark.author || new URL(bookmark.sourceUrl).hostname}
             </p>
           </div>
+          {feedbackPresentation && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:bg-muted focus-visible:ring-ring mt-0.5 flex size-9 shrink-0 items-center justify-center rounded outline-none focus-visible:ring-2"
+                  aria-label={feedbackPresentation.message}
+                  data-testid="bookmark-capture-feedback"
+                >
+                  <FeedbackIcon className="size-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" align="end" className="max-w-80">
+                {feedbackPresentation.message}
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
-        {feedback && showFeedback && (
-          <div className="mt-4" data-testid="bookmark-capture-feedback">
-            <CaptureFeedback feedback={feedback} />
-          </div>
-        )}
       </div>
 
-      <div className="grid min-h-0 flex-1 content-start gap-6 overflow-y-auto px-6 py-5">
+      <div className="grid flex-1 content-start gap-6 px-6 py-5">
         <SelectableChipList
           label="Views"
           options={viewOptions}
@@ -174,7 +163,7 @@ export function BookmarkEditor({
         {afterOrganization}
       </div>
 
-      <div className="flex shrink-0 gap-2 border-t px-6 py-4">
+      <div className="bg-background sticky bottom-0 z-10 flex shrink-0 gap-2 border-t px-6 py-4">
         <Button
           variant="destructive"
           className="flex-1"

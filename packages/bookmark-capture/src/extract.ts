@@ -244,7 +244,7 @@ function discoveredFeeds(document: Document, effectiveUrl: string) {
         : {}),
     });
   }
-  return [...feeds.values()];
+  return [...feeds.values()].slice(0, BOOKMARK_CAPTURE_LIMITS.discoveredFeeds);
 }
 
 export function extractPageObservation(

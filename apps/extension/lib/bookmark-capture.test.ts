@@ -119,6 +119,7 @@ describe("extension live DOM Bookmark capture", () => {
     };
 
     expect(result.degraded).toBe(true);
+    expect(parsed).toMatchObject({ feeds: observation.feeds });
     expect(parsed.capture.contentHtml).toBeUndefined();
     expect(parsed.capture.extractorVersion).toBeUndefined();
     expect(parsed.capture.sanitizerPolicyVersion).toBeUndefined();

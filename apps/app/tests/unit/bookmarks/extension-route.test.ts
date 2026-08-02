@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { discoverFeeds as discoverFeedsFromUrl } from "feedscout";
 
 import type { saveBookmarkFromExtension } from "~/server/bookmarks/service";
 import {
@@ -18,6 +19,7 @@ vi.mock("~/server/bookmarks/service", () => ({
   setBookmarkTag: vi.fn(),
   setBookmarkView: vi.fn(),
 }));
+vi.mock("feedscout", () => ({ discoverFeeds: vi.fn() }));
 
 const TOKEN = `serial_ext_${"a".repeat(43)}`;
 
@@ -59,6 +61,7 @@ function supportedRequest(overrides: Record<string, unknown> = {}) {
         classifierVersion: 1,
       },
     },
+    feeds: [{ url: "https://example.com/declared.xml" }],
     ...overrides,
   };
 }
@@ -185,6 +188,55 @@ describe("extension Bookmark HTTP contract", () => {
         views: [{ id: 1, name: "Reading" }],
         tags: [{ id: 2, name: "Research" }],
       },
+    });
+  });
+
+  it("uses Serial Feed discovery when the page declares no Feeds", async () => {
+    vi.mocked(discoverFeedsFromUrl).mockResolvedValue([
+      {
+        url: "https://example.com/discovered.xml",
+        title: "Discovered Feed",
+        isValid: true,
+      },
+    ] as never);
+
+    const response = await saveExtensionBookmark(
+      bookmarkRequest(supportedRequest({ feeds: [] })),
+      dependencies(),
+    );
+
+    expect(discoverFeedsFromUrl).toHaveBeenCalledWith(
+      "https://example.com/article",
+      { methods: ["platform", "html", "headers", "guess"] },
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      feeds: [
+        {
+          url: "https://example.com/discovered.xml",
+          title: "Discovered Feed",
+        },
+      ],
+    });
+  });
+
+  it("prefers page-declared Feeds without running server discovery", async () => {
+    vi.mocked(discoverFeedsFromUrl).mockClear();
+    const declaredFeeds = [
+      {
+        url: "https://example.com/declared.xml",
+        title: "Declared Feed",
+      },
+    ];
+
+    const response = await saveExtensionBookmark(
+      bookmarkRequest(supportedRequest({ feeds: declaredFeeds })),
+      dependencies(),
+    );
+
+    expect(response.status).toBe(201);
+    expect(discoverFeedsFromUrl).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({
+      feeds: declaredFeeds,
     });
   });
 

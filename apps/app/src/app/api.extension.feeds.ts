@@ -3,6 +3,8 @@ import { z } from "zod";
 import { authenticatedExtensionUser } from "~/server/auth/extensionRequest";
 import { createFeedsForUser } from "~/server/feeds/create";
 import { db } from "~/server/db";
+import { fetchAndInsertFeedData } from "~/server/rss/fetchFeeds";
+import { captureException } from "~/server/logger";
 
 const RESPONSE_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -74,6 +76,19 @@ export async function addExtensionFeed(request: Request) {
       categoryIds: [],
       viewIds: [],
     });
+    try {
+      for await (const ingestionResult of fetchAndInsertFeedData(
+        { db },
+        result.feeds,
+      )) {
+        void ingestionResult;
+      }
+    } catch (error) {
+      captureException(error, {
+        context: "extension-feed-initial-ingestion",
+        url: input.url,
+      });
+    }
     return jsonResponse(result, 201);
   } catch (error) {
     if (error instanceof RangeError) {

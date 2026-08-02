@@ -114,6 +114,7 @@ export function serializeBookmarkRequest(
     contractVersion: EXTENSION_BOOKMARK_CONTRACT_VERSION,
     sourceUrl: observation.sourceUrl,
     capture: observation.capture,
+    feeds: observation.feeds,
     ...(observation.captureFailureReason
       ? { captureFailureReason: observation.captureFailureReason }
       : {}),

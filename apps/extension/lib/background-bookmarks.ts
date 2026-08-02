@@ -131,9 +131,9 @@ function parseBookmark(value: unknown): ExtensionBookmark | null {
   };
 }
 
-function parseWorkspace(
+export function parseWorkspace(
   value: unknown,
-  feeds: ExtensionPageObservation["feeds"],
+  fallbackFeeds: ExtensionPageObservation["feeds"],
 ): BookmarkWorkspace | null {
   if (!isRecord(value) || !isRecord(value.workspace)) return null;
   const bookmark = parseBookmark(value.bookmark);
@@ -163,6 +163,17 @@ function parseWorkspace(
       : [];
   const disposition = value.disposition;
   const capture = value.capture;
+  const feeds = Array.isArray(value.feeds)
+    ? value.feeds.flatMap((entry) => {
+        if (!isRecord(entry) || typeof entry.url !== "string") return [];
+        return [
+          {
+            url: entry.url,
+            ...(typeof entry.title === "string" ? { title: entry.title } : {}),
+          },
+        ];
+      })
+    : fallbackFeeds;
   if (
     !bookmark ||
     (disposition !== "created" &&

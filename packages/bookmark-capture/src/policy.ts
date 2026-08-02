@@ -12,6 +12,7 @@ export const BOOKMARK_CAPTURE_LIMITS = {
   descriptionCodePoints: 2_048,
   siteNameCodePoints: 512,
   versionBytes: 128,
+  discoveredFeeds: 16,
 } as const;
 
 export const SANITIZER_POLICY_VERSION = 1;

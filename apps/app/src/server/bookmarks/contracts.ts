@@ -80,6 +80,26 @@ const versionString = z
       Buffer.byteLength(value, "ascii") <= BOOKMARK_CAPTURE_LIMITS.versionBytes,
   );
 
+const extensionDiscoveredFeedSchema = z.strictObject({
+  url: boundedUrlString.refine((value) => {
+    try {
+      const url = new URL(value);
+      return (
+        (url.protocol === "http:" || url.protocol === "https:") &&
+        !url.username &&
+        !url.password
+      );
+    } catch {
+      return false;
+    }
+  }),
+  title: boundedString(BOOKMARK_CAPTURE_LIMITS.titleCodePoints).optional(),
+});
+
+export const extensionDiscoveredFeedsSchema = z
+  .array(extensionDiscoveredFeedSchema)
+  .max(BOOKMARK_CAPTURE_LIMITS.discoveredFeeds);
+
 export const extensionCaptureCandidateSchema = z
   .strictObject({
     effectiveUrl: boundedUrlString,

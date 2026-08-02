@@ -4,6 +4,7 @@ import {
   BOOKMARK_CAPTURE_LIMITS,
   EXTENSION_BOOKMARK_CONTRACT_VERSION,
   extensionCaptureCandidateSchema,
+  extensionDiscoveredFeedsSchema,
 } from "~/server/bookmarks/contracts";
 import {
   BookmarkNotFoundError,
@@ -24,6 +25,8 @@ import {
   publishBookmarkDeletion,
   publishBookmarkUpsert,
 } from "~/server/mixed-content/sync";
+import { discoverFeeds as discoverFeedsForUrl } from "~/server/feeds/discovery";
+import { captureException } from "~/server/logger";
 
 const RESPONSE_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -97,6 +100,7 @@ type ExtensionBookmarkRouteDependencies = {
     result: Awaited<ReturnType<typeof saveBookmarkFromExtension>>,
   ) => ReturnType<typeof publishBookmarkUpsert>;
   workspace?: typeof loadExtensionBookmarkWorkspace;
+  discover?: typeof discoverFeedsForUrl;
 };
 
 const DEFAULT_ROUTE_DEPENDENCIES: ExtensionBookmarkRouteDependencies = {
@@ -122,6 +126,7 @@ const DEFAULT_ROUTE_DEPENDENCIES: ExtensionBookmarkRouteDependencies = {
     });
   },
   workspace: loadExtensionBookmarkWorkspace,
+  discover: discoverFeedsForUrl,
 };
 
 const extensionBookmarkRequestSchema = z.strictObject({
@@ -137,6 +142,7 @@ const extensionBookmarkRequestSchema = z.strictObject({
       "unsupported_content",
     ])
     .optional(),
+  feeds: extensionDiscoveredFeedsSchema.optional().default([]),
 });
 
 export async function saveExtensionBookmark(
@@ -158,15 +164,29 @@ export async function saveExtensionBookmark(
       return jsonResponse({ error: "The bookmark request is invalid" }, 400);
     }
     const bookmarkRequest = parsedRequest.data;
-
-    const result = await dependencies.save({
-      database: db,
-      userId: authenticatedUser.id,
-      sourceUrl: bookmarkRequest.sourceUrl,
-      bookmarkId: bookmarkRequest.bookmarkId,
-      capture: bookmarkRequest.capture,
-      captureFailureReason: bookmarkRequest.captureFailureReason,
-    });
+    const discoveryPromise =
+      bookmarkRequest.feeds.length > 0
+        ? Promise.resolve(bookmarkRequest.feeds)
+        : (dependencies.discover ?? discoverFeedsForUrl)(
+            bookmarkRequest.sourceUrl,
+          ).catch((error) => {
+            captureException(error, {
+              context: "extension-bookmark-feed-discovery",
+              url: bookmarkRequest.sourceUrl,
+            });
+            return [];
+          });
+    const [result, discoveredFeeds] = await Promise.all([
+      dependencies.save({
+        database: db,
+        userId: authenticatedUser.id,
+        sourceUrl: bookmarkRequest.sourceUrl,
+        bookmarkId: bookmarkRequest.bookmarkId,
+        capture: bookmarkRequest.capture,
+        captureFailureReason: bookmarkRequest.captureFailureReason,
+      }),
+      discoveryPromise,
+    ]);
     const publishedBookmark = await dependencies.notify?.(
       authenticatedUser.id,
       result,
@@ -181,13 +201,14 @@ export async function saveExtensionBookmark(
       workspace
         ? {
             ...result,
+            feeds: discoveredFeeds,
             bookmark: workspace.bookmark,
             workspace: {
               views: workspace.views,
               tags: workspace.tags,
             },
           }
-        : result,
+        : { ...result, feeds: discoveredFeeds },
       result.disposition === "created" ? 201 : 200,
     );
   } catch (error) {

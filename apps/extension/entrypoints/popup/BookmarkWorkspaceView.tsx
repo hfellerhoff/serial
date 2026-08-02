@@ -6,7 +6,6 @@ import {
   Item,
   ItemContent,
   ItemDescription,
-  ItemMedia,
   ItemTitle,
 } from "@serial/ui";
 import { Check, Info, Loader2, LogOut, Plus, Rss } from "lucide-react";
@@ -17,16 +16,19 @@ import { ExtensionHeader } from "./ExtensionHeader";
 import { PopupLayout } from "./PopupLayout";
 import { useBookmarkWorkspace } from "./useBookmarkWorkspace";
 
-function FeedDiscovery({
+export function FeedDiscovery({
   workspace,
+  pendingFeedUrls,
   addedFeedUrls,
   onAddFeed,
 }: {
   workspace: BookmarkWorkspace;
+  pendingFeedUrls: string[];
   addedFeedUrls: string[];
   onAddFeed: (url: string) => void;
 }) {
   if (workspace.feeds.length === 0) return null;
+  const pendingFeedUrlSet = new Set(pendingFeedUrls);
   const addedFeedUrlSet = new Set(addedFeedUrls);
   return (
     <div className="grid gap-2 border-t pt-5">
@@ -35,6 +37,7 @@ function FeedDiscovery({
         <Rss className="text-muted-foreground size-4" />
       </div>
       {workspace.feeds.map((feed) => {
+        const pending = pendingFeedUrlSet.has(feed.url);
         const added = addedFeedUrlSet.has(feed.url);
         return (
           <Item
@@ -43,9 +46,6 @@ function FeedDiscovery({
             variant="outline"
             className="flex-nowrap"
           >
-            <ItemMedia variant="icon">
-              <Rss className="size-4" />
-            </ItemMedia>
             <ItemContent className="min-w-0">
               <ItemTitle>{feed.title || new URL(feed.url).hostname}</ItemTitle>
               <ItemDescription className="truncate">{feed.url}</ItemDescription>
@@ -54,17 +54,25 @@ function FeedDiscovery({
               type="button"
               size="icon md:default"
               variant="outline"
-              disabled={added}
-              aria-label={added ? "Feed added" : `Add ${feed.title || "Feed"}`}
+              disabled={pending || added}
+              aria-label={
+                pending
+                  ? `Adding ${feed.title || "Feed"}`
+                  : added
+                    ? "Feed added"
+                    : `Add ${feed.title || "Feed"}`
+              }
               onClick={() => onAddFeed(feed.url)}
             >
-              {added ? (
+              {pending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : added ? (
                 <Check className="size-4" />
               ) : (
                 <Plus className="size-4" />
               )}
               <span className="hidden pl-1.5 md:block">
-                {added ? "Added" : "Add"}
+                {pending ? "Adding" : added ? "Added" : "Add"}
               </span>
             </Button>
           </Item>
@@ -146,6 +154,7 @@ export function BookmarkWorkspaceView({
             )}
             <FeedDiscovery
               workspace={workspace}
+              pendingFeedUrls={controller.pendingFeedUrls}
               addedFeedUrls={controller.addedFeedUrls}
               onAddFeed={(url) => void controller.addFeed(url)}
             />

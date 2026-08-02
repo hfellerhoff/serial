@@ -10,3 +10,4 @@ export * from "./separator";
 export * from "./selectable-chip-list";
 export * from "./selectable-chip-list.utils";
 export * from "./tabs";
+export * from "./tooltip";
