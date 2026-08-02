@@ -44,11 +44,18 @@ describe("navigation snapshot performance bounds", () => {
         Object.keys(snapshot.views).length +
         Object.keys(snapshot.tags).length +
         Object.keys(snapshot.feeds).length;
+      const viewFeedMembershipCount = Object.values(snapshot.viewFeeds).reduce(
+        (count, feedAvailability) =>
+          count + Object.keys(feedAvailability).length,
+        0,
+      );
 
-      expect(evidence.statementCount).toBe(4);
-      expect(evidence.materializedRows).toBe(navigationEntityCount);
+      expect(evidence.statementCount).toBe(6);
+      expect(evidence.materializedRows).toBe(
+        navigationEntityCount + viewFeedMembershipCount,
+      );
       expect(Buffer.byteLength(JSON.stringify(snapshot))).toBeLessThanOrEqual(
-        navigationEntityCount * 128,
+        (navigationEntityCount + viewFeedMembershipCount) * 128,
       );
     },
     30_000,

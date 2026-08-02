@@ -77,8 +77,13 @@ beforeEach(async () => {
 afterEach(() => cleanup());
 
 describe("navigation snapshot", () => {
-  it("reports complete View, Tag, and global Feed availability without loading content pages", async () => {
-    await Promise.all([seedFeed(1), seedFeed(2), seedFeed(3, false)]);
+  it("reports complete View, Tag, global Feed, and per-View Feed availability without loading content pages", async () => {
+    await Promise.all([
+      seedFeed(1),
+      seedFeed(2),
+      seedFeed(3, false),
+      seedFeed(4),
+    ]);
     await Promise.all([
       seedFeedItem({ id: "unread-feed-item", feedId: 1 }),
       seedFeedItem({ id: "read-feed-item", feedId: 2, isWatched: true }),
@@ -108,10 +113,11 @@ describe("navigation snapshot", () => {
         layout: "list",
       },
     ]);
-    await database.insert(viewCategories).values({
-      viewId: 21,
-      categoryId: 11,
-    });
+    await database.insert(viewCategories).values([
+      { viewId: 21, categoryId: 11 },
+      { viewId: 22, categoryId: 12 },
+    ]);
+    await database.insert(viewFeeds).values({ viewId: 21, feedId: 4 });
     await database.insert(viewSections).values({
       viewId: 21,
       placement: 0,
@@ -173,6 +179,16 @@ describe("navigation snapshot", () => {
     expect(snapshot.feeds).toEqual({
       1: { unread: true, read: false, later: false },
       2: { unread: false, read: true, later: false },
+      3: { unread: false, read: false, later: true },
+      4: { unread: false, read: false, later: false },
+    });
+    expect(snapshot.viewFeeds[21]).toEqual({
+      2: { unread: false, read: true, later: false },
+      4: { unread: false, read: false, later: false },
+    });
+    expect(snapshot.viewFeeds[22]).toEqual({});
+    expect(snapshot.viewFeeds[INBOX_VIEW_ID]).toEqual({
+      1: { unread: true, read: false, later: false },
       3: { unread: false, read: false, later: true },
     });
   });

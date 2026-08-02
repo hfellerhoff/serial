@@ -1074,7 +1074,6 @@ async function publishPrerequisiteDataChunks(
     applicationFeeds: ApplicationFeed[];
     contentCategoriesList: DatabaseContentCategory[];
     feedCategoriesList: DatabaseFeedCategory[];
-    navigationSnapshot: NavigationSnapshot;
   },
 ): Promise<void> {
   await Promise.all([
@@ -1098,13 +1097,6 @@ async function publishPrerequisiteDataChunks(
       chunk: {
         type: "feed-categories",
         feedCategories: data.feedCategoriesList,
-      },
-    }),
-    publisher.publish(channel, {
-      source,
-      chunk: {
-        type: "navigation-snapshot",
-        snapshot: data.navigationSnapshot,
       },
     }),
   ]);
@@ -1294,7 +1286,6 @@ export const requestInitialData = protectedProcedure
       applicationFeeds,
       contentCategoriesList,
       feedCategoriesList,
-      navigationSnapshot,
     });
 
     logDebug(
@@ -1309,6 +1300,10 @@ export const requestInitialData = protectedProcedure
       customViews,
       customViewCategoryIds,
       customViewFeedIds,
+    });
+    await publisher.publish(clientChannel, {
+      source: "initial",
+      chunk: { type: "navigation-snapshot", snapshot: navigationSnapshot },
     });
 
     logDebug(
@@ -1446,7 +1441,6 @@ export const requestImportedData = protectedProcedure
       applicationFeeds,
       contentCategoriesList,
       feedCategoriesList,
-      navigationSnapshot,
     });
 
     // Step 3: Publish view-feeds chunks
@@ -1458,6 +1452,10 @@ export const requestImportedData = protectedProcedure
       customViewCategoryIds,
       customViewFeedIds,
       buildFeedIdToViewIds: false,
+    });
+    await publisher.publish(channel, {
+      source: "initial",
+      chunk: { type: "navigation-snapshot", snapshot: navigationSnapshot },
     });
     // Center-pane pages remain conditional after an import as well. The
     // selected scope will request its own current page.
@@ -2077,7 +2075,6 @@ export const streamingImport = protectedProcedure
       applicationFeeds,
       contentCategoriesList,
       feedCategoriesList,
-      navigationSnapshot,
     });
 
     // Publish view-feeds chunks
@@ -2088,6 +2085,10 @@ export const streamingImport = protectedProcedure
       customViews,
       customViewCategoryIds,
       customViewFeedIds,
+    });
+    await publisher.publish(channel, {
+      source: "initial",
+      chunk: { type: "navigation-snapshot", snapshot: navigationSnapshot },
     });
 
     await publisher.publish(channel, {

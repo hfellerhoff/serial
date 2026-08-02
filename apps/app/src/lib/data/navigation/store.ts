@@ -10,6 +10,7 @@ const EMPTY_SNAPSHOT: NavigationSnapshot = {
   views: {},
   tags: {},
   feeds: {},
+  viewFeeds: {},
 };
 
 type NavigationSnapshotStore = {

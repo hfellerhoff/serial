@@ -8,6 +8,7 @@ import {
   cleanupUser,
   seedMixedViewSectionCase,
   seedSidebarFeedAvailabilityData,
+  seedSidebarFeedSortCase,
 } from "../fixtures/seed-db";
 import type { Page } from "@playwright/test";
 
@@ -29,6 +30,35 @@ async function applicationStoreState(page: Page) {
         const request = transaction
           .objectStore("keyval")
           .get("serial-application-store::normalized:v1::root");
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result ?? null);
+      });
+    } finally {
+      database.close();
+    }
+  });
+}
+
+async function viewsStoreState(page: Page) {
+  return page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("keyval-store");
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+    });
+    try {
+      return await new Promise<{
+        state?: {
+          viewsDict?: Record<
+            number,
+            { viewSections?: Array<{ itemType: string; itemId: number }> }
+          >;
+        };
+      } | null>((resolve, reject) => {
+        const transaction = database.transaction("keyval", "readonly");
+        const request = transaction
+          .objectStore("keyval")
+          .get("serial-views-store");
         request.onerror = () => reject(request.error);
         request.onsuccess = () => resolve(request.result ?? null);
       });
@@ -83,6 +113,13 @@ test.describe("authoritative sidebar navigation", () => {
 
     await expect(viewButton).toBeVisible({ timeout: 30_000 });
     await expect(tagButton).toBeVisible({ timeout: 30_000 });
+    await expect
+      .poll(
+        async () =>
+          (await viewsStoreState(page))?.state?.viewsDict?.[fixture.viewId]
+            ?.viewSections,
+      )
+      .toHaveLength(2);
     await expect(viewButton.locator(".bg-sidebar-accent")).toHaveCount(1);
     await expect(tagButton.locator(".bg-sidebar-accent")).toHaveCount(1);
     await expect(
@@ -115,6 +152,83 @@ test.describe("authoritative sidebar navigation", () => {
     await page.getByRole("tab", { name: /Saved/ }).click();
     await expect(viewButton.locator(".bg-sidebar-accent")).toHaveCount(1);
     await expect(tagButton.locator(".bg-sidebar-accent")).toHaveCount(1);
+  });
+
+  test("keeps globally populated Feeds below the current View buckets on initial load", async ({
+    page,
+  }) => {
+    const fixture = await seedSidebarFeedSortCase(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+    );
+    testEmail = fixture.email;
+
+    await signIn({
+      page,
+      email: fixture.email,
+      password: fixture.password,
+    });
+    await page.getByRole("radio", { name: fixture.viewName }).click();
+
+    const feeds = page.locator('[data-sidebar="group"]').filter({
+      has: page.locator('[data-sidebar="group-label"]', { hasText: "Feeds" }),
+    });
+    const feedMenu = feeds.locator('[data-sidebar="menu"]');
+
+    for (const feedName of Object.values(fixture.sortedFeeds)) {
+      await expect(
+        feeds
+          .locator('[data-sidebar="menu-button"]')
+          .filter({ hasText: feedName }),
+      ).toBeVisible({ timeout: 30_000 });
+    }
+
+    await expect
+      .poll(() =>
+        feedMenu.evaluate((menu, names) => {
+          const children = Array.from(menu.children);
+          const itemIndex = (name: string) =>
+            children.findIndex((child) =>
+              Array.from(
+                child.querySelectorAll('[data-sidebar="menu-button"]'),
+              ).some((button) => button.textContent?.trim() === name),
+            );
+          const inViewWithContentIndex = itemIndex(names.inViewWithContent);
+          const inViewWithoutContentIndex = itemIndex(
+            names.inViewWithoutContent,
+          );
+          const otherActiveIndex = itemIndex(names.otherActive);
+          const inactiveIndex = itemIndex(names.inactive);
+          return {
+            isOrdered: [
+              inViewWithContentIndex,
+              inViewWithoutContentIndex,
+              otherActiveIndex,
+              inactiveIndex,
+            ].every(
+              (index, position, order) =>
+                index >= 0 && (position === 0 || order[position - 1]! < index),
+            ),
+            hasActiveDivider: children.some(
+              (child, index) =>
+                child.tagName === "HR" &&
+                index > inViewWithoutContentIndex &&
+                index < otherActiveIndex,
+            ),
+            hasInactiveDivider: children.some(
+              (child, index) =>
+                child.tagName === "HR" &&
+                index > otherActiveIndex &&
+                index < inactiveIndex,
+            ),
+          };
+        }, fixture.sortedFeeds),
+      )
+      .toEqual({
+        isOrdered: true,
+        hasActiveDivider: true,
+        hasInactiveDivider: true,
+      });
   });
 
   test("shows global Feed availability for inactive content beyond the retained center page", async ({

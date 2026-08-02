@@ -530,6 +530,18 @@ export async function seedMixedViewSectionCase(
     viewName,
     emptyViewName,
     tagName: tag.name,
+    feeds: {
+      feedSection: {
+        id: feedSectionFeedItem.feedId,
+        name: "Test Blog",
+      },
+      tagSection: { id: tagSectionFeed.id, name: tagSectionFeed.name },
+      uncategorized: {
+        id: uncategorizedFeed.id,
+        name: uncategorizedFeed.name,
+      },
+      outside: { id: outsideFeed.id, name: outsideFeed.name },
+    },
     items: {
       feedSectionFeedItem: feedSectionFeedItemId,
       tagSectionFeedItem: tagSectionFeedItemId,
@@ -538,6 +550,46 @@ export async function seedMixedViewSectionCase(
       uncategorizedBookmark: uncategorizedBookmarkId,
       outsideFeedItem: outsideFeedItemId,
       outsideBookmark: outsideBookmarkId,
+    },
+  };
+}
+
+export async function seedSidebarFeedSortCase(
+  tursoPort: number,
+  appPort: number,
+) {
+  const fixture = await seedMixedViewSectionCase(
+    tursoPort,
+    appPort,
+    {
+      feedSectionFeedItem: true,
+      tagSectionFeedItem: true,
+      tagSectionBookmark: false,
+      uncategorizedFeedItem: false,
+      uncategorizedBookmark: false,
+    },
+    "unread",
+  );
+  const { db, client } = getDb(tursoPort);
+  await Promise.all([
+    db
+      .update(schema.feedItems)
+      .set({ isWatched: true })
+      .where(eq(schema.feedItems.id, fixture.items.feedSectionFeedItem)),
+    db
+      .update(schema.feeds)
+      .set({ isActive: false })
+      .where(eq(schema.feeds.id, fixture.feeds.uncategorized.id)),
+  ]);
+  client.close();
+
+  return {
+    ...fixture,
+    sortedFeeds: {
+      inViewWithContent: fixture.feeds.tagSection.name,
+      inViewWithoutContent: fixture.feeds.feedSection.name,
+      otherActive: fixture.feeds.outside.name,
+      inactive: fixture.feeds.uncategorized.name,
     },
   };
 }
