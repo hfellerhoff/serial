@@ -8,6 +8,8 @@ import type {
   DiscoveredFeed,
   ExtensionCaptureFailureReason,
 } from "./contracts";
+import { boundedText, metaContent, resolvedHttpUrl } from "./metadata";
+import { extractPagePreview } from "./preview";
 import { sanitizeCaptureHtml } from "./sanitize";
 
 export type ExtensionContentDescriptor = {
@@ -50,39 +52,6 @@ const YOUTUBE_HOSTS = new Set([
 const YOUTUBE_VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
 const PEERTUBE_VIDEO_ID =
   /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|[A-Za-z0-9_-]{22})$/i;
-
-function codePointLength(value: string) {
-  return [...value].length;
-}
-
-function boundedText(value: string | null | undefined, maximum: number) {
-  const normalized = value?.trim();
-  if (!normalized || codePointLength(normalized) > maximum) return undefined;
-  return normalized;
-}
-
-function resolvedHttpUrl(value: string | null | undefined, baseUrl: string) {
-  if (!value) return undefined;
-  try {
-    const url = new URL(value, baseUrl);
-    if (
-      url.username ||
-      url.password ||
-      (url.protocol !== "http:" && url.protocol !== "https:") ||
-      new TextEncoder().encode(url.toString()).byteLength >
-        BOOKMARK_CAPTURE_LIMITS.urlBytes
-    ) {
-      return undefined;
-    }
-    return url.toString();
-  } catch {
-    return undefined;
-  }
-}
-
-function metaContent(document: Document, selector: string) {
-  return document.querySelector<HTMLMetaElement>(selector)?.content ?? null;
-}
 
 function youtubeContentId(url: URL) {
   let candidate: string | null = null;
@@ -278,93 +247,18 @@ export function extractPageObservation(
     : null;
   if (clone) normalizeLazyResources(clone);
   const article = clone ? new Readability(clone).parse() : null;
+  const preview = extractPagePreview({
+    document,
+    effectiveUrl,
+    article,
+    inspectStructuredData: !tooLarge,
+    platform: descriptor.platform,
+    contentType: descriptor.contentType,
+  });
   const capture: ExtensionCaptureCandidate = {
     effectiveUrl,
     ...(canonicalUrl ? { canonicalUrl } : {}),
-    title:
-      boundedText(
-        metaContent(document, 'meta[property="og:title"]') ??
-          article?.title ??
-          document.title,
-        BOOKMARK_CAPTURE_LIMITS.titleCodePoints,
-      ) ?? new URL(effectiveUrl).hostname,
-    ...(boundedText(
-      metaContent(document, 'meta[property="og:description"]') ??
-        metaContent(document, 'meta[name="description"]') ??
-        article?.excerpt,
-      BOOKMARK_CAPTURE_LIMITS.descriptionCodePoints,
-    )
-      ? {
-          description: boundedText(
-            metaContent(document, 'meta[property="og:description"]') ??
-              metaContent(document, 'meta[name="description"]') ??
-              article?.excerpt,
-            BOOKMARK_CAPTURE_LIMITS.descriptionCodePoints,
-          ),
-        }
-      : {}),
-    ...(boundedText(
-      article?.byline ?? metaContent(document, 'meta[name="author"]'),
-      BOOKMARK_CAPTURE_LIMITS.authorCodePoints,
-    )
-      ? {
-          author: boundedText(
-            article?.byline ?? metaContent(document, 'meta[name="author"]'),
-            BOOKMARK_CAPTURE_LIMITS.authorCodePoints,
-          ),
-        }
-      : {}),
-    ...(boundedText(
-      metaContent(document, 'meta[property="og:site_name"]'),
-      BOOKMARK_CAPTURE_LIMITS.siteNameCodePoints,
-    )
-      ? {
-          siteName: boundedText(
-            metaContent(document, 'meta[property="og:site_name"]'),
-            BOOKMARK_CAPTURE_LIMITS.siteNameCodePoints,
-          ),
-        }
-      : {}),
-    ...(boundedText(
-      article?.publishedTime ??
-        metaContent(document, 'meta[property="article:published_time"]'),
-      BOOKMARK_CAPTURE_LIMITS.descriptionCodePoints,
-    )
-      ? {
-          publishedAt:
-            article?.publishedTime ??
-            metaContent(document, 'meta[property="article:published_time"]') ??
-            undefined,
-        }
-      : {}),
-    ...(resolvedHttpUrl(
-      document.querySelector<HTMLLinkElement>('link[rel~="icon"]')?.href,
-      effectiveUrl,
-    )
-      ? {
-          iconUrl: resolvedHttpUrl(
-            document.querySelector<HTMLLinkElement>('link[rel~="icon"]')?.href,
-            effectiveUrl,
-          ),
-        }
-      : {}),
-    ...(resolvedHttpUrl(
-      metaContent(
-        document,
-        'meta[property="og:image"], meta[name="twitter:image"]',
-      ),
-      effectiveUrl,
-    )
-      ? {
-          thumbnailUrl: resolvedHttpUrl(
-            metaContent(
-              document,
-              'meta[property="og:image"], meta[name="twitter:image"]',
-            ),
-            effectiveUrl,
-          ),
-        }
-      : {}),
+    ...preview,
     descriptor,
   };
 

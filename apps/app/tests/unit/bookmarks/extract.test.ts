@@ -33,6 +33,9 @@ describe("Page capture preparation", () => {
       sourceUrl: "https://example.com/submitted",
       candidate: extensionCandidate({
         canonicalUrl: "https://example.com/canonical",
+        title: "Current live title",
+        author: "Current live author",
+        thumbnailUrl: "/current-live-cover.jpg",
       }),
     });
     expect(result.ok).toBe(true);
@@ -43,6 +46,12 @@ describe("Page capture preparation", () => {
         captureSource: "extension-live-dom",
         extractorVersion: "mozilla-readability-0.6",
         sanitizerPolicyVersion: 1,
+      },
+      preview: {
+        title: "Current live title",
+        author: "Current live author",
+        thumbnailUrl: "https://example.com/current-live-cover.jpg",
+        previewSource: "extension-live-dom",
       },
     });
     expect(result.result.observation.capture?.contentHtml).not.toContain(
