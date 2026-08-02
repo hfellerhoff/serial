@@ -17,6 +17,7 @@ import {
   feeds,
   user,
   views,
+  viewSections,
 } from "~/server/db/schema";
 
 type Session = ReturnType<typeof openBenchmarkDatabase>;
@@ -85,6 +86,12 @@ describe("Bookmark server performance bounds", () => {
       createdAt: NOW,
       updatedAt: NOW,
     });
+    await session.database.insert(viewSections).values({
+      viewId: 1,
+      placement: 0,
+      itemType: "tag",
+      itemId: 3,
+    });
     const published = await loadApplicationBookmark({
       database: session.database,
       userId: "bounds-user",
@@ -103,11 +110,14 @@ describe("Bookmark server performance bounds", () => {
 
     expect(workspace).toMatchObject({
       bookmark: { id: row!.id },
-      views: [{ id: 1 }, { id: 2 }],
+      views: [
+        { id: 1, tagIds: [3] },
+        { id: 2, tagIds: [] },
+      ],
       tags: [{ id: 3 }],
     });
-    expect(evidence.statementCount).toBe(2);
-    expect(evidence.materializedRows).toBe(3);
+    expect(evidence.statementCount).toBe(3);
+    expect(evidence.materializedRows).toBe(4);
   });
 
   it("loads first, middle, missing, and wrong-owner Bookmarks as point queries", async () => {

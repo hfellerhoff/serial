@@ -26,6 +26,10 @@ export type OrganizationOption = {
   name: string;
 };
 
+export type ViewOrganizationOption = OrganizationOption & {
+  tagIds: number[];
+};
+
 export type BookmarkCaptureOutcome =
   | { status: "captured" }
   | {
@@ -46,7 +50,7 @@ export type BookmarkCaptureOutcome =
 
 export type BookmarkWorkspace = {
   bookmark: ExtensionBookmark;
-  views: OrganizationOption[];
+  views: ViewOrganizationOption[];
   tags: OrganizationOption[];
   feeds: DiscoveredFeed[];
   disposition: "created" | "refreshed" | "consolidated";
@@ -68,13 +72,29 @@ export type BookmarkMessage =
       assigned: boolean;
     }
   | { type: "bookmark.remove"; bookmarkId: string }
-  | { type: "bookmark.add-feed"; url: string };
+  | { type: "bookmark.add-feed"; url: string }
+  | { type: "bookmark.create-view"; bookmarkId: string; name: string }
+  | { type: "bookmark.create-tag"; bookmarkId: string; name: string };
 
 export type BookmarkMessageResponse =
-  | { ok: true; status: "ineligible" }
+  | { ok: true; status: "base" | "ineligible" }
   | { ok: true; status: "removed" | "feed-added" }
   | { ok: true; status: "saved"; workspace: BookmarkWorkspace }
   | { ok: true; status: "updated"; bookmark: ExtensionBookmark }
+  | {
+      ok: true;
+      status: "created-organization";
+      bookmark: ExtensionBookmark;
+      kind: "view";
+      option: ViewOrganizationOption;
+    }
+  | {
+      ok: true;
+      status: "created-organization";
+      bookmark: ExtensionBookmark;
+      kind: "tag";
+      option: OrganizationOption;
+    }
   | { ok: false; authExpired: boolean; error: string };
 
 export function isBookmarkMessage(value: unknown): value is BookmarkMessage {

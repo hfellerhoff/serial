@@ -11,6 +11,8 @@ import type {
   BookmarkMessageResponse,
   BookmarkWorkspace,
   ExtensionBookmark,
+  OrganizationOption,
+  ViewOrganizationOption,
 } from "./bookmarks";
 
 type BookmarkBackgroundDependencies = {
@@ -37,6 +39,14 @@ function eligiblePageUrl(value: string | undefined) {
       : null;
   } catch {
     return null;
+  }
+}
+
+export function isConnectedInstancePage(sourceUrl: string, instance: string) {
+  try {
+    return new URL(sourceUrl).origin === new URL(instance).origin;
+  } catch {
+    return false;
   }
 }
 
@@ -116,7 +126,7 @@ function parseWorkspace(
 ): BookmarkWorkspace | null {
   if (!isRecord(value) || !isRecord(value.workspace)) return null;
   const bookmark = parseBookmark(value.bookmark);
-  const options = (candidate: unknown) =>
+  const options = (candidate: unknown): OrganizationOption[] =>
     Array.isArray(candidate)
       ? candidate.filter(
           (entry): entry is { id: number; name: string } =>
@@ -124,6 +134,21 @@ function parseWorkspace(
             typeof entry.id === "number" &&
             typeof entry.name === "string",
         )
+      : [];
+  const viewOptions = (candidate: unknown): ViewOrganizationOption[] =>
+    Array.isArray(candidate)
+      ? candidate.flatMap((entry) => {
+          if (
+            !isRecord(entry) ||
+            typeof entry.id !== "number" ||
+            typeof entry.name !== "string" ||
+            !Array.isArray(entry.tagIds) ||
+            !entry.tagIds.every((id) => typeof id === "number")
+          ) {
+            return [];
+          }
+          return [{ id: entry.id, name: entry.name, tagIds: entry.tagIds }];
+        })
       : [];
   const disposition = value.disposition;
   const capture = value.capture;
@@ -141,7 +166,7 @@ function parseWorkspace(
   }
   return {
     bookmark,
-    views: options(value.workspace.views),
+    views: viewOptions(value.workspace.views),
     tags: options(value.workspace.tags),
     feeds,
     disposition,
@@ -192,6 +217,9 @@ async function captureActiveBookmark(
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   const sourceUrl = eligiblePageUrl(tab?.url);
   if (!tab?.id || !sourceUrl) return { ok: true, status: "ineligible" };
+  if (isConnectedInstancePage(sourceUrl, session.instance)) {
+    return { ok: true, status: "base" };
+  }
 
   let observation: ExtensionPageObservation;
   try {
@@ -271,19 +299,29 @@ export async function handleBookmarkMessage(
               body: JSON.stringify(
                 message.type === "bookmark.remove"
                   ? { bookmarkId: message.bookmarkId }
-                  : message.type === "bookmark.set-view"
+                  : message.type === "bookmark.create-view" ||
+                      message.type === "bookmark.create-tag"
                     ? {
-                        action: "set-view",
+                        action:
+                          message.type === "bookmark.create-view"
+                            ? "create-view"
+                            : "create-tag",
                         bookmarkId: message.bookmarkId,
-                        viewId: message.viewId,
-                        assigned: message.assigned,
+                        name: message.name,
                       }
-                    : {
-                        action: "set-tag",
-                        bookmarkId: message.bookmarkId,
-                        tagId: message.tagId,
-                        assigned: message.assigned,
-                      },
+                    : message.type === "bookmark.set-view"
+                      ? {
+                          action: "set-view",
+                          bookmarkId: message.bookmarkId,
+                          viewId: message.viewId,
+                          assigned: message.assigned,
+                        }
+                      : {
+                          action: "set-tag",
+                          bookmarkId: message.bookmarkId,
+                          tagId: message.tagId,
+                          assigned: message.assigned,
+                        },
               ),
             },
             dependencies,
@@ -307,9 +345,42 @@ export async function handleBookmarkMessage(
     if (message.type === "bookmark.add-feed") {
       return { ok: true, status: "feed-added" };
     }
-    const bookmark = isRecord(request.payload)
-      ? parseBookmark(request.payload.bookmark)
-      : null;
+    const payload = request.payload;
+    const bookmark = isRecord(payload) ? parseBookmark(payload.bookmark) : null;
+    if (bookmark && isRecord(payload) && isRecord(payload.createdOption)) {
+      const created = payload.createdOption;
+      const option = isRecord(created.option) ? created.option : null;
+      if (
+        created.kind === "view" &&
+        option &&
+        typeof option.id === "number" &&
+        typeof option.name === "string" &&
+        Array.isArray(option.tagIds) &&
+        option.tagIds.every((id: unknown) => typeof id === "number")
+      ) {
+        return {
+          ok: true,
+          status: "created-organization",
+          bookmark,
+          kind: "view",
+          option: { id: option.id, name: option.name, tagIds: option.tagIds },
+        };
+      }
+      if (
+        created.kind === "tag" &&
+        option &&
+        typeof option.id === "number" &&
+        typeof option.name === "string"
+      ) {
+        return {
+          ok: true,
+          status: "created-organization",
+          bookmark,
+          kind: "tag",
+          option: { id: option.id, name: option.name },
+        };
+      }
+    }
     return bookmark
       ? { ok: true, status: "updated", bookmark }
       : {

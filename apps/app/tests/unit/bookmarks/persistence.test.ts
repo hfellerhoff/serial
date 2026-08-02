@@ -8,6 +8,10 @@ import type {
 } from "~/server/bookmarks/contracts";
 import { buildUrlFallbackObservation } from "~/server/bookmarks/extract";
 import {
+  createExtensionBookmarkTag,
+  createExtensionBookmarkView,
+} from "~/server/bookmarks/extensionOrganization";
+import {
   deleteBookmark,
   getBookmarkCapture,
   persistBookmarkSave,
@@ -133,6 +137,36 @@ beforeEach(async () => {
 afterEach(() => cleanup());
 
 describe("Bookmark persistence", () => {
+  it("creates extension organization only for an owned Bookmark", async () => {
+    const own = await saveCaptured(
+      "user-one",
+      "https://example.com/organization",
+    );
+    const view = await createExtensionBookmarkView({
+      database,
+      userId: "user-one",
+      bookmarkId: own.bookmark.id,
+      name: "Essays",
+    });
+    const tag = await createExtensionBookmarkTag({
+      database,
+      userId: "user-one",
+      bookmarkId: own.bookmark.id,
+      name: "Research",
+    });
+
+    expect(view).toMatchObject({ name: "Essays", tagIds: [] });
+    expect(tag).toMatchObject({ name: "Research" });
+    await expect(
+      createExtensionBookmarkView({
+        database,
+        userId: "user-two",
+        bookmarkId: own.bookmark.id,
+        name: "Unauthorized",
+      }),
+    ).rejects.toThrow("Bookmark not found");
+  });
+
   it("keeps the extension preflight failure reason on a URL-only save", async () => {
     const url = "https://example.com/oversized";
     const result = await saveBookmarkFromExtension({

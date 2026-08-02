@@ -221,6 +221,8 @@ describe("extension Bookmark HTTP contract", () => {
       authenticate: vi.fn(() => Promise.resolve({ id: "user-one" }) as never),
       setView: vi.fn(() => Promise.resolve()),
       setTag: vi.fn(() => Promise.resolve()),
+      createView: vi.fn(),
+      createTag: vi.fn(),
       publish: vi.fn(() => Promise.resolve({ id: "bookmark-one" }) as never),
     };
     const response = await mutateExtensionBookmark(
@@ -244,6 +246,106 @@ describe("extension Bookmark HTTP contract", () => {
     );
     expect(deps.publish).toHaveBeenCalled();
     expect(deps.setTag).not.toHaveBeenCalled();
+  });
+
+  it("creates and assigns a View through the extension editor", async () => {
+    const deps = {
+      authenticate: vi.fn(() => Promise.resolve({ id: "user-one" }) as never),
+      setView: vi.fn(() => Promise.resolve()),
+      setTag: vi.fn(() => Promise.resolve()),
+      createView: vi.fn(
+        () => Promise.resolve({ id: 14, name: "Essays", tagIds: [] }) as never,
+      ),
+      createTag: vi.fn(),
+      publish: vi.fn(
+        () =>
+          Promise.resolve({
+            id: "bookmark-one",
+            viewIds: [14],
+            tagIds: [],
+          }) as never,
+      ),
+    };
+    const response = await mutateExtensionBookmark(
+      bookmarkMutation("PATCH", {
+        action: "create-view",
+        bookmarkId: "bookmark-one",
+        name: "Essays",
+      }),
+      deps,
+    );
+
+    expect(response.status).toBe(200);
+    expect(deps.createView).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user-one",
+        bookmarkId: "bookmark-one",
+        name: "Essays",
+      }),
+    );
+    expect(deps.setView).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bookmarkId: "bookmark-one",
+        viewId: 14,
+        assigned: true,
+      }),
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      createdOption: {
+        kind: "view",
+        option: { id: 14, name: "Essays", tagIds: [] },
+      },
+    });
+  });
+
+  it("creates and assigns a Tag through the extension editor", async () => {
+    const deps = {
+      authenticate: vi.fn(() => Promise.resolve({ id: "user-one" }) as never),
+      setView: vi.fn(() => Promise.resolve()),
+      setTag: vi.fn(() => Promise.resolve()),
+      createView: vi.fn(),
+      createTag: vi.fn(
+        () => Promise.resolve({ id: 21, name: "Research" }) as never,
+      ),
+      publish: vi.fn(
+        () =>
+          Promise.resolve({
+            id: "bookmark-one",
+            viewIds: [],
+            tagIds: [21],
+          }) as never,
+      ),
+    };
+    const response = await mutateExtensionBookmark(
+      bookmarkMutation("PATCH", {
+        action: "create-tag",
+        bookmarkId: "bookmark-one",
+        name: "Research",
+      }),
+      deps,
+    );
+
+    expect(response.status).toBe(200);
+    expect(deps.createTag).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user-one",
+        bookmarkId: "bookmark-one",
+        name: "Research",
+      }),
+    );
+    expect(deps.setTag).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bookmarkId: "bookmark-one",
+        tagId: 21,
+        assigned: true,
+      }),
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      createdOption: {
+        kind: "tag",
+        option: { id: 21, name: "Research" },
+      },
+    });
   });
 
   it("removes the Bookmark and publishes its deletion", async () => {
@@ -282,6 +384,8 @@ describe("extension Bookmark HTTP contract", () => {
       authenticate: vi.fn(() => Promise.resolve({ id: "user-one" }) as never),
       setView: vi.fn(),
       setTag: vi.fn(),
+      createView: vi.fn(),
+      createTag: vi.fn(),
       publish: vi.fn(),
     };
     const mutation = bookmarkMutation("PATCH", {

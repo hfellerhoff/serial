@@ -17,6 +17,10 @@ import { authenticatedExtensionUser } from "~/server/auth/extensionRequest";
 import { db } from "~/server/db";
 import { loadExtensionBookmarkWorkspace } from "~/server/bookmarks/extensionWorkspace";
 import {
+  createExtensionBookmarkTag,
+  createExtensionBookmarkView,
+} from "~/server/bookmarks/extensionOrganization";
+import {
   publishBookmarkDeletion,
   publishBookmarkUpsert,
 } from "~/server/mixed-content/sync";
@@ -216,12 +220,24 @@ const extensionBookmarkMutationSchema = z.discriminatedUnion("action", [
     tagId: z.number().int().positive(),
     assigned: z.boolean(),
   }),
+  z.strictObject({
+    action: z.literal("create-view"),
+    bookmarkId: z.string().min(1),
+    name: z.string().trim().min(1).max(256),
+  }),
+  z.strictObject({
+    action: z.literal("create-tag"),
+    bookmarkId: z.string().min(1),
+    name: z.string().trim().min(2).max(256),
+  }),
 ]);
 
 type ExtensionBookmarkMutationDependencies = {
   authenticate: typeof authenticatedExtensionUser;
   setView: typeof setBookmarkView;
   setTag: typeof setBookmarkTag;
+  createView: typeof createExtensionBookmarkView;
+  createTag: typeof createExtensionBookmarkTag;
   publish: typeof publishBookmarkUpsert;
 };
 
@@ -229,6 +245,8 @@ const DEFAULT_MUTATION_DEPENDENCIES: ExtensionBookmarkMutationDependencies = {
   authenticate: authenticatedExtensionUser,
   setView: setBookmarkView,
   setTag: setBookmarkTag,
+  createView: createExtensionBookmarkView,
+  createTag: createExtensionBookmarkTag,
   publish: publishBookmarkUpsert,
 };
 
@@ -246,6 +264,16 @@ export async function mutateExtensionBookmark(
     const mutation = extensionBookmarkMutationSchema.parse(
       await readBoundedJson(request),
     );
+    let createdOption:
+      | {
+          kind: "view";
+          option: Awaited<ReturnType<typeof createExtensionBookmarkView>>;
+        }
+      | {
+          kind: "tag";
+          option: Awaited<ReturnType<typeof createExtensionBookmarkTag>>;
+        }
+      | undefined;
     if (mutation.action === "set-view") {
       await dependencies.setView({
         database: db,
@@ -254,7 +282,7 @@ export async function mutateExtensionBookmark(
         viewId: mutation.viewId,
         assigned: mutation.assigned,
       });
-    } else {
+    } else if (mutation.action === "set-tag") {
       await dependencies.setTag({
         database: db,
         userId: authenticatedUser.id,
@@ -262,6 +290,36 @@ export async function mutateExtensionBookmark(
         tagId: mutation.tagId,
         assigned: mutation.assigned,
       });
+    } else if (mutation.action === "create-view") {
+      const option = await dependencies.createView({
+        database: db,
+        userId: authenticatedUser.id,
+        bookmarkId: mutation.bookmarkId,
+        name: mutation.name,
+      });
+      await dependencies.setView({
+        database: db,
+        userId: authenticatedUser.id,
+        bookmarkId: mutation.bookmarkId,
+        viewId: option.id,
+        assigned: true,
+      });
+      createdOption = { kind: "view", option };
+    } else {
+      const option = await dependencies.createTag({
+        database: db,
+        userId: authenticatedUser.id,
+        bookmarkId: mutation.bookmarkId,
+        name: mutation.name,
+      });
+      await dependencies.setTag({
+        database: db,
+        userId: authenticatedUser.id,
+        bookmarkId: mutation.bookmarkId,
+        tagId: option.id,
+        assigned: true,
+      });
+      createdOption = { kind: "tag", option };
     }
     const bookmark = await dependencies.publish({
       database: db,
@@ -269,7 +327,10 @@ export async function mutateExtensionBookmark(
       bookmarkId: mutation.bookmarkId,
     });
     if (!bookmark) throw new BookmarkNotFoundError("Bookmark not found");
-    return jsonResponse({ bookmark });
+    return jsonResponse({
+      bookmark,
+      ...(createdOption ? { createdOption } : {}),
+    });
   } catch (error) {
     if (error instanceof RangeError) {
       return jsonResponse({ error: "The bookmark request is too large" }, 413);

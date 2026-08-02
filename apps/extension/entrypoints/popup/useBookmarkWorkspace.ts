@@ -6,7 +6,8 @@ import type {
   BookmarkWorkspace,
 } from "../../lib/bookmarks";
 
-type WorkspaceStatus = "loading" | "ineligible" | "saved" | "removed" | "error";
+type WorkspaceStatus =
+  "loading" | "base" | "ineligible" | "saved" | "removed" | "error";
 
 async function sendBookmarkMessage(message: BookmarkMessage) {
   const response = (await browser.runtime.sendMessage(
@@ -27,6 +28,7 @@ export function useBookmarkWorkspace(input: {
   const [error, setError] = useState<string | null>(null);
   const [pendingOrganization, setPendingOrganization] = useState<string[]>([]);
   const [pendingFeedUrls, setPendingFeedUrls] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
   const attemptedToken = useRef<string | null>(null);
   const { onAuthExpired, session } = input;
 
@@ -50,9 +52,9 @@ export function useBookmarkWorkspace(input: {
         type: "bookmark.capture-active",
       });
       if (!response.ok) return handleFailure(response);
-      if (response.status === "ineligible") {
+      if (response.status === "base" || response.status === "ineligible") {
         setWorkspace(null);
-        setStatus("ineligible");
+        setStatus(response.status);
         return;
       }
       if (response.status !== "saved") {
@@ -139,8 +141,9 @@ export function useBookmarkWorkspace(input: {
   );
 
   const removeBookmark = useCallback(async () => {
-    if (!workspace) return;
+    if (!workspace) return false;
     setError(null);
+    setIsDeleting(true);
     try {
       const response = await sendBookmarkMessage({
         type: "bookmark.remove",
@@ -149,13 +152,65 @@ export function useBookmarkWorkspace(input: {
       if (!response.ok) {
         if (response.authExpired) onAuthExpired();
         else setError(response.error);
-        return;
+        return false;
       }
-      if (response.status === "removed") setStatus("removed");
+      if (response.status === "removed") {
+        setStatus("removed");
+        return true;
+      }
     } catch {
       setError("Unable to remove the Bookmark");
+    } finally {
+      setIsDeleting(false);
     }
+    return false;
   }, [onAuthExpired, workspace]);
+
+  const createOrganization = useCallback(
+    async (kind: "view" | "tag", name: string) => {
+      if (!workspace) return;
+      setError(null);
+      try {
+        const response = await sendBookmarkMessage({
+          type:
+            kind === "view" ? "bookmark.create-view" : "bookmark.create-tag",
+          bookmarkId: workspace.bookmark.id,
+          name,
+        });
+        if (!response.ok) {
+          if (response.authExpired) onAuthExpired();
+          else setError(response.error);
+          throw new Error(response.error);
+        }
+        if (response.status !== "created-organization") {
+          throw new Error("Serial returned an unexpected organization state");
+        }
+        setWorkspace((current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            bookmark: response.bookmark,
+            views:
+              response.kind === "view"
+                ? [...current.views, response.option]
+                : current.views,
+            tags:
+              response.kind === "tag"
+                ? [...current.tags, response.option]
+                : current.tags,
+          };
+        });
+      } catch (creationError) {
+        const message =
+          creationError instanceof Error
+            ? creationError.message
+            : `Unable to create ${kind}`;
+        setError(message);
+        throw creationError;
+      }
+    },
+    [onAuthExpired, workspace],
+  );
 
   const addFeed = useCallback(
     async (url: string) => {
@@ -189,8 +244,10 @@ export function useBookmarkWorkspace(input: {
     error,
     pendingOrganization,
     addedFeedUrls: pendingFeedUrls,
+    isDeleting,
     retry: captureActive,
     toggleOrganization,
+    createOrganization,
     removeBookmark,
     addFeed,
   };
