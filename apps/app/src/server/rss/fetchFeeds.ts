@@ -20,6 +20,7 @@ import {
 import { computeItemHash } from "./hash";
 import { boundFeedItems } from "./feedBounds";
 import { readFeedHttp } from "./feedHttp";
+import { isAuthorizedTestRssUrl } from "./testRssOrigin";
 import type { ApplicationFeedItem, DatabaseFeed } from "../db/schema";
 import type { db as Database } from "../db";
 import type {
@@ -43,6 +44,8 @@ const MAX_CHANNEL_DISCOVERY_BYTES = 5 * 1024 * 1024;
 export type FetchFeedsStatus = "success" | "empty" | "error" | "skipped";
 
 function assertValidFeedUrl(url: string) {
+  if (isAuthorizedTestRssUrl(url)) return;
+
   let parsed: URL;
   try {
     parsed = new URL(url);

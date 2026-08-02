@@ -10,7 +10,7 @@ import {
   normalizeFeedSearchUrl,
   STATIC_FEED_SEARCH_OPTIONS,
 } from "./feedSearchOptions";
-import type { Ref } from "react";
+import type { ReactNode, Ref } from "react";
 import type { DiscoveredFeed } from "./FeedDiscoveryResults";
 import type { StaticFeedSearchOption } from "./feedSearchOptions";
 import type { ContentPlatform } from "~/lib/content/descriptor";
@@ -22,6 +22,26 @@ import {
   CommandItem,
   CommandList,
 } from "~/components/ui/command";
+
+const CENTERED_STATE_CLASS_NAME =
+  "text-muted-foreground absolute inset-0 px-6 py-6 text-center sm:flex sm:items-center sm:justify-center";
+
+function CenteredStateContent({
+  children,
+  testId,
+}: {
+  children: ReactNode;
+  testId: string;
+}) {
+  return (
+    <div
+      className="absolute top-1/3 left-1/2 flex w-[calc(100%-3rem)] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3 sm:static sm:w-auto sm:translate-x-0 sm:translate-y-0"
+      data-testid={testId}
+    >
+      {children}
+    </div>
+  );
+}
 
 function StaticFeedResult({
   option,
@@ -172,24 +192,21 @@ export function FeedDiscoveryCommand({
       <CommandList className="relative flex max-h-none min-h-0 flex-1 flex-col sm:max-h-[min(60dvh,32rem,calc(100dvh-5.5rem))] sm:min-h-[min(20rem,60dvh,calc(100dvh-5.5rem))] sm:flex-none">
         {normalizedUrl ? (
           <>
-            <CommandGroup
-              className={
-                isAddingFeed || isDiscovering || isAutoDiscoveryPending
-                  ? undefined
-                  : "hidden"
-              }
-            >
-              {(isAddingFeed || isDiscovering || isAutoDiscoveryPending) && (
-                <CommandItem
-                  className="gap-2"
-                  disabled
-                  value={isAddingFeed ? "adding" : "discovering"}
-                >
-                  <Loader2Icon className="size-4 animate-spin" />
-                  {isAddingFeed ? loadingLabel : "Finding feeds…"}
-                </CommandItem>
-              )}
-            </CommandGroup>
+            {(isAddingFeed || isDiscovering || isAutoDiscoveryPending) && (
+              <div
+                className={CENTERED_STATE_CLASS_NAME}
+                role="status"
+                aria-live="polite"
+              >
+                <CenteredStateContent testId="feed-discovery-loading-state">
+                  <Loader2Icon
+                    className="size-8 animate-spin"
+                    strokeWidth={1.5}
+                  />
+                  <span>{isAddingFeed ? loadingLabel : "Finding feeds…"}</span>
+                </CenteredStateContent>
+              </div>
+            )}
             <CommandGroup
               heading="Feeds"
               className={isSelecting || hasNoResults ? undefined : "hidden"}
@@ -257,14 +274,11 @@ export function FeedDiscoveryCommand({
           </>
         ) : (
           <>
-            <CommandEmpty className="text-muted-foreground absolute inset-0 px-6 py-6 text-center sm:flex sm:items-center sm:justify-center">
-              <div
-                className="absolute top-1/3 left-1/2 flex w-[calc(100%-3rem)] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3 sm:static sm:w-auto sm:translate-x-0 sm:translate-y-0"
-                data-testid="feed-discovery-empty-state"
-              >
+            <CommandEmpty className={CENTERED_STATE_CLASS_NAME}>
+              <CenteredStateContent testId="feed-discovery-empty-state">
                 <SearchIcon className="size-8" strokeWidth={1.5} />
                 <span>Enter a website, channel, or RSS feed URL.</span>
-              </div>
+              </CenteredStateContent>
             </CommandEmpty>
             {STATIC_FEED_SEARCH_OPTIONS.length > 0 && (
               <CommandGroup heading="Suggested feeds">

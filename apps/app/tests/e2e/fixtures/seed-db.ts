@@ -8,6 +8,7 @@ import * as schema from "../../../src/server/db/schema";
 import { seedBenchmarkFixture } from "../../../scripts/performance/fixtures";
 import { INITIAL_ITEMS_PER_VIEW } from "../../../src/server/api/constants";
 import { SELF_HOSTED_RSS_SERVER_PORT } from "./ports";
+import { getTestClientIp, TEST_CLIENT_IP_HEADER } from "./client-ip";
 import type { BenchmarkProfileName } from "../../../scripts/performance/model";
 import type { VisibilityFilter } from "../../../src/lib/data/atoms";
 import type { MixedViewSectionCase } from "./mixed-view-section-matrix";
@@ -640,6 +641,7 @@ export async function seedArticleData(
       headers: {
         "Content-Type": "application/json",
         Origin: `http://localhost:${appPort}`,
+        [TEST_CLIENT_IP_HEADER]: getTestClientIp(email),
       },
       body: JSON.stringify({ name: "Test User", email, password }),
     },
@@ -900,6 +902,7 @@ export async function seedYouTubeVideoData(
       headers: {
         "Content-Type": "application/json",
         Origin: `http://localhost:${appPort}`,
+        [TEST_CLIENT_IP_HEADER]: getTestClientIp(email),
       },
       body: JSON.stringify({ name: "Test User", email, password }),
     },
@@ -1016,6 +1019,7 @@ export async function seedMultipleArticleData(
       headers: {
         "Content-Type": "application/json",
         Origin: `http://localhost:${appPort}`,
+        [TEST_CLIENT_IP_HEADER]: getTestClientIp(email),
       },
       body: JSON.stringify({ name: "Test User", email, password }),
     },
@@ -1142,6 +1146,7 @@ export async function seedViewLayoutData(
       headers: {
         "Content-Type": "application/json",
         Origin: `http://localhost:${appPort}`,
+        [TEST_CLIENT_IP_HEADER]: getTestClientIp(email),
       },
       body: JSON.stringify({ name: "Test User", email, password }),
     },

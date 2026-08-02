@@ -2,6 +2,7 @@ import { expect } from "@playwright/test";
 import { createClient } from "@libsql/client";
 import { createId } from "@paralleldrive/cuid2";
 import { hashPassword } from "better-auth/crypto";
+import { getTestClientIp, TEST_CLIENT_IP_HEADER } from "./client-ip";
 import type { Locator, Page } from "@playwright/test";
 
 interface SignUpOptions {
@@ -65,6 +66,9 @@ async function detectAuthPage(page: Page): Promise<"sign-in" | "sign-up"> {
  * redirects differently).
  */
 export async function signUp({ page, name, email, password }: SignUpOptions) {
+  await page.setExtraHTTPHeaders({
+    [TEST_CLIENT_IP_HEADER]: getTestClientIp(email),
+  });
   await page.goto("/auth/sign-up");
 
   const authPage = await detectAuthPage(page);
@@ -179,6 +183,9 @@ export async function signOut(page: Page) {
  * redirects to the first-user sign-up flow).
  */
 export async function signIn({ page, email, password }: SignInOptions) {
+  await page.setExtraHTTPHeaders({
+    [TEST_CLIENT_IP_HEADER]: getTestClientIp(email),
+  });
   await page.goto("/auth/sign-in");
 
   const authPage = await detectAuthPage(page);

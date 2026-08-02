@@ -148,7 +148,7 @@ test.describe("add feed manually", () => {
     await page.setViewportSize({ width: 1920, height: 1080 });
 
     // Enter the RSS server URL for the "cgp-grey" feed
-    const feedUrl = `http://127.0.0.1:${SELF_HOSTED_RSS_SERVER_PORT}/feed/cgp-grey`;
+    const feedUrl = `http://127.0.0.1:${SELF_HOSTED_RSS_SERVER_PORT}/feed/delayed-cgp-grey`;
     const feedSearch = dialog.getByPlaceholder(
       "Paste a URL or search for a feed...",
     );
@@ -157,7 +157,7 @@ test.describe("add feed manually", () => {
       /bg-black\/40/,
     );
     await feedSearch.fill(
-      `http://127.0.0.1:${SELF_HOSTED_RSS_SERVER_PORT}/missing-feed`,
+      `http://127.0.0.1:${SELF_HOSTED_RSS_SERVER_PORT}/delayed/missing-feed`,
     );
     const bookmarkFallback = dialog.getByRole("option", {
       name: /Bookmark page to read later/,
@@ -175,16 +175,16 @@ test.describe("add feed manually", () => {
     await expect(dialog.getByText(/Find feeds at/)).toHaveCount(0);
 
     await retryFeedDiscovery.click();
-    await expect(
-      dialog.getByRole("option", { name: "Finding feeds…" }),
-    ).toBeVisible();
+    const loadingState = dialog.getByTestId("feed-discovery-loading-state");
+    await expect(loadingState).toContainText("Finding feeds…");
+    await expect(loadingState.locator("..")).toHaveAttribute("role", "status");
+    await expect(loadingState.locator("svg.animate-spin")).toBeVisible();
+    await expectVerticalPosition(commandList, loadingState, 1 / 2);
     await expect(retryFeedDiscovery).toBeVisible({ timeout: 10000 });
     await expect(bookmarkFallback).toBeVisible();
 
     await feedSearch.fill(feedUrl);
-    await expect(
-      dialog.getByRole("option", { name: "Finding feeds…" }),
-    ).toBeVisible();
+    await expect(loadingState).toContainText("Finding feeds…");
 
     // A recognized URL is discovered automatically after a short debounce.
     // Even a single result requires an explicit selection.
@@ -199,16 +199,12 @@ test.describe("add feed manually", () => {
     await feedSearch.fill("not a feed url");
     await expect(discoveredFeed).toHaveCount(0);
     await feedSearch.fill(feedUrl);
-    await expect(
-      dialog.getByRole("option", { name: "Finding feeds…" }),
-    ).toBeVisible();
+    await expect(loadingState).toContainText("Finding feeds…");
     await expect(discoveredFeed).toBeVisible({ timeout: 10000 });
 
     await expect(feedSearch).toBeFocused();
     await page.keyboard.press("Enter");
-    await expect(
-      dialog.getByRole("option", { name: "Adding feed…" }),
-    ).toBeVisible();
+    await expect(loadingState).toContainText("Adding feed…");
 
     // Selecting a result creates it, then opens its Edit Feed modal.
     await expect(

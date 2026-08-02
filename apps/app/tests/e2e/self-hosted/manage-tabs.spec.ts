@@ -183,10 +183,7 @@ test.describe("manage feeds/views/tags tabs", () => {
     ).toBeVisible({ timeout: 5000 });
 
     // Edit single view via pencil button
-    const rowA = mainContent
-      .locator("button[type='button']")
-      .filter({ hasText: "Bulk View A" });
-    await rowA.locator("button").last().click(); // pencil button
+    await mainContent.getByRole("button", { name: "Edit Bulk View A" }).click();
     await expect(
       page.locator('[role="dialog"]').getByRole("heading", {
         name: "Edit View",
@@ -284,7 +281,7 @@ test.describe("manage feeds/views/tags tabs", () => {
 
     // The tag row should now show the assigned feed badge ("Test Blog")
     await expect(
-      page.locator("button[type='button']").filter({
+      page.locator("[data-management-selection-row]").filter({
         hasText: "Tag With Feed",
       }),
     ).toBeVisible({ timeout: 5000 });
@@ -436,7 +433,8 @@ test.describe("manage feeds/views/tags tabs", () => {
       await expect(
         page
           .locator("main main")
-          .getByRole("button", { name: tagName, exact: true }),
+          .locator("[data-management-selection-row]")
+          .filter({ hasText: tagName }),
       ).toBeVisible({ timeout: 10000 });
     }
 
@@ -471,10 +469,10 @@ test.describe("manage feeds/views/tags tabs", () => {
 
     // Both tag rows should now show the feed name as a badge
     const alphaRow = page
-      .locator("button[type='button']")
+      .locator("[data-management-selection-row]")
       .filter({ hasText: "Tag Alpha" });
     const betaRow = page
-      .locator("button[type='button']")
+      .locator("[data-management-selection-row]")
       .filter({ hasText: "Tag Beta" });
     await expect(alphaRow.locator('[data-slot="badge"]')).toBeVisible({
       timeout: 5000,

@@ -19,6 +19,17 @@ function getInitialRenderCount(itemIds: string[], listKey: string) {
   return Math.min(renderCount, itemIds.length || renderCount);
 }
 
+export function reconcileRenderCountForItems(input: {
+  currentRenderCount: number;
+  itemCount: number;
+  renderBudget: number;
+}) {
+  return Math.max(
+    input.currentRenderCount,
+    Math.min(input.renderBudget, input.itemCount),
+  );
+}
+
 export function useItemWindow(itemIds: string[], listKey: string) {
   const [renderCount, setRenderCount] = useState(() =>
     getInitialRenderCount(itemIds, listKey),
@@ -32,7 +43,18 @@ export function useItemWindow(itemIds: string[], listKey: string) {
     if (listKeyRef.current !== listKey) {
       setRenderCount(getInitialRenderCount(itemIds, listKey));
       listKeyRef.current = listKey;
+      return;
     }
+
+    const renderBudget =
+      getSavedHomeRenderedItemCount(listKey) ?? ITEMS_PER_PAGE;
+    setRenderCount((currentRenderCount) =>
+      reconcileRenderCountForItems({
+        currentRenderCount,
+        itemCount: itemIds.length,
+        renderBudget,
+      }),
+    );
   }, [itemIds, listKey]);
 
   // Auto-expand window if keyboard navigation selects an item outside the

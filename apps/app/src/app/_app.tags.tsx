@@ -11,6 +11,7 @@ import {
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { useDialogStore } from "~/components/feed/dialogStore";
 import { FeedManagementTabs } from "~/components/feed/FeedManagementTabs";
+import { SelectableManagementRow } from "~/components/feed/SelectableManagementRow";
 import { useFeedManagementShortcuts } from "~/components/feed/useManagementShortcuts";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -293,39 +294,46 @@ function ManageTagsPage() {
             const feedIds = tagFeedsMap.get(tag.id) ?? [];
 
             return (
-              <button
-                type="button"
+              <SelectableManagementRow
                 key={tag.id}
-                className="hover:bg-muted/50 flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-3 text-left transition-colors"
-                onClick={(e) => handleTagSelect(tag.id, e)}
-              >
-                <Checkbox
-                  id={`tag-${tag.id}`}
-                  checked={isSelected}
-                  onCheckedChange={() => handleTagSelect(tag.id)}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <span className="line-clamp-1 flex-1">{tag.name}</span>
-                <div className="flex flex-wrap items-center gap-3">
-                  {feedIds.length === 1 ? (
-                    <Badge variant="secondary">
-                      {feedNamesMap.get(feedIds[0]!) ?? "1 Feed"}
-                    </Badge>
-                  ) : feedIds.length > 1 ? (
-                    <Badge variant="secondary">{feedIds.length} Feeds</Badge>
-                  ) : null}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingTagId(tag.id);
-                  }}
-                >
-                  <PencilIcon size={16} />
-                </Button>
-              </button>
+                title={tag.name}
+                selectionLabel={`Select tag ${tag.name}`}
+                selected={isSelected}
+                onSelect={(event) => handleTagSelect(tag.id, event)}
+                leading={
+                  <Checkbox
+                    id={`tag-${tag.id}`}
+                    aria-label={`Select tag ${tag.name}`}
+                    checked={isSelected}
+                    onCheckedChange={() => handleTagSelect(tag.id)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                }
+                details={
+                  <div className="flex flex-wrap items-center gap-3">
+                    {feedIds.length === 1 ? (
+                      <Badge variant="secondary">
+                        {feedNamesMap.get(feedIds[0]!) ?? "1 Feed"}
+                      </Badge>
+                    ) : feedIds.length > 1 ? (
+                      <Badge variant="secondary">{feedIds.length} Feeds</Badge>
+                    ) : null}
+                  </div>
+                }
+                action={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Edit ${tag.name}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setEditingTagId(tag.id);
+                    }}
+                  >
+                    <PencilIcon size={16} />
+                  </Button>
+                }
+              />
             );
           })}
 

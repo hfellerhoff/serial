@@ -102,6 +102,7 @@ const childEnvironment = {
   DATABASE_URL: `http://127.0.0.1:${tursoPort}`,
   PUBLIC_BASE_URL: appUrl,
   VITE_PUBLIC_BASE_URL: appUrl,
+  SERIAL_TEST_RSS_ALLOW_LOOPBACK: "1",
   SERIAL_TEST_RSS_ORIGIN: `http://127.0.0.1:${rssPort}`,
   PORT: String(appPort),
 };

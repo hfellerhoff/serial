@@ -70,6 +70,22 @@ const feeds: Record<string, string> = {
 const server = createServer((req, res) => {
   const url = req.url ?? "/";
 
+  if (url === "/delayed/missing-feed") {
+    setTimeout(() => {
+      res.writeHead(404);
+      res.end();
+    }, 250);
+    return;
+  }
+
+  if (url === "/feed/delayed-cgp-grey") {
+    setTimeout(() => {
+      res.writeHead(200, { "Content-Type": "application/rss+xml" });
+      res.end(feeds["cgp-grey"]);
+    }, 250);
+    return;
+  }
+
   if (url === "/bookmark/success") {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     res.end(`<!doctype html><html><head>

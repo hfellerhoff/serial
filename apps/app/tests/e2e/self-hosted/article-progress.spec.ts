@@ -145,7 +145,9 @@ test.describe("article progress tracking", () => {
     );
   });
 
-  test("opens at the top after Back then Forward", async ({ page }) => {
+  test("restores the reading position after Back then Forward", async ({
+    page,
+  }) => {
     const { email, password } = await seedArticleData(
       SELF_HOSTED_TURSO_PORT,
       SELF_HOSTED_APP_PORT,
@@ -175,11 +177,9 @@ test.describe("article progress tracking", () => {
     await page.goForward();
     await expect(page).toHaveURL(/\/read\//);
     await expect(page.getByText("Paragraph 1:")).toBeVisible();
-    await page.waitForTimeout(100);
-
-    expect(await scrollContainer.evaluate((element) => element.scrollTop)).toBe(
-      0,
-    );
+    await expect
+      .poll(() => scrollContainer.evaluate((element) => element.scrollTop))
+      .toBe(previousArticleScroll);
   });
 
   test("navigates through content inside top-level div wrappers", async ({

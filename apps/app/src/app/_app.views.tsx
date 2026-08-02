@@ -8,6 +8,7 @@ import { BulkEditViewsDialog, EditViewDialog } from "~/components/view-dialog";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { useDialogStore } from "~/components/feed/dialogStore";
 import { FeedManagementTabs } from "~/components/feed/FeedManagementTabs";
+import { SelectableManagementRow } from "~/components/feed/SelectableManagementRow";
 import { useFeedManagementShortcuts } from "~/components/feed/useManagementShortcuts";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -257,46 +258,53 @@ function ManageViewsPage() {
             const categoryIds = view.categoryIds;
 
             return (
-              <button
-                type="button"
+              <SelectableManagementRow
                 key={view.id}
-                className="hover:bg-muted/50 flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-3 text-left transition-colors"
-                onClick={(e) => handleViewSelect(view.id, e)}
-              >
-                <Checkbox
-                  id={`view-${view.id}`}
-                  checked={isSelected}
-                  onCheckedChange={() => handleViewSelect(view.id)}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <span className="line-clamp-1 flex-1">{view.name}</span>
-                <div className="flex flex-wrap items-center gap-3">
-                  {feedIds.length === 1 ? (
-                    <Badge variant="secondary">
-                      {feedNamesMap.get(feedIds[0]!) ?? "1 Feed"}
-                    </Badge>
-                  ) : feedIds.length > 1 ? (
-                    <Badge variant="secondary">{feedIds.length} Feeds</Badge>
-                  ) : null}
-                  {categoryIds.length === 1 ? (
-                    <Badge variant="outline">
-                      {categoryNamesMap.get(categoryIds[0]!) ?? "1 Tag"}
-                    </Badge>
-                  ) : categoryIds.length > 1 ? (
-                    <Badge variant="outline">{categoryIds.length} Tags</Badge>
-                  ) : null}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingViewId(view.id);
-                  }}
-                >
-                  <PencilIcon size={16} />
-                </Button>
-              </button>
+                title={view.name}
+                selectionLabel={`Select view ${view.name}`}
+                selected={isSelected}
+                onSelect={(event) => handleViewSelect(view.id, event)}
+                leading={
+                  <Checkbox
+                    id={`view-${view.id}`}
+                    aria-label={`Select view ${view.name}`}
+                    checked={isSelected}
+                    onCheckedChange={() => handleViewSelect(view.id)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                }
+                details={
+                  <div className="flex flex-wrap items-center gap-3">
+                    {feedIds.length === 1 ? (
+                      <Badge variant="secondary">
+                        {feedNamesMap.get(feedIds[0]!) ?? "1 Feed"}
+                      </Badge>
+                    ) : feedIds.length > 1 ? (
+                      <Badge variant="secondary">{feedIds.length} Feeds</Badge>
+                    ) : null}
+                    {categoryIds.length === 1 ? (
+                      <Badge variant="outline">
+                        {categoryNamesMap.get(categoryIds[0]!) ?? "1 Tag"}
+                      </Badge>
+                    ) : categoryIds.length > 1 ? (
+                      <Badge variant="outline">{categoryIds.length} Tags</Badge>
+                    ) : null}
+                  </div>
+                }
+                action={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Edit ${view.name}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setEditingViewId(view.id);
+                    }}
+                  >
+                    <PencilIcon size={16} />
+                  </Button>
+                }
+              />
             );
           })}
 

@@ -95,6 +95,7 @@ afterAll(() => {
 });
 
 afterEach(() => {
+  delete process.env.SERIAL_TEST_RSS_ALLOW_LOOPBACK;
   delete process.env.SERIAL_TEST_RSS_ORIGIN;
 });
 
@@ -105,7 +106,16 @@ describe("readFeedHttp", () => {
     );
   });
 
-  it("allows only the exact loopback RSS origin configured by the test runner", async () => {
+  it("rejects a configured loopback RSS origin without the test-runner capability", async () => {
+    process.env.SERIAL_TEST_RSS_ORIGIN = baseUrl;
+
+    await expect(readFeedHttp(`${baseUrl}/feed`)).rejects.toThrow(
+      "not allowed",
+    );
+  });
+
+  it("allows only the exact loopback RSS origin authorized by the test runner", async () => {
+    process.env.SERIAL_TEST_RSS_ALLOW_LOOPBACK = "1";
     process.env.SERIAL_TEST_RSS_ORIGIN = baseUrl;
 
     await expect(readFeedHttp(`${baseUrl}/feed`)).resolves.toMatchObject({

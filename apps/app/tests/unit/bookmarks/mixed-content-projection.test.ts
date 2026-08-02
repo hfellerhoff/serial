@@ -404,6 +404,57 @@ describe("mixed-content projection", () => {
     ]);
   });
 
+  it("keeps a directly assigned Feed item after a Bookmark-only Tag section", async () => {
+    await seedView(10, "Sectioned");
+    await database.insert(contentCategories).values({
+      id: 1,
+      userId: "user-one",
+      name: "Bookmark section",
+    });
+    await database.insert(viewCategories).values({
+      viewId: 10,
+      categoryId: 1,
+    });
+    await database.insert(viewSections).values({
+      viewId: 10,
+      placement: 1,
+      itemType: "tag",
+      itemId: 1,
+    });
+    await seedBookmark({ id: "section-bookmark" });
+    await database.insert(bookmarkTags).values({
+      bookmarkId: "section-bookmark",
+      tagId: 1,
+    });
+    await seedFeed(1);
+    await database.insert(viewFeeds).values({ viewId: 10, feedId: 1 });
+    await seedFeedItem({
+      id: "uncategorized-feed-item",
+      feedId: 1,
+      url: "https://example.com/uncategorized-feed-item",
+      isWatchLater: true,
+      isWatchLaterUpdatedAt: NOW,
+    });
+
+    const page = await queryMixedContentPage({
+      database,
+      userId: "user-one",
+      scope: { type: "view", viewId: 10 },
+      visibility: "later",
+      limit: 20,
+    });
+
+    expect(
+      page.references.map(({ entityId, sectionPlacement }) => ({
+        entityId,
+        sectionPlacement,
+      })),
+    ).toEqual([
+      { entityId: "section-bookmark", sectionPlacement: 1 },
+      { entityId: "uncategorized-feed-item", sectionPlacement: 999_999 },
+    ]);
+  });
+
   it("applies Saved dominance and visibility-specific normalized ordering to both entity kinds", async () => {
     await seedView(10, "Everything");
     await seedFeed(1);

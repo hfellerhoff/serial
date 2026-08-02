@@ -1,5 +1,9 @@
 import { fetch } from "undici";
 import { FEED_HTTP_REQUEST_TIMEOUT_MS } from "@serial/bookmark-capture";
+import {
+  authorizedTestRssOrigin,
+  isAuthorizedTestRssUrl,
+} from "./testRssOrigin";
 import type { Agent } from "undici";
 import {
   createPinnedDispatcher,
@@ -30,46 +34,13 @@ const DEFAULT_MAX_HEADER_BYTES = 32 * 1024;
 const DEFAULT_MAX_REDIRECTS = 5;
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
-function testFixtureOrigin() {
-  if (process.env.NODE_ENV === "production") return undefined;
-  const configuredValue = process.env.SERIAL_TEST_RSS_ORIGIN;
-  if (!configuredValue) return undefined;
-  try {
-    const configured = new URL(configuredValue);
-    if (
-      configured.origin !== configuredValue ||
-      configured.protocol !== "http:" ||
-      (configured.hostname !== "127.0.0.1" && configured.hostname !== "[::1]")
-    ) {
-      return undefined;
-    }
-    return configured;
-  } catch {
-    return undefined;
-  }
-}
-
 function validateFeedHttpTarget(value: string) {
-  const fixtureOrigin = testFixtureOrigin();
-  if (fixtureOrigin) {
-    try {
-      const target = new URL(value);
-      if (
-        target.origin === fixtureOrigin.origin &&
-        !target.username &&
-        !target.password
-      ) {
-        return target;
-      }
-    } catch {
-      // The production validator below owns the stable invalid-target error.
-    }
-  }
+  if (isAuthorizedTestRssUrl(value)) return new URL(value);
   return validatePublicHttpUrl(value);
 }
 
 function resolveFeedHttpAddresses(hostname: string) {
-  const fixtureOrigin = testFixtureOrigin();
+  const fixtureOrigin = authorizedTestRssOrigin();
   if (fixtureOrigin?.hostname === hostname) {
     return Promise.resolve([
       {

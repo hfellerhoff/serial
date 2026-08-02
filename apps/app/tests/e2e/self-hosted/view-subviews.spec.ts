@@ -368,10 +368,7 @@ test.describe("view subview sections", () => {
     ).toBeVisible({ timeout: 10000 });
 
     const mainContent = page.locator("main main");
-    const viewRow = mainContent
-      .locator("button[type='button']")
-      .filter({ hasText: viewName });
-    await viewRow.locator("button").last().click(); // pencil button
+    await mainContent.getByRole("button", { name: `Edit ${viewName}` }).click();
 
     const editDialog = page.locator('[role="dialog"]');
     await expect(
@@ -483,11 +480,10 @@ test.describe("view subview sections", () => {
       page.getByRole("tab", { name: /views/i, selected: true }),
     ).toBeVisible({ timeout: 30_000 });
 
-    const viewRow = page
+    await page
       .locator("main main")
-      .locator("button[type='button']")
-      .filter({ hasText: viewName });
-    await viewRow.locator("button").last().click();
+      .getByRole("button", { name: `Edit ${viewName}` })
+      .click();
 
     const reloadedEditDialog = page.getByRole("dialog", { name: "Edit View" });
     await expect(reloadedEditDialog).toBeVisible();
