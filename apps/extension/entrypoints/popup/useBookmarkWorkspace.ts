@@ -37,10 +37,18 @@ export function useBookmarkWorkspace(input: {
   const [isDeleting, setIsDeleting] = useState(false);
   const attemptedToken = useRef<string | null>(null);
   const workspaceRef = useRef<BookmarkWorkspace | null>(null);
-  const pendingOrganizationRef = useRef(new Set<string>());
-  const mutationCoordinator = useRef(
-    new BookmarkMutationCoordinator<ExtensionBookmark>(),
-  ).current;
+  const pendingOrganizationRef = useRef<Set<string> | null>(null);
+  if (pendingOrganizationRef.current === null) {
+    pendingOrganizationRef.current = new Set<string>();
+  }
+  const pendingOrganizationKeys = pendingOrganizationRef.current;
+  const mutationCoordinatorRef =
+    useRef<BookmarkMutationCoordinator<ExtensionBookmark> | null>(null);
+  if (mutationCoordinatorRef.current === null) {
+    mutationCoordinatorRef.current =
+      new BookmarkMutationCoordinator<ExtensionBookmark>();
+  }
+  const mutationCoordinator = mutationCoordinatorRef.current;
   const { onAuthExpired, session } = input;
 
   const replaceWorkspace = useCallback((next: BookmarkWorkspace | null) => {
@@ -50,11 +58,11 @@ export function useBookmarkWorkspace(input: {
 
   const markOrganizationPending = useCallback(
     (key: string, pending: boolean) => {
-      if (pending) pendingOrganizationRef.current.add(key);
-      else pendingOrganizationRef.current.delete(key);
-      setPendingOrganization([...pendingOrganizationRef.current]);
+      if (pending) pendingOrganizationKeys.add(key);
+      else pendingOrganizationKeys.delete(key);
+      setPendingOrganization([...pendingOrganizationKeys]);
     },
-    [],
+    [pendingOrganizationKeys],
   );
 
   const handleFailure = useCallback(
@@ -108,7 +116,7 @@ export function useBookmarkWorkspace(input: {
       const currentWorkspace = workspaceRef.current;
       if (!currentWorkspace) return;
       const key = `${kind}:${id}`;
-      if (pendingOrganizationRef.current.has(key)) return;
+      if (pendingOrganizationKeys.has(key)) return;
       const idField = kind === "view" ? "viewIds" : "tagIds";
       const assigned = !currentWorkspace.bookmark[idField].includes(id);
       const previousBookmark = currentWorkspace.bookmark;
@@ -187,6 +195,7 @@ export function useBookmarkWorkspace(input: {
       markOrganizationPending,
       mutationCoordinator,
       onAuthExpired,
+      pendingOrganizationKeys,
       replaceWorkspace,
     ],
   );
