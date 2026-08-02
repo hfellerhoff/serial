@@ -2,8 +2,7 @@ import { randomInt } from "node:crypto";
 import net from "node:net";
 import { spawn, spawnSync } from "node:child_process";
 
-type TestEnvironment =
-  "main" | "self-hosted" | "self-hosted-bootstrap" | "demo";
+type TestEnvironment = "main" | "self-hosted" | "demo";
 
 const MIN_FIVE_DIGIT_PORT = 10_000;
 const MAX_TCP_PORT = 65_535;
@@ -16,6 +15,7 @@ const environments: Record<
     appPortVariable: string;
     tursoPortVariable: string;
     rssPortVariable: string;
+    additionalPortVariables?: string[];
   }
 > = {
   main: {
@@ -29,12 +29,10 @@ const environments: Record<
     appPortVariable: "SERIAL_TEST_SELF_HOSTED_APP_PORT",
     tursoPortVariable: "SERIAL_TEST_SELF_HOSTED_TURSO_PORT",
     rssPortVariable: "SERIAL_TEST_SELF_HOSTED_RSS_PORT",
-  },
-  "self-hosted-bootstrap": {
-    config: "playwright.self-hosted-bootstrap.config.ts",
-    appPortVariable: "SERIAL_TEST_SELF_HOSTED_BOOTSTRAP_APP_PORT",
-    tursoPortVariable: "SERIAL_TEST_SELF_HOSTED_BOOTSTRAP_TURSO_PORT",
-    rssPortVariable: "SERIAL_TEST_SELF_HOSTED_BOOTSTRAP_RSS_PORT",
+    additionalPortVariables: [
+      "SERIAL_TEST_SELF_HOSTED_BOOTSTRAP_APP_PORT",
+      "SERIAL_TEST_SELF_HOSTED_BOOTSTRAP_TURSO_PORT",
+    ],
   },
   demo: {
     config: "playwright.demo.config.ts",
@@ -86,27 +84,36 @@ const [environmentName, ...playwrightArguments] = process.argv.slice(2);
 if (
   environmentName !== "main" &&
   environmentName !== "self-hosted" &&
-  environmentName !== "self-hosted-bootstrap" &&
   environmentName !== "demo"
 ) {
   console.error(
-    "Usage: run-e2e.ts <main|self-hosted|self-hosted-bootstrap|demo> [...playwright args]",
+    "Usage: run-e2e.ts <main|self-hosted|demo> [...playwright args]",
   );
   process.exit(1);
 }
 
 const environment = environments[environmentName];
-const [appPort, tursoPort, rssPort] = await allocatePorts(3);
+const additionalPortVariables = environment.additionalPortVariables ?? [];
+const [appPort, tursoPort, rssPort, ...additionalPorts] = await allocatePorts(
+  3 + additionalPortVariables.length,
+);
 if (!appPort || !tursoPort || !rssPort) {
   throw new Error("Failed to allocate test ports.");
 }
 
 const appUrl = `http://localhost:${appPort}`;
+const additionalPortEnvironment = Object.fromEntries(
+  additionalPortVariables.map((variable, index) => [
+    variable,
+    String(additionalPorts[index]),
+  ]),
+);
 const childEnvironment = {
   ...process.env,
   [environment.appPortVariable]: String(appPort),
   [environment.tursoPortVariable]: String(tursoPort),
   [environment.rssPortVariable]: String(rssPort),
+  ...additionalPortEnvironment,
   DATABASE_URL: `http://127.0.0.1:${tursoPort}`,
   PUBLIC_BASE_URL: appUrl,
   VITE_PUBLIC_BASE_URL: appUrl,

@@ -1,6 +1,8 @@
 import { enablePublicSignups } from "./e2e/fixtures/enable-public-signups";
 import {
   SELF_HOSTED_APP_PORT,
+  SELF_HOSTED_BOOTSTRAP_APP_PORT,
+  SELF_HOSTED_BOOTSTRAP_TURSO_PORT,
   SELF_HOSTED_TURSO_PORT,
 } from "./e2e/fixtures/ports";
 import { seedAdmin } from "./e2e/fixtures/auth";
@@ -21,8 +23,14 @@ async function waitForApp(url: string, timeoutMs = 60000) {
 }
 
 export default async function globalSetup() {
-  await waitForApp(`http://localhost:${SELF_HOSTED_APP_PORT}/api/health`);
-  await resetDb(SELF_HOSTED_TURSO_PORT);
+  await Promise.all([
+    waitForApp(`http://localhost:${SELF_HOSTED_APP_PORT}/api/health`),
+    waitForApp(`http://localhost:${SELF_HOSTED_BOOTSTRAP_APP_PORT}/api/health`),
+  ]);
+  await Promise.all([
+    resetDb(SELF_HOSTED_TURSO_PORT),
+    resetDb(SELF_HOSTED_BOOTSTRAP_TURSO_PORT),
+  ]);
   await enablePublicSignups(SELF_HOSTED_TURSO_PORT);
   await seedAdmin({
     tursoPort: SELF_HOSTED_TURSO_PORT,
