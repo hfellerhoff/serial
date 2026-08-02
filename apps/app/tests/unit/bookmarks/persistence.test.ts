@@ -137,6 +137,21 @@ beforeEach(async () => {
 afterEach(() => cleanup());
 
 describe("Bookmark persistence", () => {
+  it("persists extracted preview icons and thumbnails", async () => {
+    const sourceUrl = "https://example.com/preview";
+    const result = await saveCaptured("user-one", sourceUrl);
+    const stored = await database.query.bookmarks.findFirst({
+      where: eq(bookmarks.id, result.bookmark.id),
+    });
+
+    const expectedPreview = {
+      iconUrl: "https://example.com/icon.png",
+      thumbnailUrl: "https://example.com/image.jpg",
+    };
+    expect(result.bookmark).toMatchObject(expectedPreview);
+    expect(stored).toMatchObject(expectedPreview);
+  });
+
   it("creates extension organization only for an owned Bookmark", async () => {
     const own = await saveCaptured(
       "user-one",

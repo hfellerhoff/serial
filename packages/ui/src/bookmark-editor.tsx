@@ -1,10 +1,15 @@
 "use client";
 
 import { BookmarkCheckIcon, RefreshCwIcon } from "lucide-react";
+import type { BookmarkContentDescriptor } from "@serial/bookmark-capture";
 import type { ReactNode } from "react";
 
-import { shouldShowBookmarkEditorFeedback } from "./bookmark-editor.utils";
+import {
+  BOOKMARK_ORIGIN_FALLBACK_MESSAGE,
+  shouldShowBookmarkEditorFeedback,
+} from "./bookmark-editor.utils";
 import { Button } from "./button";
+import { cn } from "./lib/cn";
 import {
   SelectableChipList,
   type SelectableChipOption,
@@ -47,7 +52,7 @@ const CAPTURE_FAILURE_MESSAGES: Record<
   unsupported_capture_version: "This capture format is not supported.",
   rate_limited: "Capture is temporarily rate limited.",
   capacity_limited: "Capture capacity is temporarily unavailable.",
-  unsupported_content: "This content opens on its original site.",
+  unsupported_content: BOOKMARK_ORIGIN_FALLBACK_MESSAGE,
 };
 
 function CaptureFeedback({ feedback }: { feedback: BookmarkEditorFeedback }) {
@@ -62,6 +67,13 @@ function CaptureFeedback({ feedback }: { feedback: BookmarkEditorFeedback }) {
   }
 
   const preserved = feedback.capture.status === "preserved";
+  if (feedback.capture.reason === "unsupported_content") {
+    return (
+      <p className="text-muted-foreground text-sm" role="status">
+        {CAPTURE_FAILURE_MESSAGES.unsupported_content}
+      </p>
+    );
+  }
   return (
     <p className="text-muted-foreground text-sm" role="status">
       {CAPTURE_FAILURE_MESSAGES[feedback.capture.reason]}{" "}
@@ -85,11 +97,16 @@ export function BookmarkEditor({
   onToggleTag,
   onCreateTag,
   afterOrganization,
+  className,
   isDeleting,
   onDelete,
   onDone,
 }: {
-  bookmark: { title: string; author: string | null; sourceUrl: string };
+  bookmark: {
+    title: string;
+    author: string | null;
+    sourceUrl: string;
+  } & BookmarkContentDescriptor;
   feedback?: BookmarkEditorFeedback;
   viewOptions: SelectableChipOption[];
   selectedViewIds: number[];
@@ -101,15 +118,21 @@ export function BookmarkEditor({
   onToggleTag: (id: number) => void;
   onCreateTag: (name: string) => void | Promise<void>;
   afterOrganization?: ReactNode;
+  className?: string;
   isDeleting: boolean;
   onDelete: () => void | Promise<void>;
   onDone: () => void;
 }) {
-  const showFeedback = shouldShowBookmarkEditorFeedback(feedback);
+  const showFeedback = shouldShowBookmarkEditorFeedback(feedback, bookmark);
 
   return (
-    <div className="flex max-h-[min(100dvh,44rem)] min-h-0 flex-col">
-      <div className="border-b px-6 py-5 pr-12">
+    <div
+      className={cn(
+        "flex max-h-[min(100dvh,44rem)] min-h-0 flex-col",
+        className,
+      )}
+    >
+      <div className="shrink-0 border-b px-6 py-5 pr-12">
         <div className="flex items-start gap-3">
           <div className="bg-muted text-muted-foreground mt-0.5 flex size-9 shrink-0 items-center justify-center rounded">
             <BookmarkCheckIcon className="size-4" />
@@ -128,7 +151,7 @@ export function BookmarkEditor({
         )}
       </div>
 
-      <div className="grid min-h-0 gap-6 overflow-y-auto px-6 py-5">
+      <div className="grid min-h-0 flex-1 content-start gap-6 overflow-y-auto px-6 py-5">
         <SelectableChipList
           label="Views"
           options={viewOptions}
@@ -151,7 +174,7 @@ export function BookmarkEditor({
         {afterOrganization}
       </div>
 
-      <div className="flex gap-2 border-t px-6 py-4">
+      <div className="flex shrink-0 gap-2 border-t px-6 py-4">
         <Button
           variant="destructive"
           className="flex-1"

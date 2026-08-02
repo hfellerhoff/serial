@@ -157,7 +157,7 @@ function getThumbnailType(
   return "none";
 }
 
-type ThumbnailLayout = "list" | "large-list" | "grid" | "large-grid";
+export type ThumbnailLayout = "list" | "large-list" | "grid" | "large-grid";
 
 interface ThumbnailContainerProps {
   layout: ThumbnailLayout;
@@ -305,19 +305,6 @@ function EmptyThumbnail() {
         data-testid="empty-thumbnail-placeholder"
         className="bg-muted-foreground/20 h-10 w-10 rounded"
       />
-    </div>
-  );
-}
-
-function BookmarkEmptyThumbnail() {
-  return (
-    <div className="absolute inset-0 grid place-items-center bg-transparent">
-      <div
-        data-testid="empty-thumbnail-placeholder"
-        className="bg-muted text-muted-foreground grid h-10 w-10 place-items-center rounded"
-      >
-        <BookmarkIcon size={16} />
-      </div>
     </div>
   );
 }
@@ -489,45 +476,43 @@ function ItemThumbnail({
   );
 }
 
-function BookmarkThumbnail({
+export function BookmarkThumbnail({
   bookmark,
   layout,
 }: {
-  bookmark: ApplicationBookmark;
+  bookmark: Pick<
+    ApplicationBookmark,
+    | "duration"
+    | "iconUrl"
+    | "orientation"
+    | "platform"
+    | "progress"
+    | "siteName"
+    | "thumbnailUrl"
+    | "title"
+  >;
   layout: ThumbnailLayout;
 }) {
-  const thumbnailType = bookmark.thumbnailUrl ? "article" : "icon";
   return (
-    <ThumbnailContainer
+    <ItemThumbnail
       layout={layout}
-      thumbnailType={thumbnailType}
-      progress={bookmark.progress}
-      duration={bookmark.duration}
-    >
-      {bookmark.thumbnailUrl ? (
-        <img
-          src={bookmark.thumbnailUrl}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          referrerPolicy="no-referrer"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-      ) : bookmark.iconUrl ? (
-        <div className="absolute inset-0 grid place-items-center">
-          <img
-            src={bookmark.iconUrl}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            referrerPolicy="no-referrer"
-            className="size-10 rounded object-contain"
-          />
-        </div>
-      ) : (
-        <BookmarkEmptyThumbnail />
-      )}
-    </ThumbnailContainer>
+      item={{
+        ...(bookmark.thumbnailUrl ? { thumbnail: bookmark.thumbnailUrl } : {}),
+        title: bookmark.title,
+        platform: bookmark.platform,
+        orientation: bookmark.orientation,
+        progress: bookmark.progress,
+        duration: bookmark.duration,
+      }}
+      feed={
+        bookmark.iconUrl
+          ? {
+              imageUrl: bookmark.iconUrl,
+              name: bookmark.siteName ?? undefined,
+            }
+          : undefined
+      }
+    />
   );
 }
 

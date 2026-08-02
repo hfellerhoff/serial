@@ -1,6 +1,7 @@
-import type {
-  ExtensionCaptureCandidate,
-  ExtensionPageObservation,
+import {
+  CONTENT_CAPABILITIES,
+  type ExtensionCaptureCandidate,
+  type ExtensionPageObservation,
 } from "@serial/bookmark-capture";
 
 import { isSessionExpired } from "./auth";
@@ -92,11 +93,19 @@ function parsedObservation(
 
 function parseBookmark(value: unknown): ExtensionBookmark | null {
   if (!isRecord(value)) return null;
-  const { id, sourceUrl, title, viewIds, tagIds } = value;
+  const { contentType, id, platform, sourceUrl, title, viewIds, tagIds } =
+    value;
   if (
     typeof id !== "string" ||
     typeof sourceUrl !== "string" ||
     typeof title !== "string" ||
+    typeof platform !== "string" ||
+    !Object.hasOwn(CONTENT_CAPABILITIES, platform) ||
+    typeof contentType !== "string" ||
+    !Object.hasOwn(
+      CONTENT_CAPABILITIES[platform as keyof typeof CONTENT_CAPABILITIES],
+      contentType,
+    ) ||
     !Array.isArray(viewIds) ||
     !viewIds.every((entry) => typeof entry === "number") ||
     !Array.isArray(tagIds) ||
@@ -109,6 +118,8 @@ function parseBookmark(value: unknown): ExtensionBookmark | null {
   return {
     id,
     sourceUrl,
+    platform: platform as ExtensionBookmark["platform"],
+    contentType: contentType as ExtensionBookmark["contentType"],
     title,
     author: nullableString(value.author),
     siteName: nullableString(value.siteName),

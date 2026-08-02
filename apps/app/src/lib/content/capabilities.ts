@@ -1,76 +1,20 @@
-import { CONTENT_PLATFORM, CONTENT_TYPE } from "./descriptor";
+import {
+  CONTENT_CAPABILITIES,
+  getContentCapability as getSharedContentCapability,
+} from "@serial/bookmark-capture";
 import type {
-  ContentDescriptor,
-  ContentPlatform,
-  ContentType,
-} from "./descriptor";
+  ContentCapability,
+  NativeOpeningBehavior,
+} from "@serial/bookmark-capture";
+import type { ContentDescriptor } from "./descriptor";
 
-export type NativeOpeningBehavior = "reader" | "player" | "origin";
-
-export type ContentCapability = {
-  nativeOpening: NativeOpeningBehavior;
-  pageCapture: "allowed" | "disallowed";
-  originActionLabel: string;
-};
-
-export const CONTENT_CAPABILITIES = {
-  [CONTENT_PLATFORM.WEBSITE]: {
-    [CONTENT_TYPE.TEXT]: {
-      nativeOpening: "reader",
-      pageCapture: "allowed",
-      originActionLabel: "Open in Website",
-    },
-    [CONTENT_TYPE.VIDEO]: {
-      nativeOpening: "origin",
-      pageCapture: "disallowed",
-      originActionLabel: "Open in Website",
-    },
-  },
-  [CONTENT_PLATFORM.YOUTUBE]: {
-    [CONTENT_TYPE.TEXT]: {
-      nativeOpening: "origin",
-      pageCapture: "disallowed",
-      originActionLabel: "View on YouTube",
-    },
-    [CONTENT_TYPE.VIDEO]: {
-      nativeOpening: "player",
-      pageCapture: "disallowed",
-      originActionLabel: "View on YouTube",
-    },
-  },
-  [CONTENT_PLATFORM.PEERTUBE]: {
-    [CONTENT_TYPE.TEXT]: {
-      nativeOpening: "origin",
-      pageCapture: "disallowed",
-      originActionLabel: "View on PeerTube",
-    },
-    [CONTENT_TYPE.VIDEO]: {
-      nativeOpening: "player",
-      pageCapture: "disallowed",
-      originActionLabel: "View on PeerTube",
-    },
-  },
-  [CONTENT_PLATFORM.NEBULA]: {
-    [CONTENT_TYPE.TEXT]: {
-      nativeOpening: "origin",
-      pageCapture: "disallowed",
-      originActionLabel: "View on Nebula",
-    },
-    [CONTENT_TYPE.VIDEO]: {
-      nativeOpening: "origin",
-      pageCapture: "disallowed",
-      originActionLabel: "View on Nebula",
-    },
-  },
-} as const satisfies Record<
-  ContentPlatform,
-  Record<ContentType, ContentCapability>
->;
+export { CONTENT_CAPABILITIES };
+export type { ContentCapability, NativeOpeningBehavior };
 
 export function getContentCapability(
   descriptor: Pick<ContentDescriptor, "platform" | "contentType">,
 ): ContentCapability {
-  return CONTENT_CAPABILITIES[descriptor.platform][descriptor.contentType];
+  return getSharedContentCapability(descriptor);
 }
 
 export function canRetainPageCapture(

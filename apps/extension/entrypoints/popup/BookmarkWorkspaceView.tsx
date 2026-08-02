@@ -118,6 +118,7 @@ export function BookmarkWorkspaceView({
     const error = externalError || controller.error;
     return (
       <BookmarkEditor
+        className="h-full"
         bookmark={workspace.bookmark}
         feedback={workspace}
         viewOptions={workspace.views.map((view) => ({

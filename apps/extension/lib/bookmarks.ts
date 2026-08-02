@@ -3,6 +3,8 @@ import {
   EXTENSION_BOOKMARK_CONTRACT_VERSION,
 } from "@serial/bookmark-capture";
 import type {
+  BookmarkContentPlatform,
+  BookmarkContentType,
   DiscoveredFeed,
   ExtensionCaptureCandidate,
   ExtensionPageObservation,
@@ -11,6 +13,8 @@ import type {
 export type ExtensionBookmark = {
   id: string;
   sourceUrl: string;
+  platform: BookmarkContentPlatform;
+  contentType: BookmarkContentType;
   title: string;
   author: string | null;
   siteName: string | null;
