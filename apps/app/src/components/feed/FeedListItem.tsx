@@ -12,6 +12,7 @@ import type { ContentPlatform } from "~/lib/content/descriptor";
 import { YoutubeIcon } from "~/components/brand-icons";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { cn } from "~/lib/utils";
+import { REMOTE_IMAGE_PROPS } from "~/lib/remoteMedia";
 
 function PlatformIcon({ platform }: { platform: ContentPlatform }) {
   switch (platform) {
@@ -43,7 +44,12 @@ function FeedMedia({
   }
 
   return (
-    <img src={imageUrl} alt={title} className="size-7 rounded object-cover" />
+    <img
+      {...REMOTE_IMAGE_PROPS}
+      src={imageUrl}
+      alt={title}
+      className="size-7 rounded object-cover"
+    />
   );
 }
 
@@ -61,7 +67,12 @@ export function FeedAvatar({
   return (
     <Avatar className="size-7 rounded">
       {imageUrl && (
-        <AvatarImage className="rounded" src={imageUrl} alt={title} />
+        <AvatarImage
+          {...REMOTE_IMAGE_PROPS}
+          className="rounded"
+          src={imageUrl}
+          alt={title}
+        />
       )}
       <AvatarFallback className="rounded">
         {fallback ?? <PlatformIcon platform={platform} />}

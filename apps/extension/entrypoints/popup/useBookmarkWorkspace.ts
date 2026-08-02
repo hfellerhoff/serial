@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  BookmarkMutationCoordinator,
+  bookmarkMembershipChange,
+} from "@serial/bookmark-capture";
 import type { ExtensionAuthSession } from "../../lib/auth";
 import type {
   BookmarkMessage,
   BookmarkMessageResponse,
   BookmarkWorkspace,
+  ExtensionBookmark,
 } from "../../lib/bookmarks";
 
 type WorkspaceStatus =
@@ -31,7 +36,26 @@ export function useBookmarkWorkspace(input: {
   const [addedFeedUrls, setAddedFeedUrls] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const attemptedToken = useRef<string | null>(null);
+  const workspaceRef = useRef<BookmarkWorkspace | null>(null);
+  const pendingOrganizationRef = useRef(new Set<string>());
+  const mutationCoordinator = useRef(
+    new BookmarkMutationCoordinator<ExtensionBookmark>(),
+  ).current;
   const { onAuthExpired, session } = input;
+
+  const replaceWorkspace = useCallback((next: BookmarkWorkspace | null) => {
+    workspaceRef.current = next;
+    setWorkspace(next);
+  }, []);
+
+  const markOrganizationPending = useCallback(
+    (key: string, pending: boolean) => {
+      if (pending) pendingOrganizationRef.current.add(key);
+      else pendingOrganizationRef.current.delete(key);
+      setPendingOrganization([...pendingOrganizationRef.current]);
+    },
+    [],
+  );
 
   const handleFailure = useCallback(
     (response: Extract<BookmarkMessageResponse, { ok: false }>) => {
@@ -54,14 +78,14 @@ export function useBookmarkWorkspace(input: {
       });
       if (!response.ok) return handleFailure(response);
       if (response.status === "base" || response.status === "ineligible") {
-        setWorkspace(null);
+        replaceWorkspace(null);
         setStatus(response.status);
         return;
       }
       if (response.status !== "saved") {
         throw new Error("Serial returned an unexpected Bookmark state");
       }
-      setWorkspace(response.workspace);
+      replaceWorkspace(response.workspace);
       setStatus("saved");
     } catch (captureError) {
       setError(
@@ -71,7 +95,7 @@ export function useBookmarkWorkspace(input: {
       );
       setStatus("error");
     }
-  }, [handleFailure]);
+  }, [handleFailure, replaceWorkspace]);
 
   useEffect(() => {
     if (attemptedToken.current === session.token) return;
@@ -81,64 +105,90 @@ export function useBookmarkWorkspace(input: {
 
   const toggleOrganization = useCallback(
     async (kind: "view" | "tag", id: number) => {
-      if (!workspace) return;
+      const currentWorkspace = workspaceRef.current;
+      if (!currentWorkspace) return;
       const key = `${kind}:${id}`;
-      if (pendingOrganization.includes(key)) return;
+      if (pendingOrganizationRef.current.has(key)) return;
       const idField = kind === "view" ? "viewIds" : "tagIds";
-      const assigned = !workspace.bookmark[idField].includes(id);
-      const previousBookmark = workspace.bookmark;
-      setWorkspace({
-        ...workspace,
-        bookmark: {
-          ...workspace.bookmark,
-          [idField]: assigned
-            ? [...workspace.bookmark[idField], id]
-            : workspace.bookmark[idField].filter((value) => value !== id),
-        },
+      const assigned = !currentWorkspace.bookmark[idField].includes(id);
+      const previousBookmark = currentWorkspace.bookmark;
+      const token = mutationCoordinator.begin(previousBookmark.id, [
+        bookmarkMembershipChange(kind, id, assigned),
+      ]);
+      replaceWorkspace({
+        ...currentWorkspace,
+        bookmark: mutationCoordinator.apply(previousBookmark, token),
       });
-      setPendingOrganization((values) => [...values, key]);
+      markOrganizationPending(key, true);
       setError(null);
       try {
         const response = await sendBookmarkMessage(
           kind === "view"
             ? {
                 type: "bookmark.set-view",
-                bookmarkId: workspace.bookmark.id,
+                bookmarkId: previousBookmark.id,
                 viewId: id,
                 assigned,
               }
             : {
                 type: "bookmark.set-tag",
-                bookmarkId: workspace.bookmark.id,
+                bookmarkId: previousBookmark.id,
                 tagId: id,
                 assigned,
               },
         );
         if (!response.ok) {
-          setWorkspace((current) =>
-            current ? { ...current, bookmark: previousBookmark } : current,
-          );
+          const current = workspaceRef.current;
+          if (current) {
+            replaceWorkspace({
+              ...current,
+              bookmark: mutationCoordinator.rollback(
+                current.bookmark,
+                previousBookmark,
+                token,
+              ),
+            });
+          }
           if (response.authExpired) onAuthExpired();
           else setError(response.error);
           return;
         }
         if (response.status === "updated") {
-          setWorkspace((current) =>
-            current ? { ...current, bookmark: response.bookmark } : current,
-          );
+          const current = workspaceRef.current;
+          if (current) {
+            replaceWorkspace({
+              ...current,
+              bookmark: mutationCoordinator.reconcile(
+                current.bookmark,
+                response.bookmark,
+                token,
+              ),
+            });
+          }
         }
       } catch {
-        setWorkspace((current) =>
-          current ? { ...current, bookmark: previousBookmark } : current,
-        );
+        const current = workspaceRef.current;
+        if (current) {
+          replaceWorkspace({
+            ...current,
+            bookmark: mutationCoordinator.rollback(
+              current.bookmark,
+              previousBookmark,
+              token,
+            ),
+          });
+        }
         setError("Unable to update Bookmark organization");
       } finally {
-        setPendingOrganization((values) =>
-          values.filter((value) => value !== key),
-        );
+        markOrganizationPending(key, false);
       }
     },
-    [onAuthExpired, pendingOrganization, workspace],
+    [
+      markOrganizationPending,
+      mutationCoordinator,
+      onAuthExpired,
+      replaceWorkspace,
+    ],
   );
 
   const removeBookmark = useCallback(async () => {
@@ -169,13 +219,16 @@ export function useBookmarkWorkspace(input: {
 
   const createOrganization = useCallback(
     async (kind: "view" | "tag", name: string) => {
-      if (!workspace) return;
+      const currentWorkspace = workspaceRef.current;
+      if (!currentWorkspace) return;
+      const previousBookmark = currentWorkspace.bookmark;
+      const token = mutationCoordinator.begin(previousBookmark.id, []);
       setError(null);
       try {
         const response = await sendBookmarkMessage({
           type:
             kind === "view" ? "bookmark.create-view" : "bookmark.create-tag",
-          bookmarkId: workspace.bookmark.id,
+          bookmarkId: previousBookmark.id,
           name,
         });
         if (!response.ok) {
@@ -186,11 +239,15 @@ export function useBookmarkWorkspace(input: {
         if (response.status !== "created-organization") {
           throw new Error("Serial returned an unexpected organization state");
         }
-        setWorkspace((current) => {
-          if (!current) return current;
-          return {
+        const current = workspaceRef.current;
+        if (current) {
+          replaceWorkspace({
             ...current,
-            bookmark: response.bookmark,
+            bookmark: mutationCoordinator.reconcile(
+              current.bookmark,
+              response.bookmark,
+              token,
+            ),
             views:
               response.kind === "view"
                 ? [...current.views, response.option]
@@ -199,9 +256,21 @@ export function useBookmarkWorkspace(input: {
               response.kind === "tag"
                 ? [...current.tags, response.option]
                 : current.tags,
-          };
-        });
+          });
+          await toggleOrganization(kind, response.option.id);
+        }
       } catch (creationError) {
+        const current = workspaceRef.current;
+        if (current) {
+          replaceWorkspace({
+            ...current,
+            bookmark: mutationCoordinator.rollback(
+              current.bookmark,
+              previousBookmark,
+              token,
+            ),
+          });
+        }
         const message =
           creationError instanceof Error
             ? creationError.message
@@ -210,7 +279,7 @@ export function useBookmarkWorkspace(input: {
         throw creationError;
       }
     },
-    [onAuthExpired, workspace],
+    [mutationCoordinator, onAuthExpired, replaceWorkspace, toggleOrganization],
   );
 
   const addFeed = useCallback(

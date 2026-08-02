@@ -40,9 +40,7 @@ export async function resolvePublicAddresses(hostname: string) {
   try {
     results = await lookup(hostname, { all: true, verbatim: true });
   } catch {
-    throw new BlockedOutboundTargetError(
-      "The outbound target is unavailable",
-    );
+    throw new BlockedOutboundTargetError("The outbound target is unavailable");
   }
 
   return validatePublicAddresses(results);

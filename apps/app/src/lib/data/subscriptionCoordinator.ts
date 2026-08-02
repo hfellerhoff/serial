@@ -100,7 +100,40 @@ export function processPublishedChunks(payloads: PublishedChunk[]) {
   }
 
   const bookmarkSyncPages = completeBookmarkSyncPages(payloads);
-  bookmarksStore.getState().applySyncPages(bookmarkSyncPages);
+  const bookmarkSyncDelta = bookmarksStore
+    .getState()
+    .applySyncPages(bookmarkSyncPages);
+  for (const { bookmark, previousBookmark } of bookmarkSyncDelta.upserts) {
+    navigationSnapshotChanged ||= isBookmarkProjectionChange(
+      previousBookmark,
+      bookmark,
+    );
+    const affected = mixedContentStore.getState().reprojectUpsert({
+      bookmark,
+      previousBookmark,
+      feedItems: feedItemsStore.getState().feedItemsDict,
+      views: viewsStore.getState().views,
+    });
+    for (const scope of affected) {
+      affectedScopes.set(
+        JSON.stringify([scope.scope, scope.visibility]),
+        scope,
+      );
+    }
+  }
+  for (const bookmark of bookmarkSyncDelta.deletions) {
+    navigationSnapshotChanged = true;
+    const affected = mixedContentStore.getState().reprojectDeletion({
+      bookmarkId: bookmark.id,
+      feedItems: feedItemsStore.getState().feedItemsDict,
+    });
+    for (const scope of affected) {
+      affectedScopes.set(
+        JSON.stringify([scope.scope, scope.visibility]),
+        scope,
+      );
+    }
+  }
 
   for (const payload of payloads) {
     if (payload.source === "mixed") {

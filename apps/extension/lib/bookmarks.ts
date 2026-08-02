@@ -4,7 +4,6 @@ import {
 } from "@serial/bookmark-capture";
 import type {
   BookmarkWorkspace,
-  DiscoveredFeed,
   ExtensionBookmark,
   ExtensionCaptureCandidate,
   ExtensionPageObservation,

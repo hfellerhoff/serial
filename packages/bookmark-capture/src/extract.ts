@@ -139,7 +139,11 @@ function schemaTypes(document: Document) {
   return types;
 }
 
-function classifyDocument(document: Document, effectiveUrl: string) {
+function classifyDocument(
+  document: Document,
+  effectiveUrl: string,
+  inspectStructuredData = true,
+) {
   const url = new URL(effectiveUrl);
   const youtubeId = youtubeContentId(url);
   if (YOUTUBE_HOSTS.has(url.hostname)) {
@@ -181,7 +185,8 @@ function classifyDocument(document: Document, effectiveUrl: string) {
   const videoEvidence =
     metaContent(document, 'meta[property="og:type"]')
       ?.toLowerCase()
-      .startsWith("video") === true || schemaTypes(document).has("videoobject");
+      .startsWith("video") === true ||
+    (inspectStructuredData && schemaTypes(document).has("videoobject"));
   const width = Number(
     metaContent(document, 'meta[property="og:video:width"]'),
   );
@@ -256,22 +261,23 @@ export function extractPageObservation(
   }
   const sourceUrl = source.toString();
   const effectiveUrl = sourceUrl;
-  const descriptor = classifyDocument(document, effectiveUrl);
   const tooLarge =
     document.querySelectorAll("*").length > BOOKMARK_CAPTURE_LIMITS.domElements;
-  const clone = document.cloneNode(true) as Document;
-  normalizeLazyResources(clone);
-  const feeds = discoveredFeeds(clone, effectiveUrl);
+  const descriptor = classifyDocument(document, effectiveUrl, !tooLarge);
+  const feeds = discoveredFeeds(document, effectiveUrl);
   const canonicalUrl = resolvedHttpUrl(
-    clone.querySelector<HTMLLinkElement>('link[rel~="canonical"]')?.href,
+    document.querySelector<HTMLLinkElement>('link[rel~="canonical"]')?.href,
     effectiveUrl,
   );
-  const article =
+  const shouldExtractArticle =
     descriptor.platform === "website" &&
     descriptor.contentType === "text" &&
-    !tooLarge
-      ? new Readability(clone).parse()
-      : null;
+    !tooLarge;
+  const clone = shouldExtractArticle
+    ? (document.cloneNode(true) as Document)
+    : null;
+  if (clone) normalizeLazyResources(clone);
+  const article = clone ? new Readability(clone).parse() : null;
   const capture: ExtensionCaptureCandidate = {
     effectiveUrl,
     ...(canonicalUrl ? { canonicalUrl } : {}),

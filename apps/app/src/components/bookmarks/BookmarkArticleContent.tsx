@@ -51,13 +51,7 @@ export function BookmarkArticleContent({ content }: { content: string }) {
       if (node.name === "img") {
         const src = node.attribs.src;
         if (!src) return <></>;
-        return (
-          <ArticleImageLightbox
-            src={src}
-            alt={node.attribs.alt ?? ""}
-            protectedRemote
-          />
-        );
+        return <ArticleImageLightbox src={src} alt={node.attribs.alt ?? ""} />;
       }
       if (node.attribs["data-serial-embed"] !== "youtube") return;
       const videoId = node.attribs["data-video-id"];

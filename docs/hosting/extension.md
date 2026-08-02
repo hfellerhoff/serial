@@ -104,6 +104,41 @@ It does not turn Serial into a general-purpose OAuth provider.
 Treat an extension session token like any other bearer credential. Do not log
 it, place it in a URL, or copy it between browsers.
 
+## Capture and outbound-request security
+
+The extension normally extracts readable content inside the active tab and
+sends only that bounded, sanitized capture. If the extension cannot produce a
+usable capture, Serial may fetch the public page once as a server-side fallback.
+Serial also performs bounded Feed discovery when the page declares no Feed.
+
+Both paths accept only public HTTP or HTTPS destinations on their standard
+ports. Serial resolves and validates every address, pins the request to the
+validated address, and repeats validation after every redirect. Private,
+loopback, link-local, multicast, credential-bearing, nonstandard-port, and
+non-HTTP destinations are rejected. Response size, header size, redirect count,
+DOM size, duration, candidate count, and worker concurrency are bounded.
+
+`SERIAL_CAPTURE_MAX_CONCURRENT_FETCHES` controls the instance-wide number of
+simultaneous server-side Bookmark capture and discovery fetches. It defaults to
+`8` and must be a positive integer. Lower it on a resource-constrained instance;
+requests above the available capacity fail fast while the Bookmark write itself
+remains independent of optional Feed discovery.
+
+Reverse proxies should preserve streaming request bodies instead of buffering
+unbounded uploads, and should not rewrite rejected destinations through an
+internal proxy. No private-network access is required for capture.
+
+## Remote media privacy
+
+Serial displays Feed artwork, article images, and Bookmark preview images from
+their original hosts. The browser sends no HTTP referrer and defers image loads
+until needed, but it still connects directly to those third-party hosts. Those
+hosts can therefore observe the user's IP address and the time of the request.
+
+A privacy-preserving image proxy is planned for a future release. Until it is
+available, operators with stricter privacy requirements should account for
+direct third-party image requests in their deployment and user guidance.
+
 ## Troubleshooting
 
 ### The instance is rejected before the browser opens Serial

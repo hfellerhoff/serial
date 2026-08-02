@@ -71,6 +71,7 @@ describe("extension Feed HTTP contract", () => {
         url: "https://example.com/feed.xml",
         categoryIds: [],
         viewIds: [],
+        returnExisting: true,
       }),
     );
     expect(fetchAndInsertFeedData).toHaveBeenCalledWith(
@@ -78,6 +79,27 @@ describe("extension Feed HTTP contract", () => {
       [expect.objectContaining({ id: 1 })],
     );
     expect(ingestionCompleted).toBe(true);
+  });
+
+  it("converges as success when a retry finds the Feed already committed", async () => {
+    vi.mocked(authenticatedExtensionUser).mockResolvedValue({
+      id: "user-one",
+    } as never);
+    vi.mocked(createFeedsForUser).mockResolvedValue({
+      feeds: [{ id: 1 }],
+      createdCount: 0,
+      deactivatedCount: 0,
+      maxActiveFeeds: 100,
+    } as never);
+
+    const response = await addExtensionFeed(
+      request({ url: "https://example.com/feed.xml" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchAndInsertFeedData).toHaveBeenCalledWith(expect.anything(), [
+      expect.objectContaining({ id: 1 }),
+    ]);
   });
 
   it("finishes the Add request after a failed initial ingestion attempt", async () => {

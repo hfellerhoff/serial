@@ -11,6 +11,14 @@ type PersistedBookmarkStore = {
   bookmarksDict: Record<string, ApplicationBookmark>;
 };
 
+export type BookmarkSyncDelta = {
+  upserts: Array<{
+    bookmark: ApplicationBookmark;
+    previousBookmark: ApplicationBookmark | undefined;
+  }>;
+  deletions: ApplicationBookmark[];
+};
+
 type BookmarkStore = {
   revision: number;
   reset: () => void;
@@ -20,8 +28,8 @@ type BookmarkStore = {
   upsert: (bookmark: ApplicationBookmark) => void;
   upsertMany: (bookmarks: ApplicationBookmark[]) => void;
   remove: (id: string) => void;
-  applySyncPage: (page: BookmarkSyncBucketPage) => void;
-  applySyncPages: (pages: BookmarkSyncBucketPage[]) => void;
+  applySyncPage: (page: BookmarkSyncBucketPage) => BookmarkSyncDelta;
+  applySyncPages: (pages: BookmarkSyncBucketPage[]) => BookmarkSyncDelta;
   manifest: () => BookmarkSyncManifestEntry[];
 };
 
@@ -72,28 +80,45 @@ const vanillaBookmarkStore = createStore<BookmarkStore>()(
         set({ revision: get().revision + 1 });
       },
       applySyncPage: (page) => {
-        get().applySyncPages([page]);
+        return get().applySyncPages([page]);
       },
       applySyncPages: (pages) => {
-        if (pages.length === 0) return;
+        if (pages.length === 0) return { upserts: [], deletions: [] };
         const replacedBuckets = new Set(
           pages
             .filter((page) => page.replacesBucket)
             .map((page) => page.bucket),
         );
-        if (replacedBuckets.size > 0) {
-          for (const bookmark of Object.values(bookmarkEntities)) {
-            if (replacedBuckets.has(getBookmarkSyncBucket(bookmark.id))) {
-              delete bookmarkEntities[bookmark.id];
-            }
+        const previousById = new Map<string, ApplicationBookmark>();
+        for (const bookmark of Object.values(bookmarkEntities)) {
+          if (replacedBuckets.has(getBookmarkSyncBucket(bookmark.id))) {
+            previousById.set(bookmark.id, bookmark);
+            delete bookmarkEntities[bookmark.id];
           }
         }
+        const incomingById = new Map<string, ApplicationBookmark>();
         for (const page of pages) {
           for (const bookmark of page.bookmarks) {
+            if (!previousById.has(bookmark.id)) {
+              const previous = bookmarkEntities[bookmark.id];
+              if (previous) previousById.set(bookmark.id, previous);
+            }
+            incomingById.set(bookmark.id, bookmark);
             bookmarkEntities[bookmark.id] = bookmark;
           }
         }
         set({ revision: get().revision + 1 });
+        return {
+          upserts: [...incomingById.values()].map((bookmark) => ({
+            bookmark,
+            previousBookmark: previousById.get(bookmark.id),
+          })),
+          deletions: [...previousById.values()].filter(
+            (bookmark) =>
+              replacedBuckets.has(getBookmarkSyncBucket(bookmark.id)) &&
+              !incomingById.has(bookmark.id),
+          ),
+        };
       },
       manifest: () =>
         buildBookmarkSyncManifest(Object.values(bookmarkEntities)),

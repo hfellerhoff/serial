@@ -8,14 +8,12 @@ interface ArticleImageLightboxProps {
   src: string;
   alt?: string;
   className?: string;
-  protectedRemote?: boolean;
 }
 
 export function ArticleImageLightbox({
   src,
   alt,
   className,
-  protectedRemote = false,
 }: ArticleImageLightboxProps) {
   const [open, setOpen] = useState(false);
 
@@ -34,9 +32,9 @@ export function ArticleImageLightbox({
           src={src}
           alt={alt}
           className={className}
-          loading={protectedRemote ? "lazy" : undefined}
-          decoding={protectedRemote ? "async" : undefined}
-          referrerPolicy={protectedRemote ? "no-referrer" : undefined}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
         />
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -55,7 +53,8 @@ export function ArticleImageLightbox({
             <img
               src={src}
               alt={alt}
-              referrerPolicy={protectedRemote ? "no-referrer" : undefined}
+              decoding="async"
+              referrerPolicy="no-referrer"
               className="rounded object-contain"
               style={{ maxWidth: "100%", maxHeight: "100%" }}
             />

@@ -389,6 +389,9 @@ export function extractStaticCapture(input: {
 
   try {
     const { document } = dom.window;
+    const tooLarge =
+      document.querySelectorAll("*").length >
+      BOOKMARK_CAPTURE_LIMITS.domElements;
     const canonicalUrl = document
       .querySelector('link[rel~="canonical"]')
       ?.getAttribute("href");
@@ -397,12 +400,12 @@ export function extractStaticCapture(input: {
       primaryUrl: input.effectiveUrl,
       source: OBSERVATION_SOURCE.SERVER_STATIC_FETCH,
       ogType,
-      schemaTypes: documentSchemaTypes(document),
+      schemaTypes: tooLarge ? [] : documentSchemaTypes(document),
       platformHint: documentPlatformHint(document),
     });
-    const article = new Readability(
-      document.cloneNode(true) as Document,
-    ).parse();
+    const article = tooLarge
+      ? null
+      : new Readability(document.cloneNode(true) as Document).parse();
     const preview = mergePreview(
       createFallbackPreview(input.sourceUrl),
       staticPreviewCandidate({
@@ -418,10 +421,7 @@ export function extractStaticCapture(input: {
 
     if (!captureAllowed) {
       captureFailureReason = "unsupported_content";
-    } else if (
-      document.querySelectorAll("*").length >
-      BOOKMARK_CAPTURE_LIMITS.domElements
-    ) {
+    } else if (tooLarge) {
       captureFailureReason = "too_large";
     } else if (!article?.content) {
       captureFailureReason = "unextractable";

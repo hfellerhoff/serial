@@ -1,10 +1,11 @@
 import { fetch } from "undici";
+import { FEED_HTTP_REQUEST_TIMEOUT_MS } from "@serial/bookmark-capture";
+import type { Agent } from "undici";
 import {
   createPinnedDispatcher,
   resolvePublicAddresses,
   validatePublicHttpUrl,
 } from "~/server/http/publicHttp";
-import type { Agent } from "undici";
 
 export type FeedHttpReadOptions = {
   headers?: HeadersInit;
@@ -27,8 +28,58 @@ export type FeedHttpResponse = {
 const DEFAULT_MAX_BODY_BYTES = 2 * 1024 * 1024;
 const DEFAULT_MAX_HEADER_BYTES = 32 * 1024;
 const DEFAULT_MAX_REDIRECTS = 5;
-const DEFAULT_TOTAL_DURATION_MS = 15_000;
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+
+function testFixtureOrigin() {
+  if (process.env.NODE_ENV === "production") return undefined;
+  const configuredValue = process.env.SERIAL_TEST_RSS_ORIGIN;
+  if (!configuredValue) return undefined;
+  try {
+    const configured = new URL(configuredValue);
+    if (
+      configured.origin !== configuredValue ||
+      configured.protocol !== "http:" ||
+      (configured.hostname !== "127.0.0.1" && configured.hostname !== "[::1]")
+    ) {
+      return undefined;
+    }
+    return configured;
+  } catch {
+    return undefined;
+  }
+}
+
+function validateFeedHttpTarget(value: string) {
+  const fixtureOrigin = testFixtureOrigin();
+  if (fixtureOrigin) {
+    try {
+      const target = new URL(value);
+      if (
+        target.origin === fixtureOrigin.origin &&
+        !target.username &&
+        !target.password
+      ) {
+        return target;
+      }
+    } catch {
+      // The production validator below owns the stable invalid-target error.
+    }
+  }
+  return validatePublicHttpUrl(value);
+}
+
+function resolveFeedHttpAddresses(hostname: string) {
+  const fixtureOrigin = testFixtureOrigin();
+  if (fixtureOrigin?.hostname === hostname) {
+    return Promise.resolve([
+      {
+        address: fixtureOrigin.hostname === "[::1]" ? "::1" : "127.0.0.1",
+        family: fixtureOrigin.hostname === "[::1]" ? 6 : 4,
+      },
+    ]);
+  }
+  return resolvePublicAddresses(hostname);
+}
 
 type FeedHttpDependencies = {
   validateTarget: typeof validatePublicHttpUrl;
@@ -42,8 +93,8 @@ type FeedHttpDependencies = {
 };
 
 const DEFAULT_FEED_HTTP_DEPENDENCIES: FeedHttpDependencies = {
-  validateTarget: validatePublicHttpUrl,
-  resolveAddresses: resolvePublicAddresses,
+  validateTarget: validateFeedHttpTarget,
+  resolveAddresses: resolveFeedHttpAddresses,
   createDispatcher: createPinnedDispatcher,
   fetch,
 };
@@ -70,7 +121,8 @@ export async function readFeedHttp(
   const maxBodyBytes = options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
   const maxHeaderBytes = options.maxHeaderBytes ?? DEFAULT_MAX_HEADER_BYTES;
   const maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
-  const totalDurationMs = options.totalDurationMs ?? DEFAULT_TOTAL_DURATION_MS;
+  const totalDurationMs =
+    options.totalDurationMs ?? FEED_HTTP_REQUEST_TIMEOUT_MS;
   const abortController = new AbortController();
   const timeout = setTimeout(() => abortController.abort(), totalDurationMs);
   let requestUrl = url;
@@ -105,8 +157,7 @@ export async function readFeedHttp(
         if (REDIRECT_STATUSES.has(response.status)) {
           if (redirectCount >= maxRedirects) {
             await response.body?.cancel();
-            const redirectLabel =
-              maxRedirects === 1 ? "redirect" : "redirects";
+            const redirectLabel = maxRedirects === 1 ? "redirect" : "redirects";
             throw new Error(
               `Feed request exceeded ${maxRedirects} ${redirectLabel}`,
             );

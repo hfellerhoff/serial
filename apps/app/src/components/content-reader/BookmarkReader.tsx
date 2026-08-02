@@ -28,6 +28,7 @@ import { useRefreshBookmark } from "~/lib/hooks/useRefreshBookmark";
 import { useRestoreArticleProgress } from "~/lib/hooks/useRestoreArticleProgress";
 import { orpcRouterClient } from "~/lib/orpc";
 import { getOriginActionLabel } from "~/lib/content/capabilities";
+import { REMOTE_IMAGE_PROPS } from "~/lib/remoteMedia";
 
 const captureCache = new Map<string, DatabasePageCapture>();
 
@@ -143,9 +144,9 @@ export function BookmarkReader({ id }: { id: string }) {
       <div className="mb-4 flex w-full items-center gap-3 px-6 sm:pt-6">
         {bookmark.iconUrl ? (
           <img
+            {...REMOTE_IMAGE_PROPS}
             src={bookmark.iconUrl}
             alt=""
-            referrerPolicy="no-referrer"
             className="size-6 rounded object-contain"
           />
         ) : (

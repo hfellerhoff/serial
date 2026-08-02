@@ -1,14 +1,28 @@
 import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
 import { resolve as resolvePath } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Server } from "node:http";
+import type * as FeedHttpModule from "~/server/rss/feedHttp";
 import type { DatabaseFeed } from "~/server/db/schema";
 import type {
   NotModifiedResult,
   RSSFeedWithMetadata,
 } from "~/server/rss/types";
 import { fetchYouTubeFeedData } from "~/server/rss/parsers/youtube";
+
+vi.mock("~/server/rss/feedHttp", async (importOriginal) => {
+  const actual = await importOriginal<typeof FeedHttpModule>();
+  return {
+    ...actual,
+    readFeedHttp: (url: string, options = {}) =>
+      actual.readFeedHttp(url, options, {
+        validateTarget: (value: string) => new URL(value),
+        resolveAddresses: () =>
+          Promise.resolve([{ address: "127.0.0.1", family: 4 }]),
+      }),
+  };
+});
 
 const FIRESHIP_OLD_XML = readFileSync(
   resolvePath(__dirname, "../../e2e/fixtures/fireship-old.xml"),

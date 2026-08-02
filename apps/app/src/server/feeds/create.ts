@@ -21,6 +21,7 @@ export async function createFeedsForUser(input: {
   url: string;
   categoryIds: number[];
   viewIds?: number[];
+  returnExisting?: boolean;
 }) {
   const newFeedDetails = await fetchNewFeedDetails(input.url);
   if (!newFeedDetails.length) throw new Error("Unsupported feed URL");
@@ -58,7 +59,11 @@ export async function createFeedsForUser(input: {
           feedUrl: newFeed.url,
           userId: input.userId,
         });
-        if (existingFeed) return { error: "Feed already exists" };
+        if (existingFeed) {
+          return input.returnExisting
+            ? { feed: existingFeed, created: false as const }
+            : { error: "Feed already exists" };
+        }
 
         const insertedFeeds = await transaction
           .insert(feeds)
@@ -86,7 +91,7 @@ export async function createFeedsForUser(input: {
             })),
           );
         }
-        return { feed: insertedFeed };
+        return { feed: insertedFeed, created: true as const };
       }),
     );
   });
@@ -97,15 +102,16 @@ export async function createFeedsForUser(input: {
   if (errors.length === newFeedDetails.length) {
     throw new Error(errors[0]?.error ?? "Failed to create feed");
   }
-  const createdFeeds = results
-    .filter(
-      (result): result is { feed: typeof feeds.$inferSelect } =>
-        "feed" in result && Boolean(result.feed),
-    )
-    .map((result) => result.feed);
+  const returnedFeeds = results.flatMap((result) =>
+    "feed" in result && result.feed ? [result.feed] : [],
+  );
+  const createdCount = results.filter(
+    (result) => "created" in result && result.created,
+  ).length;
   return {
-    feeds: parseArrayOfSchema(createdFeeds, feedsSchema),
-    deactivatedCount: Math.max(0, createdFeeds.length - remainingSlots),
+    feeds: parseArrayOfSchema(returnedFeeds, feedsSchema),
+    createdCount,
+    deactivatedCount: Math.max(0, createdCount - remainingSlots),
     maxActiveFeeds,
   };
 }

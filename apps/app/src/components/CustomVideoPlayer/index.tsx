@@ -20,6 +20,7 @@ import YouTube from "react-youtube";
 import { useView } from "~/components/feed/watch/[id]/useView";
 import { useFlagState } from "~/lib/hooks/useFlagState";
 import { transformSecondsToFormattedTime } from "~/lib/transformSecondsToFormattedTime";
+import { REMOTE_IMAGE_PROPS } from "~/lib/remoteMedia";
 import { ButtonWithShortcut } from "../ButtonWithShortcut";
 import { Button } from "../ui/button";
 import {
@@ -262,6 +263,7 @@ function CustomVideoPlayerContent(props: IResponsiveVideoProps) {
               >
                 <div className="absolute inset-0 h-full w-full bg-black">
                   <img
+                    {...REMOTE_IMAGE_PROPS}
                     className={clsx("h-full w-full", {
                       "object-cover": props.orientation === "vertical",
                       "object-contain": props.orientation === "horizontal",

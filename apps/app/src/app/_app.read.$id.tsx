@@ -33,6 +33,7 @@ import {
   setTruncationAlertResponded,
 } from "~/lib/utils/truncationAlert";
 import { useEditFeedMutation } from "~/lib/data/feeds/mutations";
+import { REMOTE_IMAGE_PROPS } from "~/lib/remoteMedia";
 import { useFeedCategories } from "~/lib/data/feed-categories/store";
 import { useViewFeeds } from "~/lib/data/view-feeds/store";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
@@ -222,6 +223,7 @@ function FeedReader({
       <div className="mb-4 flex w-full items-center gap-3 px-6 sm:pt-6">
         {feed?.imageUrl ? (
           <img
+            {...REMOTE_IMAGE_PROPS}
             src={feed.imageUrl}
             alt={feedItem?.title}
             className="aspect-square h-6 rounded object-cover"

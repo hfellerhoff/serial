@@ -1,4 +1,5 @@
 import {
+  EXTENSION_FEED_ADD_REQUEST_TIMEOUT_MS,
   parseExtensionBookmark,
   parseExtensionBookmarkWorkspace,
   type ExtensionCaptureCandidate,
@@ -20,6 +21,7 @@ type BookmarkBackgroundDependencies = {
   fetchFromInstance: (
     input: string | URL | Request,
     init?: RequestInit,
+    options?: { timeoutMs?: number },
   ) => Promise<Response>;
 };
 
@@ -112,6 +114,9 @@ async function authenticatedApiRequest(
         ...init.headers,
       },
     },
+    path === "/api/extension/feeds"
+      ? { timeoutMs: EXTENSION_FEED_ADD_REQUEST_TIMEOUT_MS }
+      : undefined,
   );
   if (response.status === 401 || response.status === 403) {
     await dependencies.clearSession(session);

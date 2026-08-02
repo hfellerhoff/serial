@@ -36,6 +36,7 @@ import {
 } from "~/lib/data/bookmarks/mutations";
 import { useDialogStore } from "~/components/feed/dialogStore";
 import { contentDestination } from "~/lib/data/content-items/resolver";
+import { REMOTE_IMAGE_PROPS } from "~/lib/remoteMedia";
 
 export type ItemSize = "standard" | "large";
 type WatchedDatePrefix = "read" | "watched";
@@ -230,6 +231,7 @@ interface ThumbnailProps {
 function VideoThumbnail({ thumbnail, title }: ThumbnailProps) {
   return (
     <img
+      {...REMOTE_IMAGE_PROPS}
       src={thumbnail}
       alt={title}
       className="absolute inset-0 h-full w-full object-cover"
@@ -240,6 +242,7 @@ function VideoThumbnail({ thumbnail, title }: ThumbnailProps) {
 function ShortsThumbnail({ thumbnail, title }: ThumbnailProps) {
   return (
     <img
+      {...REMOTE_IMAGE_PROPS}
       src={thumbnail}
       alt={title}
       className="absolute inset-0 h-full w-full object-cover"
@@ -265,6 +268,7 @@ function ArticleThumbnail({
   return (
     <>
       <img
+        {...REMOTE_IMAGE_PROPS}
         src={thumbnail}
         alt={title}
         className="absolute inset-0 h-full w-full object-cover"
@@ -272,6 +276,7 @@ function ArticleThumbnail({
       <div className="bg-foreground/30 dark:bg-background/30 absolute inset-0" />
       {feedImageUrl && !hideFeedIcon && (
         <img
+          {...REMOTE_IMAGE_PROPS}
           src={feedImageUrl}
           alt={feedName}
           className="bg-background dark:bg-foreground absolute top-2 left-2 z-10 h-10 w-10 rounded object-contain p-1 shadow-md"
@@ -290,6 +295,7 @@ function IconThumbnail({ feedImageUrl, feedName }: IconThumbnailProps) {
   return (
     <div className="absolute inset-0 grid place-items-center">
       <img
+        {...REMOTE_IMAGE_PROPS}
         src={feedImageUrl}
         alt={feedName}
         className="h-10 w-10 rounded object-contain"

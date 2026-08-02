@@ -19,6 +19,7 @@ export type FeedItemListProjection = Pick<
   | "orientation"
   | "platform"
   | "postedAt"
+  | "url"
 >;
 
 export type FeedItemFilterIndex = {
@@ -118,6 +119,7 @@ export function hasFeedItemListProjectionChanged(
     previousItem.contentType !== nextItem.contentType ||
     previousItem.orientation !== nextItem.orientation ||
     previousItem.platform !== nextItem.platform ||
+    previousItem.url !== nextItem.url ||
     previousItem.postedAt.getTime() !== nextItem.postedAt.getTime()
   );
 }

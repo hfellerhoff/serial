@@ -38,13 +38,32 @@ There is no Safari demo command because WXT's development runner does not open
 Safari. Safari-targeted extensions must be built and packaged in a native app
 with Apple's tooling before they can be loaded in Safari.
 
+## Permissions and data flow
+
+The extension requests only the capabilities needed for an explicit Bookmark
+save:
+
+- `activeTab` and `scripting` let the popup read and extract the current page
+  after the user opens Serial. They do not grant permanent access to browsing
+  history.
+- `identity` completes the approved connection to a Serial instance.
+- `storage` keeps the selected instance and its opaque extension session token
+  in the browser.
+- Optional host access is requested for the selected HTTPS Serial instance, or
+  for a loopback HTTP instance during local development. Signing out removes
+  that host access.
+
 The Firefox manifest declares `authenticationInfo`, `browsingActivity`,
 `websiteActivity`, and `websiteContent` because signing in and opening the popup
 transmits the active page URL, the explicit save action, and a sanitized reader
 capture to the selected Serial server. Firefox 140 or later is required so this
-consent appears in Firefox's built-in installation flow. The extension never
-transmits cookies, credentials, request headers, raw DOM, or pre-extraction page
-source.
+consent appears in Firefox's built-in installation flow.
+
+The extension sends the page URL, extracted title and preview metadata,
+sanitized readable content when extraction succeeds, and declared Feed links.
+It never sends page cookies, credentials, request headers, the raw DOM, or the
+pre-extraction page source. The selected Serial server stores the Bookmark and
+may perform bounded Feed discovery only when the page declares no Feeds.
 
 Before the first Chrome Web Store release, replace the checked-in manifest key
 with the key assigned to the uploaded extension. The identity tests derive the

@@ -40,6 +40,7 @@ import {
   PopoverTrigger,
 } from "~/components/ui/popover";
 import { useFeeds } from "~/lib/data/feeds";
+import { REMOTE_IMAGE_PROPS } from "~/lib/remoteMedia";
 import { useContentCategories } from "~/lib/data/content-categories";
 
 export interface ViewSection {
@@ -186,6 +187,7 @@ function SortableViewSectionItem({
         {item.itemType === VIEW_LAYOUT_ITEM_TYPE.FEED &&
           (feed?.imageUrl ? (
             <img
+              {...REMOTE_IMAGE_PROPS}
               src={feed.imageUrl}
               alt={feed.name}
               className="h-5 w-5 rounded object-contain"

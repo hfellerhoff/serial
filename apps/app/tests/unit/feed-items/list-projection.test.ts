@@ -113,6 +113,12 @@ describe("Feed-item list projection", () => {
         isWatchedUpdatedAt: new Date(FIXTURE_TIME.getTime() + 1),
       }),
     ).toBe(true);
+    expect(
+      hasFeedItemListProjectionChanged(item, {
+        ...item,
+        url: "https://serial.test/changed",
+      }),
+    ).toBe(true);
   });
 
   it("patches one entity without publishing list or scope changes", () => {

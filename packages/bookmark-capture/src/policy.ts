@@ -15,6 +15,18 @@ export const BOOKMARK_CAPTURE_LIMITS = {
   discoveredFeeds: 16,
 } as const;
 
+export const EXTENSION_INSTANCE_REQUEST_TIMEOUT_MS = 10_000;
+export const FEED_HTTP_REQUEST_TIMEOUT_MS = 15_000;
+export const FEED_ADD_MAX_DISCOVERED_FEEDS = 8;
+export const FEED_INGESTION_CONCURRENCY = 4;
+const FEED_ADD_FETCH_WAVES = Math.ceil(
+  FEED_ADD_MAX_DISCOVERED_FEEDS / FEED_INGESTION_CONCURRENCY,
+);
+// Worst case: one channel-discovery fetch, bounded detail-fetch waves, bounded
+// initial-ingestion waves, and a small allowance for parsing/database writes.
+export const EXTENSION_FEED_ADD_REQUEST_TIMEOUT_MS =
+  FEED_HTTP_REQUEST_TIMEOUT_MS * (1 + FEED_ADD_FETCH_WAVES * 2) + 10_000;
+
 export const SANITIZER_POLICY_VERSION = 1;
 export const EXTENSION_BOOKMARK_CONTRACT_VERSION = 2;
 export const READABILITY_EXTRACTOR_VERSION = "mozilla-readability-0.6";

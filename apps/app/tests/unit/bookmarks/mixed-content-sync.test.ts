@@ -397,6 +397,47 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
     ).toEqual([reference("feed-item", vertical.id)]);
   });
 
+  it("suppresses a reprojected Feed item against the global cached Bookmark index", () => {
+    const cached = bookmark({
+      id: "global-collision",
+      canonicalUrl: "https://example.com/collision",
+      viewIds: [],
+    });
+    const original = feedItem(
+      "changing-collision",
+      "https://example.com/original",
+    );
+    bookmarksStore.getState().upsert(cached);
+    feedItemsStore.getState().setFeedItem(original.id, original);
+    mixedContentStore.getState().applyPage({
+      scope: { type: "view", viewId: 10 },
+      visibility: "unread",
+      page: page([reference("feed-item", original.id)]),
+      replacesScope: true,
+      feedItems: feedItemsStore.getState().feedItemsDict,
+    });
+
+    const colliding = {
+      ...original,
+      url: cached.canonicalUrl,
+      updatedAt: new Date(NOW.getTime() + 1),
+    };
+    processPublishedChunks([
+      {
+        source: "initial",
+        chunk: {
+          type: "feed-items",
+          feedId: colliding.feedId,
+          feedItems: [colliding],
+        },
+      },
+    ]);
+
+    expect(
+      mixedContentStore.getState().scopes["view:10:unread"]?.references,
+    ).toEqual([]);
+  });
+
   it("reprojects cached Feed items immediately after a View filter edit", () => {
     const horizontal = {
       ...feedItem("horizontal", "https://example.com/horizontal"),
@@ -658,6 +699,73 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
       [first.id]: first,
       [second.id]: second,
     });
+  });
+
+  it("replays authoritative bucket updates through loaded mixed projections", () => {
+    const cached = bookmark({ id: "bucket-move", viewIds: [10] });
+    bookmarksStore.getState().upsert(cached);
+    mixedContentStore.getState().applyPage({
+      scope: { type: "view", viewId: 10 },
+      visibility: "later",
+      page: page([reference("bookmark", cached.id)]),
+      replacesScope: true,
+      feedItems: {},
+    });
+    const moved = bookmark({
+      ...cached,
+      viewIds: [],
+      updatedAt: new Date(NOW.getTime() + 1),
+    });
+    const [syncPage] = buildBookmarkSyncPages({
+      bucket: getBookmarkSyncBucket(cached.id),
+      version: "moved-version",
+      bookmarks: [moved],
+    });
+
+    const affected = processPublishedChunks([
+      { source: "bookmark", chunk: syncPage! },
+    ]);
+
+    expect(affected).toHaveLength(1);
+    expect(
+      mixedContentStore.getState().scopes[
+        getMixedScopeKey({ type: "view", viewId: 10 }, "later")
+      ]?.references,
+    ).toEqual([]);
+  });
+
+  it("restores a suppressed Feed item when authoritative bucket sync deletes its Bookmark", () => {
+    const url = "https://example.com/collision";
+    const item = feedItem("collision-feed", url);
+    const cached = bookmark({ id: "collision-bookmark", canonicalUrl: url });
+    feedItemsStore.getState().setFeedItem(item.id, item);
+    mixedContentStore.getState().applyPage({
+      scope: { type: "view", viewId: 10 },
+      visibility: "later",
+      page: page([reference("feed-item", item.id)]),
+      replacesScope: true,
+      feedItems: feedItemsStore.getState().feedItemsDict,
+    });
+    processPublishedChunks([
+      {
+        source: "bookmark",
+        chunk: { type: "bookmark-upsert", bookmark: cached },
+      },
+    ]);
+    const [syncPage] = buildBookmarkSyncPages({
+      bucket: getBookmarkSyncBucket(cached.id),
+      version: "deleted-version",
+      bookmarks: [],
+    });
+
+    processPublishedChunks([{ source: "bookmark", chunk: syncPage! }]);
+
+    expect(bookmarksStore.getState().getBookmark(cached.id)).toBeUndefined();
+    expect(
+      mixedContentStore.getState().scopes[
+        getMixedScopeKey({ type: "view", viewId: 10 }, "later")
+      ]?.references,
+    ).toEqual([reference("feed-item", item.id)]);
   });
 
   it("marks mixed and section-level references read and supports undo", async () => {

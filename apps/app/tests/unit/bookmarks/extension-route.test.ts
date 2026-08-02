@@ -332,7 +332,7 @@ describe("extension Bookmark HTTP contract", () => {
     expect(deps.setTag).not.toHaveBeenCalled();
   });
 
-  it("creates and assigns a View through the extension editor", async () => {
+  it("creates a View independently from Bookmark assignment", async () => {
     const deps = {
       authenticate: vi.fn(() => Promise.resolve({ id: "user-one" }) as never),
       setView: vi.fn(() => Promise.resolve()),
@@ -345,7 +345,7 @@ describe("extension Bookmark HTTP contract", () => {
         () =>
           Promise.resolve({
             id: "bookmark-one",
-            viewIds: [14],
+            viewIds: [],
             tagIds: [],
           }) as never,
       ),
@@ -367,13 +367,7 @@ describe("extension Bookmark HTTP contract", () => {
         name: "Essays",
       }),
     );
-    expect(deps.setView).toHaveBeenCalledWith(
-      expect.objectContaining({
-        bookmarkId: "bookmark-one",
-        viewId: 14,
-        assigned: true,
-      }),
-    );
+    expect(deps.setView).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toMatchObject({
       createdOption: {
         kind: "view",
@@ -382,7 +376,7 @@ describe("extension Bookmark HTTP contract", () => {
     });
   });
 
-  it("creates and assigns a Tag through the extension editor", async () => {
+  it("creates a Tag independently from Bookmark assignment", async () => {
     const deps = {
       authenticate: vi.fn(() => Promise.resolve({ id: "user-one" }) as never),
       setView: vi.fn(() => Promise.resolve()),
@@ -396,7 +390,7 @@ describe("extension Bookmark HTTP contract", () => {
           Promise.resolve({
             id: "bookmark-one",
             viewIds: [],
-            tagIds: [21],
+            tagIds: [],
           }) as never,
       ),
     };
@@ -417,13 +411,7 @@ describe("extension Bookmark HTTP contract", () => {
         name: "Research",
       }),
     );
-    expect(deps.setTag).toHaveBeenCalledWith(
-      expect.objectContaining({
-        bookmarkId: "bookmark-one",
-        tagId: 21,
-        assigned: true,
-      }),
-    );
+    expect(deps.setTag).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toMatchObject({
       createdOption: {
         kind: "tag",

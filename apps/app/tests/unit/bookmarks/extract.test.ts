@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { BOOKMARK_CAPTURE_LIMITS } from "@serial/bookmark-capture";
 import type { ExtensionCaptureCandidate } from "~/server/bookmarks/contracts";
 import {
   extractStaticCapture,
@@ -96,5 +97,23 @@ describe("Page capture preparation", () => {
       'href="https://example.com/next"',
     );
     expect(result.observation.capture?.contentHtml).not.toContain("script");
+  });
+
+  it("rejects an oversized DOM before parsing structured data or cloning", () => {
+    const structuredData = '{"@type":"VideoObject","name":"large"}';
+    const parse = vi.spyOn(JSON, "parse");
+    const result = extractStaticCapture({
+      sourceUrl: "https://example.com/large",
+      effectiveUrl: "https://example.com/large",
+      html: `<!doctype html><title>Large page</title>
+        <script type="application/ld+json">${structuredData}</script>
+        ${"<i></i>".repeat(BOOKMARK_CAPTURE_LIMITS.domElements + 1)}`,
+    });
+
+    expect(result.captureFailureReason).toBe("too_large");
+    expect(result.observation.capture).toBeNull();
+    expect(parse.mock.calls.some(([value]) => value === structuredData)).toBe(
+      false,
+    );
   });
 });

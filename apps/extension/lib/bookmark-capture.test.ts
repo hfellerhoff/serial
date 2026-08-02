@@ -1,5 +1,5 @@
 import { JSDOM } from "jsdom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   BOOKMARK_CAPTURE_LIMITS,
   extractPageObservation,
@@ -127,5 +127,32 @@ describe("extension live DOM Bookmark capture", () => {
     expect(new TextEncoder().encode(result.serialized).byteLength).toBeLessThan(
       BOOKMARK_CAPTURE_LIMITS.extensionRequestBytes,
     );
+  });
+
+  it("does not clone an oversized DOM but retains preview and declared Feeds", () => {
+    const document = pageDocument(
+      "<main><p>Article preview</p></main>",
+      `
+        <link rel="alternate" type="application/rss+xml" href="/feed.xml" title="Example Feed">
+        <meta property="og:description" content="A lightweight preview">
+      `,
+    );
+    const querySelectorAll = document.querySelectorAll.bind(document);
+    vi.spyOn(document, "querySelectorAll").mockImplementation((selector) =>
+      selector === "*"
+        ? ({ length: BOOKMARK_CAPTURE_LIMITS.domElements + 1 } as never)
+        : querySelectorAll(selector),
+    );
+    const clone = vi.spyOn(document, "cloneNode");
+
+    const result = extractPageObservation(document);
+
+    expect(clone).not.toHaveBeenCalled();
+    expect(result.capture.description).toBe("A lightweight preview");
+    expect(result.capture.contentHtml).toBeUndefined();
+    expect(result.captureFailureReason).toBe("too_large");
+    expect(result.feeds).toEqual([
+      { url: "https://example.com/feed.xml", title: "Example Feed" },
+    ]);
   });
 });

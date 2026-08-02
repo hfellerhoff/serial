@@ -33,6 +33,7 @@ import {
 } from "~/lib/data/atoms";
 import { useFeedCategories } from "~/lib/data/feed-categories";
 import { useFeeds } from "~/lib/data/feeds";
+import { REMOTE_IMAGE_PROPS } from "~/lib/remoteMedia";
 import { useFilteredContentOrder } from "~/lib/data/feed-items";
 import {
   useFetchFeedItemsLastFetchedAt,
@@ -73,6 +74,7 @@ function SectionFeedIcon({ itemId }: { itemId?: number }) {
   if (feed?.imageUrl) {
     return (
       <img
+        {...REMOTE_IMAGE_PROPS}
         src={feed.imageUrl}
         alt={feed.name}
         className="h-6 w-6 shrink-0 rounded object-contain"

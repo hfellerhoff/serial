@@ -461,14 +461,6 @@ const vanillaMixedContentStore = createStore<MixedContentStore>()(
             const collisionBookmark = bookmarkByCanonical.get(
               canonicalize(item.url),
             );
-            const collisionIsInScope = Boolean(
-              collisionBookmark &&
-              scopeState.references.some(
-                (reference) =>
-                  reference.entityKind === "bookmark" &&
-                  reference.entityId === collisionBookmark.id,
-              ),
-            );
 
             references = references.filter(
               (reference) =>
@@ -517,7 +509,7 @@ const vanillaMixedContentStore = createStore<MixedContentStore>()(
             }
             suppressedReferences = nextSuppressed;
 
-            if (belongs && collisionBookmark && collisionIsInScope) {
+            if (belongs && collisionBookmark) {
               const referencesByScope =
                 suppressedReferences[collisionBookmark.id] ?? {};
               suppressedReferences = {

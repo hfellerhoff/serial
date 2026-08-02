@@ -5,7 +5,21 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Server } from "node:http";
 
 import type { DatabaseFeed } from "~/server/db/schema";
+import type * as FeedHttpModule from "~/server/rss/feedHttp";
 import { fetchAndInsertFeedData } from "~/server/rss/fetchFeeds";
+
+vi.mock("~/server/rss/feedHttp", async (importOriginal) => {
+  const actual = await importOriginal<typeof FeedHttpModule>();
+  return {
+    ...actual,
+    readFeedHttp: (url: string, options = {}) =>
+      actual.readFeedHttp(url, options, {
+        validateTarget: (value: string) => new URL(value),
+        resolveAddresses: () =>
+          Promise.resolve([{ address: "127.0.0.1", family: 4 }]),
+      }),
+  };
+});
 
 // Mock modules that require env vars
 vi.mock("~/server/logger", () => ({

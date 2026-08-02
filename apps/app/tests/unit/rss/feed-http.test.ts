@@ -1,11 +1,12 @@
 import { createServer } from "node:http";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { Server } from "node:http";
 import { readFeedHttp } from "~/server/rss/feedHttp";
 
 const LOCAL_HTTP_DEPENDENCIES = {
   validateTarget: (value: string) => new URL(value),
-  resolveAddresses: async () => [{ address: "127.0.0.1", family: 4 }],
+  resolveAddresses: () =>
+    Promise.resolve([{ address: "127.0.0.1", family: 4 }]),
 };
 
 function readLocalFeedHttp(
@@ -93,11 +94,28 @@ afterAll(() => {
   server.close();
 });
 
+afterEach(() => {
+  delete process.env.SERIAL_TEST_RSS_ORIGIN;
+});
+
 describe("readFeedHttp", () => {
   it("rejects private-network targets before opening a connection", async () => {
     await expect(readFeedHttp("http://127.0.0.1/feed.xml")).rejects.toThrow(
       "not public",
     );
+  });
+
+  it("allows only the exact loopback RSS origin configured by the test runner", async () => {
+    process.env.SERIAL_TEST_RSS_ORIGIN = baseUrl;
+
+    await expect(readFeedHttp(`${baseUrl}/feed`)).resolves.toMatchObject({
+      status: 200,
+      text: "<rss />",
+    });
+    await expect(readFeedHttp("http://127.0.0.1:9/feed.xml")).rejects.toThrow(
+      "not allowed",
+    );
+    await expect(readFeedHttp("not a URL")).rejects.toThrow("invalid");
   });
 
   it("rejects a chunked response once its body exceeds the byte budget", async () => {

@@ -11,6 +11,7 @@ import {
   SELECTED_INSTANCE_STORAGE_KEY,
   updateSessionFromResponse,
 } from "../lib/auth";
+import { EXTENSION_INSTANCE_REQUEST_TIMEOUT_MS } from "@serial/bookmark-capture";
 import type {
   AuthMessage,
   AuthMessageResponse,
@@ -20,17 +21,18 @@ import { handleBookmarkMessage } from "../lib/background-bookmarks";
 import { isBookmarkMessage } from "../lib/bookmarks";
 import type { BookmarkMessage } from "../lib/bookmarks";
 
-const INSTANCE_REQUEST_TIMEOUT_MS = 10_000;
-
 async function fetchFromInstance(
   input: string | URL | Request,
   init?: RequestInit,
+  options: { timeoutMs?: number } = {},
 ) {
   try {
     return await fetch(input, {
       ...init,
       credentials: "omit",
-      signal: AbortSignal.timeout(INSTANCE_REQUEST_TIMEOUT_MS),
+      signal: AbortSignal.timeout(
+        options.timeoutMs ?? EXTENSION_INSTANCE_REQUEST_TIMEOUT_MS,
+      ),
     });
   } catch (error) {
     if (

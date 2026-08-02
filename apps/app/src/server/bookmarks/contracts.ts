@@ -2,13 +2,8 @@ import { z } from "zod";
 import {
   BOOKMARK_CAPTURE_FAILURE_REASONS,
   BOOKMARK_CAPTURE_LIMITS,
-  EXTENSION_CAPTURE_FAILURE_REASONS,
 } from "@serial/bookmark-capture";
-import type {
-  BookmarkCaptureOutcome,
-  BookmarkSaveResult,
-  CaptureFailureReason,
-} from "@serial/bookmark-capture";
+import type { CaptureFailureReason } from "@serial/bookmark-capture";
 import type {
   BookmarkClassification,
   BookmarkPreview,
