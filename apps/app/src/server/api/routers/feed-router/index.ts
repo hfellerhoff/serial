@@ -32,6 +32,7 @@ import {
 } from "~/server/subscriptions/helpers";
 import { getEffectivePlanConfig } from "~/server/subscriptions/plans";
 import { VIEW_LAYOUT_ITEM_TYPE } from "~/server/db/constants";
+import { createFeedsForUser } from "~/server/feeds/create";
 import {
   boundedNumberIdsSchema,
   boundedStringsSchema,
@@ -51,121 +52,21 @@ type BulkImportFromFileError = {
 export type BulkImportFromFileResult =
   BulkImportFromFileError | BulkImportFromFileSuccess;
 
+const createFeedInputSchema = z.object({
+  url: z.string().min(5),
+  categoryIds: boundedNumberIdsSchema,
+  viewIds: boundedNumberIdsSchema.optional(),
+});
+
 export const create = protectedProcedure
-  .input(
-    z.object({
-      url: z.string().min(5),
-      categoryIds: boundedNumberIdsSchema,
-      viewIds: boundedNumberIdsSchema.optional(),
+  .input(createFeedInputSchema)
+  .handler(({ context, input }) =>
+    createFeedsForUser({
+      database: context.db,
+      userId: context.user.id,
+      ...input,
     }),
-  )
-  .handler(async ({ context, input }) => {
-    const newFeedDetails = await fetchNewFeedDetails(input.url);
-    if (!newFeedDetails.length) {
-      throw new Error("Unsupported feed URL");
-    }
-
-    // Check activation budget upfront
-    const { remainingSlots, maxActiveFeeds } = await getFeedsActivationBudget(
-      context.db,
-      context.user.id,
-    );
-
-    const results = await context.db.transaction(async (tx) => {
-      const [categoriesOwned, viewsOwned] = await Promise.all([
-        verifyContentCategoriesOwnedByUser({
-          categoryIds: input.categoryIds,
-          userId: context.user.id,
-          db: tx,
-        }),
-        verifyViewsOwnedByUser({
-          viewIds: input.viewIds ?? [],
-          userId: context.user.id,
-          db: tx,
-        }),
-      ]);
-
-      if (!categoriesOwned) {
-        throw new Error(
-          "Unauthorized: One or more categories do not belong to user",
-        );
-      }
-      if (!viewsOwned) {
-        throw new Error(
-          "Unauthorized: One or more views do not belong to user",
-        );
-      }
-
-      return await Promise.all(
-        newFeedDetails.map(async (newFeed, index) => {
-          if (!newFeed.url) return { error: "No feed url found." };
-
-          const existingFeed = await findExistingFeedThatMatches(tx, {
-            feedUrl: newFeed.url,
-            userId: context.user.id,
-          });
-
-          if (existingFeed) {
-            return { error: "Feed already exists" };
-          }
-
-          const isActive = index < remainingSlots;
-
-          const insertedFeeds = await tx
-            .insert(feeds)
-            .values({
-              userId: context.user.id,
-              ...newFeed,
-              isActive,
-              openLocation: PLATFORM_DEFAULT_OPEN_LOCATION[newFeed.platform],
-            })
-            .returning();
-
-          const newFeedRow = insertedFeeds[0];
-
-          if (!!input.categoryIds.length && !!newFeedRow) {
-            await tx.insert(feedCategories).values(
-              input.categoryIds.map((categoryId) => ({
-                feedId: Number(newFeedRow.id),
-                categoryId,
-              })),
-            );
-          }
-
-          if (input.viewIds?.length && newFeedRow) {
-            await tx.insert(viewFeeds).values(
-              input.viewIds.map((viewId) => ({
-                viewId,
-                feedId: Number(newFeedRow.id),
-              })),
-            );
-          }
-
-          return { feed: newFeedRow };
-        }),
-      );
-    });
-
-    const errors = results.filter((r): r is { error: string } => "error" in r);
-    if (errors.length === newFeedDetails.length) {
-      throw new Error(errors[0]?.error ?? "Failed to create feed");
-    }
-
-    const createdFeeds = results
-      .filter(
-        (r): r is { feed: typeof feeds.$inferSelect } =>
-          "feed" in r && !!r.feed,
-      )
-      .map((r) => r.feed);
-
-    const deactivatedCount = Math.max(0, createdFeeds.length - remainingSlots);
-
-    return {
-      feeds: parseArrayOfSchema(createdFeeds, feedsSchema),
-      deactivatedCount,
-      maxActiveFeeds,
-    };
-  });
+  );
 
 export const createFromSubscriptionImport = protectedProcedure
   .input(

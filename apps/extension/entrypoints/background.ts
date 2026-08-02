@@ -2,6 +2,7 @@ import {
   AUTH_REDIRECT_PATH,
   AUTH_STORAGE_KEY,
   getAuthErrorMessage,
+  isSessionExpired,
   LAST_INSTANCE_STORAGE_KEY,
   originPermission,
   parseConnectionResponse,
@@ -15,6 +16,9 @@ import type {
   AuthMessageResponse,
   ExtensionAuthSession,
 } from "../lib/auth";
+import { handleBookmarkMessage } from "../lib/background-bookmarks";
+import { isBookmarkMessage } from "../lib/bookmarks";
+import type { BookmarkMessage } from "../lib/bookmarks";
 
 const INSTANCE_REQUEST_TIMEOUT_MS = 10_000;
 
@@ -92,7 +96,7 @@ async function clearSession(session?: ExtensionAuthSession) {
 async function getActiveSession() {
   const session = await readStoredSession();
   if (!session) return null;
-  if (session.expiresAt <= Date.now()) {
+  if (isSessionExpired(session)) {
     await clearSession(session);
     return null;
   }
@@ -233,8 +237,15 @@ async function handleAuthMessage(
 
 export default defineBackground(() => {
   browser.runtime.onMessage.addListener(
-    (message: AuthMessage, _sender, sendResponse) => {
-      void handleAuthMessage(message).then(sendResponse);
+    (message: AuthMessage | BookmarkMessage, _sender, sendResponse) => {
+      const response = isBookmarkMessage(message)
+        ? handleBookmarkMessage(message, {
+            readStoredSession,
+            clearSession,
+            fetchFromInstance,
+          })
+        : handleAuthMessage(message);
+      void response.then(sendResponse);
       return true;
     },
   );

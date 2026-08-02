@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BOOKMARK_CAPTURE_LIMITS } from "@serial/bookmark-capture";
 import type {
   BookmarkClassification,
   BookmarkPreview,
@@ -10,25 +11,12 @@ import {
   videoOrientationSchema,
 } from "~/lib/content/descriptor";
 
-export const BOOKMARK_CAPTURE_LIMITS = {
-  extensionRequestBytes: 4 * 1024 * 1024,
-  storedHtmlBytes: 2 * 1024 * 1024,
-  fetchedHtmlBytes: 5 * 1024 * 1024,
-  domElements: 50_000,
-  redirects: 5,
-  responseHeadersMs: 5_000,
-  totalAttemptMs: 15_000,
-  urlBytes: 8 * 1024,
-  titleCodePoints: 1_024,
-  authorCodePoints: 512,
-  descriptionCodePoints: 2_048,
-  siteNameCodePoints: 512,
-  versionBytes: 128,
-} as const;
-
-export const SANITIZER_POLICY_VERSION = 1;
-export const EXTENSION_BOOKMARK_CONTRACT_VERSION = 2;
-export const READABILITY_EXTRACTOR_VERSION = "mozilla-readability-0.6";
+export {
+  BOOKMARK_CAPTURE_LIMITS,
+  EXTENSION_BOOKMARK_CONTRACT_VERSION,
+  READABILITY_EXTRACTOR_VERSION,
+  SANITIZER_POLICY_VERSION,
+} from "@serial/bookmark-capture";
 
 const captureFailureReasonSchema = z.enum([
   "blocked_target",

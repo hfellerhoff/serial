@@ -11,6 +11,7 @@ import {
   deleteBookmark,
   getBookmarkCapture,
   persistBookmarkSave,
+  saveBookmarkFromExtension,
   setBookmarkTag,
   setBookmarkView,
   updateBookmarksReadState,
@@ -132,6 +133,33 @@ beforeEach(async () => {
 afterEach(() => cleanup());
 
 describe("Bookmark persistence", () => {
+  it("keeps the extension preflight failure reason on a URL-only save", async () => {
+    const url = "https://example.com/oversized";
+    const result = await saveBookmarkFromExtension({
+      database,
+      userId: "user-one",
+      sourceUrl: url,
+      captureFailureReason: "too_large",
+      capture: {
+        effectiveUrl: url,
+        title: "Oversized article",
+        descriptor: {
+          platform: "website",
+          contentType: "text",
+          orientation: null,
+          contentId: null,
+          classifierVersion: 1,
+        },
+      },
+    });
+
+    expect(result.capture).toEqual({
+      status: "unavailable",
+      reason: "too_large",
+    });
+    expect(result.bookmark.title).toBe("Oversized article");
+  });
+
   it("scopes canonical uniqueness and refresh hints to the authenticated user", async () => {
     const url = "https://example.com/article";
     const first = await persistBookmarkSave({

@@ -38,10 +38,13 @@ There is no Safari demo command because WXT's development runner does not open
 Safari. Safari-targeted extensions must be built and packaged in a native app
 with Apple's tooling before they can be loaded in Safari.
 
-The Firefox manifest declares `authenticationInfo` because signing in transmits
-account authentication data to the selected Serial server. Firefox 140 or later
-is required so this consent appears in Firefox's built-in installation flow.
-Keep the declaration current if the extension begins transmitting other data.
+The Firefox manifest declares `authenticationInfo`, `browsingActivity`,
+`websiteActivity`, and `websiteContent` because signing in and opening the popup
+transmits the active page URL, the explicit save action, and a sanitized reader
+capture to the selected Serial server. Firefox 140 or later is required so this
+consent appears in Firefox's built-in installation flow. The extension never
+transmits cookies, credentials, request headers, raw DOM, or pre-extraction page
+source.
 
 Before the first Chrome Web Store release, replace the checked-in manifest key
 with the key assigned to the uploaded extension. The identity tests derive the

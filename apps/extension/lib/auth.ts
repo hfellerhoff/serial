@@ -26,6 +26,13 @@ export type ExtensionAuthSession = {
   user: SerialUser;
 };
 
+export function isSessionExpired(
+  session: ExtensionAuthSession,
+  now = Date.now(),
+) {
+  return session.expiresAt <= now;
+}
+
 export type AuthMessage =
   | { type: "auth.get-session" }
   | { type: "auth.sign-in"; instance: string }

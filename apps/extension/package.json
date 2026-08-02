@@ -22,6 +22,7 @@
     "postinstall": "wxt prepare"
   },
   "dependencies": {
+    "@serial/bookmark-capture": "workspace:*",
     "@serial/extension-identity": "workspace:*",
     "@serial/ui": "workspace:*",
     "lucide-react": "^1.23.0",
@@ -34,10 +35,12 @@
     "@tailwindcss/vite": "^4.3.2",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
+    "@types/jsdom": "^28.0.3",
     "@wxt-dev/module-react": "^1.1.5",
     "eslint": "^10.6.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "jsdom": "^29.1.1",
     "prettier": "^3.9.4",
     "tailwindcss": "^4.3.2",
     "typescript": "^6.0.3",

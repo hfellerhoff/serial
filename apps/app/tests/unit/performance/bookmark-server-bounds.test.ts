@@ -5,6 +5,7 @@ import {
   openBenchmarkDatabase,
 } from "../../../scripts/performance/database";
 import { updateBookmarksReadState } from "~/server/bookmarks/service";
+import { loadExtensionBookmarkWorkspace } from "~/server/bookmarks/extensionWorkspace";
 import { queryMixedContentPage } from "~/server/mixed-content/projection";
 import { loadApplicationBookmark } from "~/server/mixed-content/sync";
 import {
@@ -70,6 +71,45 @@ function bookmarkRows(count: number, userId = "bounds-user") {
 }
 
 describe("Bookmark server performance bounds", () => {
+  it("returns the extension editor workspace without reloading its published Bookmark", async () => {
+    const [row] = bookmarkRows(1);
+    await session.database.insert(bookmarks).values(row!);
+    await session.database.insert(views).values([
+      { id: 1, userId: "bounds-user", name: "Reading" },
+      { id: 2, userId: "bounds-user", name: "Research" },
+    ]);
+    await session.database.insert(contentCategories).values({
+      id: 3,
+      userId: "bounds-user",
+      name: "Longform",
+      createdAt: NOW,
+      updatedAt: NOW,
+    });
+    const published = await loadApplicationBookmark({
+      database: session.database,
+      userId: "bounds-user",
+      bookmarkId: row!.id,
+    });
+    expect(published).not.toBeNull();
+    session.instrumentation.reset();
+
+    const workspace = await loadExtensionBookmarkWorkspace({
+      database: session.database,
+      userId: "bounds-user",
+      bookmarkId: row!.id,
+      bookmark: published!,
+    });
+    const evidence = session.instrumentation.snapshot();
+
+    expect(workspace).toMatchObject({
+      bookmark: { id: row!.id },
+      views: [{ id: 1 }, { id: 2 }],
+      tags: [{ id: 3 }],
+    });
+    expect(evidence.statementCount).toBe(2);
+    expect(evidence.materializedRows).toBe(3);
+  });
+
   it("loads first, middle, missing, and wrong-owner Bookmarks as point queries", async () => {
     const rows = bookmarkRows(200);
     await session.database.insert(bookmarks).values(rows);

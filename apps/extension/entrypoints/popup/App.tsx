@@ -15,7 +15,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@serial/ui";
-import { ArrowRight, Check, Info, Loader2, LogOut, Server } from "lucide-react";
+import { ArrowRight, Check, Info, Loader2, Server } from "lucide-react";
 import {
   DEFAULT_SERIAL_INSTANCE,
   getThemeCssVariables,
@@ -32,6 +32,7 @@ import type {
 } from "../../lib/auth";
 import { ExtensionHeader } from "./ExtensionHeader";
 import { PopupLayout } from "./PopupLayout";
+import { BookmarkWorkspaceView } from "./BookmarkWorkspaceView";
 
 async function sendAuthMessage(message: AuthMessage) {
   const response = (await browser.runtime.sendMessage(
@@ -435,41 +436,16 @@ function App() {
 
   if (session) {
     return (
-      <PopupLayout
-        footer={
-          <Button
-            variant="outline"
-            size="icon md:default"
-            className="w-full"
-            disabled={action !== null}
-            onClick={() => void handleSignOut()}
-          >
-            {action === "disconnect" ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <LogOut className="size-4" />
-            )}
-            <span className="pl-1.5 md:pl-0">Sign out of extension</span>
-          </Button>
-        }
-      >
-        <ExtensionHeader
-          title="Serial"
-          description={displayHost(session.instance)}
-        />
-        <div className="flex flex-1 items-center justify-center">
-          <div className="text-muted-foreground flex items-center gap-2 text-sm">
-            <Check className="size-4" />
-            Signed in
-          </div>
-        </div>
-        {error && (
-          <Alert variant="destructive" className="mb-3">
-            <Info />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-      </PopupLayout>
+      <BookmarkWorkspaceView
+        session={session}
+        signingOut={action === "disconnect"}
+        externalError={error}
+        onSignOut={() => void handleSignOut()}
+        onAuthExpired={() => {
+          setSession(null);
+          setError(null);
+        }}
+      />
     );
   }
 

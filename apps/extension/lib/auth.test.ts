@@ -3,6 +3,7 @@ import {
   DEFAULT_SERIAL_INSTANCE,
   EXTENSION_AUTH_SESSION_VERSION,
   getThemeCssVariables,
+  isSessionExpired,
   normalizeInstanceUrl,
   originPermission,
   parseConnectionResponse,
@@ -100,6 +101,12 @@ describe("extension session responses", () => {
       ...session,
       user: { id: "user-1", name: "Updated" },
     });
+  });
+
+  it("identifies expired and active sessions at a fixed instant", () => {
+    const session = parseConnectionResponse(instance, response);
+    expect(isSessionExpired(session, response.expiresAt)).toBe(true);
+    expect(isSessionExpired(session, response.expiresAt - 1)).toBe(false);
   });
 
   it("reports non-JSON compatibility responses", async () => {

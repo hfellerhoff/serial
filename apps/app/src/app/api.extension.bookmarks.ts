@@ -1,7 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { readExtensionBearerToken } from "~/lib/extension-auth";
 import {
   BOOKMARK_CAPTURE_LIMITS,
   EXTENSION_BOOKMARK_CONTRACT_VERSION,
@@ -9,12 +7,15 @@ import {
 } from "~/server/bookmarks/contracts";
 import {
   BookmarkNotFoundError,
+  deleteBookmark,
   saveBookmarkFromExtension,
+  setBookmarkTag,
+  setBookmarkView,
 } from "~/server/bookmarks/service";
 import { InvalidBookmarkUrlError } from "~/server/bookmarks/url";
-import { findExtensionSession } from "~/server/auth/extension";
+import { authenticatedExtensionUser } from "~/server/auth/extensionRequest";
 import { db } from "~/server/db";
-import { user } from "~/server/db/schema";
+import { loadExtensionBookmarkWorkspace } from "~/server/bookmarks/extensionWorkspace";
 import {
   publishBookmarkDeletion,
   publishBookmarkUpsert,
@@ -29,13 +30,26 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   return Response.json(body, { status, headers: RESPONSE_HEADERS });
 }
 
+function jsonMediaTypeError(request: Request) {
+  if (request.headers.has("content-encoding")) {
+    return jsonResponse(
+      { error: "Request content encodings are not allowed" },
+      415,
+    );
+  }
+  const mediaType = request.headers.get("content-type")?.split(";", 1)[0];
+  return mediaType?.trim().toLowerCase() === "application/json"
+    ? null
+    : jsonResponse({ error: "Content-Type must be application/json" }, 415);
+}
+
 export function preflightResponse() {
   return new Response(null, {
     status: 204,
     headers: {
       ...RESPONSE_HEADERS,
       "Access-Control-Allow-Headers": "Authorization, Content-Type",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Methods": "POST, PATCH, DELETE, OPTIONS",
       "Access-Control-Max-Age": "86400",
     },
   });
@@ -71,28 +85,14 @@ async function readBoundedJson(request: Request) {
   return JSON.parse(value);
 }
 
-async function authenticatedExtensionUser(request: Request) {
-  const token = readExtensionBearerToken(request);
-  if (!token) return null;
-  const session = await findExtensionSession(token);
-  if (!session) return null;
-  const storedUser = await db.query.user.findFirst({
-    where: eq(user.id, session.userId),
-  });
-  if (!storedUser) return null;
-  const activeBan =
-    storedUser.banned &&
-    (!storedUser.banExpires || storedUser.banExpires.getTime() > Date.now());
-  return activeBan ? null : storedUser;
-}
-
 type ExtensionBookmarkRouteDependencies = {
   authenticate: typeof authenticatedExtensionUser;
   save: typeof saveBookmarkFromExtension;
   notify?: (
     userId: string,
     result: Awaited<ReturnType<typeof saveBookmarkFromExtension>>,
-  ) => Promise<void>;
+  ) => ReturnType<typeof publishBookmarkUpsert>;
+  workspace?: typeof loadExtensionBookmarkWorkspace;
 };
 
 const DEFAULT_ROUTE_DEPENDENCIES: ExtensionBookmarkRouteDependencies = {
@@ -111,12 +111,13 @@ const DEFAULT_ROUTE_DEPENDENCIES: ExtensionBookmarkRouteDependencies = {
         }),
       ),
     );
-    await publishBookmarkUpsert({
+    return publishBookmarkUpsert({
       database: db,
       userId,
       bookmarkId: result.bookmark.id,
     });
   },
+  workspace: loadExtensionBookmarkWorkspace,
 };
 
 const extensionBookmarkRequestSchema = z.strictObject({
@@ -124,25 +125,22 @@ const extensionBookmarkRequestSchema = z.strictObject({
   sourceUrl: z.string(),
   bookmarkId: z.string().min(1).optional(),
   capture: extensionCaptureCandidateSchema,
+  captureFailureReason: z
+    .enum([
+      "too_large",
+      "unextractable",
+      "invalid_capture",
+      "unsupported_content",
+    ])
+    .optional(),
 });
 
 export async function saveExtensionBookmark(
   request: Request,
   dependencies: ExtensionBookmarkRouteDependencies = DEFAULT_ROUTE_DEPENDENCIES,
 ) {
-  if (request.headers.has("content-encoding")) {
-    return jsonResponse(
-      { error: "Request content encodings are not allowed" },
-      415,
-    );
-  }
-  const mediaType = request.headers.get("content-type")?.split(";", 1)[0];
-  if (mediaType?.trim().toLowerCase() !== "application/json") {
-    return jsonResponse(
-      { error: "Content-Type must be application/json" },
-      415,
-    );
-  }
+  const mediaTypeError = jsonMediaTypeError(request);
+  if (mediaTypeError) return mediaTypeError;
 
   const authenticatedUser = await dependencies.authenticate(request);
   if (!authenticatedUser) {
@@ -163,9 +161,31 @@ export async function saveExtensionBookmark(
       sourceUrl: bookmarkRequest.sourceUrl,
       bookmarkId: bookmarkRequest.bookmarkId,
       capture: bookmarkRequest.capture,
+      captureFailureReason: bookmarkRequest.captureFailureReason,
     });
-    await dependencies.notify?.(authenticatedUser.id, result);
-    return jsonResponse(result, result.disposition === "created" ? 201 : 200);
+    const publishedBookmark = await dependencies.notify?.(
+      authenticatedUser.id,
+      result,
+    );
+    const workspace = await dependencies.workspace?.({
+      database: db,
+      userId: authenticatedUser.id,
+      bookmarkId: result.bookmark.id,
+      ...(publishedBookmark ? { bookmark: publishedBookmark } : {}),
+    });
+    return jsonResponse(
+      workspace
+        ? {
+            ...result,
+            bookmark: workspace.bookmark,
+            workspace: {
+              views: workspace.views,
+              tags: workspace.tags,
+            },
+          }
+        : result,
+      result.disposition === "created" ? 201 : 200,
+    );
   } catch (error) {
     if (error instanceof RangeError) {
       return jsonResponse({ error: "The bookmark request is too large" }, 413);
@@ -183,10 +203,156 @@ export async function saveExtensionBookmark(
   }
 }
 
+const extensionBookmarkMutationSchema = z.discriminatedUnion("action", [
+  z.strictObject({
+    action: z.literal("set-view"),
+    bookmarkId: z.string().min(1),
+    viewId: z.number().int().positive(),
+    assigned: z.boolean(),
+  }),
+  z.strictObject({
+    action: z.literal("set-tag"),
+    bookmarkId: z.string().min(1),
+    tagId: z.number().int().positive(),
+    assigned: z.boolean(),
+  }),
+]);
+
+type ExtensionBookmarkMutationDependencies = {
+  authenticate: typeof authenticatedExtensionUser;
+  setView: typeof setBookmarkView;
+  setTag: typeof setBookmarkTag;
+  publish: typeof publishBookmarkUpsert;
+};
+
+const DEFAULT_MUTATION_DEPENDENCIES: ExtensionBookmarkMutationDependencies = {
+  authenticate: authenticatedExtensionUser,
+  setView: setBookmarkView,
+  setTag: setBookmarkTag,
+  publish: publishBookmarkUpsert,
+};
+
+export async function mutateExtensionBookmark(
+  request: Request,
+  dependencies: ExtensionBookmarkMutationDependencies = DEFAULT_MUTATION_DEPENDENCIES,
+) {
+  const mediaTypeError = jsonMediaTypeError(request);
+  if (mediaTypeError) return mediaTypeError;
+  const authenticatedUser = await dependencies.authenticate(request);
+  if (!authenticatedUser) {
+    return jsonResponse({ error: "The extension session is invalid" }, 401);
+  }
+  try {
+    const mutation = extensionBookmarkMutationSchema.parse(
+      await readBoundedJson(request),
+    );
+    if (mutation.action === "set-view") {
+      await dependencies.setView({
+        database: db,
+        userId: authenticatedUser.id,
+        bookmarkId: mutation.bookmarkId,
+        viewId: mutation.viewId,
+        assigned: mutation.assigned,
+      });
+    } else {
+      await dependencies.setTag({
+        database: db,
+        userId: authenticatedUser.id,
+        bookmarkId: mutation.bookmarkId,
+        tagId: mutation.tagId,
+        assigned: mutation.assigned,
+      });
+    }
+    const bookmark = await dependencies.publish({
+      database: db,
+      userId: authenticatedUser.id,
+      bookmarkId: mutation.bookmarkId,
+    });
+    if (!bookmark) throw new BookmarkNotFoundError("Bookmark not found");
+    return jsonResponse({ bookmark });
+  } catch (error) {
+    if (error instanceof RangeError) {
+      return jsonResponse({ error: "The bookmark request is too large" }, 413);
+    }
+    if (error instanceof BookmarkNotFoundError) {
+      return jsonResponse({ error: "The Bookmark was not found" }, 404);
+    }
+    if (
+      error instanceof z.ZodError ||
+      error instanceof SyntaxError ||
+      error instanceof TypeError
+    ) {
+      return jsonResponse({ error: "The bookmark request is invalid" }, 400);
+    }
+    return jsonResponse({ error: "Unable to update the Bookmark" }, 500);
+  }
+}
+
+const extensionBookmarkDeleteSchema = z.strictObject({
+  bookmarkId: z.string().min(1),
+});
+
+type ExtensionBookmarkRemovalDependencies = {
+  authenticate: typeof authenticatedExtensionUser;
+  remove: typeof deleteBookmark;
+  publish: typeof publishBookmarkDeletion;
+};
+
+const DEFAULT_REMOVAL_DEPENDENCIES: ExtensionBookmarkRemovalDependencies = {
+  authenticate: authenticatedExtensionUser,
+  remove: deleteBookmark,
+  publish: publishBookmarkDeletion,
+};
+
+export async function removeExtensionBookmark(
+  request: Request,
+  dependencies: ExtensionBookmarkRemovalDependencies = DEFAULT_REMOVAL_DEPENDENCIES,
+) {
+  const mediaTypeError = jsonMediaTypeError(request);
+  if (mediaTypeError) return mediaTypeError;
+  const authenticatedUser = await dependencies.authenticate(request);
+  if (!authenticatedUser) {
+    return jsonResponse({ error: "The extension session is invalid" }, 401);
+  }
+  try {
+    const input = extensionBookmarkDeleteSchema.parse(
+      await readBoundedJson(request),
+    );
+    const deleted = await dependencies.remove({
+      database: db,
+      userId: authenticatedUser.id,
+      bookmarkId: input.bookmarkId,
+    });
+    await dependencies.publish({
+      userId: authenticatedUser.id,
+      id: deleted.id,
+      canonicalUrl: deleted.canonicalUrl,
+    });
+    return jsonResponse({ bookmarkId: deleted.id });
+  } catch (error) {
+    if (error instanceof RangeError) {
+      return jsonResponse({ error: "The bookmark request is too large" }, 413);
+    }
+    if (error instanceof BookmarkNotFoundError) {
+      return jsonResponse({ error: "The Bookmark was not found" }, 404);
+    }
+    if (
+      error instanceof z.ZodError ||
+      error instanceof SyntaxError ||
+      error instanceof TypeError
+    ) {
+      return jsonResponse({ error: "The bookmark request is invalid" }, 400);
+    }
+    return jsonResponse({ error: "Unable to remove the Bookmark" }, 500);
+  }
+}
+
 export const Route = createFileRoute("/api/extension/bookmarks")({
   server: {
     handlers: {
       POST: ({ request }) => saveExtensionBookmark(request),
+      PATCH: ({ request }) => mutateExtensionBookmark(request),
+      DELETE: ({ request }) => removeExtensionBookmark(request),
       OPTIONS: () => preflightResponse(),
     },
   },

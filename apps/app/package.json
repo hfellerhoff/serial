@@ -103,6 +103,7 @@
     "@sendgrid/mail": "^8.1.6",
     "@sentry/tanstackstart-react": "^10.64.0",
     "@serial/extension-identity": "workspace:*",
+    "@serial/bookmark-capture": "workspace:*",
     "@serial/ui": "workspace:*",
     "@t3-oss/env-core": "^0.13.11",
     "@tanstack/query-async-storage-persister": "^5.101.2",

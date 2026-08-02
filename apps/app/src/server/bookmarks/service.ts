@@ -557,14 +557,23 @@ export async function saveBookmarkFromExtension(input: {
       sourceUrl: input.sourceUrl,
       candidate: input.capture,
     });
+    const observationResult =
+      prepared.ok &&
+      prepared.result.captureFailureReason === "unextractable" &&
+      input.captureFailureReason
+        ? {
+            ...prepared.result,
+            captureFailureReason: input.captureFailureReason,
+          }
+        : prepared.ok
+          ? prepared.result
+          : {
+              observation: buildUrlFallbackObservation(input.sourceUrl),
+              captureFailureReason: prepared.reason,
+            };
     return persistBookmarkSave({
       ...input,
-      observationResult: prepared.ok
-        ? prepared.result
-        : {
-            observation: buildUrlFallbackObservation(input.sourceUrl),
-            captureFailureReason: prepared.reason,
-          },
+      observationResult,
     });
   } finally {
     lease.release();
