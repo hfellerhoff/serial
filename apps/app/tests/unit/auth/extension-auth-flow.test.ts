@@ -9,7 +9,7 @@ vi.mock("~/server/email", () => ({
 
 const VALID_CONNECT_CALLBACK = `/auth/connect-extension?${new URLSearchParams({
   redirect_uri:
-    "https://abfgpdgoffipbnfjcdoejalehhbegamc.chromiumapp.org/serial-auth",
+    "https://olpaonddchkbjpmjjfamplfaibopllam.chromiumapp.org/serial-auth",
   state: "s".repeat(43),
   code_challenge: "c".repeat(43),
   code_challenge_method: "S256",

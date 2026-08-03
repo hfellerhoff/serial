@@ -53,7 +53,7 @@ API setup is documented at
 ### Firefox Add-ons
 
 1. Upload `apps/extension/.output/*-firefox.zip` to AMO as a listed add-on with
-   ID `extension@serial.tube`. Include
+   ID `serial@megaflora.net`. Include
    `apps/extension/.output/*-sources.zip` when AMO requests source code.
 2. Complete the listing, privacy/data-collection declarations, reviewer notes,
    and initial review. Publish the first listed version.
@@ -95,7 +95,7 @@ Create these Actions repository variables:
 | `CHROME_PUBLISHER_ID`               | Publisher ID from Chrome dashboard Settings                          |
 | `CHROME_SERVICE_ACCOUNT`            | Google service-account email added to Chrome Web Store               |
 | `CHROME_WORKLOAD_IDENTITY_PROVIDER` | Full `projects/.../providers/...` provider resource name             |
-| `FIREFOX_EXTENSION_ID`              | `extension@serial.tube`                                              |
+| `FIREFOX_EXTENSION_ID`              | `serial@megaflora.net`                                               |
 
 Create these Actions repository secrets:
 

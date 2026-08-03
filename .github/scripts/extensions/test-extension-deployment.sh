@@ -127,7 +127,7 @@ run_readiness_check() {
     CHROME_PUBLISHER_ID=test-publisher \
     CHROME_EXTENSION_ID=abcdefghijklmnopabcdefghijklmnop \
     CHROME_WEB_STORE_API_ORIGIN=https://chrome.example \
-    FIREFOX_EXTENSION_ID=extension@serial.tube \
+    FIREFOX_EXTENSION_ID=serial@megaflora.net \
     FIREFOX_JWT_ISSUER=test-issuer \
     FIREFOX_JWT_SECRET=test-secret \
     FIREFOX_ADDONS_API_ORIGIN=https://firefox.example/api/v5 \
