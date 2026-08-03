@@ -29,13 +29,15 @@ setting below exist.
 
 2. In the Chrome Web Store Developer Dashboard, add a new item and upload
    `apps/extension/.output/*-chrome.zip`. Save it as a draft; do not submit it
-   for review yet.
+   for review yet. The store ZIP intentionally omits the development-only
+   manifest `key`; the dashboard assigns the listing identity.
 3. Record the item ID. On the Package tab, choose **View public key** and copy
    the base64 text between the PEM markers as one line.
 4. Replace `CHROME_EXTENSION_MANIFEST_KEY` and its derived
    `CHROME_EXTENSION_ID` in `packages/extension-identity/src/index.ts`. Run the
-   identity tests and rebuild the Chrome package. Its unpacked extension ID must
-   match the dashboard item ID.
+   identity tests and a local Chrome build. Its unpacked extension ID must match
+   the dashboard item ID. Rebuild the store packages separately; they continue
+   to omit the manifest `key`.
 5. Upload the rebuilt package to the same draft. Complete the Store listing,
    Privacy, Distribution, and Test instructions tabs. The privacy declarations
    must match `apps/extension/README.md` and the actual permission/data flow.

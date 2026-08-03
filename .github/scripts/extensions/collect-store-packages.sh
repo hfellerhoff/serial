@@ -32,13 +32,17 @@ cp "${firefox_candidates[0]}" "$destination_dir/firefox.zip"
 cp "${source_candidates[0]}" "$destination_dir/firefox-sources.zip"
 
 for browser in chrome firefox; do
-  manifest_version="$(
-    unzip -p "$destination_dir/$browser.zip" manifest.json | jq -r '.version'
-  )"
+  manifest="$(unzip -p "$destination_dir/$browser.zip" manifest.json)"
+  manifest_version="$(jq -r '.version' <<< "$manifest")"
   if [[ "$manifest_version" != "$release_version" ]]; then
     echo \
       "$browser package version $manifest_version does not match $release_version" \
       >&2
+    exit 1
+  fi
+
+  if jq -e 'has("key")' <<< "$manifest" >/dev/null; then
+    echo "$browser store package contains the development-only manifest key" >&2
     exit 1
   fi
 done

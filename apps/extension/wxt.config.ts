@@ -8,6 +8,7 @@ import {
 
 const startUrl = process.env.SERIAL_EXTENSION_START_URL;
 const releaseVersion = process.env.SERIAL_EXTENSION_VERSION;
+const isStoreBuild = process.env.SERIAL_EXTENSION_STORE_BUILD === "true";
 const extensionIcons = {
   16: "icon/16.png",
   32: "icon/32.png",
@@ -55,7 +56,7 @@ export default defineConfig({
   manifest: ({ manifestVersion }) => ({
     name: "Serial",
     ...(releaseVersion ? { version: releaseVersion } : {}),
-    key: CHROME_EXTENSION_MANIFEST_KEY,
+    ...(!isStoreBuild ? { key: CHROME_EXTENSION_MANIFEST_KEY } : {}),
     icons: extensionIcons,
     ...(manifestVersion === 2
       ? { browser_action: { default_icon: extensionIcons } }

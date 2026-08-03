@@ -30,7 +30,7 @@ the submitted extension's `manifest.json`:
 
 ```sh
 corepack pnpm install --frozen-lockfile
-SERIAL_EXTENSION_VERSION=<manifest-version> corepack pnpm --filter @serial/extension zip:firefox
+SERIAL_EXTENSION_STORE_BUILD=true SERIAL_EXTENSION_VERSION=<manifest-version> corepack pnpm --filter @serial/extension zip:firefox
 ```
 
 Run the app in demo mode and open it in WXT's extension-enabled Chrome test
@@ -80,6 +80,8 @@ pre-extraction page source. The selected Serial server stores the Bookmark and
 may perform bounded Feed discovery only when the page declares no Feeds.
 
 Before the first Chrome Web Store release, replace the checked-in manifest key
-with the key assigned to the uploaded extension. The identity tests derive the
-Chrome and Firefox redirect URLs from their manifest identities and ensure the
-server allowlist stays in sync.
+with the key assigned to the uploaded extension. Local and unpacked builds use
+that key to preserve the Chrome extension ID. Store submission ZIPs omit the
+development-only `key` field because the Chrome Web Store assigns identity from
+the listing. The identity tests derive the Chrome and Firefox redirect URLs from
+their manifest identities and ensure the server allowlist stays in sync.

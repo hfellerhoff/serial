@@ -13,7 +13,7 @@
     "build:firefox": "wxt build -b firefox",
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
-    "zip:stores": "wxt clean && wxt zip && wxt zip -b firefox",
+    "zip:stores": "wxt clean && SERIAL_EXTENSION_STORE_BUILD=true wxt zip && SERIAL_EXTENSION_STORE_BUILD=true wxt zip -b firefox",
     "publish:firefox": "wxt submit",
     "typecheck": "wxt prepare && tsc --noEmit",
     "format": "prettier --check .",
