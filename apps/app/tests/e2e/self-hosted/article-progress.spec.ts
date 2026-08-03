@@ -236,7 +236,8 @@ test.describe("article progress tracking", () => {
     await setFeedItemContent(
       SELF_HOSTED_TURSO_PORT,
       feedItemId,
-      '<img src="/icon-192x192.png" alt="Keyboard preview">',
+      `<a href="https://example.com/image-target"><img src="/icon-192x192.png" alt="Keyboard preview"></a>
+       <a href="https://example.com/article">Ordinary reader link</a>`,
     );
 
     await signIn({ page, email, password });
@@ -247,6 +248,12 @@ test.describe("article progress tracking", () => {
         name: "Open image preview: Keyboard preview",
       }),
     ).toBeVisible();
+    await expect(
+      page.locator('a[href="https://example.com/image-target"]'),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("link", { name: "Ordinary reader link" }),
+    ).toHaveAttribute("target", "_blank");
 
     await page.keyboard.press("ArrowDown");
     await expect(page.locator("[data-lightbox]")).toHaveAttribute(

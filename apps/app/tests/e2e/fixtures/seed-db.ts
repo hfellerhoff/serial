@@ -232,7 +232,9 @@ export async function seedBookmarkProjectionData(
     bookmarkId,
     contentHtml: `<p>Captured Bookmark body</p>
       <p><a href="https://example.com/next">External reader link</a></p>
-      <img src="https://images.example.com/reader.jpg" alt="Reader image" onerror="steal()">
+      <a href="https://example.com/image-target">
+        <img src="https://images.example.com/reader.jpg" alt="Reader image" onerror="steal()">
+      </a>
       <div data-serial-embed="youtube" data-video-id="dQw4w9WgXcQ" data-start="42"></div>
       ${ARTICLE_HTML}
       <script data-testid="unsafe-capture-script">steal()</script>`,

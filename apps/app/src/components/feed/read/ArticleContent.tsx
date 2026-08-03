@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
 import parse, { Element } from "html-react-parser";
 import type { HTMLReactParserOptions } from "html-react-parser";
 import { CustomVideoPlayer } from "~/components/CustomVideoPlayer";
+import { flattenReaderImages } from "~/components/content-reader/flattenReaderImages";
 import { ArticleImageLightbox } from "~/components/feed/read/ArticleImageLightbox";
 import { useFlagState } from "~/lib/hooks/useFlagState";
 import classes from "~/components/feed/read/article.module.css";
@@ -112,50 +112,5 @@ export function ArticleContent({ content }: { content: string }) {
   const parsed = parse(content, options);
   const nodes = Array.isArray(parsed) ? parsed : [parsed];
 
-  return <>{flattenImages(nodes)}</>;
-}
-
-function isImageLightbox(node: React.ReactNode): boolean {
-  return React.isValidElement(node) && node.type === ArticleImageLightbox;
-}
-
-function extractImages(node: React.ReactNode): {
-  images: React.ReactNode[];
-  rest: React.ReactNode | null;
-} {
-  if (!React.isValidElement(node)) return { images: [], rest: node };
-
-  if (isImageLightbox(node)) return { images: [node], rest: null };
-
-  const element = node as React.ReactElement<{ children?: React.ReactNode }>;
-  const children = React.Children.toArray(element.props.children);
-  if (children.length === 0) return { images: [], rest: node };
-
-  const collectedImages: React.ReactNode[] = [];
-  const remainingChildren: React.ReactNode[] = [];
-
-  for (const child of children) {
-    const { images, rest } = extractImages(child);
-    collectedImages.push(...images);
-    if (rest !== null) remainingChildren.push(rest);
-  }
-
-  if (collectedImages.length === 0) return { images: [], rest: node };
-
-  const rest =
-    remainingChildren.length > 0
-      ? React.cloneElement(element, undefined, ...remainingChildren)
-      : null;
-
-  return { images: collectedImages, rest };
-}
-
-function flattenImages(nodes: React.ReactNode[]): React.ReactNode[] {
-  const result: React.ReactNode[] = [];
-  for (const node of nodes) {
-    const { images, rest } = extractImages(node);
-    result.push(...images);
-    if (rest !== null) result.push(rest);
-  }
-  return result;
+  return <>{flattenReaderImages(nodes)}</>;
 }

@@ -5,6 +5,7 @@ import parse, { Element } from "html-react-parser";
 import { useEffect, useState } from "react";
 import type { HTMLReactParserOptions } from "html-react-parser";
 import { CustomVideoPlayer } from "~/components/CustomVideoPlayer";
+import { flattenReaderImages } from "~/components/content-reader/flattenReaderImages";
 import { ArticleImageLightbox } from "~/components/feed/read/ArticleImageLightbox";
 import { useFlagState } from "~/lib/hooks/useFlagState";
 import {
@@ -93,5 +94,8 @@ export function BookmarkArticleContent({ content }: { content: string }) {
     },
   };
 
-  return <>{parse(sanitizedContent, options)}</>;
+  const parsed = parse(sanitizedContent, options);
+  const nodes = Array.isArray(parsed) ? parsed : [parsed];
+
+  return <>{flattenReaderImages(nodes)}</>;
 }
