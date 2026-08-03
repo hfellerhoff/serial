@@ -1,6 +1,6 @@
 {
   "name": "@serial/extension",
-  "description": "The Serial browser extension.",
+  "description": "An extension for Serial, a calm and customizable feed reader. Allows you to bookmark content and subscribe to feeds from anywhere across the web.",
   "private": true,
   "version": "0.1.0",
   "type": "module",
