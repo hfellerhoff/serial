@@ -32,6 +32,7 @@ export default defineConfig({
       "turbo.json",
       "apps/extension/README.md",
       "apps/extension/package.json",
+      "apps/extension/scripts/**",
       "apps/extension/tsconfig.json",
       "apps/extension/wxt.config.ts",
       "apps/extension/assets/**",
@@ -92,6 +93,9 @@ export default defineConfig({
             "websiteContent",
           ],
         },
+      },
+      gecko_android: {
+        strict_min_version: "142.0",
       },
     },
   }),

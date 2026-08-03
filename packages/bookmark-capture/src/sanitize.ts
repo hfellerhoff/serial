@@ -133,8 +133,11 @@ export function sanitizeCaptureHtml(
   effectiveUrl: string,
   sourceDocument: Document,
 ) {
-  const captureDocument = sourceDocument.implementation.createHTMLDocument("");
-  captureDocument.body.innerHTML = contentHtml;
+  const captureDocument =
+    new sourceDocument.defaultView!.DOMParser().parseFromString(
+      contentHtml,
+      "text/html",
+    );
   const base = captureDocument.createElement("base");
   base.href = effectiveUrl;
   captureDocument.head.append(base);

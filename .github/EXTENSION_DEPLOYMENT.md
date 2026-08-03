@@ -25,6 +25,7 @@ setting below exist.
 
    ```sh
    pnpm --filter @serial/extension zip:stores
+   pnpm --filter @serial/extension lint:firefox
    ```
 
 2. In the Chrome Web Store Developer Dashboard, add a new item and upload
@@ -59,6 +60,18 @@ API setup is documented at
    and initial review. Publish the first listed version.
 3. Create AMO API credentials from the developer credentials page. Store the
    issuer and secret only in GitHub Actions secrets.
+
+The package passes AMO lint with five reviewed `innerHTML` warnings from
+unmodified third-party libraries. Include these source links and versions in
+**Notes for Reviewers**:
+
+- Mozilla Readability 0.6.0: <https://github.com/mozilla/readability>
+- DOMPurify 3.4.12: <https://github.com/cure53/DOMPurify>
+- React DOM 19.2.7: <https://github.com/facebook/react>
+
+Readability and DOMPurify are used only by the content-script capture pipeline;
+React DOM renders the extension popup. The Firefox source ZIP includes the
+lockfile, unminified Serial source, and deterministic rebuild instructions.
 
 Mozilla's API credential instructions are at
 <https://extensionworkshop.com/documentation/develop/getting-started-with-web-ext/#obtain-an-api-key>.

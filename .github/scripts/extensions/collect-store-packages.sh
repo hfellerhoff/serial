@@ -54,6 +54,7 @@ required_source_paths=(
   pnpm-lock.yaml
   pnpm-workspace.yaml
   apps/extension/package.json
+  apps/extension/scripts/check-firefox-lint.mjs
   apps/extension/wxt.config.ts
   apps/extension/entrypoints/background.ts
   packages/bookmark-capture/package.json

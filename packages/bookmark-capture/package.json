@@ -7,7 +7,8 @@
     "typecheck": "tsc --noEmit"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./extract": "./src/extract.ts"
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",

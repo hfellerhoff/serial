@@ -135,6 +135,9 @@ jobs:
           .github/scripts/extensions/collect-store-packages.sh
           apps/extension/.output store-packages "$RELEASE_VERSION"
 
+      - name: Verify Firefox store lint
+        run: pnpm --filter @serial/extension lint:firefox
+
       - uses: actions/upload-artifact@v4
         with:
           name: extension-store-packages-${{ steps.version.outputs.version }}

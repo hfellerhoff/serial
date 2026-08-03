@@ -1,9 +1,7 @@
 import { JSDOM } from "jsdom";
 import { describe, expect, it, vi } from "vitest";
-import {
-  BOOKMARK_CAPTURE_LIMITS,
-  extractPageObservation,
-} from "@serial/bookmark-capture";
+import { BOOKMARK_CAPTURE_LIMITS } from "@serial/bookmark-capture";
+import { extractPageObservation } from "@serial/bookmark-capture/extract";
 import { serializeBookmarkRequest } from "./bookmarks";
 
 const YOUTUBE_THUMBNAIL_URL =

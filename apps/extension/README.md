@@ -31,7 +31,12 @@ the submitted extension's `manifest.json`:
 ```sh
 corepack pnpm install --frozen-lockfile
 SERIAL_EXTENSION_STORE_BUILD=true SERIAL_EXTENSION_VERSION=<manifest-version> corepack pnpm --filter @serial/extension zip:firefox
+corepack pnpm --filter @serial/extension lint:firefox
 ```
+
+Firefox lint is expected to pass with five reviewed warnings from unmodified
+Mozilla Readability, DOMPurify, and React DOM code. Any additional or changed
+warning fails validation.
 
 Run the app in demo mode and open it in WXT's extension-enabled Chrome test
 browser:
