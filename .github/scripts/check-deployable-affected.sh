@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-deployable="${1:?usage: check-deployable-affected.sh <app|www>}"
+deployable="${1:?usage: check-deployable-affected.sh <app|extension|www>}"
 before_sha="${BEFORE_SHA:-}"
 head_sha="${GITHUB_SHA:-HEAD}"
 event_name="${GITHUB_EVENT_NAME:-}"
@@ -11,6 +11,9 @@ output_file="${GITHUB_OUTPUT:?GITHUB_OUTPUT must be set}"
 case "$deployable" in
   app)
     task_id="@serial/app#build:artifact"
+    ;;
+  extension)
+    task_id="@serial/extension#build:artifact"
     ;;
   www)
     task_id="@serial/www#build:artifact"
@@ -48,6 +51,14 @@ while IFS= read -r changed_file; do
       app:Dockerfile | \
       app:.github/workflows/deploy-app.yml | \
       app:.github/scripts/check-deployable-affected.sh | \
+      extension:package.json | \
+      extension:pnpm-lock.yaml | \
+      extension:pnpm-workspace.yaml | \
+      extension:turbo.json | \
+      extension:.node-version | \
+      extension:.github/workflows/deploy-extension.yml | \
+      extension:.github/scripts/check-deployable-affected.sh | \
+      extension:.github/scripts/extensions/* | \
       www:package.json | \
       www:pnpm-lock.yaml | \
       www:pnpm-workspace.yaml | \

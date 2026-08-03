@@ -67,8 +67,20 @@ jobs:
       - name: Check formatting
         run: pnpm format
 
-      - name: Test deployment change detection
-        run: .github/scripts/test-check-deployable-affected.sh
+      - name: Test deployment scripts
+        run: |
+          .github/scripts/test-check-deployable-affected.sh
+          .github/scripts/extensions/test-extension-deployment.sh
+
+      - name: Verify extension store packages
+        env:
+          SERIAL_EXTENSION_VERSION: 2026.1.0.0
+        run: |
+          pnpm --filter @serial/extension zip:stores
+          .github/scripts/extensions/collect-store-packages.sh \
+            apps/extension/.output \
+            "$RUNNER_TEMP/extension-store-packages" \
+            "$SERIAL_EXTENSION_VERSION"
 
   e2e:
     needs: changes

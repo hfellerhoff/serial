@@ -19,6 +19,20 @@ pnpm --filter @serial/extension dev:firefox
 The root `build`, `typecheck`, `lint`, and `format` commands include this
 workspace automatically.
 
+Production Chrome and Firefox store deployment is documented in
+[`../../.github/EXTENSION_DEPLOYMENT.md`](../../.github/EXTENSION_DEPLOYMENT.md).
+The first store listings are created manually; affected updates are submitted
+from `main` by GitHub Actions after that bootstrap is complete.
+
+The Firefox source archive contains the locked monorepo inputs needed to
+reproduce the submitted package. From the archive root, use the version from
+the submitted extension's `manifest.json`:
+
+```sh
+corepack pnpm install --frozen-lockfile
+SERIAL_EXTENSION_VERSION=<manifest-version> corepack pnpm --filter @serial/extension zip:firefox
+```
+
 Run the app in demo mode and open it in WXT's extension-enabled Chrome test
 browser:
 

@@ -9,12 +9,17 @@ trap 'rm -rf "$temp_dir"' EXIT
 
 fixture_repo="$temp_dir/repo"
 fake_bin="$temp_dir/bin"
-mkdir -p "$fixture_repo/apps/app" "$fixture_repo/apps/www" "$fake_bin"
+mkdir -p \
+  "$fixture_repo/apps/app" \
+  "$fixture_repo/apps/extension" \
+  "$fixture_repo/apps/www" \
+  "$fake_bin"
 
 git -C "$fixture_repo" init --quiet
 git -C "$fixture_repo" config user.email "deployment-test@example.com"
 git -C "$fixture_repo" config user.name "Deployment Test"
 printf 'base\n' > "$fixture_repo/apps/app/source.txt"
+printf 'base\n' > "$fixture_repo/apps/extension/source.txt"
 printf 'base\n' > "$fixture_repo/apps/www/source.txt"
 git -C "$fixture_repo" add .
 git -C "$fixture_repo" commit --quiet -m "base"
@@ -30,6 +35,10 @@ printf '%s\n' \
   'separator=""' \
   'if grep -q "^apps/app/" <<< "$changed_files"; then' \
   '  printf '\''%s{"taskId":"@serial/app#build:artifact"}'\'' "$separator"' \
+  '  separator=","' \
+  'fi' \
+  'if grep -q "^apps/extension/" <<< "$changed_files"; then' \
+  '  printf '\''%s{"taskId":"@serial/extension#build:artifact"}'\'' "$separator"' \
   '  separator=","' \
   'fi' \
   'if grep -q "^apps/www/" <<< "$changed_files"; then' \
@@ -104,18 +113,27 @@ assert_detection_failure_is_not_masked() {
 
 app_sha="$(commit_change "apps/app/source.txt" "app change")"
 assert_affected app true "$base_sha" "$app_sha"
+assert_affected extension false "$base_sha" "$app_sha"
 assert_affected www false "$base_sha" "$app_sha"
 
+extension_sha="$(commit_change "apps/extension/source.txt" "extension change")"
+assert_affected app false "$app_sha" "$extension_sha"
+assert_affected extension true "$app_sha" "$extension_sha"
+assert_affected www false "$app_sha" "$extension_sha"
+
 www_sha="$(commit_change "apps/www/source.txt" "website change")"
-assert_affected app false "$app_sha" "$www_sha"
-assert_affected www true "$app_sha" "$www_sha"
-assert_detection_failure_is_not_masked "$app_sha" "$www_sha"
+assert_affected app false "$extension_sha" "$www_sha"
+assert_affected extension false "$extension_sha" "$www_sha"
+assert_affected www true "$extension_sha" "$www_sha"
+assert_detection_failure_is_not_masked "$extension_sha" "$www_sha"
 
 root_sha="$(commit_change "package.json" "{}")"
 assert_affected app true "$www_sha" "$root_sha"
+assert_affected extension true "$www_sha" "$root_sha"
 assert_affected www true "$www_sha" "$root_sha"
 
 assert_affected app true "" "$root_sha" workflow_dispatch
+assert_affected extension true "" "$root_sha" workflow_dispatch
 assert_affected www true "0000000000000000000000000000000000000000" "$root_sha"
 
 echo "Deployable affected checks passed."

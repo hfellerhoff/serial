@@ -1,0 +1,228 @@
+name: Deploy Browser Extension
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/extension/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "turbo.json"
+      - ".node-version"
+      - ".github/scripts/check-deployable-affected.sh"
+      - ".github/scripts/extensions/**"
+      - ".github/workflows/deploy-extension.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-extension-main
+  cancel-in-progress: false
+
+jobs:
+  affected:
+    if: github.repository == 'megaflorasoftware/serial'
+    runs-on: ubuntu-latest
+    outputs:
+      extension: ${{ steps.check.outputs.extension }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Check whether the browser extension artifact is affected
+        id: check
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: .github/scripts/check-deployable-affected.sh extension
+
+  release-gate:
+    needs: affected
+    if: needs.affected.outputs.extension == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+
+      - name: Check extension store configuration
+        env:
+          CHROME_EXTENSION_ID: ${{ vars.CHROME_EXTENSION_ID }}
+          CHROME_PUBLISHER_ID: ${{ vars.CHROME_PUBLISHER_ID }}
+          CHROME_SERVICE_ACCOUNT: ${{ vars.CHROME_SERVICE_ACCOUNT }}
+          CHROME_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.CHROME_WORKLOAD_IDENTITY_PROVIDER }}
+          FIREFOX_EXTENSION_ID: ${{ vars.FIREFOX_EXTENSION_ID }}
+          FIREFOX_JWT_ISSUER: ${{ secrets.FIREFOX_JWT_ISSUER }}
+          FIREFOX_JWT_SECRET: ${{ secrets.FIREFOX_JWT_SECRET }}
+        run: |
+          : "${CHROME_EXTENSION_ID:?Set the CHROME_EXTENSION_ID repository variable}"
+          : "${CHROME_PUBLISHER_ID:?Set the CHROME_PUBLISHER_ID repository variable}"
+          : "${CHROME_SERVICE_ACCOUNT:?Set the CHROME_SERVICE_ACCOUNT repository variable}"
+          : "${CHROME_WORKLOAD_IDENTITY_PROVIDER:?Set the CHROME_WORKLOAD_IDENTITY_PROVIDER repository variable}"
+          : "${FIREFOX_EXTENSION_ID:?Set the FIREFOX_EXTENSION_ID repository variable}"
+          : "${FIREFOX_JWT_ISSUER:?Set the FIREFOX_JWT_ISSUER repository secret}"
+          : "${FIREFOX_JWT_SECRET:?Set the FIREFOX_JWT_SECRET repository secret}"
+
+      - name: Authenticate to Google Cloud
+        id: google-auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.CHROME_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.CHROME_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/chromewebstore
+          create_credentials_file: false
+
+      - name: Block while either store has an active review
+        env:
+          CHROME_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
+          CHROME_EXTENSION_ID: ${{ vars.CHROME_EXTENSION_ID }}
+          CHROME_PUBLISHER_ID: ${{ vars.CHROME_PUBLISHER_ID }}
+          FIREFOX_EXTENSION_ID: ${{ vars.FIREFOX_EXTENSION_ID }}
+          FIREFOX_JWT_ISSUER: ${{ secrets.FIREFOX_JWT_ISSUER }}
+          FIREFOX_JWT_SECRET: ${{ secrets.FIREFOX_JWT_SECRET }}
+        run: .github/scripts/extensions/check-store-readiness.sh
+
+  build:
+    needs: [affected, release-gate]
+    if: needs.affected.outputs.extension == 'true' && needs.release-gate.result == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Generate store version
+        id: version
+        run: node .github/scripts/extensions/generate-version.mjs
+
+      - name: Build store packages
+        env:
+          SERIAL_EXTENSION_VERSION: ${{ steps.version.outputs.version }}
+        run: pnpm --filter @serial/extension zip:stores
+
+      - name: Collect and verify store packages
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: >-
+          .github/scripts/extensions/collect-store-packages.sh
+          apps/extension/.output store-packages "$RELEASE_VERSION"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extension-store-packages-${{ steps.version.outputs.version }}
+          path: store-packages
+          if-no-files-found: error
+          retention-days: 30
+
+  deploy-chrome:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: extension-store-packages-${{ needs.build.outputs.version }}
+          path: store-packages
+
+      - name: Check Chrome deployment configuration
+        env:
+          CHROME_EXTENSION_ID: ${{ vars.CHROME_EXTENSION_ID }}
+          CHROME_PUBLISHER_ID: ${{ vars.CHROME_PUBLISHER_ID }}
+          CHROME_SERVICE_ACCOUNT: ${{ vars.CHROME_SERVICE_ACCOUNT }}
+          CHROME_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.CHROME_WORKLOAD_IDENTITY_PROVIDER }}
+        run: |
+          : "${CHROME_EXTENSION_ID:?Set the CHROME_EXTENSION_ID repository variable}"
+          : "${CHROME_PUBLISHER_ID:?Set the CHROME_PUBLISHER_ID repository variable}"
+          : "${CHROME_SERVICE_ACCOUNT:?Set the CHROME_SERVICE_ACCOUNT repository variable}"
+          : "${CHROME_WORKLOAD_IDENTITY_PROVIDER:?Set the CHROME_WORKLOAD_IDENTITY_PROVIDER repository variable}"
+
+      - name: Authenticate to Google Cloud
+        id: google-auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.CHROME_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.CHROME_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/chromewebstore
+          create_credentials_file: false
+
+      - name: Submit Chrome extension
+        env:
+          CHROME_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
+          CHROME_EXTENSION_ID: ${{ vars.CHROME_EXTENSION_ID }}
+          CHROME_PUBLISHER_ID: ${{ vars.CHROME_PUBLISHER_ID }}
+        run: .github/scripts/extensions/publish-chrome.sh store-packages/chrome.zip
+
+  deploy-firefox:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: extension-store-packages-${{ needs.build.outputs.version }}
+          path: store-packages
+
+      - name: Check Firefox deployment configuration
+        env:
+          FIREFOX_EXTENSION_ID: ${{ vars.FIREFOX_EXTENSION_ID }}
+          FIREFOX_JWT_ISSUER: ${{ secrets.FIREFOX_JWT_ISSUER }}
+          FIREFOX_JWT_SECRET: ${{ secrets.FIREFOX_JWT_SECRET }}
+        run: |
+          : "${FIREFOX_EXTENSION_ID:?Set the FIREFOX_EXTENSION_ID repository variable}"
+          : "${FIREFOX_JWT_ISSUER:?Set the FIREFOX_JWT_ISSUER repository secret}"
+          : "${FIREFOX_JWT_SECRET:?Set the FIREFOX_JWT_SECRET repository secret}"
+
+      - name: Submit Firefox extension
+        working-directory: apps/extension
+        env:
+          FIREFOX_CHANNEL: listed
+          FIREFOX_EXTENSION_ID: ${{ vars.FIREFOX_EXTENSION_ID }}
+          FIREFOX_JWT_ISSUER: ${{ secrets.FIREFOX_JWT_ISSUER }}
+          FIREFOX_JWT_SECRET: ${{ secrets.FIREFOX_JWT_SECRET }}
+        run: |
+          pnpm publish:firefox \
+            --firefox-zip "$GITHUB_WORKSPACE/store-packages/firefox.zip" \
+            --firefox-sources-zip "$GITHUB_WORKSPACE/store-packages/firefox-sources.zip"
