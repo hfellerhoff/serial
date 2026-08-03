@@ -61,9 +61,17 @@ API setup is documented at
 3. Create AMO API credentials from the developer credentials page. Store the
    issuer and secret only in GitHub Actions secrets.
 
-The package passes AMO lint with five reviewed `innerHTML` warnings from
-unmodified third-party libraries. Include these source links and versions in
-**Notes for Reviewers**:
+The package passes AMO lint with five reviewed `UNSAFE_VAR_ASSIGNMENT` warnings
+from unmodified third-party libraries. Use this scoped explanation in **Notes
+for Reviewers**:
+
+> The five UNSAFE_VAR_ASSIGNMENT warnings originate from unmodified third-party
+> code: Mozilla Readability 0.6.0 (2), DOMPurify 3.4.12 (1), and React DOM 19.2.7
+> (2). No Serial-authored code in the submitted extension directly assigns
+> dynamic values to innerHTML. The source archive includes the lockfile, source
+> code, and deterministic rebuild instructions.
+
+Include these source links and versions alongside that explanation:
 
 - Mozilla Readability 0.6.0: <https://github.com/mozilla/readability>
 - DOMPurify 3.4.12: <https://github.com/cure53/DOMPurify>
