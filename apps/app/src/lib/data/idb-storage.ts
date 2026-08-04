@@ -1,4 +1,5 @@
 import { clear, del, get, set } from "idb-keyval";
+import { withCurrentIndexedDbSchema } from "./indexed-db-schema";
 import type { PersistStorage, StorageValue } from "zustand/middleware";
 
 /**
@@ -36,26 +37,29 @@ export function createIDBStorage<T>(): PersistStorage<T> {
     writeTimeout = null;
     if (pendingName !== null && pendingValue !== null) {
       const name = pendingName;
-      void set(pendingName, pendingValue).catch((err: unknown) => {
-        const isDOMException = err instanceof DOMException;
-        const isQuotaExceeded =
-          isDOMException && err.name === "QuotaExceededError";
-        // InvalidStateError means the DB connection was closed or deleted
-        // from under us — cached data is unreliable either way.
-        const isInvalidState =
-          isDOMException && err.name === "InvalidStateError";
+      const value = pendingValue;
+      void withCurrentIndexedDbSchema(() => set(name, value)).catch(
+        (err: unknown) => {
+          const isDOMException = err instanceof DOMException;
+          const isQuotaExceeded =
+            isDOMException && err.name === "QuotaExceededError";
+          // InvalidStateError means the DB connection was closed or deleted
+          // from under us — cached data is unreliable either way.
+          const isInvalidState =
+            isDOMException && err.name === "InvalidStateError";
 
-        if (isQuotaExceeded || isInvalidState) {
-          console.warn(
-            `[idb-storage] ${isDOMException ? err.name : "Unknown error"} writing "${name}" — clearing cache so next load does a full refresh`,
-          );
-          // Wipe all keys so the next page load starts with empty stores
-          // and triggers a full SSE fetch instead of rehydrating stale data.
-          void clear();
-        } else {
-          console.warn("[idb-storage] write failed:", name, err);
-        }
-      });
+          if (isQuotaExceeded || isInvalidState) {
+            console.warn(
+              `[idb-storage] ${isDOMException ? err.name : "Unknown error"} writing "${name}" — clearing cache so next load does a full refresh`,
+            );
+            // Wipe all keys so the next page load starts with empty stores
+            // and triggers a full SSE fetch instead of rehydrating stale data.
+            void clear();
+          } else {
+            console.warn("[idb-storage] write failed:", name, err);
+          }
+        },
+      );
       pendingName = null;
       pendingValue = null;
     }
@@ -84,9 +88,10 @@ export function createIDBStorage<T>(): PersistStorage<T> {
   window.addEventListener("pagehide", flushPending);
 
   return {
-    getItem: async (name: string) => {
-      return (await get<StorageValue<T>>(name)) ?? null;
-    },
+    getItem: (name: string) =>
+      withCurrentIndexedDbSchema(
+        async () => (await get<StorageValue<T>>(name)) ?? null,
+      ),
 
     setItem: (name: string, value: StorageValue<T>) => {
       pendingName = name;
@@ -103,7 +108,7 @@ export function createIDBStorage<T>(): PersistStorage<T> {
       }
       pendingName = null;
       pendingValue = null;
-      await del(name);
+      await withCurrentIndexedDbSchema(() => del(name));
     },
   };
 }

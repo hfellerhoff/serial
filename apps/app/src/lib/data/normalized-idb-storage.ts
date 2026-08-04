@@ -8,6 +8,7 @@ import {
   set,
   setMany,
 } from "idb-keyval";
+import { withCurrentIndexedDbSchema } from "./indexed-db-schema";
 import type { PersistStorage, StorageValue } from "zustand/middleware";
 
 const WRITE_THROTTLE_MS = 2_000;
@@ -316,15 +317,17 @@ export function createNormalizedIDBStorage<T>(
     pending = null;
     if (!current) return;
     writeChain = writeChain
-      .then(async () => {
-        await writeNormalized({
-          name: current.name,
-          previous: lastValue,
-          next: current.value,
-          options,
-        });
-        lastValue = current.value;
-      })
+      .then(() =>
+        withCurrentIndexedDbSchema(async () => {
+          await writeNormalized({
+            name: current.name,
+            previous: lastValue,
+            next: current.value,
+            options,
+          });
+          lastValue = current.value;
+        }),
+      )
       .catch((error: unknown) => reportWriteError(current.name, error));
   };
 
@@ -339,26 +342,27 @@ export function createNormalizedIDBStorage<T>(
   window.addEventListener("pagehide", flushPending);
 
   return {
-    getItem: async (name) => {
-      const normalized = await readNormalized<T>(name, options);
-      if (normalized) {
-        lastValue = normalized;
-        return normalized;
-      }
+    getItem: (name) =>
+      withCurrentIndexedDbSchema(async () => {
+        const normalized = await readNormalized<T>(name, options);
+        if (normalized) {
+          lastValue = normalized;
+          return normalized;
+        }
 
-      const legacy = (await get<StorageValue<T>>(name)) ?? null;
-      if (legacy) {
-        await writeNormalized({
-          name,
-          previous: null,
-          next: legacy,
-          options,
-        });
-        await del(name);
-        lastValue = legacy;
-      }
-      return legacy;
-    },
+        const legacy = (await get<StorageValue<T>>(name)) ?? null;
+        if (legacy) {
+          await writeNormalized({
+            name,
+            previous: null,
+            next: legacy,
+            options,
+          });
+          await del(name);
+          lastValue = legacy;
+        }
+        return legacy;
+      }),
     setItem: (name, value) => {
       pending = { name, value };
       if (writeTimeout === null) {
@@ -370,12 +374,14 @@ export function createNormalizedIDBStorage<T>(
       writeTimeout = null;
       pending = null;
       lastValue = null;
-      const prefix = normalizedPrefix(name);
-      const matchingKeys = (await keys<IDBValidKey>()).filter(
-        (key) => typeof key === "string" && key.startsWith(prefix),
-      );
-      await deleteInBatches(matchingKeys);
-      await del(name);
+      await withCurrentIndexedDbSchema(async () => {
+        const prefix = normalizedPrefix(name);
+        const matchingKeys = (await keys<IDBValidKey>()).filter(
+          (key) => typeof key === "string" && key.startsWith(prefix),
+        );
+        await deleteInBatches(matchingKeys);
+        await del(name);
+      });
     },
   };
 }
