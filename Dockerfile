@@ -89,6 +89,7 @@ COPY --from=build-base /usr/src/app/packages/extension-identity /usr/src/app/pac
 # Catch missing transitive imports in the migration runtime before deployment.
 RUN PUBLIC_BASE_URL=http://localhost \
     BETTER_AUTH_SECRET=container-build-smoke-test \
+    KV_STORE=none \
     NODE_ENV=production \
     node --import=tsx -e "await import('./src/env.js'); await import('./src/server/db/schema.ts')"
 
