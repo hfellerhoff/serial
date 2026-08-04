@@ -158,7 +158,16 @@ export function parseStoredAuthSession(
   };
 }
 
-export function normalizeInstanceUrl(value: string): string {
+type NormalizeInstanceUrlOptions = {
+  allowHttpLoopback?: boolean;
+};
+
+export function normalizeInstanceUrl(
+  value: string,
+  {
+    allowHttpLoopback = import.meta.env.MODE !== "production",
+  }: NormalizeInstanceUrlOptions = {},
+): string {
   const trimmed = value.trim();
   if (!trimmed) throw new Error("Enter a Serial instance address");
 
@@ -176,7 +185,10 @@ export function normalizeInstanceUrl(value: string): string {
     throw new Error("Instance addresses cannot contain credentials");
   }
   const isLocal = isLoopbackHostname(url.hostname);
-  if (url.protocol !== "https:" && !(isLocal && url.protocol === "http:")) {
+  if (
+    url.protocol !== "https:" &&
+    !(allowHttpLoopback && isLocal && url.protocol === "http:")
+  ) {
     throw new Error("Serial instances must use HTTPS");
   }
   return url.origin;

@@ -68,9 +68,10 @@ save:
 - `identity` completes the approved connection to a Serial instance.
 - `storage` keeps the selected instance and its opaque extension session token
   in the browser.
-- Optional host access is requested for the selected HTTPS Serial instance, or
-  for a loopback HTTP instance during local development. Signing out removes
-  that host access.
+- Optional host access is requested for the selected HTTPS Serial instance.
+  Development builds additionally allow loopback HTTP instances; production
+  and store builds omit those permissions and reject loopback instance
+  addresses. Signing out removes the selected instance's host access.
 
 The Firefox manifest declares `authenticationInfo`, `browsingActivity`,
 `websiteActivity`, and `websiteContent` because signing in and opening the popup

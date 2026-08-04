@@ -45,6 +45,24 @@ for browser in chrome firefox; do
     echo "$browser store package contains the development-only manifest key" >&2
     exit 1
   fi
+
+  if jq -e \
+    '[.host_permissions[]?, .permissions[]?] | any(test("^https?://"))' \
+    <<< "$manifest" >/dev/null; then
+    echo "$browser store package contains required host access" >&2
+    exit 1
+  fi
+
+  optional_origins="$(
+    jq -c '.optional_host_permissions // .optional_permissions // []' \
+      <<< "$manifest"
+  )"
+  if [[ "$optional_origins" != '["https://*/*"]' ]]; then
+    echo \
+      "$browser store package must request only optional HTTPS host access" \
+      >&2
+    exit 1
+  fi
 done
 
 required_source_paths=(

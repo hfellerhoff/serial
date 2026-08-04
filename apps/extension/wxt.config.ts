@@ -9,6 +9,13 @@ import {
 const startUrl = process.env.SERIAL_EXTENSION_START_URL;
 const releaseVersion = process.env.SERIAL_EXTENSION_VERSION;
 const isStoreBuild = process.env.SERIAL_EXTENSION_STORE_BUILD === "true";
+const productionInstanceOrigins = ["https://*/*"];
+const developmentInstanceOrigins = [
+  ...productionInstanceOrigins,
+  "http://localhost/*",
+  "http://127.0.0.1/*",
+  "http://[::1]/*",
+];
 const extensionIcons = {
   16: "icon/16.png",
   32: "icon/32.png",
@@ -54,49 +61,40 @@ export default defineConfig({
     plugins: [tailwindcss()],
   }),
   webExt: startUrl ? { startUrls: [startUrl] } : undefined,
-  manifest: ({ manifestVersion }) => ({
-    name: "Serial",
-    ...(releaseVersion ? { version: releaseVersion } : {}),
-    ...(!isStoreBuild ? { key: CHROME_EXTENSION_MANIFEST_KEY } : {}),
-    icons: extensionIcons,
-    ...(manifestVersion === 2
-      ? { browser_action: { default_icon: extensionIcons } }
-      : { action: { default_icon: extensionIcons } }),
-    permissions: ["identity", "storage", "activeTab", "scripting"],
-    optional_permissions:
-      manifestVersion === 2
-        ? [
-            "https://*/*",
-            "http://localhost/*",
-            "http://127.0.0.1/*",
-            "http://[::1]/*",
-          ]
-        : undefined,
-    optional_host_permissions:
-      manifestVersion === 3
-        ? [
-            "https://*/*",
-            "http://localhost/*",
-            "http://127.0.0.1/*",
-            "http://[::1]/*",
-          ]
-        : undefined,
-    browser_specific_settings: {
-      gecko: {
-        id: FIREFOX_EXTENSION_ID,
-        strict_min_version: "140.0",
-        data_collection_permissions: {
-          required: [
-            "authenticationInfo",
-            "browsingActivity",
-            "websiteActivity",
-            "websiteContent",
-          ],
+  manifest: ({ manifestVersion, mode }) => {
+    const instanceOrigins =
+      mode === "production"
+        ? productionInstanceOrigins
+        : developmentInstanceOrigins;
+    return {
+      name: "Serial",
+      ...(releaseVersion ? { version: releaseVersion } : {}),
+      ...(!isStoreBuild ? { key: CHROME_EXTENSION_MANIFEST_KEY } : {}),
+      icons: extensionIcons,
+      ...(manifestVersion === 2
+        ? { browser_action: { default_icon: extensionIcons } }
+        : { action: { default_icon: extensionIcons } }),
+      permissions: ["identity", "storage", "activeTab", "scripting"],
+      optional_permissions: manifestVersion === 2 ? instanceOrigins : undefined,
+      optional_host_permissions:
+        manifestVersion === 3 ? instanceOrigins : undefined,
+      browser_specific_settings: {
+        gecko: {
+          id: FIREFOX_EXTENSION_ID,
+          strict_min_version: "140.0",
+          data_collection_permissions: {
+            required: [
+              "authenticationInfo",
+              "browsingActivity",
+              "websiteActivity",
+              "websiteContent",
+            ],
+          },
+        },
+        gecko_android: {
+          strict_min_version: "142.0",
         },
       },
-      gecko_android: {
-        strict_min_version: "142.0",
-      },
-    },
-  }),
+    };
+  },
 });

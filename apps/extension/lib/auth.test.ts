@@ -43,6 +43,18 @@ describe("normalizeInstanceUrl", () => {
     ).toThrowError("Serial instances must use HTTPS");
   });
 
+  it("rejects HTTP loopback instances in production", () => {
+    for (const instance of [
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://[::1]:3000",
+    ]) {
+      expect(() =>
+        normalizeInstanceUrl(instance, { allowHttpLoopback: false }),
+      ).toThrowError("Serial instances must use HTTPS");
+    }
+  });
+
   it("rejects embedded credentials", () => {
     expect(() =>
       normalizeInstanceUrl("https://user:secret@serial.example.com"),
