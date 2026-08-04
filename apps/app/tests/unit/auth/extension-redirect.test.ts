@@ -10,7 +10,7 @@ import {
 
 const VALID_CONNECT_SEARCH = new URLSearchParams({
   redirect_uri:
-    "https://abfgpdgoffipbnfjcdoejalehhbegamc.chromiumapp.org/serial-auth",
+    "https://olpaonddchkbjpmjjfamplfaibopllam.chromiumapp.org/serial-auth",
   state: "s".repeat(43),
   code_challenge: "c".repeat(43),
   code_challenge_method: "S256",
@@ -25,11 +25,11 @@ describe("Serial extension redirect URIs", () => {
 
   it.each([
     "not-a-url",
-    "http://abfgpdgoffipbnfjcdoejalehhbegamc.chromiumapp.org/serial-auth",
+    "http://olpaonddchkbjpmjjfamplfaibopllam.chromiumapp.org/serial-auth",
     "https://example.com/serial-auth",
-    "https://abfgpdgoffipbnfjcdoejalehhbegamc.chromiumapp.org/wrong-path",
-    "https://abfgpdgoffipbnfjcdoejalehhbegamc.chromiumapp.org/serial-auth?next=x",
-    "https://user:password@abfgpdgoffipbnfjcdoejalehhbegamc.chromiumapp.org/serial-auth",
+    "https://olpaonddchkbjpmjjfamplfaibopllam.chromiumapp.org/wrong-path",
+    "https://olpaonddchkbjpmjjfamplfaibopllam.chromiumapp.org/serial-auth?next=x",
+    "https://user:password@olpaonddchkbjpmjjfamplfaibopllam.chromiumapp.org/serial-auth",
   ])("rejects %s", (redirectUri) => {
     expect(() => parseExtensionRedirectUri(redirectUri)).toThrow(
       "Invalid Serial extension redirect URI",
