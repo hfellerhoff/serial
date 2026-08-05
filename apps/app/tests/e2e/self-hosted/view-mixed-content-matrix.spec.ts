@@ -214,7 +214,7 @@ test.describe("exhaustive mixed-content View section matrix", () => {
       read: "Archived",
     }[visibility];
 
-    test(`visibly renders configured feed, tag, and Uncategorized sections in ${tabName}`, async ({
+    test(`visibly renders configured content in ${tabName}`, async ({
       page,
     }) => {
       test.setTimeout(45_000);
@@ -269,6 +269,28 @@ test.describe("exhaustive mixed-content View section matrix", () => {
           ],
         },
       ];
+
+      // Read/Archived views intentionally use one chronological section. The
+      // sectioned layout applies to unread and saved views only.
+      if (visibility === "read") {
+        const archivedSection = feedMain.locator("#section-0");
+        await expect(feedMain.locator('[id^="section-"]')).toHaveCount(1);
+        await expect(archivedSection).toBeVisible({ timeout: 30_000 });
+        await expect(
+          archivedSection.getByRole("heading", {
+            name: fixture.viewName,
+            exact: true,
+          }),
+        ).toBeVisible();
+        await expect
+          .poll(() =>
+            renderedItemIds(archivedSection.locator("[data-item-id]")),
+          )
+          .toEqual(
+            expectedSections.flatMap((section) => section.itemIds).sort(),
+          );
+        return;
+      }
 
       for (const [
         sectionIndex,
@@ -442,12 +464,12 @@ test.describe("exhaustive mixed-content View section matrix", () => {
       feedMain.locator(`#section-${sectionIndex}`),
     );
 
-    await expect(feedMain.locator('[id^="section-"]')).toHaveCount(3);
-    for (const [sectionIndex, section] of sections.entries()) {
-      await expect
-        .poll(() => renderedItemIds(section.locator("[data-item-id]")))
-        .toEqual(expectedSectionItemIds[sectionIndex]);
-    }
+    // Read/Archived views intentionally flatten their content into one
+    // chronological section instead of rendering configured subview sections.
+    await expect(feedMain.locator('[id^="section-"]')).toHaveCount(1);
+    await expect
+      .poll(() => renderedItemIds(sections[0]!.locator("[data-item-id]")))
+      .toEqual(expectedSectionItemIds.flat().sort());
     await expect(
       feedMain.locator(`[data-item-id="${fixture.items.outsideFeedItem}"]`),
     ).toHaveCount(0);
