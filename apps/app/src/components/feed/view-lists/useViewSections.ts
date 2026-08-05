@@ -37,7 +37,6 @@ export function useViewSections(
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
   const feedItemsProjection = useFeedItemsListProjection();
   const feedCategories = useFeedCategories();
-  const bookmarkRevision = bookmarksStore.useRevision();
   const filterIndex = useMemo(
     () => createFeedItemFilterIndex(feedCategories.feedCategories, []),
     [feedCategories.feedCategories],
