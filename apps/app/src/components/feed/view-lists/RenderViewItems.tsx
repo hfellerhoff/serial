@@ -1,8 +1,8 @@
 "use client";
 
 import { useAtomValue } from "jotai";
-import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckIcon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { EmptyState, FeedEmptyState } from "./EmptyStates";
 import { PaginationEnd } from "./PaginationEnd";
 import { PaginationLoader } from "./PaginationLoader";
@@ -12,38 +12,38 @@ import {
   LargeListSkeleton,
   StandardListSkeleton,
 } from "./skeletons";
+import { useViewListScroll } from "./useViewListScroll";
+import { useViewSections } from "./useViewSections";
 import { ViewItemGrid } from "./ViewItemGrid";
 import { ViewItemLargeGrid } from "./ViewItemLargeGrid";
 import { ViewItemLargeList } from "./ViewItemLargeList";
 import { ViewItemStandardList } from "./ViewItemStandardList";
-import { useViewSections } from "./useViewSections";
-import { useViewListScroll } from "./useViewListScroll";
 import type { ViewSection } from "./useViewSections";
-import { VIEW_LAYOUT } from "~/server/db/constants";
-import FeedLoading from "~/components/loading";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
+import FeedLoading from "~/components/loading";
 import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
-import { useLazyCategoryFilter } from "~/lib/hooks/useLazyCategoryFilter";
-import { useLazyFeedFilter } from "~/lib/hooks/useLazyFeedFilter";
-import { useValidateViewItems } from "~/lib/hooks/useValidateViewItems";
 import {
   selectedItemIdAtom,
   viewFilterAtom,
   visibilityFilterAtom,
 } from "~/lib/data/atoms";
+import { bookmarksStore } from "~/lib/data/bookmarks/store";
 import { useFeedCategories } from "~/lib/data/feed-categories";
-import { useFeeds } from "~/lib/data/feeds";
-import { REMOTE_IMAGE_PROPS } from "~/lib/remoteMedia";
 import { useFilteredContentOrder } from "~/lib/data/feed-items";
+import { useFeeds } from "~/lib/data/feeds";
+import { setMixedReadValue } from "~/lib/data/mixed-content/mutations";
 import {
   useFetchFeedItemsLastFetchedAt,
   useHasInitialData,
 } from "~/lib/data/store";
 import { useFeedItemNavigation } from "~/lib/hooks/useFeedItemNavigation";
+import { useLazyCategoryFilter } from "~/lib/hooks/useLazyCategoryFilter";
+import { useLazyFeedFilter } from "~/lib/hooks/useLazyFeedFilter";
 import { useShortcut } from "~/lib/hooks/useShortcut";
+import { useValidateViewItems } from "~/lib/hooks/useValidateViewItems";
+import { REMOTE_IMAGE_PROPS } from "~/lib/remoteMedia";
 import { showUndoToast } from "~/lib/undo";
-import { bookmarksStore } from "~/lib/data/bookmarks/store";
-import { setMixedReadValue } from "~/lib/data/mixed-content/mutations";
+import { VIEW_LAYOUT } from "~/server/db/constants";
 
 function getNextAvailableItemAfterSection(
   sectionIndex: number,
@@ -345,20 +345,22 @@ export function RenderViewItems() {
 
   return (
     <div className="w-full">
-      {visibleComputedSections.map((section, index) => (
-        <LayoutSection
-          key={
-            section.isUncategorized
-              ? `${viewListKey}-uncategorized`
-              : `${viewListKey}-${section.itemType}-${section.itemId}`
-          }
-          section={section}
-          sectionIndex={index}
-          handleMouseSelect={handleMouseSelect}
-          onMarkAsRead={handleSectionMarkAsRead}
-          sectionItemsForAction={fullComputedSections[index]?.items ?? []}
-        />
-      ))}
+      {visibleComputedSections.map((section, index) => {
+        return (
+          <LayoutSection
+            key={
+              section.isUncategorized
+                ? `${viewListKey}-uncategorized`
+                : `${viewListKey}-${section.itemType}-${section.itemId}`
+            }
+            section={section}
+            sectionIndex={index}
+            handleMouseSelect={handleMouseSelect}
+            onMarkAsRead={handleSectionMarkAsRead}
+            sectionItemsForAction={fullComputedSections[index]?.items ?? []}
+          />
+        );
+      })}
       <div ref={sentinelRef} className="h-px w-full" />
       {paginationState?.isFetching && <PaginationLoader />}
       {shouldShowPaginationEnd && <PaginationEnd />}

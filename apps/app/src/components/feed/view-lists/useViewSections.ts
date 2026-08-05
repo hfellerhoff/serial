@@ -1,20 +1,22 @@
 "use client";
 
+import { useAtomValue } from "jotai";
 import { useMemo } from "react";
-import type { ApplicationView } from "~/server/db/schema";
 import type { ViewLayout } from "~/server/db/constants";
-import { useFeedCategories } from "~/lib/data/feed-categories";
-import { useFeedItemsListProjection } from "~/lib/data/store";
-import { createFeedItemFilterIndex } from "~/lib/data/feed-items";
+import type { ApplicationView } from "~/server/db/schema";
+import { visibilityFilterAtom } from "~/lib/data/atoms";
+import { bookmarksStore } from "~/lib/data/bookmarks/store";
 import { useContentCategories } from "~/lib/data/content-categories";
+import { useFeedCategories } from "~/lib/data/feed-categories";
+import { createFeedItemFilterIndex } from "~/lib/data/feed-items";
 import { useFeeds } from "~/lib/data/feeds";
+import { useFeedItemsListProjection } from "~/lib/data/store";
+import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
 import {
   VIEW_LAYOUT,
   VIEW_LAYOUT_ITEM_TYPE,
   viewLayoutSchema,
 } from "~/server/db/constants";
-import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
-import { bookmarksStore } from "~/lib/data/bookmarks/store";
 
 export interface ViewSection {
   name: string;
@@ -32,9 +34,10 @@ export function useViewSections(
 ) {
   const { feeds } = useFeeds();
   const { contentCategories } = useContentCategories();
+  const visibilityFilter = useAtomValue(visibilityFilterAtom);
   const feedItemsProjection = useFeedItemsListProjection();
   const feedCategories = useFeedCategories();
-  bookmarksStore.useRevision();
+  const bookmarkRevision = bookmarksStore.useRevision();
   const filterIndex = useMemo(
     () => createFeedItemFilterIndex(feedCategories.feedCategories, []),
     [feedCategories.feedCategories],
@@ -54,6 +57,42 @@ export function useViewSections(
     currentView.viewSections.length > 0;
 
   const computedSections = useMemo(() => {
+    const feedItemsDict = feedItemsProjection.getItems();
+    const bookmarks = bookmarksStore.getState().snapshot();
+    const orderedItems =
+      visibilityFilter === "read"
+        ? [...filteredFeedItemsOrder].sort((a, b) => {
+            const itemA = feedItemsDict[a];
+            const itemB = feedItemsDict[b];
+            const bookmarkA = bookmarks[a];
+            const bookmarkB = bookmarks[b];
+            const readUpdatedAtA =
+              bookmarkA?.readUpdatedAt?.getTime() ??
+              itemA?.isWatchedUpdatedAt?.getTime() ??
+              itemA?.postedAt.getTime() ??
+              0;
+            const readUpdatedAtB =
+              bookmarkB?.readUpdatedAt?.getTime() ??
+              itemB?.isWatchedUpdatedAt?.getTime() ??
+              itemB?.postedAt.getTime() ??
+              0;
+
+            return readUpdatedAtB - readUpdatedAtA || b.localeCompare(a);
+          })
+        : filteredFeedItemsOrder;
+
+    if (visibilityFilter === "read") {
+      return [
+        {
+          name: currentView?.name ?? "View",
+          items: orderedItems,
+          layout: baseLayout,
+          startIndex: 0,
+          isUncategorized: true,
+        },
+      ] as ViewSection[];
+    }
+
     if (!hasSubviews || !currentView) {
       return [
         {
@@ -66,7 +105,6 @@ export function useViewSections(
       ] as ViewSection[];
     }
 
-    const feedItemsDict = feedItemsProjection.getItems();
     const assignedItemIds = new Set<string>();
     const bookmarkTagIdsById = new Map<string, Set<number>>();
     const feedIdsInFeedSections = new Set<number>();
@@ -165,6 +203,7 @@ export function useViewSections(
     return sections;
   }, [
     hasSubviews,
+    visibilityFilter,
     currentView,
     filteredFeedItemsOrder,
     feeds,
