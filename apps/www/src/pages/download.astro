@@ -1,0 +1,55 @@
+---
+import PageHeader from "../components/PageHeader.astro";
+import Site from "../layouts/Site.astro";
+
+import ChromeIcon from "../components/Chrome.astro";
+import FirefoxIcon from "../components/Firefox.astro";
+---
+
+<Site title="Downloads | Serial">
+    <div class="pt-8 pb-12 md:pt-12 md:pb-24">
+        <PageHeader
+            icon="download"
+            title="Downloads"
+            description="Bring Serial with you everywhere you need it."
+        />
+
+        <div
+            class="flex flex-col sm:flex-row gap-8 lg:gap-16 mx-auto max-w-6xl px-4 py-4 lg:px-8 lg:py-8"
+        >
+            <div class="flex-1 w-full">
+                <img
+                    src={"/downloads/extension.png"}
+                    class="rounded-xl flex-1 w-full shadow-lg"
+                />
+            </div>
+            <div class="flex-1 shrink-0 flex flex-col justify-center">
+                <h2 class="text-2xl lg:text-3xl font-bold text-balance">
+                    Browser extension
+                </h2>
+                <p class="mt-2 text-xl">
+                    Save articles, blogs, and videos from across the web to read
+                    later.
+                </p>
+                <div class="flex gap-2 mt-4 flex-wrap -mx-2">
+                    <a
+                        href="https://chromewebstore.google.com/detail/serial/olpaonddchkbjpmjjfamplfaibopllam"
+                        target="_blank"
+                        class="p-2 hover:bg-muted rounded"
+                        aria-label="Download Chrome Extension"
+                        rel="noopener noreferrer"><ChromeIcon size={"3em"} /></a
+                    >
+                    <a
+                        class="p-2 hover:bg-muted rounded opacity-40 cursor-not-allowed"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Download Firefox Extension - coming soon"
+                        ><FirefoxIcon size={"3em"} />
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</Site>
+
+<!-- "https://addons.mozilla.org/en-US/firefox/addon/serial-reader/" -->
