@@ -27,7 +27,7 @@ concurrency:
 jobs:
   affected:
     if: github.repository == 'megaflorasoftware/serial'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       app: ${{ steps.check.outputs.app }}
     steps:
@@ -53,7 +53,7 @@ jobs:
   build-and-push:
     needs: affected
     if: needs.affected.outputs.app == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
       packages: write

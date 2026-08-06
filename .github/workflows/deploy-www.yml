@@ -26,7 +26,7 @@ concurrency:
 jobs:
   affected:
     if: github.repository == 'megaflorasoftware/serial'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       www: ${{ steps.check.outputs.www }}
     steps:
@@ -52,7 +52,7 @@ jobs:
   build:
     needs: affected
     if: needs.affected.outputs.www == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
 
@@ -80,7 +80,7 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
 

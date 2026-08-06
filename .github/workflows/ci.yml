@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   changes:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       app: ${{ steps.affected.outputs.app }}
     steps:
@@ -100,7 +100,7 @@ jobs:
   gate:
     if: always()
     needs: [changes, checks, e2e]
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Check required jobs
         env:
