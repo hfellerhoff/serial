@@ -97,6 +97,6 @@ export function getSubscriptionDialogCopy(
   }
   return {
     title: "Subscribe to Serial",
-    description: "All prices are taxes-included.",
+    description: "Plans are suggested based on the number of feeds you have.",
   };
 }
