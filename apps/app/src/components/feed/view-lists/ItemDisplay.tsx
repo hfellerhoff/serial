@@ -553,15 +553,6 @@ function BookmarkActions({
       <Button
         size="icon"
         variant="ghost"
-        aria-label="Delete Bookmark"
-        className={clsx({ "h-8 w-8 p-0": isGrid })}
-        onClick={() => deleteBookmark({ bookmarkId: bookmark.id })}
-      >
-        <Trash2Icon size={isGrid ? 14 : 16} />
-      </Button>
-      <Button
-        size="icon"
-        variant="ghost"
         aria-label="Edit Bookmark"
         className={clsx({ "h-8 w-8 p-0": isGrid })}
         onClick={() =>
@@ -601,6 +592,15 @@ function BookmarkActions({
         }
       >
         <ArchiveIcon size={isGrid ? 14 : 16} />
+      </Button>
+      <Button
+        size="icon"
+        variant="ghost"
+        aria-label="Delete Bookmark"
+        className={clsx({ "h-8 w-8 p-0": isGrid })}
+        onClick={() => deleteBookmark({ bookmarkId: bookmark.id })}
+      >
+        <Trash2Icon size={isGrid ? 14 : 16} />
       </Button>
     </div>
   );
