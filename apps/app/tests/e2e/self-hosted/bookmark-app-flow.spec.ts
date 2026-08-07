@@ -272,7 +272,7 @@ test.describe("Bookmark Serial-app flow", () => {
             buttons.map((button) => button.getAttribute("aria-label")),
           ),
       )
-      .toEqual(["Delete Bookmark", "Edit Bookmark", "Unsave", "Archive"]);
+      .toEqual(["Edit Bookmark", "Unsave", "Archive", "Delete Bookmark"]);
     await bookmarkCard.getByRole("button", { name: "Edit Bookmark" }).click();
 
     const editDialog = page.getByRole("dialog");
