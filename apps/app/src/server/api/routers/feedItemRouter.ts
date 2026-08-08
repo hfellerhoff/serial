@@ -102,6 +102,7 @@ export const setWatchedValue = protectedProcedure
           source: "initial",
           chunk: {
             type: "feed-items",
+            refreshNavigationSnapshot: true,
             feedItems: [
               {
                 ...result,
@@ -255,6 +256,7 @@ export const setWatchLaterValue = protectedProcedure
           source: "initial",
           chunk: {
             type: "feed-items",
+            refreshNavigationSnapshot: true,
             feedItems: [
               {
                 ...result,

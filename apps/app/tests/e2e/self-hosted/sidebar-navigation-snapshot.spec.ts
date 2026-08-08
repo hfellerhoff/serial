@@ -201,7 +201,7 @@ test.describe("authoritative sidebar navigation", () => {
     await expect(item).toHaveCount(0);
     await expect(viewButton.locator(".bg-sidebar-accent")).toHaveCount(0);
 
-    await page.getByRole("tab", { name: "All" }).click();
+    await page.locator("#section-0").getByRole("tab", { name: "All" }).click();
     await expect(item).toBeVisible();
     await item.getByRole("link").hover();
     await page.keyboard.press("e");

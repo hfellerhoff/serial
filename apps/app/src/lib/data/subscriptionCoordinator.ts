@@ -71,7 +71,11 @@ function completeBookmarkSyncPages(payloads: PublishedChunk[]) {
 
 export function processPublishedChunks(payloads: PublishedChunk[]) {
   const affectedScopes = new Map<string, LoadedMixedScope>();
-  let navigationSnapshotChanged = false;
+  let navigationSnapshotChanged = payloads.some(
+    ({ chunk }) =>
+      "refreshNavigationSnapshot" in chunk &&
+      chunk.refreshNavigationSnapshot === true,
+  );
   const feedPayloads = payloads.filter(
     (payload) => payload.source !== "bookmark" && payload.source !== "mixed",
   );

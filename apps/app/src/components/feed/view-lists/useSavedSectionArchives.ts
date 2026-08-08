@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import type {
   MixedContentCursor,
@@ -29,17 +29,17 @@ export function useSavedSectionArchives(viewId: number | undefined) {
   const [states, setStates] = useState<
     Record<string, SavedSectionArchiveState>
   >({});
-  const loadingSectionKeysRef = useRef(new Set<string>());
+  const [loadingSectionKeys] = useState(() => new Set<string>());
 
   const loadSection = useCallback(
     async (sectionKey: string, sectionPlacement: number | null) => {
       if (viewId === undefined) return;
       const current = states[sectionKey] ?? EMPTY_ARCHIVE_STATE;
-      if (loadingSectionKeysRef.current.has(sectionKey) || !current.hasMore) {
+      if (loadingSectionKeys.has(sectionKey) || !current.hasMore) {
         return;
       }
 
-      loadingSectionKeysRef.current.add(sectionKey);
+      loadingSectionKeys.add(sectionKey);
       setStates((currentStates) => ({
         ...currentStates,
         [sectionKey]: { ...current, isLoading: true },
@@ -74,10 +74,10 @@ export function useSavedSectionArchives(viewId: number | undefined) {
         toast.error("Could not load archived Saved content");
         throw error;
       } finally {
-        loadingSectionKeysRef.current.delete(sectionKey);
+        loadingSectionKeys.delete(sectionKey);
       }
     },
-    [states, viewId],
+    [loadingSectionKeys, states, viewId],
   );
 
   return { states, loadSection };

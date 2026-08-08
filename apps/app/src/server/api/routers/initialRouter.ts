@@ -137,6 +137,7 @@ export type ViewDataChunk =
       visibilityFilter?: string;
       hasMore?: boolean;
       nextCursor?: PaginationCursor;
+      refreshNavigationSnapshot?: boolean;
     }
   | { type: "error"; message: string; phase: string; viewId: number };
 
