@@ -50,7 +50,7 @@ export function isFeedCompatibleWithContentFilter(
  *
  * - "unread": items that are not watched AND not watch later
  * - "read": items that are watched AND not watch later
- * - "later": items that are marked as watch later
+ * - "later": unread items that are marked as watch later
  */
 export function buildVisibilityFilter(
   visibilityFilter: VisibilityFilter,
@@ -67,7 +67,10 @@ export function buildVisibilityFilter(
         eq(feedItems.isWatchLater, false),
       );
     case "later":
-      return eq(feedItems.isWatchLater, true);
+      return and(
+        eq(feedItems.isWatchLater, true),
+        eq(feedItems.isWatched, false),
+      );
     default:
       return undefined;
   }

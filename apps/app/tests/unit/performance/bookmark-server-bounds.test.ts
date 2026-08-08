@@ -8,9 +8,11 @@ import { updateBookmarksReadState } from "~/server/bookmarks/service";
 import { loadExtensionBookmarkWorkspace } from "~/server/bookmarks/extensionWorkspace";
 import { queryMixedContentPage } from "~/server/mixed-content/projection";
 import { loadApplicationBookmark } from "~/server/mixed-content/sync";
+import { UNCATEGORIZED_SECTION_PLACEMENT } from "~/lib/views/sections";
 import {
   bookmarks,
   bookmarkTags,
+  bookmarkViews,
   contentCategories,
   feedCategories,
   feedItems,
@@ -185,6 +187,12 @@ describe("Bookmark server performance bounds", () => {
       url: "https://example.com/feed.xml",
       platform: "website",
     });
+    await session.database.insert(viewSections).values({
+      viewId: 10,
+      placement: 0,
+      itemType: "feed",
+      itemId: 30,
+    });
     await session.database.insert(feedCategories).values({
       feedId: 30,
       categoryId: 20,
@@ -200,8 +208,17 @@ describe("Bookmark server performance bounds", () => {
         postedAt: new Date(NOW.getTime() - index),
       })),
     );
-    const seededBookmarks = bookmarkRows(100);
+    const seededBookmarks = bookmarkRows(100).map((bookmark, index) => ({
+      ...bookmark,
+      isRead: index < 50,
+    }));
     await session.database.insert(bookmarks).values(seededBookmarks);
+    await session.database.insert(bookmarkViews).values(
+      seededBookmarks.map(({ id }) => ({
+        bookmarkId: id,
+        viewId: 10,
+      })),
+    );
     await session.database
       .insert(bookmarkTags)
       .values(seededBookmarks.map(({ id }) => ({ bookmarkId: id, tagId: 20 })));
@@ -230,6 +247,21 @@ describe("Bookmark server performance bounds", () => {
     const cursorEvidence = session.instrumentation.snapshot();
     expect(cursorEvidence.statementCount).toBeLessThanOrEqual(7);
     expect(cursorEvidence.materializedRows).toBeLessThanOrEqual(100);
+
+    session.instrumentation.reset();
+    const archivedSectionPage = await queryMixedContentPage({
+      database: session.database,
+      userId: "bounds-user",
+      scope: { type: "view", viewId: 10 },
+      visibility: "later",
+      savedState: "archived",
+      sectionPlacement: UNCATEGORIZED_SECTION_PLACEMENT,
+      limit: 30,
+    });
+    const archivedSectionEvidence = session.instrumentation.snapshot();
+    expect(archivedSectionPage.references).toHaveLength(30);
+    expect(archivedSectionEvidence.statementCount).toBeLessThanOrEqual(7);
+    expect(archivedSectionEvidence.materializedRows).toBeLessThanOrEqual(100);
 
     session.instrumentation.reset();
     await queryMixedContentPage({

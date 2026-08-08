@@ -21,8 +21,12 @@ import { useViewListScroll } from "./useViewListScroll";
 import {
   createSavedArchiveSnapshot,
   filterSavedSectionItems,
+  mergeSavedSectionItems,
 } from "./savedArchiveVisibility";
+import { useSavedSectionArchives } from "./useSavedSectionArchives";
+import type { SavedSectionArchiveState } from "./useSavedSectionArchives";
 import type { ViewSection } from "./useViewSections";
+import type { MixedContentReference } from "~/server/mixed-content/projection";
 import { VIEW_LAYOUT } from "~/server/db/constants";
 import FeedLoading from "~/components/loading";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
@@ -52,6 +56,7 @@ import { showUndoToast } from "~/lib/undo";
 import { bookmarksStore } from "~/lib/data/bookmarks/store";
 import { setMixedReadValue } from "~/lib/data/mixed-content/mutations";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { useInfiniteScroll } from "~/lib/hooks/useInfiniteScroll";
 
 function getNextAvailableItemAfterSection(
   sectionIndex: number,
@@ -228,6 +233,8 @@ function LayoutSection({
   showArchiveFilter,
   showArchived,
   onShowArchivedChange,
+  archiveState,
+  onLoadMoreArchived,
 }: {
   section: ViewSection;
   handleMouseSelect: (itemId: string) => void;
@@ -238,6 +245,8 @@ function LayoutSection({
   showArchiveFilter: boolean;
   showArchived: boolean;
   onShowArchivedChange: (pressed: boolean) => void;
+  archiveState?: SavedSectionArchiveState;
+  onLoadMoreArchived: () => void;
 }) {
   const { items, layout, name, itemType, itemId } = section;
 
@@ -276,7 +285,37 @@ function LayoutSection({
           )}
         </>
       )}
+      <SavedSectionArchivePagination
+        enabled={showArchived}
+        state={archiveState}
+        onLoadMore={onLoadMoreArchived}
+      />
     </div>
+  );
+}
+
+function SavedSectionArchivePagination({
+  enabled,
+  state,
+  onLoadMore,
+}: {
+  enabled: boolean;
+  state?: SavedSectionArchiveState;
+  onLoadMore: () => void;
+}) {
+  const { sentinelRef } = useInfiniteScroll({
+    onLoadMore,
+    hasMore: enabled && state !== undefined && state.hasMore,
+    isLoading: state?.isLoading ?? false,
+    rootMargin: "0px",
+  });
+
+  if (!enabled) return null;
+  return (
+    <>
+      <div ref={sentinelRef} className="h-px w-full" />
+      {state?.isLoading && <PaginationLoader />}
+    </>
   );
 }
 
@@ -290,6 +329,7 @@ function SavedAwareSectionList({
   fullComputedSections,
   visibleComputedSections,
   visibilityFilter,
+  viewId,
   viewListKey,
   sentinelRef,
   showPaginationLoader,
@@ -298,6 +338,7 @@ function SavedAwareSectionList({
   fullComputedSections: ViewSection[];
   visibleComputedSections: ViewSection[];
   visibilityFilter: "unread" | "read" | "later";
+  viewId: number | undefined;
   viewListKey: string;
   sentinelRef: (node: HTMLDivElement | null) => void;
   showPaginationLoader: boolean;
@@ -308,6 +349,8 @@ function SavedAwareSectionList({
   const [sectionsShowingArchived, setSectionsShowingArchived] = useState<
     ReadonlySet<string>
   >(() => new Set());
+  const { states: archiveStates, loadSection: loadArchivedSection } =
+    useSavedSectionArchives(viewId);
   const allItemIds = useMemo(
     () => fullComputedSections.flatMap((section) => section.items),
     [fullComputedSections],
@@ -325,16 +368,55 @@ function SavedAwareSectionList({
   const filterSection = useCallback(
     (section: ViewSection) => {
       if (visibilityFilter !== "later") return section;
+      const sectionKey = getSectionKey(section);
+      const showArchived = sectionsShowingArchived.has(sectionKey);
+      const visibleItems = filterSavedSectionItems({
+        itemIds: section.items,
+        archivedSnapshot,
+        showArchived,
+      });
+      if (!showArchived) return { ...section, items: visibleItems };
+
+      const feedItems = feedItemsProjection.getItems();
       return {
         ...section,
-        items: filterSavedSectionItems({
-          itemIds: section.items,
-          archivedSnapshot,
-          showArchived: sectionsShowingArchived.has(getSectionKey(section)),
+        items: mergeSavedSectionItems({
+          itemIds: visibleItems,
+          archivedReferences: archiveStates[sectionKey]?.references ?? [],
+          getReference: (itemId): MixedContentReference | undefined => {
+            const bookmark = bookmarksStore.getState().getBookmark(itemId);
+            if (bookmark) {
+              return {
+                entityKind: "bookmark",
+                entityId: itemId,
+                sectionPlacement: section.placement,
+                normalizedAt: bookmark.savedUpdatedAt,
+              };
+            }
+            const item = feedItems[itemId];
+            if (!item) return undefined;
+            return {
+              entityKind: "feed-item",
+              entityId: itemId,
+              sectionPlacement: section.placement,
+              normalizedAt: item.isWatchLaterUpdatedAt ?? item.postedAt,
+            };
+          },
+          isStillSaved: (itemId) => {
+            const bookmark = bookmarksStore.getState().getBookmark(itemId);
+            if (bookmark) return bookmark.isSaved;
+            return feedItems[itemId]?.isWatchLater === true;
+          },
         }),
       };
     },
-    [archivedSnapshot, sectionsShowingArchived, visibilityFilter],
+    [
+      archivedSnapshot,
+      archiveStates,
+      feedItemsProjection,
+      sectionsShowingArchived,
+      visibilityFilter,
+    ],
   );
   const filteredFullSections = useMemo(
     () => fullComputedSections.map(filterSection),
@@ -401,7 +483,10 @@ function SavedAwareSectionList({
             handleMouseSelect={handleMouseSelect}
             onMarkAsRead={handleSectionMarkAsRead}
             sectionItemsForAction={filteredFullSections[index]?.items ?? []}
-            showHeading={(originalVisibleSection?.items.length ?? 0) > 0}
+            showHeading={
+              visibilityFilter === "later" ||
+              (originalVisibleSection?.items.length ?? 0) > 0
+            }
             showArchiveFilter={visibilityFilter === "later"}
             showArchived={showArchived}
             onShowArchivedChange={(pressed) => {
@@ -411,6 +496,21 @@ function SavedAwareSectionList({
                 else nextSectionKeys.delete(sectionKey);
                 return nextSectionKeys;
               });
+              if (pressed && archiveStates[sectionKey] === undefined) {
+                void loadArchivedSection(sectionKey, section.placement).catch(
+                  () => {
+                    setSectionsShowingArchived((currentSectionKeys) => {
+                      const nextSectionKeys = new Set(currentSectionKeys);
+                      nextSectionKeys.delete(sectionKey);
+                      return nextSectionKeys;
+                    });
+                  },
+                );
+              }
+            }}
+            archiveState={archiveStates[sectionKey]}
+            onLoadMoreArchived={() => {
+              void loadArchivedSection(sectionKey, section.placement);
             }}
           />
         );
@@ -492,7 +592,8 @@ export function RenderViewItems() {
     hasFetchedFeeds &&
     feedItemsLastFetchedAt !== null &&
     hasFetchedFeedCategories &&
-    !filteredFeedItemsOrder.length
+    !filteredFeedItemsOrder.length &&
+    visibilityFilter !== "later"
   ) {
     return <EmptyState />;
   }
@@ -503,6 +604,7 @@ export function RenderViewItems() {
       fullComputedSections={fullComputedSections}
       visibleComputedSections={visibleComputedSections}
       visibilityFilter={visibilityFilter}
+      viewId={currentView?.id}
       viewListKey={viewListKey}
       sentinelRef={sentinelRef}
       showPaginationLoader={paginationState?.isFetching === true}

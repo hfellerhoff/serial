@@ -107,6 +107,31 @@ export const requestPage = protectedProcedure
     return { status: "completed" as const };
   });
 
+export const getSavedSectionPage = protectedProcedure
+  .input(
+    z.object({
+      scope: z.object({
+        type: z.literal("view"),
+        viewId: z.number().int(),
+      }),
+      sectionPlacement: z.number().int().nonnegative().nullable(),
+      cursor: cursorSchema.optional(),
+      limit: z.number().int().min(1).max(500).optional(),
+    }),
+  )
+  .handler(async ({ context, input }) =>
+    queryMixedContentPage({
+      database: context.db,
+      userId: context.user.id,
+      scope: input.scope,
+      visibility: "later",
+      savedState: "archived",
+      sectionPlacement: input.sectionPlacement,
+      cursor: input.cursor,
+      limit: input.limit ?? ITEMS_PER_PAGE,
+    }),
+  );
+
 export const synchronize = protectedProcedure
   .input(
     z.object({

@@ -49,6 +49,8 @@ export type MixedContentPage = {
   hasMore: boolean;
 };
 
+export type SavedReadState = "unread" | "archived";
+
 export { loadApplicationBookmarks, loadApplicationBookmarksById };
 
 export async function queryMixedContentPage(input: {
@@ -56,11 +58,16 @@ export async function queryMixedContentPage(input: {
   userId: string;
   scope: MixedContentScope;
   visibility: VisibilityFilter;
+  savedState?: SavedReadState;
+  sectionPlacement?: number | null;
   cursor?: MixedContentCursor;
   limit: number;
 }): Promise<MixedContentPage> {
   if (!Number.isInteger(input.limit) || input.limit < 1 || input.limit > 500) {
     throw new Error("Mixed-content page limit must be between 1 and 500");
+  }
+  if (input.savedState && input.visibility !== "later") {
+    throw new Error("Saved read state is only valid for Saved content");
   }
   const scopeData = await loadScopeData(input);
   if (!scopeData.valid) {

@@ -15,6 +15,7 @@ import {
 } from "~/server/db/constants";
 import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
 import { bookmarksStore } from "~/lib/data/bookmarks/store";
+import { UNCATEGORIZED_SECTION_PLACEMENT } from "~/lib/views/sections";
 
 export interface ViewSection {
   name: string;
@@ -24,6 +25,7 @@ export interface ViewSection {
   isUncategorized: boolean;
   itemType?: "feed" | "tag";
   itemId?: number;
+  placement: number | null;
 }
 
 export function useViewSections(
@@ -62,6 +64,7 @@ export function useViewSections(
           layout: baseLayout,
           startIndex: 0,
           isUncategorized: true,
+          placement: null,
         },
       ] as ViewSection[];
     }
@@ -144,6 +147,7 @@ export function useViewSections(
         isUncategorized: false,
         itemType: li.itemType,
         itemId: li.itemId,
+        placement: li.placement,
       });
 
       startIndex += sectionItems.length;
@@ -160,6 +164,7 @@ export function useViewSections(
       layout: baseLayout,
       startIndex,
       isUncategorized: true,
+      placement: UNCATEGORIZED_SECTION_PLACEMENT,
     });
 
     return sections;

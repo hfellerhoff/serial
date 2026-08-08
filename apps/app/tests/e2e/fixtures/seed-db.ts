@@ -579,6 +579,33 @@ export async function seedMixedViewSectionCase(
   };
 }
 
+export async function archiveMixedViewItems(
+  tursoPort: number,
+  input: { feedItemIds?: string[]; bookmarkIds?: string[] },
+) {
+  const { db, client } = getDb(tursoPort);
+  const now = new Date();
+  const updates: Array<Promise<unknown>> = [];
+  if (input.feedItemIds?.length) {
+    updates.push(
+      db
+        .update(schema.feedItems)
+        .set({ isWatched: true, isWatchedUpdatedAt: now, updatedAt: now })
+        .where(inArray(schema.feedItems.id, input.feedItemIds)),
+    );
+  }
+  if (input.bookmarkIds?.length) {
+    updates.push(
+      db
+        .update(schema.bookmarks)
+        .set({ isRead: true, readUpdatedAt: now, updatedAt: now })
+        .where(inArray(schema.bookmarks.id, input.bookmarkIds)),
+    );
+  }
+  await Promise.all(updates);
+  client.close();
+}
+
 export async function seedSidebarFeedSortCase(
   tursoPort: number,
   appPort: number,

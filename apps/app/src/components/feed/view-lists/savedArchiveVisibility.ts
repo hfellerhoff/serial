@@ -1,3 +1,6 @@
+import type { MixedContentReference } from "~/server/mixed-content/projection";
+import { uniqueReferences } from "~/lib/data/mixed-content/bookmarkProjection";
+
 export type SavedArchiveSnapshot = ReadonlyMap<string, boolean>;
 
 export function createSavedArchiveSnapshot(
@@ -10,6 +13,29 @@ export function createSavedArchiveSnapshot(
     if (isArchived !== undefined) snapshot.set(itemId, isArchived);
   }
   return snapshot;
+}
+
+export function mergeSavedSectionItems({
+  itemIds,
+  archivedReferences,
+  getReference,
+  isStillSaved,
+}: {
+  itemIds: readonly string[];
+  archivedReferences: readonly MixedContentReference[];
+  getReference: (itemId: string) => MixedContentReference | undefined;
+  isStillSaved: (itemId: string) => boolean;
+}) {
+  const loadedReferences = itemIds.flatMap((itemId) => {
+    const reference = getReference(itemId);
+    return reference ? [reference] : [];
+  });
+  return uniqueReferences([
+    ...loadedReferences.filter((reference) => isStillSaved(reference.entityId)),
+    ...archivedReferences.filter((reference) =>
+      isStillSaved(reference.entityId),
+    ),
+  ]).map((reference) => reference.entityId);
 }
 
 export function filterSavedSectionItems({

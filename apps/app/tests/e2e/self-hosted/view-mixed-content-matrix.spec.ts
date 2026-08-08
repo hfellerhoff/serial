@@ -10,6 +10,7 @@ import {
   SELF_HOSTED_TURSO_PORT,
 } from "../fixtures/ports";
 import {
+  archiveMixedViewItems,
   cleanupUser,
   seedMixedViewSectionCase,
   seedSavedViewClientStateData,
@@ -161,11 +162,7 @@ test.describe("exhaustive mixed-content View section matrix", () => {
       const sections = [0, 1, 2].map((sectionIndex) =>
         feedMain.locator(`#section-${sectionIndex}`),
       );
-      if (expectedItemIds.length > 0) {
-        await expect(feedMain.locator('[id^="section-"]')).toHaveCount(3);
-      } else {
-        await expect(feedMain.locator('[id^="section-"]')).toHaveCount(0);
-      }
+      await expect(feedMain.locator('[id^="section-"]')).toHaveCount(3);
 
       for (const [itemId, expectedSectionIndex] of expectedSectionByItemId) {
         const globalItem = feedMain.locator(`[data-item-id="${itemId}"]`);
@@ -203,11 +200,7 @@ test.describe("exhaustive mixed-content View section matrix", () => {
           name: expectedHeadings[sectionIndex],
           exact: true,
         });
-        if (expectedSectionItemIds[sectionIndex]?.length) {
-          await expect(heading).toBeVisible();
-        } else {
-          await expect(heading).toHaveCount(0);
-        }
+        await expect(heading).toBeVisible();
       }
 
       expect(await finishSkeletonObservation(page)).toBe(false);
@@ -377,6 +370,78 @@ test.describe("exhaustive mixed-content View section matrix", () => {
 
     await feedSection.getByRole("tab", { name: "Unread" }).click();
     await expect(feedItem).toHaveCount(0);
+  });
+
+  test("loads archived Saved content only for the selected section", async ({
+    page,
+  }) => {
+    test.setTimeout(45_000);
+    const fixture = await seedMixedViewSectionCase(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+      {
+        feedSectionFeedItem: true,
+        tagSectionFeedItem: true,
+        tagSectionBookmark: true,
+        uncategorizedFeedItem: false,
+        uncategorizedBookmark: false,
+      },
+      "later",
+    );
+    await archiveMixedViewItems(SELF_HOSTED_TURSO_PORT, {
+      feedItemIds: [fixture.items.feedSectionFeedItem],
+      bookmarkIds: [fixture.items.tagSectionBookmark],
+    });
+    testEmail = fixture.email;
+
+    const archiveRequests: string[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("mixedContent/getSavedSectionPage")) {
+        archiveRequests.push(request.postData() ?? "");
+      }
+    });
+    await signIn({
+      page,
+      email: fixture.email,
+      password: fixture.password,
+    });
+    await visibilityTab(page, "Saved").click();
+
+    const feedMain = page
+      .locator("main")
+      .filter({
+        has: page.getByRole("heading", { name: "Serial", exact: true }),
+      })
+      .last();
+    await feedMain
+      .getByRole("radio", { name: fixture.viewName, exact: true })
+      .click();
+
+    const feedSection = feedMain.locator("#section-0");
+    const tagSection = feedMain.locator("#section-1");
+    const archivedFeedItem = feedSection.locator(
+      `article[data-item-id="${fixture.items.feedSectionFeedItem}"]`,
+    );
+    const archivedBookmark = tagSection.locator(
+      `article[data-item-id="${fixture.items.tagSectionBookmark}"]`,
+    );
+    await expect(archivedFeedItem).toHaveCount(0);
+    await expect(archivedBookmark).toHaveCount(0);
+    await expect(
+      tagSection.locator(
+        `article[data-item-id="${fixture.items.tagSectionFeedItem}"]`,
+      ),
+    ).toBeVisible();
+
+    await feedSection.getByRole("tab", { name: "All" }).click();
+    await expect(archivedFeedItem).toBeVisible({ timeout: 10_000 });
+    await expect(archivedBookmark).toHaveCount(0);
+    expect(archiveRequests).toHaveLength(1);
+
+    await tagSection.getByRole("tab", { name: "All" }).click();
+    await expect(archivedBookmark).toBeVisible({ timeout: 10_000 });
+    expect(archiveRequests).toHaveLength(2);
+    expect(archiveRequests[0]).not.toEqual(archiveRequests[1]);
   });
 
   test("shows a feed item immediately after saving it and entering its View", async ({

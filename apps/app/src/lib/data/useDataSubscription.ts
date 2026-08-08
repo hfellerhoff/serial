@@ -10,6 +10,7 @@ import { bookmarksStore } from "./bookmarks/store";
 import { processPublishedChunks } from "./subscriptionCoordinator";
 import { shouldAlwaysKeepSSEConnectionAlive } from "./atoms";
 import { getFeedItemMembershipRevision } from "./feed-items/membershipRevision";
+import { setDataSubscriptionConnected } from "./subscriptionConnection";
 import type { PublishedChunk } from "~/server/api/publisher";
 import type { VisibilityFilter } from "./atoms";
 import type {
@@ -54,7 +55,6 @@ export function useDataSubscription() {
   const [clientId] = useState(() => getDataSubscriptionClientId());
   const abortControllerRef = useRef<AbortController | null>(null);
   const retryDelayRef = useRef(INITIAL_RETRY_DELAY);
-  const isConnectedRef = useRef(false);
 
   // Buffer chunks and flush via requestAnimationFrame for micro-batching
   const chunkBufferRef = useRef<PublishedChunk[]>([]);
@@ -107,7 +107,6 @@ export function useDataSubscription() {
           combineAbortSignals([signal, conn.signal]);
 
         try {
-          isConnectedRef.current = true;
           retryDelayRef.current = INITIAL_RETRY_DELAY;
 
           // Each reconnect depends on the prior connection closing.
@@ -116,6 +115,7 @@ export function useDataSubscription() {
             { clientId },
             { signal: connectionSignal },
           );
+          setDataSubscriptionConnected(true);
 
           // After reconnecting due to page refocus, re-request data so
           // the server sends fresh metadata, diffs, and triggers a
@@ -141,7 +141,7 @@ export function useDataSubscription() {
             }
           }
         } catch (error) {
-          isConnectedRef.current = false;
+          setDataSubscriptionConnected(false);
 
           if (controller.signal.aborted) break;
 
@@ -159,6 +159,7 @@ export function useDataSubscription() {
             MAX_RETRY_DELAY,
           );
         } finally {
+          setDataSubscriptionConnected(false);
           cleanupConnectionSignal();
         }
       }
@@ -217,7 +218,7 @@ export function useDataSubscription() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       unsubscribeAtom();
       controller.abort();
-      isConnectedRef.current = false;
+      setDataSubscriptionConnected(false);
       // Cancel any pending RAF flush
       if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current);

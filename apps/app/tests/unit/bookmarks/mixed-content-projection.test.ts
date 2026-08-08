@@ -502,9 +502,21 @@ describe("mixed-content projection", () => {
     });
     expect(saved.references.map((reference) => reference.entityId)).toEqual([
       "recently-saved-old-feed",
-      "saved-and-read",
       "earlier-saved-new-feed",
     ]);
+
+    const archivedSaved = await queryMixedContentPage({
+      database,
+      userId: "user-one",
+      scope: { type: "view", viewId: 10 },
+      visibility: "later",
+      savedState: "archived",
+      sectionPlacement: null,
+      limit: 20,
+    });
+    expect(
+      archivedSaved.references.map((reference) => reference.entityId),
+    ).toEqual(["saved-and-read"]);
 
     const unread = await queryMixedContentPage({
       database,
@@ -530,6 +542,54 @@ describe("mixed-content projection", () => {
     expect(archived.references.map((reference) => reference.entityId)).toEqual([
       "unsaved-read",
     ]);
+  });
+
+  it("loads archived Saved content only for the requested View section", async () => {
+    await seedView(10, "Sectioned Saved");
+    await database.insert(contentCategories).values([
+      { id: 1, userId: "user-one", name: "First" },
+      { id: 2, userId: "user-one", name: "Second" },
+    ]);
+    await database.insert(viewCategories).values([
+      { viewId: 10, categoryId: 1 },
+      { viewId: 10, categoryId: 2 },
+    ]);
+    await database.insert(viewSections).values([
+      { viewId: 10, placement: 1, itemType: "tag", itemId: 1 },
+      { viewId: 10, placement: 2, itemType: "tag", itemId: 2 },
+    ]);
+    await seedBookmark({ id: "first-archived", isRead: true });
+    await seedBookmark({ id: "second-archived", isRead: true });
+    await seedBookmark({ id: "second-unread" });
+    await database.insert(bookmarkTags).values([
+      { bookmarkId: "first-archived", tagId: 1 },
+      { bookmarkId: "second-archived", tagId: 2 },
+      { bookmarkId: "second-unread", tagId: 2 },
+    ]);
+
+    const initialSaved = await queryMixedContentPage({
+      database,
+      userId: "user-one",
+      scope: { type: "view", viewId: 10 },
+      visibility: "later",
+      limit: 20,
+    });
+    expect(
+      initialSaved.references.map((reference) => reference.entityId),
+    ).toEqual(["second-unread"]);
+
+    const firstSectionArchived = await queryMixedContentPage({
+      database,
+      userId: "user-one",
+      scope: { type: "view", viewId: 10 },
+      visibility: "later",
+      savedState: "archived",
+      sectionPlacement: 1,
+      limit: 20,
+    });
+    expect(
+      firstSectionArchived.references.map((reference) => reference.entityId),
+    ).toEqual(["first-archived"]);
   });
 
   it("paginates without duplicates or gaps across section, timestamp, kind, and id boundaries", async () => {
