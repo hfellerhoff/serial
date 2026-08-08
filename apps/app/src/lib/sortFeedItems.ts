@@ -5,6 +5,40 @@ import type {
 import type { ApplicationViewSection } from "~/server/db/schema";
 import { VIEW_LAYOUT_ITEM_TYPE } from "~/server/db/constants";
 
+type SavedOrderCoordinate = {
+  isWatchLaterUpdatedAt?: Date | string | null;
+  postedAt: Date | string;
+  id: string;
+};
+
+function dateValue(date: Date | string) {
+  return date instanceof Date ? date.getTime() : new Date(date).getTime();
+}
+
+function descendingId(leftId: string, rightId: string) {
+  if (leftId === rightId) return 0;
+  return leftId > rightId ? -1 : 1;
+}
+
+export function compareSavedOrderCoordinates(
+  left: SavedOrderCoordinate,
+  right: SavedOrderCoordinate,
+) {
+  const leftSavedAt = left.isWatchLaterUpdatedAt
+    ? dateValue(left.isWatchLaterUpdatedAt)
+    : Number.NEGATIVE_INFINITY;
+  const rightSavedAt = right.isWatchLaterUpdatedAt
+    ? dateValue(right.isWatchLaterUpdatedAt)
+    : Number.NEGATIVE_INFINITY;
+  if (leftSavedAt !== rightSavedAt) return rightSavedAt - leftSavedAt;
+
+  const leftPostedAt = dateValue(left.postedAt);
+  const rightPostedAt = dateValue(right.postedAt);
+  if (leftPostedAt !== rightPostedAt) return rightPostedAt - leftPostedAt;
+
+  return descendingId(left.id, right.id);
+}
+
 function getItemPlacement(
   feedId: number,
   viewSections: ApplicationViewSection[],
@@ -55,7 +89,19 @@ export function sortFeedItemsOrderByDate(
       return timeB - timeA;
     }
 
-    return itemB.id.localeCompare(itemA.id);
+    return descendingId(itemA.id, itemB.id);
+  };
+}
+
+export function sortFeedItemsOrderBySavedAt(
+  feedItems: Record<string, FeedItemListProjection>,
+) {
+  return function (a: string, b: string) {
+    const itemA = feedItems[a];
+    const itemB = feedItems[b];
+
+    if (!itemA || !itemB) return 0;
+    return compareSavedOrderCoordinates(itemA, itemB);
   };
 }
 
@@ -96,7 +142,7 @@ export function sortFeedItemsOrderByWatchedAt(
       return timeB - timeA;
     }
 
-    return itemB.id.localeCompare(itemA.id);
+    return descendingId(itemA.id, itemB.id);
   };
 }
 
@@ -139,6 +185,33 @@ export function sortFeedItemsOrderBySectionThenDate(
       return timeB - timeA;
     }
 
-    return itemB.id.localeCompare(itemA.id);
+    return descendingId(itemA.id, itemB.id);
+  };
+}
+
+export function sortFeedItemsOrderBySectionThenSavedAt(
+  feedItems: Record<string, FeedItemListProjection>,
+  viewSections: ApplicationViewSection[],
+  filterIndex: FeedItemFilterIndex,
+) {
+  return function (a: string, b: string) {
+    const itemA = feedItems[a];
+    const itemB = feedItems[b];
+
+    if (!itemA || !itemB) return 0;
+
+    const placementA = getItemPlacement(
+      itemA.feedId,
+      viewSections,
+      filterIndex,
+    );
+    const placementB = getItemPlacement(
+      itemB.feedId,
+      viewSections,
+      filterIndex,
+    );
+    if (placementA !== placementB) return placementA - placementB;
+
+    return compareSavedOrderCoordinates(itemA, itemB);
   };
 }

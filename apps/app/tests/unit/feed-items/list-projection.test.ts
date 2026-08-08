@@ -116,6 +116,12 @@ describe("Feed-item list projection", () => {
     expect(
       hasFeedItemListProjectionChanged(item, {
         ...item,
+        isWatchLaterUpdatedAt: new Date(FIXTURE_TIME.getTime() + 1),
+      }),
+    ).toBe(true);
+    expect(
+      hasFeedItemListProjectionChanged(item, {
+        ...item,
         url: "https://serial.test/changed",
       }),
     ).toBe(true);

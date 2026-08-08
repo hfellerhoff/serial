@@ -15,6 +15,7 @@ export type FeedItemListProjection = Pick<
   | "isWatched"
   | "isWatchLater"
   | "isWatchedUpdatedAt"
+  | "isWatchLaterUpdatedAt"
   | "contentType"
   | "orientation"
   | "platform"
@@ -116,6 +117,8 @@ export function hasFeedItemListProjectionChanged(
     previousItem.isWatchLater !== nextItem.isWatchLater ||
     previousItem.isWatchedUpdatedAt?.getTime() !==
       nextItem.isWatchedUpdatedAt?.getTime() ||
+    previousItem.isWatchLaterUpdatedAt?.getTime() !==
+      nextItem.isWatchLaterUpdatedAt?.getTime() ||
     previousItem.contentType !== nextItem.contentType ||
     previousItem.orientation !== nextItem.orientation ||
     previousItem.platform !== nextItem.platform ||

@@ -26,8 +26,11 @@ import type { ApplicationFeedItem, ApplicationView } from "~/server/db/schema";
 import type { FeedItemFilterIndex } from "./listProjection";
 import type { PaginationCursor } from "~/server/api/routers/initialRouter";
 import {
+  compareSavedOrderCoordinates,
   sortFeedItemsOrderByDate,
+  sortFeedItemsOrderBySavedAt,
   sortFeedItemsOrderBySectionThenDate,
+  sortFeedItemsOrderBySectionThenSavedAt,
   sortFeedItemsOrderByWatchedAt,
 } from "~/lib/sortFeedItems";
 
@@ -43,6 +46,7 @@ export { mergeFeedItem } from "./mergeFeedItem";
 function isItemOlderThanCursor(
   item: ApplicationFeedItem,
   cursor: PaginationCursor,
+  visibilityFilter: VisibilityFilter,
   sectionPlacement?: number,
 ): boolean {
   if (!cursor) return false;
@@ -55,6 +59,10 @@ function isItemOlderThanCursor(
     if (sectionPlacement < cursor.placement) {
       return false;
     }
+  }
+
+  if (visibilityFilter === "later") {
+    return compareSavedOrderCoordinates(item, cursor) > 0;
   }
 
   // For read visibility, the server sorts by isWatchedUpdatedAt first.
@@ -112,14 +120,22 @@ function getActiveFeedItemsSort({
 
   const isFeedOrCategoryScoped = feedFilter >= 0 || categoryFilter >= 0;
   if (isFeedOrCategoryScoped || !viewFilter?.viewSections?.length) {
-    return sortFeedItemsOrderByDate(feedItemsDict);
+    return visibilityFilter === "later"
+      ? sortFeedItemsOrderBySavedAt(feedItemsDict)
+      : sortFeedItemsOrderByDate(feedItemsDict);
   }
 
-  return sortFeedItemsOrderBySectionThenDate(
-    feedItemsDict,
-    viewFilter.viewSections,
-    filterIndex,
-  );
+  return visibilityFilter === "later"
+    ? sortFeedItemsOrderBySectionThenSavedAt(
+        feedItemsDict,
+        viewFilter.viewSections,
+        filterIndex,
+      )
+    : sortFeedItemsOrderBySectionThenDate(
+        feedItemsDict,
+        viewFilter.viewSections,
+        filterIndex,
+      );
 }
 
 export const useFilteredFeedItemsOrder = () => {
@@ -205,7 +221,12 @@ export const useFilteredFeedItemsOrder = () => {
       if (
         shouldApplyCursorFilter &&
         activeCursor &&
-        isItemOlderThanCursor(item, activeCursor, itemSectionPlacement)
+        isItemOlderThanCursor(
+          item,
+          activeCursor,
+          visibilityFilter,
+          itemSectionPlacement,
+        )
       ) {
         return false;
       }
