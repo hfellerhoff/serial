@@ -1,9 +1,11 @@
+import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createBookmarkTestDatabase } from "../bookmarks/database";
 import { INBOX_VIEW_ID } from "~/lib/data/views/constants";
 import {
   bookmarks,
   bookmarkTags,
+  bookmarkViews,
   contentCategories,
   feedCategories,
   feedItems,
@@ -241,5 +243,84 @@ describe("navigation snapshot", () => {
 
     expect(snapshot.views[30]?.unread).toBe(false);
     expect(snapshot.feeds[1]?.unread).toBe(true);
+  });
+
+  it("reports Saved View availability only when unread saved content remains", async () => {
+    await seedFeed(1);
+    await database.insert(views).values({
+      id: 31,
+      userId: "navigation-user",
+      name: "Saved availability",
+      contentFilter: 3,
+      daysWindow: 0,
+      layout: "list",
+    });
+    await database.insert(viewFeeds).values({ viewId: 31, feedId: 1 });
+    await seedFeedItem({
+      id: "archived-saved-feed-item",
+      feedId: 1,
+      isWatched: true,
+      isWatchLater: true,
+    });
+    await database.insert(bookmarks).values({
+      id: "archived-saved-bookmark",
+      userId: "navigation-user",
+      sourceUrl: "https://bookmarks.example/archived-saved",
+      canonicalUrl: "https://bookmarks.example/archived-saved",
+      title: "Archived saved bookmark",
+      contentType: "text",
+      isSaved: true,
+      isRead: true,
+      createdAt: NOW,
+      savedUpdatedAt: NOW,
+      readUpdatedAt: NOW,
+      progressUpdatedAt: NOW,
+      updatedAt: NOW,
+    });
+    await database.insert(bookmarkViews).values({
+      bookmarkId: "archived-saved-bookmark",
+      viewId: 31,
+    });
+
+    let snapshot = await queryNavigationSnapshot({
+      database,
+      userId: "navigation-user",
+      now: NOW,
+    });
+
+    expect(snapshot.views[31]?.later).toBe(false);
+    expect(snapshot.viewFeeds[31]?.[1]?.later).toBe(false);
+
+    await database
+      .update(feedItems)
+      .set({ isWatched: false })
+      .where(eq(feedItems.id, "archived-saved-feed-item"));
+
+    snapshot = await queryNavigationSnapshot({
+      database,
+      userId: "navigation-user",
+      now: NOW,
+    });
+
+    expect(snapshot.views[31]?.later).toBe(true);
+    expect(snapshot.viewFeeds[31]?.[1]?.later).toBe(true);
+
+    await database
+      .update(feedItems)
+      .set({ isWatched: true })
+      .where(eq(feedItems.id, "archived-saved-feed-item"));
+    await database
+      .update(bookmarks)
+      .set({ isRead: false })
+      .where(eq(bookmarks.id, "archived-saved-bookmark"));
+
+    snapshot = await queryNavigationSnapshot({
+      database,
+      userId: "navigation-user",
+      now: NOW,
+    });
+
+    expect(snapshot.views[31]?.later).toBe(true);
+    expect(snapshot.viewFeeds[31]?.[1]?.later).toBe(false);
   });
 });

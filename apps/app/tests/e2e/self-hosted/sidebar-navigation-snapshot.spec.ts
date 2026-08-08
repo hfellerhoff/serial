@@ -154,6 +154,61 @@ test.describe("authoritative sidebar navigation", () => {
     await expect(tagButton.locator(".bg-sidebar-accent")).toHaveCount(1);
   });
 
+  test("revalidates Saved View availability across feed-item empty boundaries", async ({
+    page,
+  }) => {
+    const fixture = await seedMixedViewSectionCase(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+      {
+        feedSectionFeedItem: true,
+        tagSectionFeedItem: false,
+        tagSectionBookmark: false,
+        uncategorizedFeedItem: false,
+        uncategorizedBookmark: false,
+      },
+      "unread",
+    );
+    testEmail = fixture.email;
+
+    await signIn({
+      page,
+      email: fixture.email,
+      password: fixture.password,
+    });
+
+    const views = page.locator('[data-sidebar="group"]').filter({
+      has: page.locator('[data-sidebar="group-label"]', { hasText: "Views" }),
+    });
+    const viewButton = views
+      .locator('[data-sidebar="menu-button"]')
+      .filter({ hasText: fixture.viewName });
+    await page.getByRole("radio", { name: fixture.viewName }).click();
+
+    const item = page.locator(
+      `article[data-item-id="${fixture.items.feedSectionFeedItem}"]`,
+    );
+    await expect(item).toBeVisible({ timeout: 30_000 });
+    await item.getByRole("link").hover();
+    await page.keyboard.press("s");
+
+    await page.getByRole("tab", { name: /Saved/ }).click();
+    await expect(viewButton.locator(".bg-sidebar-accent")).toHaveCount(1);
+    await expect(item).toBeVisible();
+
+    await item.getByRole("link").hover();
+    await page.keyboard.press("e");
+    await expect(item).toHaveCount(0);
+    await expect(viewButton.locator(".bg-sidebar-accent")).toHaveCount(0);
+
+    await page.getByRole("tab", { name: "All" }).click();
+    await expect(item).toBeVisible();
+    await item.getByRole("link").hover();
+    await page.keyboard.press("e");
+
+    await expect(viewButton.locator(".bg-sidebar-accent")).toHaveCount(1);
+  });
+
   test("keeps globally populated Feeds below the current View buckets on initial load", async ({
     page,
   }) => {

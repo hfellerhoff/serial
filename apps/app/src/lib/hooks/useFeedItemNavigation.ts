@@ -5,6 +5,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { useLocation } from "@tanstack/react-router";
 import { useShortcut } from "./useShortcut";
 import { useContentItemActions } from "./useContentItemActions";
+import { shouldAdvanceAfterToggleRead } from "./readAdvance";
 import { useLoadMoreItems } from "./useLoadMoreItems";
 import {
   FEED_ITEM_SCROLL,
@@ -34,6 +35,7 @@ import {
 interface SectionInfo {
   size: number;
   isGrid: boolean;
+  showsArchivedSavedItems: boolean;
 }
 
 interface SelectNextItemOptions {
@@ -559,7 +561,22 @@ export function useFeedItemNavigation(
       const didToggleRead = selectedItemActions.toggleRead();
       if (!didToggleRead) return;
 
-      if (visibilityFilter === "unread") {
+      const selectedSectionIndex =
+        hasSections && idx >= 0
+          ? getSectionIndex(idx, sectionBoundaries)
+          : null;
+      const savedSectionVisibility =
+        visibilityFilter === "later" && selectedSectionIndex !== null
+          ? sections?.[selectedSectionIndex]?.showsArchivedSavedItems
+            ? "all"
+            : "unread"
+          : null;
+      if (
+        shouldAdvanceAfterToggleRead({
+          visibilityFilter,
+          savedSectionVisibility,
+        })
+      ) {
         selectItemAfterCurrentItemLeavesView(idx);
       }
     },
@@ -569,6 +586,9 @@ export function useFeedItemNavigation(
       selectedItemActions,
       items,
       visibilityFilter,
+      hasSections,
+      sectionBoundaries,
+      sections,
       selectItemAfterCurrentItemLeavesView,
     ],
   );

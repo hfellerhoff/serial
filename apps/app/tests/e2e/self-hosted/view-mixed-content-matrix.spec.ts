@@ -289,7 +289,7 @@ test.describe("exhaustive mixed-content View section matrix", () => {
     });
   }
 
-  test("hides archived Saved items immediately and reveals them per section", async ({
+  test("advances in Saved Unread and retains selection in Saved All", async ({
     page,
   }) => {
     test.setTimeout(60_000);
@@ -330,16 +330,16 @@ test.describe("exhaustive mixed-content View section matrix", () => {
     const bookmark = feedMain.locator(
       `article[data-item-id="${fixture.items.tagSectionBookmark}"]`,
     );
+    const nextFeedItem = feedMain.locator(
+      `article[data-item-id="${fixture.items.tagSectionFeedItem}"]`,
+    );
     await expect(feedItem).toBeVisible({ timeout: 30_000 });
     await expect(bookmark).toBeVisible();
 
     await feedItem.getByRole("link").hover();
     await page.keyboard.press("e");
     await expect(feedItem).toHaveCount(0);
-
-    await bookmark.hover();
-    await bookmark.getByRole("button", { name: "Archive" }).click();
-    await expect(bookmark).toHaveCount(0);
+    await expect(nextFeedItem.getByRole("link")).toHaveClass(/md:bg-muted/);
     await expect(
       feedMain.getByRole("heading", { name: "Test Blog", exact: true }),
     ).toBeVisible();
@@ -357,14 +357,19 @@ test.describe("exhaustive mixed-content View section matrix", () => {
       "true",
     );
     await expect(feedItem).toBeVisible();
-    await expect(bookmark).toHaveCount(0);
+    await expect(bookmark).toBeVisible();
 
     await tagSection.getByRole("tab", { name: "All" }).click();
+    await bookmark.getByRole("link").hover();
+    await page.keyboard.press("e");
     await expect(bookmark).toBeVisible();
+    await expect(bookmark.getByRole("link")).toHaveClass(/md:bg-muted/);
+
+    await tagSection.getByRole("tab", { name: "Unread" }).click();
+    await expect(bookmark).toHaveCount(0);
 
     await feedSection.getByRole("tab", { name: "Unread" }).click();
     await expect(feedItem).toHaveCount(0);
-    await expect(bookmark).toBeVisible();
   });
 
   test("shows a feed item immediately after saving it and entering its View", async ({

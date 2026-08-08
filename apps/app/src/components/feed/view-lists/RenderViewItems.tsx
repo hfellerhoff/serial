@@ -352,11 +352,14 @@ function SavedAwareSectionList({
     () =>
       filteredFullSections.map((section) => ({
         size: section.items.length,
+        showsArchivedSavedItems: sectionsShowingArchived.has(
+          getSectionKey(section),
+        ),
         isGrid:
           section.layout === VIEW_LAYOUT.GRID ||
           section.layout === VIEW_LAYOUT.LARGE_GRID,
       })),
-    [filteredFullSections],
+    [filteredFullSections, sectionsShowingArchived],
   );
   const navigationIsGridLayout =
     navigationSectionInfo.length === 1 &&

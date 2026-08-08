@@ -16,6 +16,7 @@ import {
 import { useFeeds as useFeedsArray } from "../data/feeds/store";
 import { saveHomeScrollPosition } from "~/lib/scroll";
 import { getDataSubscriptionClientId } from "~/lib/data/clientChannel";
+import { refreshNavigationSnapshotSafely } from "~/lib/data/navigation/store";
 
 export function useFeedItemActions(itemId: string) {
   const router = useRouter();
@@ -34,9 +35,10 @@ export function useFeedItemActions(itemId: string) {
         isWatched: true,
         clientId: getDataSubscriptionClientId(),
       })
-      .then((serverValue) =>
-        resolveOptimisticWatchedValue(context, serverValue),
-      )
+      .then(async (serverValue) => {
+        resolveOptimisticWatchedValue(context, serverValue);
+        await refreshNavigationSnapshotSafely();
+      })
       .catch(() => rollbackOptimisticWatchedValue(context));
   }, [item, itemId]);
 
@@ -52,9 +54,10 @@ export function useFeedItemActions(itemId: string) {
         isWatched: newIsWatched,
         clientId: getDataSubscriptionClientId(),
       })
-      .then((serverValue) =>
-        resolveOptimisticWatchedValue(context, serverValue),
-      )
+      .then(async (serverValue) => {
+        resolveOptimisticWatchedValue(context, serverValue);
+        await refreshNavigationSnapshotSafely();
+      })
       .catch(() => rollbackOptimisticWatchedValue(context));
 
     return true;
@@ -71,9 +74,10 @@ export function useFeedItemActions(itemId: string) {
         isWatchLater: !item.isWatchLater,
         clientId: getDataSubscriptionClientId(),
       })
-      .then((serverValue) =>
-        resolveOptimisticWatchLaterValue(context, serverValue),
-      )
+      .then(async (serverValue) => {
+        resolveOptimisticWatchLaterValue(context, serverValue);
+        await refreshNavigationSnapshotSafely();
+      })
       .catch(() => rollbackOptimisticWatchLaterValue(context));
   }, [item, itemId]);
 

@@ -63,6 +63,17 @@ function visibilityCondition(input: {
   );
 }
 
+function viewVisibilityCondition(input: {
+  visibility: VisibilityFilter;
+  isRead: SqlColumn;
+  isLater: SqlColumn;
+}) {
+  if (input.visibility === "later") {
+    return and(eq(input.isLater, true), eq(input.isRead, false));
+  }
+  return visibilityCondition(input);
+}
+
 function hasAny(condition: SQL | undefined) {
   return sql<number>`CASE WHEN ${condition ?? sql`0`} THEN 1 ELSE 0 END`;
 }
@@ -148,7 +159,7 @@ function feedExistsForViewFeed(input: {
             orientation: feedItems.orientation,
           }),
           insideTimeWindow,
-          visibilityCondition({
+          viewVisibilityCondition({
             visibility: input.visibility,
             isRead: feedItems.isWatched,
             isLater: feedItems.isWatchLater,
@@ -212,7 +223,7 @@ function feedExistsForView(input: {
             orientation: feedItems.orientation,
           }),
           insideTimeWindow,
-          visibilityCondition({
+          viewVisibilityCondition({
             visibility: input.visibility,
             isRead: feedItems.isWatched,
             isLater: feedItems.isWatchLater,
@@ -275,7 +286,7 @@ function bookmarkExistsForView(input: {
             orientation: bookmarks.orientation,
           }),
           insideTimeWindow,
-          visibilityCondition({
+          viewVisibilityCondition({
             visibility: input.visibility,
             isRead: bookmarks.isRead,
             isLater: bookmarks.isSaved,
@@ -328,7 +339,7 @@ async function queryViewAvailability(input: {
             and(
               eq(feeds.userId, input.userId),
               feedScopeCondition(inboxScope),
-              visibilityCondition({
+              viewVisibilityCondition({
                 visibility,
                 isRead: feedItems.isWatched,
                 isLater: feedItems.isWatchLater,
@@ -345,7 +356,7 @@ async function queryViewAvailability(input: {
             and(
               eq(bookmarks.userId, input.userId),
               bookmarkScopeCondition(inboxScope),
-              visibilityCondition({
+              viewVisibilityCondition({
                 visibility,
                 isRead: bookmarks.isRead,
                 isLater: bookmarks.isSaved,
@@ -551,7 +562,7 @@ async function queryInboxViewFeedAvailability(input: {
         .where(
           and(
             eq(feedItems.feedId, feeds.id),
-            visibilityCondition({
+            viewVisibilityCondition({
               visibility,
               isRead: feedItems.isWatched,
               isLater: feedItems.isWatchLater,
