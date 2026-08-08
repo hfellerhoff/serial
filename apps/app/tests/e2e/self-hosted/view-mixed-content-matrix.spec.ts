@@ -289,7 +289,7 @@ test.describe("exhaustive mixed-content View section matrix", () => {
     });
   }
 
-  test("hides existing archived Saved items per section while retaining newly archived items", async ({
+  test("hides archived Saved items immediately and reveals them per section", async ({
     page,
   }) => {
     test.setTimeout(60_000);
@@ -335,18 +335,10 @@ test.describe("exhaustive mixed-content View section matrix", () => {
 
     await feedItem.getByRole("link").hover();
     await page.keyboard.press("e");
-    await expect(feedItem).toBeVisible();
-    await expect(feedItem.getByRole("link")).toHaveClass(/opacity-50/);
+    await expect(feedItem).toHaveCount(0);
 
     await bookmark.hover();
     await bookmark.getByRole("button", { name: "Archive" }).click();
-    await expect(bookmark).toBeVisible();
-    await expect(bookmark.getByRole("link")).toHaveClass(/opacity-50/);
-
-    await page.getByRole("tab", { name: "Unread", exact: false }).click();
-    await page.getByRole("tab", { name: "Saved", exact: false }).click();
-
-    await expect(feedItem).toHaveCount(0);
     await expect(bookmark).toHaveCount(0);
     await expect(
       feedMain.getByRole("heading", { name: "Test Blog", exact: true }),

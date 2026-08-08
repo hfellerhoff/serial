@@ -21,7 +21,6 @@ import { useViewListScroll } from "./useViewListScroll";
 import {
   createSavedArchiveSnapshot,
   filterSavedSectionItems,
-  getSoftArchivedSavedItemIds,
 } from "./savedArchiveVisibility";
 import type { ViewSection } from "./useViewSections";
 import { VIEW_LAYOUT } from "~/server/db/constants";
@@ -321,7 +320,6 @@ function SavedAwareSectionList({
   const [sectionsShowingArchived, setSectionsShowingArchived] = useState<
     ReadonlySet<string>
   >(() => new Set());
-  const [contextStartedAt] = useState(() => Date.now());
   const allItemIds = useMemo(
     () => fullComputedSections.flatMap((section) => section.items),
     [fullComputedSections],
@@ -331,24 +329,10 @@ function SavedAwareSectionList({
     const feedItems = feedItemsProjection.getItems();
     return createSavedArchiveSnapshot(allItemIds, (itemId) => {
       const bookmark = bookmarksStore.getState().getBookmark(itemId);
-      if (bookmark) {
-        return {
-          archivedAt: bookmark.readUpdatedAt,
-          isArchived: bookmark.isRead,
-        };
-      }
-      const feedItem = feedItems[itemId];
-      if (!feedItem) return undefined;
-      return {
-        archivedAt: feedItem.isWatchedUpdatedAt,
-        isArchived: feedItem.isWatched,
-      };
+      if (bookmark) return bookmark.isRead;
+      return feedItems[itemId]?.isWatched;
     });
   }, [allItemIds, bookmarkRevision, feedItemsProjection]);
-  const softArchivedItemIds = useMemo(
-    () => getSoftArchivedSavedItemIds(archivedSnapshot, contextStartedAt),
-    [archivedSnapshot, contextStartedAt],
-  );
 
   const filterSection = useCallback(
     (section: ViewSection) => {
@@ -359,16 +343,10 @@ function SavedAwareSectionList({
           itemIds: section.items,
           archivedSnapshot,
           showArchived: sectionsShowingArchived.has(getSectionKey(section)),
-          softArchivedItemIds,
         }),
       };
     },
-    [
-      archivedSnapshot,
-      sectionsShowingArchived,
-      softArchivedItemIds,
-      visibilityFilter,
-    ],
+    [archivedSnapshot, sectionsShowingArchived, visibilityFilter],
   );
   const filteredFullSections = useMemo(
     () => fullComputedSections.map(filterSection),

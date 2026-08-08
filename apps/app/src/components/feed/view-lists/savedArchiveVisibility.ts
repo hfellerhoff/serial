@@ -1,57 +1,26 @@
-export type SavedArchiveState = {
-  archivedAt: Date | null;
-  isArchived: boolean;
-};
-
-export type SavedArchiveSnapshot = ReadonlyMap<string, SavedArchiveState>;
+export type SavedArchiveSnapshot = ReadonlyMap<string, boolean>;
 
 export function createSavedArchiveSnapshot(
   itemIds: readonly string[],
-  getArchiveState: (itemId: string) => SavedArchiveState | undefined,
+  getIsArchived: (itemId: string) => boolean | undefined,
 ) {
-  const snapshot = new Map<string, SavedArchiveState>();
+  const snapshot = new Map<string, boolean>();
   for (const itemId of itemIds) {
-    const archiveState = getArchiveState(itemId);
-    if (archiveState !== undefined) snapshot.set(itemId, archiveState);
+    const isArchived = getIsArchived(itemId);
+    if (isArchived !== undefined) snapshot.set(itemId, isArchived);
   }
   return snapshot;
-}
-
-export function getSoftArchivedSavedItemIds(
-  archivedSnapshot: SavedArchiveSnapshot,
-  contextStartedAt: number,
-) {
-  const softArchivedItemIds = new Set<string>();
-
-  for (const [itemId, state] of archivedSnapshot) {
-    if (
-      state.isArchived &&
-      state.archivedAt !== null &&
-      state.archivedAt.getTime() >= contextStartedAt
-    ) {
-      softArchivedItemIds.add(itemId);
-    }
-  }
-
-  return softArchivedItemIds;
 }
 
 export function filterSavedSectionItems({
   itemIds,
   archivedSnapshot,
   showArchived,
-  softArchivedItemIds,
 }: {
   itemIds: readonly string[];
   archivedSnapshot: SavedArchiveSnapshot;
   showArchived: boolean;
-  softArchivedItemIds: ReadonlySet<string>;
 }) {
   if (showArchived) return [...itemIds];
-
-  return itemIds.filter(
-    (itemId) =>
-      archivedSnapshot.get(itemId)?.isArchived !== true ||
-      softArchivedItemIds.has(itemId),
-  );
+  return itemIds.filter((itemId) => archivedSnapshot.get(itemId) !== true);
 }
