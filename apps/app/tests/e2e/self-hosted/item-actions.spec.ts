@@ -168,7 +168,9 @@ test.describe("feed item actions", () => {
     await expect(player).not.toHaveAttribute("sandbox", /.*/);
   });
 
-  test("marking a saved item read keeps it selected", async ({ page }) => {
+  test("marking a saved item read in All keeps it selected", async ({
+    page,
+  }) => {
     test.setTimeout(30000);
 
     const { email, password } = await seedMultipleArticleData(
@@ -207,6 +209,11 @@ test.describe("feed item actions", () => {
     await expect(page.locator("article").first()).toBeVisible({
       timeout: 10000,
     });
+    await page
+      .locator('[id^="section-"]')
+      .first()
+      .getByRole("tab", { name: "All" })
+      .click();
 
     const savedItemIds = await page
       .locator("article")

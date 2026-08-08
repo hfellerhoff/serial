@@ -35,21 +35,28 @@ async function renderedItemIds(locator: Locator) {
   ).sort();
 }
 
-async function beginSkeletonObservation(page: Page) {
-  await page.evaluate(() => {
+function visibilityTab(page: Page, name: string | RegExp) {
+  return page
+    .locator('[data-slot="tabs-list"]')
+    .filter({ has: page.getByRole("tab", { name: /Saved/ }) })
+    .getByRole("tab", { name, exact: false });
+}
+
+async function beginSkeletonObservation(locator: Locator) {
+  await locator.evaluate((root) => {
     const state = window as typeof window & {
       __serialMatrixSkeletonSeen?: boolean;
       __serialMatrixSkeletonObserver?: MutationObserver;
     };
     state.__serialMatrixSkeletonSeen = Boolean(
-      document.querySelector(".animate-pulse"),
+      root.querySelector(".animate-pulse"),
     );
     state.__serialMatrixSkeletonObserver = new MutationObserver(() => {
-      if (document.querySelector(".animate-pulse")) {
+      if (root.querySelector(".animate-pulse")) {
         state.__serialMatrixSkeletonSeen = true;
       }
     });
-    state.__serialMatrixSkeletonObserver.observe(document.body, {
+    state.__serialMatrixSkeletonObserver.observe(root, {
       childList: true,
       subtree: true,
     });
@@ -122,7 +129,7 @@ test.describe("exhaustive mixed-content View section matrix", () => {
         email: fixture.email,
         password: fixture.password,
       });
-      await page.getByRole("tab", { name: /Saved/ }).click();
+      await visibilityTab(page, "Saved").click();
 
       const feedMain = page
         .locator("main")
@@ -143,7 +150,7 @@ test.describe("exhaustive mixed-content View section matrix", () => {
         )
         .toBe(expectedItemIds.length === 0);
 
-      await beginSkeletonObservation(page);
+      await beginSkeletonObservation(feedMain);
       await viewChip.click();
 
       const renderedItems = feedMain.locator("article[data-item-id]");
@@ -237,7 +244,7 @@ test.describe("exhaustive mixed-content View section matrix", () => {
         email: fixture.email,
         password: fixture.password,
       });
-      await page.getByRole("tab", { name: tabName, exact: false }).click();
+      await visibilityTab(page, tabName).click();
 
       const feedMain = page
         .locator("main")
@@ -312,7 +319,7 @@ test.describe("exhaustive mixed-content View section matrix", () => {
       email: fixture.email,
       password: fixture.password,
     });
-    await page.getByRole("tab", { name: "Saved", exact: false }).click();
+    await visibilityTab(page, "Saved").click();
 
     const feedMain = page
       .locator("main")
@@ -410,7 +417,7 @@ test.describe("exhaustive mixed-content View section matrix", () => {
     await item.getByRole("link").hover();
     await page.keyboard.press("s");
 
-    await page.getByRole("tab", { name: "Saved", exact: false }).click();
+    await visibilityTab(page, "Saved").click();
     await feedMain
       .getByRole("radio", { name: fixture.viewName, exact: true })
       .click();
@@ -443,7 +450,7 @@ test.describe("exhaustive mixed-content View section matrix", () => {
       exact: true,
     });
 
-    await page.getByRole("tab", { name: "Saved", exact: false }).click();
+    await visibilityTab(page, "Saved").click();
     await targetViewChip.click();
     await expect(feedMain.locator("article[data-item-id]").first()).toBeVisible(
       {
@@ -465,7 +472,7 @@ test.describe("exhaustive mixed-content View section matrix", () => {
       )
       .toBe(true);
 
-    await page.getByRole("tab", { name: "Unread", exact: false }).click();
+    await visibilityTab(page, "Unread").click();
     const targetItem = feedMain.locator(
       `article[data-item-id="${fixture.targetItemId}"]`,
     );
@@ -473,7 +480,7 @@ test.describe("exhaustive mixed-content View section matrix", () => {
     await targetItem.getByRole("link").hover();
     await page.keyboard.press("s");
 
-    await page.getByRole("tab", { name: "Saved", exact: false }).click();
+    await visibilityTab(page, "Saved").click();
     await expect(targetItem).toBeVisible({ timeout: 5_000 });
   });
 
@@ -501,7 +508,7 @@ test.describe("exhaustive mixed-content View section matrix", () => {
       email: fixture.email,
       password: fixture.password,
     });
-    await page.getByRole("tab", { name: /Archived/ }).click();
+    await visibilityTab(page, "Archived").click();
 
     const feedMain = page
       .locator("main")
