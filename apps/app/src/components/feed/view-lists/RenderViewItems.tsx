@@ -1,8 +1,8 @@
 "use client";
 
 import { useAtomValue } from "jotai";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { CheckIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArchiveIcon, CheckIcon } from "lucide-react";
 import { EmptyState, FeedEmptyState } from "./EmptyStates";
 import { PaginationEnd } from "./PaginationEnd";
 import { PaginationLoader } from "./PaginationLoader";
@@ -18,6 +18,11 @@ import { ViewItemLargeList } from "./ViewItemLargeList";
 import { ViewItemStandardList } from "./ViewItemStandardList";
 import { useViewSections } from "./useViewSections";
 import { useViewListScroll } from "./useViewListScroll";
+import {
+  createSavedArchiveSnapshot,
+  filterSavedSectionItems,
+  getSoftArchivedSavedItemIds,
+} from "./savedArchiveVisibility";
 import type { ViewSection } from "./useViewSections";
 import { VIEW_LAYOUT } from "~/server/db/constants";
 import FeedLoading from "~/components/loading";
@@ -27,6 +32,8 @@ import { useLazyCategoryFilter } from "~/lib/hooks/useLazyCategoryFilter";
 import { useLazyFeedFilter } from "~/lib/hooks/useLazyFeedFilter";
 import { useValidateViewItems } from "~/lib/hooks/useValidateViewItems";
 import {
+  categoryFilterAtom,
+  feedFilterAtom,
   selectedItemIdAtom,
   viewFilterAtom,
   visibilityFilterAtom,
@@ -36,6 +43,7 @@ import { useFeeds } from "~/lib/data/feeds";
 import { REMOTE_IMAGE_PROPS } from "~/lib/remoteMedia";
 import { useFilteredContentOrder } from "~/lib/data/feed-items";
 import {
+  useFeedItemsListProjection,
   useFetchFeedItemsLastFetchedAt,
   useHasInitialData,
 } from "~/lib/data/store";
@@ -44,6 +52,12 @@ import { useShortcut } from "~/lib/hooks/useShortcut";
 import { showUndoToast } from "~/lib/undo";
 import { bookmarksStore } from "~/lib/data/bookmarks/store";
 import { setMixedReadValue } from "~/lib/data/mixed-content/mutations";
+import { Toggle } from "~/components/ui/toggle";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 
 function getNextAvailableItemAfterSection(
   sectionIndex: number,
@@ -92,6 +106,9 @@ function SectionHeading({
   sectionItems,
   sectionIndex,
   onMarkAsRead,
+  showArchiveToggle,
+  showArchived,
+  onShowArchivedChange,
 }: {
   name: string;
   itemType?: "feed" | "tag";
@@ -99,6 +116,9 @@ function SectionHeading({
   sectionItems: string[];
   sectionIndex: number;
   onMarkAsRead?: (sectionIndex: number) => void;
+  showArchiveToggle: boolean;
+  showArchived: boolean;
+  onShowArchivedChange: (pressed: boolean) => void;
 }) {
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
   const selectedItemId = useAtomValue(selectedItemIdAtom);
@@ -171,6 +191,27 @@ function SectionHeading({
           )}
           <h2 className="line-clamp-1 text-lg font-semibold">{name}</h2>
           <div className="flex-1" />
+          {showArchiveToggle && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Toggle
+                  aria-label={
+                    showArchived ? "Hide archived items" : "Show archived items"
+                  }
+                  variant="outline"
+                  size="sm"
+                  pressed={showArchived}
+                  onPressedChange={onShowArchivedChange}
+                  className="w-8 px-0"
+                >
+                  <ArchiveIcon size={14} />
+                </Toggle>
+              </TooltipTrigger>
+              <TooltipContent>
+                {showArchived ? "Hide archived items" : "Show archived items"}
+              </TooltipContent>
+            </Tooltip>
+          )}
           {visibilityFilter === "unread" && sectionItems.length > 0 && (
             <ButtonWithShortcut
               variant="outline"
@@ -196,12 +237,20 @@ function LayoutSection({
   sectionIndex,
   onMarkAsRead,
   sectionItemsForAction,
+  showHeading,
+  showArchiveToggle,
+  showArchived,
+  onShowArchivedChange,
 }: {
   section: ViewSection;
   handleMouseSelect: (itemId: string) => void;
   sectionIndex: number;
   onMarkAsRead?: (sectionIndex: number) => void;
   sectionItemsForAction: string[];
+  showHeading: boolean;
+  showArchiveToggle: boolean;
+  showArchived: boolean;
+  onShowArchivedChange: (pressed: boolean) => void;
 }) {
   const { items, layout, name, itemType, itemId } = section;
 
@@ -213,7 +262,7 @@ function LayoutSection({
 
   return (
     <div className="w-full" id={`section-${sectionIndex}`}>
-      {items.length > 0 && (
+      {showHeading && (
         <SectionHeading
           name={name}
           itemType={itemType}
@@ -221,6 +270,9 @@ function LayoutSection({
           sectionItems={sectionItemsForAction}
           sectionIndex={sectionIndex}
           onMarkAsRead={onMarkAsRead}
+          showArchiveToggle={showArchiveToggle}
+          showArchived={showArchived}
+          onShowArchivedChange={onShowArchivedChange}
         />
       )}
       {items.length > 0 && (
@@ -241,6 +293,166 @@ function LayoutSection({
   );
 }
 
+function getSectionKey(section: ViewSection) {
+  return section.isUncategorized
+    ? "uncategorized"
+    : `${section.itemType ?? "section"}:${section.itemId ?? section.name}`;
+}
+
+function SavedAwareSectionList({
+  fullComputedSections,
+  visibleComputedSections,
+  visibilityFilter,
+  viewListKey,
+  sentinelRef,
+  showPaginationLoader,
+  showPaginationEnd,
+}: {
+  fullComputedSections: ViewSection[];
+  visibleComputedSections: ViewSection[];
+  visibilityFilter: "unread" | "read" | "later";
+  viewListKey: string;
+  sentinelRef: (node: HTMLDivElement | null) => void;
+  showPaginationLoader: boolean;
+  showPaginationEnd: boolean;
+}) {
+  const feedItemsProjection = useFeedItemsListProjection();
+  const bookmarkRevision = bookmarksStore.useRevision();
+  const [sectionsShowingArchived, setSectionsShowingArchived] = useState<
+    ReadonlySet<string>
+  >(() => new Set());
+  const [contextStartedAt] = useState(() => Date.now());
+  const allItemIds = useMemo(
+    () => fullComputedSections.flatMap((section) => section.items),
+    [fullComputedSections],
+  );
+  const archivedSnapshot = useMemo(() => {
+    void bookmarkRevision;
+    const feedItems = feedItemsProjection.getItems();
+    return createSavedArchiveSnapshot(allItemIds, (itemId) => {
+      const bookmark = bookmarksStore.getState().getBookmark(itemId);
+      if (bookmark) {
+        return {
+          archivedAt: bookmark.readUpdatedAt,
+          isArchived: bookmark.isRead,
+        };
+      }
+      const feedItem = feedItems[itemId];
+      if (!feedItem) return undefined;
+      return {
+        archivedAt: feedItem.isWatchedUpdatedAt,
+        isArchived: feedItem.isWatched,
+      };
+    });
+  }, [allItemIds, bookmarkRevision, feedItemsProjection]);
+  const softArchivedItemIds = useMemo(
+    () => getSoftArchivedSavedItemIds(archivedSnapshot, contextStartedAt),
+    [archivedSnapshot, contextStartedAt],
+  );
+
+  const filterSection = useCallback(
+    (section: ViewSection) => {
+      if (visibilityFilter !== "later") return section;
+      return {
+        ...section,
+        items: filterSavedSectionItems({
+          itemIds: section.items,
+          archivedSnapshot,
+          showArchived: sectionsShowingArchived.has(getSectionKey(section)),
+          softArchivedItemIds,
+        }),
+      };
+    },
+    [
+      archivedSnapshot,
+      sectionsShowingArchived,
+      softArchivedItemIds,
+      visibilityFilter,
+    ],
+  );
+  const filteredFullSections = useMemo(
+    () => fullComputedSections.map(filterSection),
+    [filterSection, fullComputedSections],
+  );
+  const filteredVisibleSections = useMemo(
+    () => visibleComputedSections.map(filterSection),
+    [filterSection, visibleComputedSections],
+  );
+  const navigationItems = useMemo(
+    () => filteredFullSections.flatMap((section) => section.items),
+    [filteredFullSections],
+  );
+  const navigationSectionInfo = useMemo(
+    () =>
+      filteredFullSections.map((section) => ({
+        size: section.items.length,
+        isGrid:
+          section.layout === VIEW_LAYOUT.GRID ||
+          section.layout === VIEW_LAYOUT.LARGE_GRID,
+      })),
+    [filteredFullSections],
+  );
+  const navigationIsGridLayout =
+    navigationSectionInfo.length === 1 &&
+    navigationSectionInfo[0]?.isGrid === true;
+  const { handleMouseSelect, selectItem } = useFeedItemNavigation(
+    navigationItems,
+    navigationIsGridLayout,
+    navigationSectionInfo,
+  );
+  const handleSectionMarkAsRead = useCallback(
+    (sectionIndex: number) => {
+      const nextItemId = getNextAvailableItemAfterSection(
+        sectionIndex,
+        filteredFullSections,
+      );
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => selectItem(nextItemId));
+      });
+    },
+    [filteredFullSections, selectItem],
+  );
+
+  return (
+    <div className="w-full">
+      {filteredVisibleSections.map((section, index) => {
+        const originalVisibleSection = visibleComputedSections[index];
+        const sectionKey = getSectionKey(section);
+        const showArchived = sectionsShowingArchived.has(sectionKey);
+        return (
+          <LayoutSection
+            key={
+              section.isUncategorized
+                ? `${viewListKey}-uncategorized`
+                : `${viewListKey}-${section.itemType}-${section.itemId}`
+            }
+            section={section}
+            sectionIndex={index}
+            handleMouseSelect={handleMouseSelect}
+            onMarkAsRead={handleSectionMarkAsRead}
+            sectionItemsForAction={filteredFullSections[index]?.items ?? []}
+            showHeading={(originalVisibleSection?.items.length ?? 0) > 0}
+            showArchiveToggle={visibilityFilter === "later"}
+            showArchived={showArchived}
+            onShowArchivedChange={(pressed) => {
+              setSectionsShowingArchived((currentSectionKeys) => {
+                const nextSectionKeys = new Set(currentSectionKeys);
+                if (pressed) nextSectionKeys.add(sectionKey);
+                else nextSectionKeys.delete(sectionKey);
+                return nextSectionKeys;
+              });
+            }}
+          />
+        );
+      })}
+      <div ref={sentinelRef} className="h-px w-full" />
+      {showPaginationLoader && <PaginationLoader />}
+      {showPaginationEnd && <PaginationEnd />}
+    </div>
+  );
+}
+
 export function RenderViewItems() {
   useLazyFeedFilter();
   useLazyCategoryFilter();
@@ -255,6 +467,8 @@ export function RenderViewItems() {
   const filteredFeedItemsOrder = useFilteredContentOrder();
 
   const currentView = useAtomValue(viewFilterAtom);
+  const feedFilter = useAtomValue(feedFilterAtom);
+  const categoryFilter = useAtomValue(categoryFilterAtom);
   const {
     sentinelRef,
     paginationState,
@@ -262,48 +476,19 @@ export function RenderViewItems() {
     hasRenderedAllItems,
   } = useViewListScroll(filteredFeedItemsOrder);
 
-  const {
-    computedSections: fullComputedSections,
-    flatItems: fullFlatItems,
-    hasGridSections: fullHasGridSections,
-    sectionInfo: fullSectionInfo,
-    baseLayout,
-  } = useViewSections(currentView, filteredFeedItemsOrder);
+  const { computedSections: fullComputedSections, baseLayout } =
+    useViewSections(currentView, filteredFeedItemsOrder);
   const { computedSections: visibleComputedSections } = useViewSections(
     currentView,
     visibleFilteredFeedItemsOrder,
   );
   const visibilityFilter = useAtomValue(visibilityFilterAtom);
   const viewListKey = `view-${currentView?.id ?? "none"}-${visibilityFilter}`;
-  const navigationItems = fullFlatItems;
-  const navigationIsGridLayout =
-    fullSectionInfo.length === 1 && fullHasGridSections;
-  const navigationSectionInfo = fullSectionInfo;
+  const savedContextKey = `${viewListKey}-feed-${feedFilter}-tag-${categoryFilter}`;
   const shouldShowPaginationEnd =
     hasRenderedAllItems &&
     paginationState?.hasMore === false &&
     paginationState.isFetching !== true;
-
-  // Keyboard navigation
-  const { handleMouseSelect, selectItem } = useFeedItemNavigation(
-    navigationItems,
-    navigationIsGridLayout,
-    navigationSectionInfo,
-  );
-
-  const handleSectionMarkAsRead = useCallback(
-    (sectionIndex: number) => {
-      const nextItemId = getNextAvailableItemAfterSection(
-        sectionIndex,
-        fullComputedSections,
-      );
-
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => selectItem(nextItemId));
-      });
-    },
-    [fullComputedSections, selectItem],
-  );
 
   if (!hasInitialData) {
     return <FeedLoading />;
@@ -344,24 +529,15 @@ export function RenderViewItems() {
   }
 
   return (
-    <div className="w-full">
-      {visibleComputedSections.map((section, index) => (
-        <LayoutSection
-          key={
-            section.isUncategorized
-              ? `${viewListKey}-uncategorized`
-              : `${viewListKey}-${section.itemType}-${section.itemId}`
-          }
-          section={section}
-          sectionIndex={index}
-          handleMouseSelect={handleMouseSelect}
-          onMarkAsRead={handleSectionMarkAsRead}
-          sectionItemsForAction={fullComputedSections[index]?.items ?? []}
-        />
-      ))}
-      <div ref={sentinelRef} className="h-px w-full" />
-      {paginationState?.isFetching && <PaginationLoader />}
-      {shouldShowPaginationEnd && <PaginationEnd />}
-    </div>
+    <SavedAwareSectionList
+      key={savedContextKey}
+      fullComputedSections={fullComputedSections}
+      visibleComputedSections={visibleComputedSections}
+      visibilityFilter={visibilityFilter}
+      viewListKey={viewListKey}
+      sentinelRef={sentinelRef}
+      showPaginationLoader={paginationState?.isFetching === true}
+      showPaginationEnd={shouldShowPaginationEnd}
+    />
   );
 }

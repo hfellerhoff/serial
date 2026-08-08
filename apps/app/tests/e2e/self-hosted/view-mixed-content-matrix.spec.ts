@@ -289,6 +289,93 @@ test.describe("exhaustive mixed-content View section matrix", () => {
     });
   }
 
+  test("hides existing archived Saved items per section while retaining newly archived items", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    const fixture = await seedMixedViewSectionCase(
+      SELF_HOSTED_TURSO_PORT,
+      SELF_HOSTED_APP_PORT,
+      {
+        feedSectionFeedItem: true,
+        tagSectionFeedItem: true,
+        tagSectionBookmark: true,
+        uncategorizedFeedItem: true,
+        uncategorizedBookmark: true,
+      },
+      "later",
+    );
+    testEmail = fixture.email;
+
+    await signIn({
+      page,
+      email: fixture.email,
+      password: fixture.password,
+    });
+    await page.getByRole("tab", { name: "Saved", exact: false }).click();
+
+    const feedMain = page
+      .locator("main")
+      .filter({
+        has: page.getByRole("heading", { name: "Serial", exact: true }),
+      })
+      .last();
+    await feedMain
+      .getByRole("radio", { name: fixture.viewName, exact: true })
+      .click();
+
+    const feedItem = feedMain.locator(
+      `article[data-item-id="${fixture.items.feedSectionFeedItem}"]`,
+    );
+    const bookmark = feedMain.locator(
+      `article[data-item-id="${fixture.items.tagSectionBookmark}"]`,
+    );
+    await expect(feedItem).toBeVisible({ timeout: 30_000 });
+    await expect(bookmark).toBeVisible();
+
+    await feedItem.getByRole("link").hover();
+    await page.keyboard.press("e");
+    await expect(feedItem).toBeVisible();
+    await expect(feedItem.getByRole("link")).toHaveClass(/opacity-50/);
+
+    await bookmark.hover();
+    await bookmark.getByRole("button", { name: "Archive" }).click();
+    await expect(bookmark).toBeVisible();
+    await expect(bookmark.getByRole("link")).toHaveClass(/opacity-50/);
+
+    await page.getByRole("tab", { name: "Unread", exact: false }).click();
+    await page.getByRole("tab", { name: "Saved", exact: false }).click();
+
+    await expect(feedItem).toHaveCount(0);
+    await expect(bookmark).toHaveCount(0);
+    await expect(
+      feedMain.getByRole("heading", { name: "Test Blog", exact: true }),
+    ).toBeVisible();
+
+    const feedSection = feedMain.locator("#section-0");
+    const tagSection = feedMain.locator("#section-1");
+    await expect(
+      feedMain.getByRole("button", { name: "Show archived items" }),
+    ).toHaveCount(3);
+
+    await feedSection
+      .getByRole("button", { name: "Show archived items" })
+      .click();
+    await expect(feedItem).toBeVisible();
+    await expect(bookmark).toHaveCount(0);
+
+    await tagSection
+      .getByRole("button", { name: "Show archived items" })
+      .click();
+    await expect(bookmark).toBeVisible();
+
+    await feedSection
+      .getByRole("button", { name: "Hide archived items" })
+      .click();
+    await expect(feedItem).toHaveCount(0);
+    await expect(bookmark).toBeVisible();
+  });
+
   test("shows a feed item immediately after saving it and entering its View", async ({
     page,
   }) => {
