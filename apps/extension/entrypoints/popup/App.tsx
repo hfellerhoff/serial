@@ -1,4 +1,10 @@
-import { useEffect, useReducer, useRef, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import {
   Alert,
   AlertDescription,
@@ -31,6 +37,7 @@ import type {
   ExtensionAuthSession,
 } from "../../lib/auth";
 import { ExtensionHeader } from "./ExtensionHeader";
+import { ExtensionLoadingView } from "./ExtensionLoadingView";
 import { PopupLayout } from "./PopupLayout";
 import { BookmarkWorkspaceView } from "./BookmarkWorkspaceView";
 
@@ -297,7 +304,7 @@ function App() {
   const [action, setAction] = useState<"connect" | "disconnect" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     applySerialTheme(session);
   }, [session]);
 
@@ -425,13 +432,7 @@ function App() {
   }
 
   if (loading) {
-    return (
-      <PopupLayout>
-        <div className="grid flex-1 place-items-center">
-          <Loader2 className="text-muted-foreground size-5 animate-spin" />
-        </div>
-      </PopupLayout>
-    );
+    return <ExtensionLoadingView />;
   }
 
   if (session) {

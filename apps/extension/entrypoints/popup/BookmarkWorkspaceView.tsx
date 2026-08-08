@@ -14,6 +14,7 @@ import { Check, Info, Loader2, LogOut, Plus, Rss } from "lucide-react";
 import type { ExtensionAuthSession } from "../../lib/auth";
 import type { BookmarkWorkspace } from "../../lib/bookmarks";
 import { ExtensionHeader } from "./ExtensionHeader";
+import { ExtensionLoadingView } from "./ExtensionLoadingView";
 import { PopupLayout } from "./PopupLayout";
 import { useBookmarkWorkspace } from "./useBookmarkWorkspace";
 import type { FeedDiscoveryStatus } from "./useBookmarkWorkspace";
@@ -138,6 +139,11 @@ export function BookmarkWorkspaceView({
   onAuthExpired: () => void;
 }) {
   const controller = useBookmarkWorkspace({ session, onAuthExpired });
+
+  if (controller.status === "loading") {
+    return <ExtensionLoadingView />;
+  }
+
   const signOutButton = (
     <Button
       type="button"
@@ -226,15 +232,6 @@ export function BookmarkWorkspaceView({
             <Check className="size-4" />
             Signed in
           </div>
-        </div>
-      )}
-
-      {controller.status === "loading" && (
-        <div
-          className="text-muted-foreground mt-8 flex items-center gap-2 text-sm"
-          role="status"
-        >
-          <Loader2 className="size-4 animate-spin" /> Preparing Bookmark…
         </div>
       )}
 
