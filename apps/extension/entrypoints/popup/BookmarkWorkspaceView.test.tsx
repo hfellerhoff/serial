@@ -91,11 +91,12 @@ describe("extension Bookmark editor sizing", () => {
 
     expect(markup).toContain('data-slot="extension-bookmark-editor-viewport"');
     expect(markup).toContain(
-      "h-full min-w-0 overflow-x-hidden overflow-y-auto",
+      "min-h-[380px] max-h-[570px] min-w-0 overflow-x-hidden overflow-y-auto",
     );
     expect(markup).toContain(
-      "[&amp;&gt;[data-slot=bookmark-editor]]:min-h-full",
+      "[&amp;&gt;[data-slot=bookmark-editor]]:min-h-[380px]",
     );
+    expect(markup).not.toContain("min-h-full");
     expect(markup).not.toContain("max-w-");
   });
 });

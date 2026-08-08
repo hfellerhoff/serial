@@ -26,7 +26,7 @@ export function BookmarkEditorPopupLayout({
   return (
     <main
       data-slot="extension-bookmark-editor-viewport"
-      className="h-full min-w-0 overflow-x-hidden overflow-y-auto [&>[data-slot=bookmark-editor]]:min-h-full"
+      className="min-h-[380px] max-h-[570px] min-w-0 overflow-x-hidden overflow-y-auto [&>[data-slot=bookmark-editor]]:min-h-[380px]"
     >
       {children}
     </main>
