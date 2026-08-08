@@ -346,24 +346,23 @@ test.describe("exhaustive mixed-content View section matrix", () => {
 
     const feedSection = feedMain.locator("#section-0");
     const tagSection = feedMain.locator("#section-1");
-    await expect(
-      feedMain.getByRole("button", { name: "Show archived items" }),
-    ).toHaveCount(3);
+    await expect(feedMain.getByRole("tab", { name: "All" })).toHaveCount(3);
 
-    await feedSection
-      .getByRole("button", { name: "Show archived items" })
-      .click();
+    await expect(
+      feedSection.getByRole("tab", { name: "Unread" }),
+    ).toHaveAttribute("aria-selected", "true");
+    await feedSection.getByRole("tab", { name: "All" }).click();
+    await expect(feedSection.getByRole("tab", { name: "All" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     await expect(feedItem).toBeVisible();
     await expect(bookmark).toHaveCount(0);
 
-    await tagSection
-      .getByRole("button", { name: "Show archived items" })
-      .click();
+    await tagSection.getByRole("tab", { name: "All" }).click();
     await expect(bookmark).toBeVisible();
 
-    await feedSection
-      .getByRole("button", { name: "Hide archived items" })
-      .click();
+    await feedSection.getByRole("tab", { name: "Unread" }).click();
     await expect(feedItem).toHaveCount(0);
     await expect(bookmark).toBeVisible();
   });

@@ -2,7 +2,7 @@
 
 import { useAtomValue } from "jotai";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArchiveIcon, CheckIcon } from "lucide-react";
+import { CheckIcon } from "lucide-react";
 import { EmptyState, FeedEmptyState } from "./EmptyStates";
 import { PaginationEnd } from "./PaginationEnd";
 import { PaginationLoader } from "./PaginationLoader";
@@ -51,12 +51,7 @@ import { useShortcut } from "~/lib/hooks/useShortcut";
 import { showUndoToast } from "~/lib/undo";
 import { bookmarksStore } from "~/lib/data/bookmarks/store";
 import { setMixedReadValue } from "~/lib/data/mixed-content/mutations";
-import { Toggle } from "~/components/ui/toggle";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 
 function getNextAvailableItemAfterSection(
   sectionIndex: number,
@@ -105,7 +100,7 @@ function SectionHeading({
   sectionItems,
   sectionIndex,
   onMarkAsRead,
-  showArchiveToggle,
+  showArchiveFilter,
   showArchived,
   onShowArchivedChange,
 }: {
@@ -115,7 +110,7 @@ function SectionHeading({
   sectionItems: string[];
   sectionIndex: number;
   onMarkAsRead?: (sectionIndex: number) => void;
-  showArchiveToggle: boolean;
+  showArchiveFilter: boolean;
   showArchived: boolean;
   onShowArchivedChange: (pressed: boolean) => void;
 }) {
@@ -190,26 +185,19 @@ function SectionHeading({
           )}
           <h2 className="line-clamp-1 text-lg font-semibold">{name}</h2>
           <div className="flex-1" />
-          {showArchiveToggle && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Toggle
-                  aria-label={
-                    showArchived ? "Hide archived items" : "Show archived items"
-                  }
-                  variant="outline"
-                  size="sm"
-                  pressed={showArchived}
-                  onPressedChange={onShowArchivedChange}
-                  className="w-8 px-0"
-                >
-                  <ArchiveIcon size={14} />
-                </Toggle>
-              </TooltipTrigger>
-              <TooltipContent>
-                {showArchived ? "Hide archived items" : "Show archived items"}
-              </TooltipContent>
-            </Tooltip>
+          {showArchiveFilter && (
+            <Tabs
+              value={showArchived ? "all" : "unread"}
+              onValueChange={(value) => {
+                if (!value) return;
+                onShowArchivedChange(value === "all");
+              }}
+            >
+              <TabsList>
+                <TabsTrigger value="unread">Unread</TabsTrigger>
+                <TabsTrigger value="all">All</TabsTrigger>
+              </TabsList>
+            </Tabs>
           )}
           {visibilityFilter === "unread" && sectionItems.length > 0 && (
             <ButtonWithShortcut
@@ -237,7 +225,7 @@ function LayoutSection({
   onMarkAsRead,
   sectionItemsForAction,
   showHeading,
-  showArchiveToggle,
+  showArchiveFilter,
   showArchived,
   onShowArchivedChange,
 }: {
@@ -247,7 +235,7 @@ function LayoutSection({
   onMarkAsRead?: (sectionIndex: number) => void;
   sectionItemsForAction: string[];
   showHeading: boolean;
-  showArchiveToggle: boolean;
+  showArchiveFilter: boolean;
   showArchived: boolean;
   onShowArchivedChange: (pressed: boolean) => void;
 }) {
@@ -269,7 +257,7 @@ function LayoutSection({
           sectionItems={sectionItemsForAction}
           sectionIndex={sectionIndex}
           onMarkAsRead={onMarkAsRead}
-          showArchiveToggle={showArchiveToggle}
+          showArchiveFilter={showArchiveFilter}
           showArchived={showArchived}
           onShowArchivedChange={onShowArchivedChange}
         />
@@ -411,7 +399,7 @@ function SavedAwareSectionList({
             onMarkAsRead={handleSectionMarkAsRead}
             sectionItemsForAction={filteredFullSections[index]?.items ?? []}
             showHeading={(originalVisibleSection?.items.length ?? 0) > 0}
-            showArchiveToggle={visibilityFilter === "later"}
+            showArchiveFilter={visibilityFilter === "later"}
             showArchived={showArchived}
             onShowArchivedChange={(pressed) => {
               setSectionsShowingArchived((currentSectionKeys) => {
