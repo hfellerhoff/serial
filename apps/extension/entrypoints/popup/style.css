@@ -8,7 +8,8 @@ html,
 body,
 #root {
   width: 380px;
-  height: 380px;
+  min-height: 380px;
+  max-height: 570px;
 }
 
 body {
