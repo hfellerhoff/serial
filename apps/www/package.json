@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "brand:generate": "node --import tsx ./scripts/generate-brand-assets.ts && node --import tsx ./scripts/generate-og-images.ts",
     "dev": "astro dev",
     "build": "astro build",
     "build:artifact": "astro build",

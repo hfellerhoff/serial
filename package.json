@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "brand:generate": "pnpm --filter @serial/www brand:generate",
     "dev": "turbo run dev --filter=@serial/app",
     "dev:demo": "node apps/extension/scripts/dev-demo.mjs",
     "dev:demo:chrome": "node apps/extension/scripts/dev-demo.mjs chrome",
