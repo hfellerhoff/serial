@@ -6,7 +6,6 @@ import {
   bookmarkPropertiesChange,
 } from "@serial/bookmark-capture";
 import { useMutation } from "@tanstack/react-query";
-import { feedItemsStore } from "../store";
 import { mixedContentStore } from "../mixed-content/store";
 import { viewsStore } from "../views/store";
 import { refreshNavigationSnapshotSafely } from "../navigation/store";
@@ -25,7 +24,6 @@ function projectBookmark(
   mixedContentStore.getState().reprojectUpsert({
     bookmark,
     previousBookmark,
-    feedItems: feedItemsStore.getState().feedItemsDict,
     views: viewsStore.getState().views,
   });
 }
@@ -34,7 +32,6 @@ function removeProjectedBookmark(bookmark: ApplicationBookmark) {
   bookmarksStore.getState().remove(bookmark.id);
   mixedContentStore.getState().reprojectDeletion({
     bookmarkId: bookmark.id,
-    feedItems: feedItemsStore.getState().feedItemsDict,
   });
 }
 

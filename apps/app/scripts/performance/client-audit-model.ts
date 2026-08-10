@@ -471,7 +471,6 @@ function seedClientFixture(profileName: BenchmarkProfileName) {
           hasMore: true,
         },
         replacesScope: true,
-        feedItems: feedItemsDict,
       });
     }
   }
@@ -568,7 +567,6 @@ function persistedPayloadBytes() {
   }).byteLength;
   const mixedContent = serialize({
     scopes: mixedContentStore.getState().scopes,
-    suppressedReferences: mixedContentStore.getState().suppressedReferences,
   }).byteLength;
   return {
     application,

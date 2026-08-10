@@ -117,7 +117,6 @@ function loadScope(
     contentStatus,
     page: page(references),
     replacesScope: true,
-    feedItems: feedItemsStore.getState().feedItemsDict,
   });
 }
 

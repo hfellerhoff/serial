@@ -8,6 +8,7 @@ import { updateBookmarksReadState } from "~/server/bookmarks/service";
 import { loadExtensionBookmarkWorkspace } from "~/server/bookmarks/extensionWorkspace";
 import { queryMixedContentPage } from "~/server/mixed-content/projection";
 import { loadApplicationBookmark } from "~/server/mixed-content/sync";
+import { reconcileApplicationState } from "~/server/reconciliation";
 import { UNCATEGORIZED_SECTION_PLACEMENT } from "~/lib/views/sections";
 import {
   bookmarks,
@@ -18,6 +19,7 @@ import {
   feedItems,
   feeds,
   user,
+  viewFeeds,
   views,
   viewSections,
 } from "~/server/db/schema";
@@ -74,6 +76,83 @@ function bookmarkRows(count: number, userId = "bounds-user") {
 }
 
 describe("Bookmark server performance bounds", () => {
+  it("keeps a full reconciliation to one active page as content grows", async () => {
+    await session.database.insert(views).values({
+      id: 10,
+      userId: "bounds-user",
+      name: "Everything",
+      contentFilter: 7,
+      placement: 1,
+    });
+    await session.database.insert(feeds).values({
+      id: 30,
+      userId: "bounds-user",
+      name: "Feed",
+      url: "https://example.com/feed.xml",
+      platform: "website",
+    });
+    await session.database.insert(viewFeeds).values({ viewId: 10, feedId: 30 });
+    await session.database.insert(feedItems).values(
+      Array.from({ length: 1_000 }, (_, index) => ({
+        id: `reconciliation-feed-${index.toString().padStart(4, "0")}`,
+        feedId: 30,
+        contentId: `reconciliation-content-${index}`,
+        title: `Item ${index}`,
+        author: "Author",
+        url: `https://example.com/reconciliation-feed-${index}`,
+        postedAt: new Date(NOW.getTime() - index),
+        createdAt: NOW,
+        updatedAt: NOW,
+      })),
+    );
+    const seededBookmarks = bookmarkRows(500).map((bookmark) => ({
+      ...bookmark,
+      isSaved: false,
+    }));
+    await session.database.insert(bookmarks).values(seededBookmarks);
+    await session.database
+      .insert(bookmarkViews)
+      .values(
+        seededBookmarks.map(({ id }) => ({ bookmarkId: id, viewId: 10 })),
+      );
+
+    session.instrumentation.reset();
+    const events = [];
+    for await (const event of reconcileApplicationState({
+      database: session.database,
+      userId: "bounds-user",
+      request: {
+        type: "full",
+        reconciliationId: "bounded-full",
+        selection: {
+          type: "cold",
+          contentStatus: { saveStatus: "inbox", archiveStatus: "unread" },
+          membershipRevision: 0,
+        },
+      },
+    })) {
+      events.push(event);
+    }
+    const evidence = session.instrumentation.snapshot();
+    const active = events.find(
+      ({ chunk }) => chunk.type === "active-first-page",
+    );
+    if (active?.chunk.type !== "active-first-page") {
+      throw new Error("Expected active reconciliation page");
+    }
+
+    expect(active.chunk.page.orderedRefs).toHaveLength(30);
+    expect(
+      active.chunk.page.feedItemDiffs.length +
+        active.chunk.page.bookmarkDiffs.length,
+    ).toBe(30);
+    expect(evidence.statementCount).toBeLessThanOrEqual(24);
+    expect(evidence.materializedRows).toBeLessThanOrEqual(180);
+    expect(Buffer.byteLength(JSON.stringify(events))).toBeLessThanOrEqual(
+      256 * 1_024,
+    );
+  });
+
   it("returns the extension editor workspace without reloading its published Bookmark", async () => {
     const [row] = bookmarkRows(1);
     await session.database.insert(bookmarks).values(row!);

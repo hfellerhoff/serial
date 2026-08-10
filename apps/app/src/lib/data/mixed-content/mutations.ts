@@ -56,7 +56,6 @@ export async function setMixedReadValue(input: {
     mixedContentStore.getState().reprojectUpsert({
       bookmark: optimisticBookmark,
       previousBookmark: bookmark,
-      feedItems: feedItemsStore.getState().feedItemsDict,
       views: viewsStore.getState().views,
     });
   }
@@ -86,7 +85,6 @@ export async function setMixedReadValue(input: {
       mixedContentStore.getState().reprojectUpsert({
         bookmark,
         previousBookmark: optimisticBookmark,
-        feedItems: feedItemsStore.getState().feedItemsDict,
         views: viewsStore.getState().views,
       });
     }

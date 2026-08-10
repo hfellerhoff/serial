@@ -3,10 +3,12 @@ import {
   getReconciliationTargetKey,
   getRequiredTargetsForFullReconciliation,
   getTargetDomain,
+  RECONCILIATION_HYDRATION_DOMAINS,
   REQUIRED_RECONCILIATION_DOMAINS,
 } from "./contracts";
 import type {
   AutomaticRssOwner,
+  ReconciliationHydrationDomain,
   ReconciliationRequestIntent,
   ReconciliationScopeTarget,
   ReconciliationTarget,
@@ -53,7 +55,7 @@ type BufferedAuthoritative<TAuthoritative> = {
   reconciliationId: string;
   target: ReconciliationTarget;
   targetKeys: string[];
-  requiresHydration: RequiredReconciliationDomain[];
+  requiresHydration: ReconciliationHydrationDomain[];
   payload: TAuthoritative;
 };
 
@@ -61,7 +63,7 @@ type BufferedLiveEvent<TLiveEvent> = {
   type: "live-event";
   eventId: string;
   targetKeys: string[];
-  requiresHydration: RequiredReconciliationDomain[];
+  requiresHydration: ReconciliationHydrationDomain[];
   payload: TLiveEvent;
 };
 
@@ -81,7 +83,7 @@ export type ReconciliationCoordinatorState<
   scopes: Record<string, ReconciliationTargetState>;
   domains: Record<RequiredReconciliationDomain, ReconciliationDomainState>;
   dirtyTargets: Record<string, ReconciliationTarget>;
-  hydratedDomains: Record<RequiredReconciliationDomain, boolean>;
+  hydratedDomains: Record<ReconciliationHydrationDomain, boolean>;
   bufferedApplications: Array<BufferedApplication<TAuthoritative, TLiveEvent>>;
   latestFullEpoch: FullEpoch | null;
   cacheUsableAt: number | null;
@@ -116,7 +118,7 @@ export type ReconciliationCoordinatorEvent<TAuthoritative, TLiveEvent> =
     }
   | {
       type: "hydration-complete";
-      domain: RequiredReconciliationDomain;
+      domain: ReconciliationHydrationDomain;
     }
   | {
       type: "request-reconciliation";
@@ -126,7 +128,7 @@ export type ReconciliationCoordinatorEvent<TAuthoritative, TLiveEvent> =
       type: "authoritative-received";
       reconciliationId: string;
       target: ReconciliationTarget;
-      requiresHydration: RequiredReconciliationDomain[];
+      requiresHydration: ReconciliationHydrationDomain[];
       payload: TAuthoritative;
     }
   | {
@@ -139,7 +141,7 @@ export type ReconciliationCoordinatorEvent<TAuthoritative, TLiveEvent> =
       type: "live-event-received";
       eventId: string;
       targets: ReconciliationTarget[];
-      requiresHydration: RequiredReconciliationDomain[];
+      requiresHydration: ReconciliationHydrationDomain[];
       payload?: TLiveEvent;
       invalidates?: ReconciliationTarget[];
       repairIntent?: ReconciliationRequestIntent;
@@ -173,12 +175,12 @@ function initialDomainStates(): Record<
 }
 
 function initialHydrationState(): Record<
-  RequiredReconciliationDomain,
+  ReconciliationHydrationDomain,
   boolean
 > {
   return Object.fromEntries(
-    REQUIRED_RECONCILIATION_DOMAINS.map((domain) => [domain, false]),
-  ) as Record<RequiredReconciliationDomain, boolean>;
+    RECONCILIATION_HYDRATION_DOMAINS.map((domain) => [domain, false]),
+  ) as Record<ReconciliationHydrationDomain, boolean>;
 }
 
 export function createReconciliationCoordinatorState<
@@ -371,7 +373,7 @@ function markTargetsDirty<TAuthoritative, TLiveEvent>(
 
 function isHydrated<TAuthoritative, TLiveEvent>(
   state: ReconciliationCoordinatorState<TAuthoritative, TLiveEvent>,
-  domains: readonly RequiredReconciliationDomain[],
+  domains: readonly ReconciliationHydrationDomain[],
 ) {
   return domains.every((domain) => state.hydratedDomains[domain]);
 }

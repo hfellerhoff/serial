@@ -96,6 +96,18 @@ import {
   MAX_BULK_MUTATION_ITEMS,
 } from "~/lib/schemas/bulk";
 import { queryNavigationSnapshot } from "~/server/navigation/snapshot";
+import { reconciliationInputSchema } from "~/server/reconciliation/input";
+import { reconcileApplicationState as streamApplicationReconciliation } from "~/server/reconciliation";
+
+export const reconcileApplicationState = protectedProcedure
+  .input(reconciliationInputSchema)
+  .handler(async function* ({ context, input }) {
+    yield* streamApplicationReconciliation({
+      database: context.db,
+      userId: context.user.id,
+      request: input,
+    });
+  });
 
 export type PaginationCursor = {
   placement?: number;

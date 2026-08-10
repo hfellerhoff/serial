@@ -105,24 +105,6 @@ function availabilityRecord(rows: AvailabilityRow[]) {
   ) as Record<number, NavigationAvailability>;
 }
 
-function canonicalBookmarkExists(database: NavigationDatabase, userId: string) {
-  const normalizedFeedUrl = sql<string>`COALESCE(
-    ${feedItems.normalizedUrl},
-    ${feedItems.url}
-  )`;
-  return exists(
-    database
-      .select({ value: sql<number>`1` })
-      .from(bookmarks)
-      .where(
-        and(
-          eq(bookmarks.userId, userId),
-          eq(bookmarks.canonicalUrl, normalizedFeedUrl),
-        ),
-      ),
-  );
-}
-
 function feedCompatibleWithView() {
   return or(
     and(
@@ -178,7 +160,6 @@ function feedExistsForViewFeed(input: {
             isRead: feedItems.isWatched,
             isLater: feedItems.isWatchLater,
           }),
-          not(canonicalBookmarkExists(input.database, input.userId)),
         ),
       ),
   );
@@ -242,7 +223,6 @@ function feedExistsForView(input: {
             isRead: feedItems.isWatched,
             isLater: feedItems.isWatchLater,
           }),
-          not(canonicalBookmarkExists(input.database, input.userId)),
         ),
       ),
   );
@@ -358,7 +338,6 @@ async function queryViewAvailability(input: {
                 isRead: feedItems.isWatched,
                 isLater: feedItems.isWatchLater,
               }),
-              not(canonicalBookmarkExists(input.database, input.userId)),
             ),
           ),
       ),
@@ -411,7 +390,6 @@ async function queryTagAvailability(input: {
               isRead: feedItems.isWatched,
               isLater: feedItems.isWatchLater,
             }),
-            not(canonicalBookmarkExists(input.database, input.userId)),
           ),
         ),
     );
@@ -576,7 +554,6 @@ async function queryUncategorizedViewFeedAvailability(input: {
               isRead: feedItems.isWatched,
               isLater: feedItems.isWatchLater,
             }),
-            not(canonicalBookmarkExists(input.database, input.userId)),
           ),
         ),
     );

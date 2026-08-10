@@ -72,11 +72,11 @@ The initial executable pair uses the unassigned all-content View:
 - `feed-view-page`: the existing production View prerequisite loads, bounded
   Feed-item SQL query, row materialization, and application projection.
 - `mixed-view-page`: `queryMixedContentPage`, including all SQL, row
-  materialization, canonical suppression, membership and visibility filtering,
-  sorting, cursoring, and projection.
+  materialization, independent Bookmark and Feed-item membership and visibility
+  filtering, sorting, cursoring, and projection.
 
-The page size is 30. Operations return equivalent visible scopes; a Bookmark
-may suppress a colliding Feed item under the approved mixed-content semantics.
+The page size is 30. Matching Bookmark and Feed-item rows remain independent;
+either or both may appear when eligible for the visible scope.
 
 ## Measurements and exact pass/fail rule
 

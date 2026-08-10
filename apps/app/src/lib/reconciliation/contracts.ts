@@ -15,11 +15,18 @@ export const REQUIRED_RECONCILIATION_DOMAINS = [
   "organization",
   "active-scope",
   "navigation",
-  "bookmarks",
 ] as const;
 
 export type RequiredReconciliationDomain =
   (typeof REQUIRED_RECONCILIATION_DOMAINS)[number];
+
+export const RECONCILIATION_HYDRATION_DOMAINS = [
+  ...REQUIRED_RECONCILIATION_DOMAINS,
+  "bookmarks",
+] as const;
+
+export type ReconciliationHydrationDomain =
+  (typeof RECONCILIATION_HYDRATION_DOMAINS)[number];
 
 export type AutomaticRssOwner = "client" | "background-task";
 
@@ -35,10 +42,7 @@ export type ReconciliationScopeTarget = {
 };
 
 export type ReconciliationTarget =
-  | { type: "organization" }
-  | { type: "navigation" }
-  | { type: "bookmarks" }
-  | ReconciliationScopeTarget;
+  { type: "organization" } | { type: "navigation" } | ReconciliationScopeTarget;
 
 export type OrganizationSnapshot = {
   views: ApplicationView[];
@@ -46,6 +50,7 @@ export type OrganizationSnapshot = {
   tags: DatabaseContentCategory[];
   feedTags: DatabaseFeedCategory[];
   directViewFeeds: DatabaseViewFeed[];
+  effectiveViewFeeds: Array<{ viewId: number; feedIds: number[] }>;
 };
 
 export type ReconciliationEntityKind = "bookmark" | "feed-item";
@@ -57,23 +62,12 @@ export type ReconciliationReference = {
   normalizedAt: Date;
 };
 
-export type ReconciliationCursor =
-  | {
-      type: "feed";
-      placement?: number;
-      postedAt: Date;
-      id: string;
-      isWatchedUpdatedAt?: Date | null;
-      isWatchLaterUpdatedAt?: Date | null;
-    }
-  | {
-      type: "mixed";
-      sectionPlacement: number | null;
-      normalizedAt: Date;
-      entityKind: ReconciliationEntityKind;
-      entityId: string;
-    }
-  | null;
+export type ReconciliationCursor = {
+  sectionPlacement: number | null;
+  normalizedAt: Date;
+  entityKind: ReconciliationEntityKind;
+  entityId: string;
+} | null;
 
 export type ReconciliationEntityManifestEntry = {
   id: string;
@@ -81,15 +75,8 @@ export type ReconciliationEntityManifestEntry = {
 };
 
 export type ReconciliationPageManifest = {
-  orderedRefs: ReconciliationReference[];
   feedItems: ReconciliationEntityManifestEntry[];
   bookmarks: ReconciliationEntityManifestEntry[];
-  cursor: ReconciliationCursor;
-};
-
-export type BookmarkBucketManifestEntry = {
-  bucket: number;
-  version: string;
 };
 
 export type ReconciliationScopeInput = {
@@ -101,18 +88,27 @@ export type ReconciliationScopeInput = {
 export type TargetedReconciliationInput =
   | { target: { type: "organization" } }
   | { target: { type: "navigation" } }
-  | {
-      target: { type: "bookmarks" };
-      bookmarkManifest: BookmarkBucketManifestEntry[];
-    }
   | ReconciliationScopeInput;
+
+export type ReconciliationSelectionInput =
+  | {
+      type: "cold";
+      contentStatus: ContentStatusFilter;
+      membershipRevision: number;
+    }
+  | {
+      type: "selected";
+      scope: ReconciliationScope;
+      contentStatus: ContentStatusFilter;
+      pageManifest: ReconciliationPageManifest;
+      membershipRevision: number;
+    };
 
 export type ReconciliationInput =
   | {
       type: "full";
       reconciliationId: string;
-      selectedScope: ReconciliationScopeInput;
-      bookmarkManifest: BookmarkBucketManifestEntry[];
+      selection: ReconciliationSelectionInput;
     }
   | {
       type: "targeted";
@@ -135,15 +131,12 @@ export type ActiveFirstPageResult = {
   hasMore: boolean;
 };
 
-export type BookmarkSyncPage = {
-  bucket: number;
-  version: string;
-  pageIndex: number;
-  diffs: Array<EntityDiff<ApplicationBookmark>>;
-  completesBucket: boolean;
-};
-
 export type ReconciliationDomainFailure = {
+  phase:
+    | "load-organization"
+    | "resolve-selection"
+    | "load-active-scope"
+    | "load-navigation";
   domain: RequiredReconciliationDomain;
   target?: ReconciliationScopeTarget;
   message: string;
@@ -162,10 +155,7 @@ export type ReconciliationChunk =
       type: "navigation-snapshot";
       snapshot: NavigationSnapshot;
     }
-  | {
-      type: "bookmark-sync-page";
-      page: BookmarkSyncPage;
-    }
+  | { type: "automatic-rss-owner"; owner: AutomaticRssOwner }
   | {
       type: "domain-complete";
       domain: RequiredReconciliationDomain;
@@ -180,10 +170,9 @@ export type ReconciliationChunk =
       requiredDomains: RequiredReconciliationDomain[];
     };
 
-export type ReconciliationResult = {
+export type ReconciliationStreamEvent = {
   reconciliationId: string;
-  chunks: ReconciliationChunk[];
-  automaticRssOwner?: AutomaticRssOwner;
+  chunk: ReconciliationChunk;
 };
 
 export type ReconciliationRequestIntent =
@@ -215,12 +204,7 @@ export function getReconciliationTargetKey(target: ReconciliationTarget) {
 export function getRequiredTargetsForFullReconciliation(
   selectedScope: ReconciliationScopeTarget,
 ): ReconciliationTarget[] {
-  return [
-    { type: "organization" },
-    selectedScope,
-    { type: "navigation" },
-    { type: "bookmarks" },
-  ];
+  return [{ type: "organization" }, selectedScope, { type: "navigation" }];
 }
 
 export function getTargetDomain(

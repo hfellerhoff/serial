@@ -41,6 +41,20 @@ export async function loadScopeData(input: {
   scope: MixedContentScope;
 }): Promise<ScopeData> {
   const { database, userId, scope } = input;
+  if (scope.type === "feed") {
+    const feed = await database
+      .select({ id: feeds.id })
+      .from(feeds)
+      .where(and(eq(feeds.id, scope.feedId), eq(feeds.userId, userId)))
+      .limit(1);
+    return {
+      valid: feed.length === 1,
+      targetView: null,
+      categoryIds: [],
+      directFeedIds: [],
+      sections: [],
+    };
+  }
   if (scope.type === "tag") {
     const tag = await database
       .select({ id: contentCategories.id })
@@ -202,6 +216,7 @@ export function feedScopeCondition(input: {
   scopeData: ScopeData;
 }) {
   const { database, userId, scope, scopeData } = input;
+  if (scope.type === "feed") return eq(feeds.id, scope.feedId);
   if (scope.type === "tag") {
     return exists(
       database
@@ -262,6 +277,7 @@ export function bookmarkScopeCondition(input: {
   scopeData: ScopeData;
 }) {
   const { database, userId, scope, scopeData } = input;
+  if (scope.type === "feed") return sql`0`;
   if (scope.type === "tag") {
     return exists(
       database

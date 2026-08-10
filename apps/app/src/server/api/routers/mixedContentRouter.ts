@@ -27,6 +27,7 @@ const clientIdSchema = z
 
 const scopeSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("view"), viewId: z.number().int() }),
+  z.object({ type: z.literal("feed"), feedId: z.number().int() }),
   z.object({ type: z.literal("tag"), tagId: z.number().int() }),
 ]);
 

@@ -79,6 +79,58 @@ beforeEach(async () => {
 afterEach(() => cleanup());
 
 describe("navigation snapshot", () => {
+  it("keeps Feed availability when a matching Bookmark has different status", async () => {
+    await seedFeed(1);
+    await database.insert(views).values({
+      id: 20,
+      userId: "navigation-user",
+      name: "Independent rows",
+      contentFilter: 3,
+      daysWindow: 0,
+      layout: "list",
+    });
+    await database.insert(viewFeeds).values({ viewId: 20, feedId: 1 });
+    await database.insert(feedItems).values({
+      id: "matching-feed-item",
+      feedId: 1,
+      contentId: "matching-feed-item",
+      contentType: "text",
+      title: "Matching Feed item",
+      author: "Author",
+      url: "https://items.example/shared",
+      normalizedUrl: "https://items.example/shared",
+      postedAt: NOW,
+      createdAt: NOW,
+      updatedAt: NOW,
+      isWatched: false,
+      isWatchLater: false,
+    });
+    await database.insert(bookmarks).values({
+      id: "matching-bookmark",
+      userId: "navigation-user",
+      sourceUrl: "https://items.example/shared",
+      canonicalUrl: "https://items.example/shared",
+      title: "Matching Bookmark",
+      contentType: "text",
+      isSaved: true,
+      isRead: true,
+      createdAt: NOW,
+      savedUpdatedAt: NOW,
+      readUpdatedAt: NOW,
+      progressUpdatedAt: NOW,
+      updatedAt: NOW,
+    });
+
+    const snapshot = await queryNavigationSnapshot({
+      database,
+      userId: "navigation-user",
+      now: NOW,
+    });
+
+    expect(snapshot.views[20]?.inbox.unread).toBe(true);
+    expect(snapshot.viewFeeds[20]?.[1]?.inbox.unread).toBe(true);
+  });
+
   it("reports complete View, Tag, global Feed, and per-View Feed availability without loading content pages", async () => {
     await Promise.all([
       seedFeed(1),

@@ -181,7 +181,7 @@ async function insertFeedItems(
         normalizedUrl = normalizedBookmarkUrlOverride(item.url);
       } catch {
         // Invalid item URLs retain their existing Feed behavior but cannot
-        // participate in Bookmark canonical suppression.
+        // keep the normalized URL stable for identity and cache matching.
       }
       return {
         feedId,

@@ -28,14 +28,8 @@ export type LoadedMixedScope = {
   hasMore: boolean;
 };
 
-export type SuppressedReferences = Record<
-  string,
-  Record<string, MixedContentReference[]>
->;
-
 export type PersistedMixedContentState = {
   scopes: Record<string, LoadedMixedScope>;
-  suppressedReferences: SuppressedReferences;
 };
 
 export function mixedReferenceKey(reference: MixedContentReference) {
@@ -154,42 +148,8 @@ export function getMixedRetentionPins() {
   ]);
 }
 
-export function filterSuppressedReferences(
-  suppressedReferences: SuppressedReferences,
-  retainedKeysByScope: Record<string, ReadonlySet<string>>,
-  pinnedEntityIds: ReadonlySet<string> = new Set(),
-) {
-  return Object.fromEntries(
-    Object.entries(suppressedReferences).flatMap(
-      ([bookmarkId, referencesByScope]) => {
-        const nextReferencesByScope = Object.fromEntries(
-          Object.entries(referencesByScope).flatMap(
-            ([scopeKey, references]) => {
-              const retainedKeys = retainedKeysByScope[scopeKey];
-              const retainedReferences = retainedKeys
-                ? references.filter(
-                    (reference) =>
-                      retainedKeys.has(mixedReferenceKey(reference)) ||
-                      pinnedEntityIds.has(reference.entityId),
-                  )
-                : references;
-              return retainedReferences.length > 0
-                ? [[scopeKey, retainedReferences]]
-                : [];
-            },
-          ),
-        );
-        return Object.keys(nextReferencesByScope).length > 0
-          ? [[bookmarkId, nextReferencesByScope]]
-          : [];
-      },
-    ),
-  );
-}
-
 export function getPersistedMixedContentState(state: {
   scopes: Record<string, LoadedMixedScope>;
-  suppressedReferences: SuppressedReferences;
 }): PersistedMixedContentState {
   const scopes = Object.fromEntries(
     Object.entries(state.scopes).map(([key, scope]) => {
@@ -207,17 +167,5 @@ export function getPersistedMixedContentState(state: {
       ];
     }),
   );
-  const retainedKeysByScope = Object.fromEntries(
-    Object.entries(scopes).map(([key, scope]) => [
-      key,
-      retainedMixedReferenceKeys(scope.pages),
-    ]),
-  );
-  return {
-    scopes,
-    suppressedReferences: filterSuppressedReferences(
-      state.suppressedReferences,
-      retainedKeysByScope,
-    ),
-  };
+  return { scopes };
 }

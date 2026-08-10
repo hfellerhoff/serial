@@ -3,11 +3,9 @@ import {
   asc,
   desc,
   eq,
-  exists,
   getTableColumns,
   gt,
   lt,
-  not,
   or,
   sql,
 } from "drizzle-orm";
@@ -222,21 +220,6 @@ export async function queryFeedCandidates(input: {
   const placement = input.hasSections
     ? feedSectionPlacement((input.scope as { viewId: number }).viewId)
     : sql<number>`CAST(0 AS INTEGER)`;
-  const normalizedFeedUrl = sql<string>`COALESCE(
-    ${feedItems.normalizedUrl},
-    ${feedItems.url}
-  )`;
-  const canonicalBookmark = exists(
-    input.database
-      .select({ value: sql<number>`1` })
-      .from(bookmarks)
-      .where(
-        and(
-          eq(bookmarks.userId, input.userId),
-          eq(bookmarks.canonicalUrl, normalizedFeedUrl),
-        ),
-      ),
-  );
   const rows = await input.database
     .select({
       item: applicationFeedItemColumns,
@@ -254,7 +237,6 @@ export async function queryFeedCandidates(input: {
         input.sectionPlacement === undefined || !input.hasSections
           ? undefined
           : eq(placement, input.sectionPlacement),
-        not(canonicalBookmark),
         cursorCondition({
           cursor: input.cursor,
           placement,

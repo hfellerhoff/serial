@@ -1,7 +1,6 @@
 import { getReconciliationScopeKey } from "./contracts";
 import type {
   ActiveFirstPageResult,
-  BookmarkSyncPage,
   EntityDiff,
   OrganizationSnapshot,
   ReconciliationCursor,
@@ -18,20 +17,12 @@ export type ReconciledScope = {
   membershipRevision: number;
 };
 
-type PendingBookmarkBucket = {
-  version: string;
-  nextPageIndex: number;
-  diffs: Array<EntityDiff<ApplicationBookmark>>;
-};
-
 export type ReconciliationDataState = {
   organization: OrganizationSnapshot | null;
   navigation: NavigationSnapshot | null;
   feedItems: Record<string, ApplicationFeedItem>;
   bookmarks: Record<string, ApplicationBookmark>;
   scopes: Record<string, ReconciledScope>;
-  bookmarkBucketVersions: Record<number, string>;
-  pendingBookmarkBuckets: Record<number, PendingBookmarkBucket>;
 };
 
 export type ReconciliationDataEvent =
@@ -41,8 +32,7 @@ export type ReconciliationDataEvent =
       type: "apply-active-first-page";
       page: ActiveFirstPageResult;
       currentMembershipRevision: number;
-    }
-  | { type: "apply-bookmark-sync-page"; page: BookmarkSyncPage };
+    };
 
 export type ReconciliationDataTransition = {
   state: ReconciliationDataState;
@@ -58,8 +48,6 @@ export function createReconciliationDataState(
     feedItems: {},
     bookmarks: {},
     scopes: {},
-    bookmarkBucketVersions: {},
-    pendingBookmarkBuckets: {},
     ...initial,
   };
 }
@@ -109,56 +97,6 @@ function applyActiveFirstPage(
   };
 }
 
-function applyBookmarkSyncPage(
-  state: ReconciliationDataState,
-  page: BookmarkSyncPage,
-): ReconciliationDataTransition {
-  const current = state.pendingBookmarkBuckets[page.bucket];
-  if (page.pageIndex !== 0 && !current) return { state, applied: false };
-  if (
-    page.pageIndex !== 0 &&
-    current &&
-    (current.version !== page.version ||
-      current.nextPageIndex !== page.pageIndex)
-  ) {
-    return { state, applied: false };
-  }
-  const pending: PendingBookmarkBucket = {
-    version: page.version,
-    nextPageIndex: page.pageIndex + 1,
-    diffs: [
-      ...(page.pageIndex === 0 ? [] : (current?.diffs ?? [])),
-      ...page.diffs,
-    ],
-  };
-  if (!page.completesBucket) {
-    return {
-      applied: true,
-      state: {
-        ...state,
-        pendingBookmarkBuckets: {
-          ...state.pendingBookmarkBuckets,
-          [page.bucket]: pending,
-        },
-      },
-    };
-  }
-  const pendingBookmarkBuckets = { ...state.pendingBookmarkBuckets };
-  delete pendingBookmarkBuckets[page.bucket];
-  return {
-    applied: true,
-    state: {
-      ...state,
-      bookmarks: applyEntityDiffs(state.bookmarks, pending.diffs),
-      bookmarkBucketVersions: {
-        ...state.bookmarkBucketVersions,
-        [page.bucket]: page.version,
-      },
-      pendingBookmarkBuckets,
-    },
-  };
-}
-
 export function reduceReconciliationData(
   state: ReconciliationDataState,
   event: ReconciliationDataEvent,
@@ -180,7 +118,5 @@ export function reduceReconciliationData(
         event.page,
         event.currentMembershipRevision,
       );
-    case "apply-bookmark-sync-page":
-      return applyBookmarkSyncPage(state, event.page);
   }
 }

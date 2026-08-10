@@ -367,7 +367,6 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
             : [],
         ),
         replacesScope: true,
-        feedItems: feedItemsStore.getState().feedItemsDict,
       });
     }
 
@@ -400,7 +399,7 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
     ).toEqual([reference("feed-item", vertical.id)]);
   });
 
-  it("suppresses a reprojected Feed item against the global cached Bookmark index", () => {
+  it("keeps a reprojected Feed item when it matches a cached Bookmark", () => {
     const cached = bookmark({
       id: "global-collision",
       canonicalUrl: "https://example.com/collision",
@@ -417,7 +416,6 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
       contentStatus: { saveStatus: "inbox", archiveStatus: "unread" },
       page: page([reference("feed-item", original.id)]),
       replacesScope: true,
-      feedItems: feedItemsStore.getState().feedItemsDict,
     });
 
     const colliding = {
@@ -438,7 +436,7 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
 
     expect(
       mixedContentStore.getState().scopes["view:10:inbox:unread"]?.references,
-    ).toEqual([]);
+    ).toEqual([reference("feed-item", colliding.id)]);
   });
 
   it("reprojects cached Feed items immediately after a View filter edit", () => {
@@ -458,7 +456,6 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
       contentStatus: { saveStatus: "inbox", archiveStatus: "unread" },
       page: page([reference("feed-item", horizontal.id)]),
       replacesScope: true,
-      feedItems: feedItemsStore.getState().feedItemsDict,
     });
 
     const shortsView = { ...view(), contentFilter: 4 as const };
@@ -467,7 +464,6 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
     mixedContentStore.getState().reprojectFeedItems({
       itemIds: Object.keys(feedItems),
       feedItems,
-      bookmarks: bookmarksStore.getState().snapshot(),
       views: [shortsView],
       feedCategories: [],
     });
@@ -477,7 +473,7 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
     ).toEqual([reference("feed-item", vertical.id)]);
   });
 
-  it("suppresses matching Feed items immediately, moves Bookmark content status, restores on deletion, and reports scopes for refill", () => {
+  it("moves Bookmark content status without changing matching Feed rows", () => {
     const matchingOne = feedItem(
       "feed-match-one",
       "https://example.com/article#fragment",
@@ -500,21 +496,18 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
         reference("feed-item", other.id),
       ]),
       replacesScope: true,
-      feedItems: feedItemsStore.getState().feedItemsDict,
     });
     mixedContentStore.getState().applyPage({
       scope,
       contentStatus: { saveStatus: "inbox", archiveStatus: "archived" },
       page: page([]),
       replacesScope: true,
-      feedItems: feedItemsStore.getState().feedItemsDict,
     });
     mixedContentStore.getState().applyPage({
       scope,
       contentStatus: { saveStatus: "saved", archiveStatus: "unread" },
       page: page([]),
       replacesScope: true,
-      feedItems: feedItemsStore.getState().feedItemsDict,
     });
 
     const saved = bookmark();
@@ -524,7 +517,7 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
         chunk: { type: "bookmark-upsert", bookmark: saved },
       },
     ]);
-    expect(affectedOnSave).toHaveLength(2);
+    expect(affectedOnSave).toHaveLength(1);
     expect(
       mixedContentStore.getState().scopes[
         getMixedScopeKey(scope, {
@@ -532,7 +525,11 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
           archiveStatus: "unread",
         })
       ]?.references,
-    ).toEqual([reference("feed-item", other.id)]);
+    ).toEqual([
+      reference("feed-item", other.id),
+      reference("feed-item", matchingTwo.id),
+      reference("feed-item", matchingOne.id),
+    ]);
     expect(feedItemsStore.getState().feedItemsDict[matchingOne.id]).toEqual(
       matchingOne,
     );
@@ -563,7 +560,7 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
         },
       },
     ]);
-    expect(affectedOnDelete).toHaveLength(2);
+    expect(affectedOnDelete).toHaveLength(1);
     expect(
       mixedContentStore.getState().scopes[
         getMixedScopeKey(scope, {
@@ -724,7 +721,6 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
       contentStatus: { saveStatus: "saved", archiveStatus: "unread" },
       page: page([reference("bookmark", cached.id)]),
       replacesScope: true,
-      feedItems: {},
     });
     const moved = bookmark({
       ...cached,
@@ -752,7 +748,7 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
     ).toEqual([]);
   });
 
-  it("restores a suppressed Feed item when authoritative bucket sync deletes its Bookmark", () => {
+  it("removes only the Bookmark when authoritative bucket sync deletes it", () => {
     const url = "https://example.com/collision";
     const item = feedItem("collision-feed", url);
     const cached = bookmark({ id: "collision-bookmark", canonicalUrl: url });
@@ -762,13 +758,23 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
       contentStatus: { saveStatus: "saved", archiveStatus: "unread" },
       page: page([reference("feed-item", item.id)]),
       replacesScope: true,
-      feedItems: feedItemsStore.getState().feedItemsDict,
     });
     processPublishedChunks([
       {
         source: "bookmark",
         chunk: { type: "bookmark-upsert", bookmark: cached },
       },
+    ]);
+    expect(
+      mixedContentStore.getState().scopes[
+        getMixedScopeKey(
+          { type: "view", viewId: 10 },
+          { saveStatus: "saved", archiveStatus: "unread" },
+        )
+      ]?.references,
+    ).toEqual([
+      reference("bookmark", cached.id),
+      reference("feed-item", item.id),
     ]);
     const [syncPage] = buildBookmarkSyncPages({
       bucket: getBookmarkSyncBucket(cached.id),
@@ -804,14 +810,12 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
       contentStatus: { saveStatus: "inbox", archiveStatus: "unread" },
       page: page(references),
       replacesScope: true,
-      feedItems: feedItemsStore.getState().feedItemsDict,
     });
     mixedContentStore.getState().applyPage({
       scope,
       contentStatus: { saveStatus: "inbox", archiveStatus: "archived" },
       page: page([]),
       replacesScope: true,
-      feedItems: feedItemsStore.getState().feedItemsDict,
     });
     orpcMocks.setBookmarkBulkReadValue.mockResolvedValue([]);
     orpcMocks.setFeedBulkWatchedValue.mockImplementation(
@@ -893,14 +897,12 @@ describe("Bookmark synchronization and local mixed reprojection", () => {
       contentStatus: { saveStatus: "inbox", archiveStatus: "unread" },
       page: page(references),
       replacesScope: true,
-      feedItems: feedItemsStore.getState().feedItemsDict,
     });
     mixedContentStore.getState().applyPage({
       scope,
       contentStatus: { saveStatus: "inbox", archiveStatus: "archived" },
       page: page([]),
       replacesScope: true,
-      feedItems: feedItemsStore.getState().feedItemsDict,
     });
     orpcMocks.setBookmarkBulkReadValue.mockRejectedValueOnce(
       new Error("write failed"),

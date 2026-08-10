@@ -108,7 +108,6 @@ describe("optimistic feed item mutations", () => {
         hasMore: false,
       },
       replacesScope: true,
-      feedItems: feedItemsStore.getState().feedItemsDict,
     });
 
     applyOptimisticWatchLaterValue(item.id, true);

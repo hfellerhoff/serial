@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { ApplicationFeedItem } from "~/server/db/schema";
-import type { ApplicationBookmark } from "~/server/mixed-content/projection";
 import type {
   ActiveFirstPageResult,
   OrganizationSnapshot,
   ReconciliationCommand,
   ReconciliationCoordinatorEvent,
   ReconciliationCoordinatorState,
+  ReconciliationHydrationDomain,
   ReconciliationRequestIntent,
   ReconciliationScopeTarget,
   ReconciliationTarget,
@@ -36,7 +36,6 @@ const OTHER_SCOPE = {
 
 const ORGANIZATION = { type: "organization" } as const;
 const NAVIGATION = { type: "navigation" } as const;
-const BOOKMARKS = { type: "bookmarks" } as const;
 
 function feedItem(
   id: string,
@@ -69,19 +68,6 @@ function feedItem(
   };
 }
 
-function bookmark(
-  id: string,
-  overrides: Partial<ApplicationBookmark> = {},
-): ApplicationBookmark {
-  return {
-    id,
-    title: id,
-    sourceUrl: `https://example.com/${id}`,
-    canonicalUrl: `https://example.com/${id}`,
-    ...overrides,
-  } as ApplicationBookmark;
-}
-
 function firstPage(
   membershipRevision: number,
   overrides: Partial<ActiveFirstPageResult> = {},
@@ -105,6 +91,7 @@ function organizationSnapshot(name: string): OrganizationSnapshot {
     tags: [],
     feedTags: [],
     directViewFeeds: [],
+    effectiveViewFeeds: [],
   };
 }
 
@@ -180,39 +167,6 @@ describe("reconciliation data reducers", () => {
     });
     expect(result).toEqual({ state, applied: false });
   });
-
-  it("applies a bounded Bookmark bucket only after its final page", () => {
-    const oldBookmark = bookmark("old");
-    const newBookmark = bookmark("new");
-    let state = createReconciliationDataState({
-      bookmarks: { old: oldBookmark },
-    });
-
-    ({ state } = reduceReconciliationData(state, {
-      type: "apply-bookmark-sync-page",
-      page: {
-        bucket: 3,
-        version: "next",
-        pageIndex: 0,
-        diffs: [{ status: "delete", id: "old" }],
-        completesBucket: false,
-      },
-    }));
-    expect(state.bookmarks.old).toBe(oldBookmark);
-
-    ({ state } = reduceReconciliationData(state, {
-      type: "apply-bookmark-sync-page",
-      page: {
-        bucket: 3,
-        version: "next",
-        pageIndex: 1,
-        diffs: [{ status: "upsert", entity: newBookmark }],
-        completesBucket: true,
-      },
-    }));
-    expect(state.bookmarks).toEqual({ new: newBookmark });
-    expect(state.bookmarkBucketVersions[3]).toBe("next");
-  });
 });
 
 type TestCoordinator = ReconciliationCoordinatorState<string, string>;
@@ -242,7 +196,7 @@ function hydrateAll(send: (event: TestEvent) => TestCommand[]) {
     "active-scope",
     "navigation",
     "bookmarks",
-  ] satisfies RequiredReconciliationDomain[]) {
+  ] satisfies ReconciliationHydrationDomain[]) {
     send({ type: "hydration-complete", domain });
   }
 }
@@ -258,7 +212,7 @@ function startedRequest(commands: TestCommand[]) {
 }
 
 function requiredTargets(): ReconciliationTarget[] {
-  return [ORGANIZATION, ACTIVE_SCOPE, NAVIGATION, BOOKMARKS];
+  return [ORGANIZATION, ACTIVE_SCOPE, NAVIGATION];
 }
 
 function hydrationFor(target: ReconciliationTarget) {
@@ -309,7 +263,6 @@ describe("reconciliation coordinator", () => {
     expect(harness.state.domains.organization.appliedAt).toBe(2);
     expect(harness.state.domains["active-scope"].appliedAt).toBe(3);
     expect(harness.state.domains.navigation.appliedAt).toBe(4);
-    expect(harness.state.domains.bookmarks.appliedAt).toBe(5);
   });
 
   it("preserves applied domains and withholds parity after partial failure", () => {
@@ -324,7 +277,7 @@ describe("reconciliation coordinator", () => {
       }),
     );
 
-    for (const target of [ORGANIZATION, ACTIVE_SCOPE, BOOKMARKS]) {
+    for (const target of [ORGANIZATION, ACTIVE_SCOPE]) {
       harness.send({
         type: "authoritative-received",
         reconciliationId: request.reconciliationId,
@@ -411,7 +364,7 @@ describe("reconciliation coordinator", () => {
       { type: "targeted", targets: [OTHER_SCOPE] },
       { type: "targeted", targets: [NAVIGATION] },
       { type: "full", selectedScope: ACTIVE_SCOPE },
-      { type: "targeted", targets: [BOOKMARKS] },
+      { type: "targeted", targets: [ORGANIZATION] },
     ] satisfies ReconciliationRequestIntent[]) {
       expect(harness.send({ type: "request-reconciliation", intent })).toEqual(
         [],

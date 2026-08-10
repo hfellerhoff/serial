@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 import { feedItemsStore, useFeedItemState } from "../store";
-import { bookmarksStore } from "../bookmarks/store";
 import { feedCategoriesStore } from "../feed-categories/store";
 import { mixedContentStore } from "../mixed-content/store";
 import { viewsStore } from "../views/store";
@@ -51,7 +50,6 @@ function setFeedItemsWithMixedProjection(items: ApplicationFeedItem[]) {
     itemIds: items.map((item) => item.id),
     previousFeedItems,
     feedItems: store.feedItemsDict,
-    bookmarks: bookmarksStore.getState().snapshot(),
     views: viewsStore.getState().views,
     feedCategories: feedCategoriesStore.getState().feedCategories,
   });

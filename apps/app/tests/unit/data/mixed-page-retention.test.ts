@@ -46,7 +46,6 @@ function applyPages(count: number) {
         hasMore: true,
       },
       replacesScope: pageIndex === 0,
-      feedItems: {},
     });
   }
 }

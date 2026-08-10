@@ -72,7 +72,6 @@ export function useEditViewMutation() {
           mixedContentStore.getState().reprojectUpsert({
             bookmark,
             previousBookmark: undefined,
-            feedItems: feedItemsStore.getState().feedItemsDict,
             views: nextViews,
           });
         }
@@ -80,7 +79,6 @@ export function useEditViewMutation() {
         mixedContentStore.getState().reprojectFeedItems({
           itemIds: Object.keys(feedItems),
           feedItems,
-          bookmarks: bookmarksStore.getState().snapshot(),
           views: nextViews,
           feedCategories: feedCategoriesStore.getState().feedCategories,
         });
