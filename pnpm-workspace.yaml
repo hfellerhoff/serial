@@ -6,7 +6,15 @@ disallowWorkspaceCycles: true
 
 minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
+  # Solid 2 RC packages are intentionally pinned for the isolated PoC.
+  - "@dom-expressions/babel-plugin-jsx@0.50.0-next.42"
+  - "@solidjs/signals@2.0.0-rc.0"
+  - "@solidjs/vite-plugin@3.0.0-next.28"
+  - "@solidjs/web@2.0.0-rc.0"
+  - "@tanstack/solid-router@2.0.0-rc.0"
+  - "babel-preset-solid@2.0.0-rc.0"
   - "nanoid@3.3.17"
+  - "solid-js@2.0.0-rc.0"
 trustPolicy: no-downgrade
 trustPolicyExclude:
   - semver
