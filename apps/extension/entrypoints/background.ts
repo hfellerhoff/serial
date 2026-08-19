@@ -11,7 +11,11 @@ import {
   SELECTED_INSTANCE_STORAGE_KEY,
   updateSessionFromResponse,
 } from "../lib/auth";
-import { EXTENSION_INSTANCE_REQUEST_TIMEOUT_MS } from "@serial/bookmark-capture";
+import {
+  EXTENSION_INSTANCE_REQUEST_TIMEOUT_MS,
+  isPrototypeFeedItemCaptureRequest,
+} from "@serial/bookmark-capture";
+import type { PrototypeFeedItemCaptureRequest } from "@serial/bookmark-capture";
 import type {
   AuthMessage,
   AuthMessageResponse,
@@ -20,6 +24,7 @@ import type {
 import { handleBookmarkMessage } from "../lib/background-bookmarks";
 import { isBookmarkMessage } from "../lib/bookmarks";
 import type { BookmarkMessage } from "../lib/bookmarks";
+import { capturePrototypeFeedItem } from "../lib/prototype-feed-item-capture";
 
 async function fetchFromInstance(
   input: string | URL | Request,
@@ -239,14 +244,20 @@ async function handleAuthMessage(
 
 export default defineBackground(() => {
   browser.runtime.onMessage.addListener(
-    (message: AuthMessage | BookmarkMessage, _sender, sendResponse) => {
-      const response = isBookmarkMessage(message)
-        ? handleBookmarkMessage(message, {
-            readStoredSession,
-            clearSession,
-            fetchFromInstance,
-          })
-        : handleAuthMessage(message);
+    (
+      message: AuthMessage | BookmarkMessage | PrototypeFeedItemCaptureRequest,
+      sender,
+      sendResponse,
+    ) => {
+      const response = isPrototypeFeedItemCaptureRequest(message)
+        ? capturePrototypeFeedItem(message, sender.tab?.url)
+        : isBookmarkMessage(message)
+          ? handleBookmarkMessage(message, {
+              readStoredSession,
+              clearSession,
+              fetchFromInstance,
+            })
+          : handleAuthMessage(message);
       void response.then(sendResponse);
       return true;
     },

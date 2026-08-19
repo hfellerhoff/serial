@@ -16,6 +16,7 @@ const developmentInstanceOrigins = [
   "http://127.0.0.1/*",
   "http://[::1]/*",
 ];
+const prototypeCaptureOrigins = ["http://*/*", "https://*/*"];
 const extensionIcons = {
   16: "icon/16.png",
   32: "icon/32.png",
@@ -74,7 +75,15 @@ export default defineConfig({
       ...(manifestVersion === 2
         ? { browser_action: { default_icon: extensionIcons } }
         : { action: { default_icon: extensionIcons } }),
-      permissions: ["identity", "storage", "activeTab", "scripting"],
+      permissions: [
+        "identity",
+        "storage",
+        "activeTab",
+        "scripting",
+        ...(manifestVersion === 2 ? prototypeCaptureOrigins : []),
+      ],
+      host_permissions:
+        manifestVersion === 3 ? prototypeCaptureOrigins : undefined,
       optional_permissions: manifestVersion === 2 ? instanceOrigins : undefined,
       optional_host_permissions:
         manifestVersion === 3 ? instanceOrigins : undefined,

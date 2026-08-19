@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
+import { Loader2Icon, ScanTextIcon } from "lucide-react";
 import rehypeParse from "rehype-parse";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeStringify from "rehype-stringify";
@@ -48,6 +49,18 @@ import {
   contentDestination,
   resolveContentItem,
 } from "~/lib/data/content-items/resolver";
+import { BookmarkArticleContent } from "~/components/bookmarks/BookmarkArticleContent";
+import { requestPrototypeFeedItemCapture } from "~/lib/prototype-feed-item-capture";
+
+type PrototypeCaptureState =
+  | { status: "idle" }
+  | { status: "capturing" }
+  | {
+      status: "captured";
+      contentHtml: string;
+      effectiveUrl: string;
+    }
+  | { status: "error"; message: string };
 
 const parser = unified()
   .use(rehypeParse, { fragment: true })
@@ -80,7 +93,11 @@ function ReadPage() {
     return <BookmarkReader id={params.id} />;
   }
   return (
-    <FeedReader id={params.id} hasRefreshedFeedItem={hasRefreshedFeedItem} />
+    <FeedReader
+      key={params.id}
+      id={params.id}
+      hasRefreshedFeedItem={hasRefreshedFeedItem}
+    />
   );
 }
 
@@ -96,6 +113,8 @@ function FeedReader({
   const [articleStyle] = useFlagState("ARTICLE_STYLE");
 
   const feedItem = useFeedItemValue(id);
+  const [prototypeCapture, setPrototypeCapture] =
+    useState<PrototypeCaptureState>({ status: "idle" });
 
   const { feeds } = useFeeds();
   const feedCategories = useFeedCategories();
@@ -111,6 +130,26 @@ function FeedReader({
   if (articleStyle === "simplified") {
     content = String(parser.processSync(feedItem?.content ?? ""));
   }
+
+  const displayedContent =
+    prototypeCapture.status === "captured"
+      ? prototypeCapture.contentHtml
+      : content;
+
+  const captureSourcePage = async () => {
+    if (!feedItem?.url || prototypeCapture.status === "capturing") return;
+    setPrototypeCapture({ status: "capturing" });
+    const response = await requestPrototypeFeedItemCapture(feedItem.url);
+    setPrototypeCapture(
+      response.ok
+        ? {
+            status: "captured",
+            contentHtml: response.capture.contentHtml,
+            effectiveUrl: response.capture.effectiveUrl,
+          }
+        : { status: "error", message: response.error },
+    );
+  };
 
   const articleRef = useRef<HTMLDivElement>(null);
   const [articleElement, setArticleElement] = useState<HTMLDivElement | null>(
@@ -236,7 +275,7 @@ function FeedReader({
       <div key={id} className="relative w-full">
         <ArticleSidebars
           article={articleElement}
-          contentKey={`${id}:${articleStyle}:${zoom}:${content}`}
+          contentKey={`${id}:${articleStyle}:${zoom}:${displayedContent}`}
           scrollToElement={scrollToElement}
         />
         <div
@@ -245,7 +284,9 @@ function FeedReader({
         >
           <h1 data-serial-header>{feedItem?.title}</h1>
           <h6 data-serial-header>{feedItem?.author || feed?.name || ""}</h6>
-          {articleStyle === "simplified" ? (
+          {prototypeCapture.status === "captured" ? (
+            <BookmarkArticleContent content={prototypeCapture.contentHtml} />
+          ) : articleStyle === "simplified" ? (
             // Content is sanitized by the module-level rehype pipeline above.
             // react-doctor-disable-next-line react-doctor/dangerous-html-sink
             <div
@@ -281,6 +322,18 @@ function FeedReader({
           </Alert>
         </div>
       )}
+      {prototypeCapture.status !== "idle" && (
+        <p
+          className="text-muted-foreground w-full px-6 text-center font-sans text-sm"
+          role="status"
+        >
+          {prototypeCapture.status === "capturing"
+            ? "Capturing the authenticated source page in a background tab…"
+            : prototypeCapture.status === "captured"
+              ? `Showing an ephemeral capture from ${new URL(prototypeCapture.effectiveUrl).host}. Reload to restore the Feed body.`
+              : prototypeCapture.message}
+        </p>
+      )}
       <div
         className={clsx(
           "sticky inset-x-0 bottom-0 left-0 grid place-items-center transition-transform duration-300",
@@ -289,7 +342,33 @@ function FeedReader({
           },
         )}
       >
-        <ContentActions contentID={id} />
+        <ContentActions
+          contentID={id}
+          prototypeCaptureAction={
+            <Button
+              data-prototype-capture-state={prototypeCapture.status}
+              variant={
+                prototypeCapture.status === "captured" ? "secondary" : "outline"
+              }
+              size="icon md:default"
+              disabled={
+                !feedItem?.url || prototypeCapture.status === "capturing"
+              }
+              onClick={() => void captureSourcePage()}
+            >
+              {prototypeCapture.status === "capturing" ? (
+                <Loader2Icon className="animate-spin" size={16} />
+              ) : (
+                <ScanTextIcon size={16} />
+              )}
+              <span className="hidden pl-1.5 md:block">
+                {prototypeCapture.status === "capturing"
+                  ? "Capturing"
+                  : "Capture"}
+              </span>
+            </Button>
+          }
+        />
       </div>
     </div>
   );

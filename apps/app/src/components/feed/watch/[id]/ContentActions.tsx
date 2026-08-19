@@ -7,6 +7,7 @@ import {
   SendIcon,
 } from "lucide-react";
 import { useView } from "./useView";
+import type { ReactNode } from "react";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { Button } from "~/components/ui/button";
 import {
@@ -22,7 +23,13 @@ import { useMediaQuery } from "~/lib/hooks/use-media-query";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 
-export function ContentActions({ contentID }: { contentID: string }) {
+export function ContentActions({
+  contentID,
+  prototypeCaptureAction,
+}: {
+  contentID: string;
+  prototypeCaptureAction?: ReactNode;
+}) {
   const { view } = useView();
 
   const video = useFeedItemValue(contentID);
@@ -83,6 +90,7 @@ export function ContentActions({ contentID }: { contentID: string }) {
 
     return (
       <div className="absolute inset-x-0 bottom-0 z-0 flex w-full items-center justify-center gap-2 p-6">
+        {prototypeCaptureAction}
         {showInstapaperAction && (
           <Button
             variant="outline"
@@ -121,6 +129,7 @@ export function ContentActions({ contentID }: { contentID: string }) {
 
   return (
     <div className="flex w-full items-center justify-center gap-2 p-6">
+      {prototypeCaptureAction}
       {showInstapaperAction && (
         <ButtonWithShortcut
           shortcut={SHORTCUT_KEYS.SEND_TO_INSTAPAPER}
