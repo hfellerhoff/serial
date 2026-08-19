@@ -39,7 +39,10 @@ function isPrototypeSerialPage(value: string | undefined) {
 
 async function waitForTabLoad(tabId: number) {
   await new Promise<void>((resolve, reject) => {
+    let settled = false;
     const timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
       cleanup();
       reject(new Error("The source page did not finish loading in time"));
     }, PAGE_LOAD_TIMEOUT_MS);
@@ -50,32 +53,47 @@ async function waitForTabLoad(tabId: number) {
       browser.tabs.onRemoved.removeListener(handleRemoved);
     };
     const finish = () => {
+      if (settled) return;
+      settled = true;
       cleanup();
       resolve();
+    };
+    const fail = (error: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+    const finishIfHttpDocumentLoaded = async () => {
+      try {
+        const tab = await browser.tabs.get(tabId);
+        if (
+          tab.status === "complete" &&
+          typeof tab.url === "string" &&
+          (tab.url.startsWith("http://") || tab.url.startsWith("https://"))
+        ) {
+          finish();
+        }
+      } catch (error) {
+        fail(error);
+      }
     };
     const handleUpdated = (
       updatedTabId: number,
       changeInfo: { status?: string },
     ) => {
-      if (updatedTabId === tabId && changeInfo.status === "complete") finish();
+      if (updatedTabId === tabId && changeInfo.status === "complete") {
+        void finishIfHttpDocumentLoaded();
+      }
     };
     const handleRemoved = (removedTabId: number) => {
       if (removedTabId !== tabId) return;
-      cleanup();
-      reject(new Error("The capture tab was closed before extraction"));
+      fail(new Error("The capture tab was closed before extraction"));
     };
 
     browser.tabs.onUpdated.addListener(handleUpdated);
     browser.tabs.onRemoved.addListener(handleRemoved);
-    void browser.tabs
-      .get(tabId)
-      .then((tab) => {
-        if (tab.status === "complete") finish();
-      })
-      .catch((error: unknown) => {
-        cleanup();
-        reject(error);
-      });
+    void finishIfHttpDocumentLoaded();
   });
 }
 
@@ -150,7 +168,7 @@ export async function capturePrototypeFeedItem(
     const sourceUrl = eligibleHttpUrl(request.sourceUrl);
     const tab = await browser.tabs.create({ active: false, url: sourceUrl });
     if (typeof tab.id !== "number") {
-      throw new Error("Chrome did not return a capture tab ID");
+      throw new Error("The browser did not return a capture tab ID");
     }
     tabId = tab.id;
 

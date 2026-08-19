@@ -20,6 +20,7 @@
     "format:fix": "prettier --write .",
     "lint": "eslint .",
     "lint:firefox": "web-ext lint --source-dir .output/firefox-mv2 --output=json --boring --no-input | node scripts/check-firefox-lint.mjs",
+    "test:prototype:capture:firefox": "node scripts/test-prototype-firefox-capture.mjs",
     "lint:fix": "eslint --fix .",
     "test:unit": "vitest run",
     "postinstall": "wxt prepare"

@@ -8,32 +8,51 @@ const request = {
   sourceUrl: "https://publisher.example/private-article",
 };
 
+function stubEvent<Args extends unknown[]>() {
+  const listeners = new Set<(...args: Args) => void>();
+  return {
+    addListener: vi.fn((listener: (...args: Args) => void) => {
+      listeners.add(listener);
+    }),
+    removeListener: vi.fn((listener: (...args: Args) => void) => {
+      listeners.delete(listener);
+    }),
+    emit: (...args: Args) => {
+      for (const listener of listeners) listener(...args);
+    },
+  };
+}
+
 function stubBrowser(captureResult: unknown) {
   const create = vi.fn(() => Promise.resolve({ id: 42, status: "loading" }));
-  const get = vi.fn(() => Promise.resolve({ id: 42, status: "complete" }));
+  const get = vi.fn(() =>
+    Promise.resolve({
+      id: 42,
+      status: "complete",
+      url: request.sourceUrl,
+    }),
+  );
   const remove = vi.fn(() => Promise.resolve());
   const executeScript = vi.fn((input: { files?: string[] }) =>
     Promise.resolve(
       input.files ? [{ result: captureResult }] : [{ result: undefined }],
     ),
   );
-  const event = {
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-  };
+  const onRemoved = stubEvent<[number]>();
+  const onUpdated = stubEvent<[number, { status?: string }]>();
 
   vi.stubGlobal("browser", {
     tabs: {
       create,
       get,
       remove,
-      onRemoved: event,
-      onUpdated: event,
+      onRemoved,
+      onUpdated,
     },
     scripting: { executeScript },
   });
 
-  return { create, executeScript, remove };
+  return { create, executeScript, get, onUpdated, remove };
 }
 
 afterEach(() => {
@@ -88,6 +107,33 @@ describe("prototype Feed-item page capture", () => {
 
     expect(response).toMatchObject({ ok: false });
     expect(browser.create).not.toHaveBeenCalled();
+  });
+
+  it("waits past Firefox's completed about:blank state before injecting", async () => {
+    const browser = stubBrowser({
+      capture: {
+        contentHtml: "<p>Authenticated full article</p>",
+        effectiveUrl: request.sourceUrl,
+        title: "Private article",
+      },
+    });
+    browser.get.mockResolvedValueOnce({
+      id: 42,
+      status: "complete",
+      url: "about:blank",
+    });
+
+    const response = capturePrototypeFeedItem(
+      request,
+      "http://localhost:3000/read/item-one",
+    );
+    await vi.waitFor(() => expect(browser.get).toHaveBeenCalledTimes(1));
+    expect(browser.executeScript).not.toHaveBeenCalled();
+
+    browser.onUpdated.emit(42, { status: "complete" });
+
+    await expect(response).resolves.toMatchObject({ ok: true });
+    expect(browser.executeScript).toHaveBeenCalledTimes(2);
   });
 
   it("closes the temporary tab when extraction fails", async () => {

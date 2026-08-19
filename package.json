@@ -8,6 +8,7 @@
     "dev:demo": "node apps/extension/scripts/dev-demo.mjs",
     "dev:demo:chrome": "node apps/extension/scripts/dev-demo.mjs chrome",
     "dev:demo:firefox": "node apps/extension/scripts/dev-demo.mjs firefox",
+    "test:prototype:capture:firefox": "pnpm --filter @serial/extension test:prototype:capture:firefox",
     "dev:extension": "pnpm --filter @serial/extension dev",
     "build": "turbo run build:artifact",
     "build:artifact": "turbo run build:artifact",
