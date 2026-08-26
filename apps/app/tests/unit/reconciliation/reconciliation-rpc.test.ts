@@ -92,10 +92,20 @@ describe("reconciliation RPC", () => {
     expect(
       chunkTypes.filter((type) => type === "active-first-page"),
     ).toHaveLength(8);
-    expect(chunkTypes.at(-4)).toBe("automatic-rss-owner");
-    expect(chunkTypes.slice(-3)).toEqual([
-      "navigation-snapshot",
-      "domain-complete",
+    // Navigation streams before the View matrix so the sidebar does not
+    // wait on every View and Content-status first page.
+    const navigationIndex = chunkTypes.indexOf("navigation-snapshot");
+    const matrixStartIndex = chunkTypes.indexOf(
+      "active-first-page",
+      1 + chunkTypes.indexOf("active-first-page"),
+    );
+    expect(navigationIndex).toBeGreaterThan(
+      chunkTypes.indexOf("active-first-page"),
+    );
+    expect(navigationIndex).toBeLessThan(matrixStartIndex);
+    expect(chunkTypes[navigationIndex + 1]).toBe("domain-complete");
+    expect(chunkTypes.slice(-2)).toEqual([
+      "automatic-rss-owner",
       "epoch-complete",
     ]);
   });

@@ -334,6 +334,29 @@ async function* reconcileFull(input: {
     target: scopeInput.target,
   });
 
+  // Navigation is yielded before the View matrix so the sidebar can paint
+  // without waiting on every View and Content-status first page.
+  const navigation = await navigationPromise;
+  if (!navigation.ok) {
+    yield event(
+      request.reconciliationId,
+      failure({
+        phase: "load-navigation",
+        domain: "navigation",
+        message: message(navigation.error),
+      }),
+    );
+    return;
+  }
+  yield event(request.reconciliationId, {
+    type: "navigation-snapshot",
+    snapshot: navigation.value,
+  });
+  yield event(request.reconciliationId, {
+    type: "domain-complete",
+    domain: "navigation",
+  });
+
   const matrixTargets = viewPageTargets(organization.value, scopeInput.target);
   for (
     let start = 0;
@@ -400,26 +423,6 @@ async function* reconcileFull(input: {
     owner: owner.ok ? owner.value : "client",
   });
 
-  const navigation = await navigationPromise;
-  if (!navigation.ok) {
-    yield event(
-      request.reconciliationId,
-      failure({
-        phase: "load-navigation",
-        domain: "navigation",
-        message: message(navigation.error),
-      }),
-    );
-    return;
-  }
-  yield event(request.reconciliationId, {
-    type: "navigation-snapshot",
-    snapshot: navigation.value,
-  });
-  yield event(request.reconciliationId, {
-    type: "domain-complete",
-    domain: "navigation",
-  });
   yield event(request.reconciliationId, {
     type: "epoch-complete",
     requiredDomains: [...REQUIRED_RECONCILIATION_DOMAINS],

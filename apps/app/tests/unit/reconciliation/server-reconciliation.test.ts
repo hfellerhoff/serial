@@ -273,10 +273,18 @@ describe("server reconciliation", () => {
       "organization-snapshot",
       "domain-complete",
     ]);
-    expect(events.slice(-4).map(({ chunk }) => chunk.type)).toEqual([
+    const chunkTypes = events.map(({ chunk }) => chunk.type);
+    const navigationIndex = chunkTypes.indexOf("navigation-snapshot");
+    const firstPageIndex = chunkTypes.indexOf("active-first-page");
+    const matrixStartIndex = chunkTypes.indexOf(
+      "active-first-page",
+      firstPageIndex + 1,
+    );
+    expect(navigationIndex).toBeGreaterThan(firstPageIndex);
+    expect(navigationIndex).toBeLessThan(matrixStartIndex);
+    expect(chunkTypes[navigationIndex + 1]).toBe("domain-complete");
+    expect(chunkTypes.slice(-2)).toEqual([
       "automatic-rss-owner",
-      "navigation-snapshot",
-      "domain-complete",
       "epoch-complete",
     ]);
     expect(events.every((event) => event.reconciliationId === "cold-1")).toBe(
