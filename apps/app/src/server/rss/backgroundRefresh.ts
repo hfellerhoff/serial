@@ -32,7 +32,6 @@ type BackgroundRefreshDependencies = {
   db: typeof Database;
   now: Date;
   billingEnabled: boolean;
-  hasSubscribers: (channel: string) => boolean;
   claimUser?: (input: {
     db: typeof Database;
     userId: string;
@@ -133,19 +132,16 @@ export async function runBackgroundFeedRefresh(
     );
     afterUserId = userPage.at(-1)?.id;
 
-    const subscribedUsers = userPage.filter((candidate) =>
-      dependencies.hasSubscribers(`user:${candidate.id}`),
-    );
     const planCandidates = dependencies.billingEnabled
       ? workerPool(
-          subscribedUsers,
+          userPage,
           BACKGROUND_PLAN_CONCURRENCY,
           async (candidate) => ({
             candidate,
             planId: await getPlanId(candidate.id),
           }),
         )
-      : workerPool(subscribedUsers, BACKGROUND_PLAN_CONCURRENCY, (candidate) =>
+      : workerPool(userPage, BACKGROUND_PLAN_CONCURRENCY, (candidate) =>
           Promise.resolve({
             candidate,
             planId: "pro" as const,
@@ -173,7 +169,9 @@ export async function runBackgroundFeedRefresh(
           candidate.id,
           dependencies.now,
         );
-        if (!dependencies.billingEnabled && dueFeedCount === 0) continue;
+        // Nothing due: do not consume the user's refresh window or emit an
+        // empty lifecycle for a no-op.
+        if (dueFeedCount === 0) continue;
 
         const eligibility = await claimUser({
           db: dependencies.db,

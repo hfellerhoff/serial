@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { publisher, trackChannelConnection } from "../publisher";
+import { publisher } from "../publisher";
 import { getUserChannel } from "../channels";
 import { insertFeedWithCategories } from "./feed-router/utils";
 import type { PublishedChunk } from "../publisher";
@@ -208,17 +208,12 @@ export const subscribe = protectedProcedure
   .input(z.object({}))
   .handler(async function* ({ context, signal, lastEventId }) {
     const userChannel = getUserChannel(context.user.id);
-    const untrack = trackChannelConnection(userChannel);
 
-    try {
-      for await (const payload of subscribeToChannels(
-        [{ channel: userChannel, lastEventId }],
-        signal,
-      )) {
-        yield payload;
-      }
-    } finally {
-      untrack();
+    for await (const payload of subscribeToChannels(
+      [{ channel: userChannel, lastEventId }],
+      signal,
+    )) {
+      yield payload;
     }
   });
 

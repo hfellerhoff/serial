@@ -68,7 +68,6 @@ describe("runBackgroundFeedRefresh", () => {
       db: testDatabase.database,
       now,
       billingEnabled: false,
-      hasSubscribers: () => true,
       claimUser: () =>
         Promise.resolve({
           eligible: true as const,
@@ -113,13 +112,26 @@ describe("runBackgroundFeedRefresh", () => {
       })),
     );
 
+    await testDatabase.database.insert(feeds).values(
+      Array.from({ length: 10 }, (_, index) => ({
+        userId: `paid-${index.toString().padStart(2, "0")}`,
+        name: "Feed",
+        url: `https://example.com/paid-${index}.xml`,
+        imageUrl: "",
+        platform: "website",
+        openLocation: "serial",
+        createdAt: now,
+        updatedAt: now,
+        isActive: true,
+      })),
+    );
+
     let activePlanRequests = 0;
     let maximumActivePlanRequests = 0;
     const metrics = await runBackgroundFeedRefresh({
       db: testDatabase.database,
       now,
       billingEnabled: true,
-      hasSubscribers: () => true,
       getPlanId: async () => {
         activePlanRequests++;
         maximumActivePlanRequests = Math.max(
@@ -141,5 +153,107 @@ describe("runBackgroundFeedRefresh", () => {
 
     expect(metrics.usersClaimed).toBe(10);
     expect(maximumActivePlanRequests).toBeLessThanOrEqual(4);
+  });
+
+  it("claims and fetches a due paid user with no connected client", async () => {
+    const now = new Date("2026-08-26T12:00:00.000Z");
+    await testDatabase.database.insert(user).values({
+      id: "away-user",
+      name: "Away",
+      email: "away@example.com",
+      emailVerified: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await testDatabase.database.insert(feeds).values(
+      Array.from({ length: 3 }, (_, index) => ({
+        userId: "away-user",
+        name: `Feed ${index}`,
+        url: `https://example.com/away/${index}.xml`,
+        imageUrl: "",
+        platform: "website",
+        openLocation: "serial",
+        createdAt: now,
+        updatedAt: now,
+        isActive: true,
+      })),
+    );
+
+    const fetchedFeedCounts: number[] = [];
+    const publishedChunkTypes: string[] = [];
+    const metrics = await runBackgroundFeedRefresh({
+      db: testDatabase.database,
+      now,
+      billingEnabled: true,
+      getPlanId: () => Promise.resolve("standard-small"),
+      claimUser: () =>
+        Promise.resolve({
+          eligible: true as const,
+          nextRefreshAt: new Date(now.getTime() + 60_000),
+        }),
+      publish: (_channel, chunk) => {
+        publishedChunkTypes.push(chunk.type);
+        return Promise.resolve();
+      },
+      refreshFeedPage: ({ feedsList }) => {
+        fetchedFeedCounts.push(feedsList.length);
+        return Promise.resolve(EMPTY_REFRESH_STATS);
+      },
+    });
+
+    expect(metrics.usersClaimed).toBe(1);
+    expect(metrics.totalDueFeeds).toBe(3);
+    expect(fetchedFeedCounts).toEqual([3]);
+    expect(publishedChunkTypes).toEqual([
+      "refresh-start",
+      "rss-attempt-complete",
+    ]);
+  });
+
+  it("skips users with no due Feeds before claiming when billing is enabled", async () => {
+    const now = new Date("2026-08-26T12:00:00.000Z");
+    await testDatabase.database.insert(user).values({
+      id: "idle-user",
+      name: "Idle",
+      email: "idle@example.com",
+      emailVerified: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await testDatabase.database.insert(feeds).values({
+      userId: "idle-user",
+      name: "Fresh feed",
+      url: "https://example.com/idle/fresh.xml",
+      imageUrl: "",
+      platform: "website",
+      openLocation: "serial",
+      createdAt: now,
+      updatedAt: now,
+      isActive: true,
+      nextFetchAt: new Date(now.getTime() + 10 * 60_000),
+    });
+
+    const claimUser = vi.fn(() =>
+      Promise.resolve({
+        eligible: true as const,
+        nextRefreshAt: new Date(now.getTime() + 60_000),
+      }),
+    );
+    const publish = vi.fn(() => Promise.resolve());
+    const refreshFeedPage = vi.fn(() => Promise.resolve(EMPTY_REFRESH_STATS));
+    const metrics = await runBackgroundFeedRefresh({
+      db: testDatabase.database,
+      now,
+      billingEnabled: true,
+      getPlanId: () => Promise.resolve("pro"),
+      claimUser,
+      publish,
+      refreshFeedPage,
+    });
+
+    expect(metrics.usersClaimed).toBe(0);
+    expect(claimUser).not.toHaveBeenCalled();
+    expect(publish).not.toHaveBeenCalled();
+    expect(refreshFeedPage).not.toHaveBeenCalled();
   });
 });

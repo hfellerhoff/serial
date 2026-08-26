@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
 import { resolve as resolvePath } from "node:path";
+import { FEED_INGESTION_CONCURRENCY } from "@serial/bookmark-capture";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Server } from "node:http";
 
@@ -520,7 +521,7 @@ describe("fetchAndInsertFeedData content diffing", () => {
 });
 
 describe("fetchAndInsertFeedData resource bounds", () => {
-  it("keeps remote fetch, parse, and write work within four workers", async () => {
+  it("keeps remote fetch, parse, and write work within the ingestion worker bound", async () => {
     activeFeedRequests = 0;
     maximumActiveFeedRequests = 0;
     const { db } = createMockDb();
@@ -540,6 +541,8 @@ describe("fetchAndInsertFeedData resource bounds", () => {
     }
 
     expect(results).toHaveLength(10);
-    expect(maximumActiveFeedRequests).toBeLessThanOrEqual(4);
+    expect(maximumActiveFeedRequests).toBeLessThanOrEqual(
+      FEED_INGESTION_CONCURRENCY,
+    );
   });
 });
