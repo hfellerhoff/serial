@@ -92,22 +92,20 @@ describe("reconciliation RPC", () => {
     expect(
       chunkTypes.filter((type) => type === "active-first-page"),
     ).toHaveLength(8);
-    // Navigation streams before the View matrix so the sidebar does not
-    // wait on every View and Content-status first page.
+    // Navigation streams concurrently with the View matrix so the sidebar
+    // does not wait on every View and Content-status first page: it arrives
+    // after the active first page and always before the epoch completes.
     const navigationIndex = chunkTypes.indexOf("navigation-snapshot");
-    const matrixStartIndex = chunkTypes.indexOf(
-      "active-first-page",
-      1 + chunkTypes.indexOf("active-first-page"),
-    );
+    const epochIndex = chunkTypes.indexOf("epoch-complete");
     expect(navigationIndex).toBeGreaterThan(
       chunkTypes.indexOf("active-first-page"),
     );
-    expect(navigationIndex).toBeLessThan(matrixStartIndex);
+    expect(navigationIndex).toBeLessThan(epochIndex);
     expect(chunkTypes[navigationIndex + 1]).toBe("domain-complete");
-    expect(chunkTypes.slice(-2)).toEqual([
-      "automatic-rss-owner",
-      "epoch-complete",
-    ]);
+    expect(chunkTypes.indexOf("automatic-rss-owner")).toBeGreaterThan(
+      chunkTypes.lastIndexOf("active-first-page"),
+    );
+    expect(chunkTypes.at(-1)).toBe("epoch-complete");
   });
 
   it("rejects an oversized targeted request before server work begins", async () => {
