@@ -252,9 +252,10 @@ async function* reconcileFull(input: {
   const ownerPromise = outcome(resolveAutomaticRssOwner({ database, userId }));
 
   // Navigation stays concurrent with the View matrix and is yielded at the
-  // earliest stream boundary where it has resolved, so the sidebar can paint
-  // without lengthening the first response. A navigation failure is deferred
-  // until after the matrix and owner chunks so the rest of the epoch still
+  // earliest stream boundary where it has resolved (after the active scope,
+  // or ahead of a completed wave's pages), so the sidebar can paint without
+  // lengthening the first response. A navigation failure is deferred until
+  // after the matrix and owner chunks so the rest of the epoch still
   // streams, matching the pre-reorder failure semantics.
   let navigationOutcome: Awaited<typeof navigationPromise> | null = null;
   void navigationPromise.then((result) => {
@@ -439,8 +440,16 @@ async function* reconcileFull(input: {
     );
     return;
   }
-  for (const chunk of settledNavigationChunks()) {
-    yield event(request.reconciliationId, chunk);
+  if (!navigationYielded) {
+    navigationYielded = true;
+    yield event(request.reconciliationId, {
+      type: "navigation-snapshot",
+      snapshot: navigation.value,
+    });
+    yield event(request.reconciliationId, {
+      type: "domain-complete",
+      domain: "navigation",
+    });
   }
 
   yield event(request.reconciliationId, {

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createBookmarkTestDatabase } from "../bookmarks/database";
 import type { ReconciliationInput } from "~/lib/reconciliation";
+import type { NavigationSnapshot } from "~/server/navigation/snapshot";
 import { getFeedItemReconciliationVersion } from "~/lib/reconciliation";
 import {
   bookmarks,
@@ -403,6 +404,94 @@ describe("server reconciliation", () => {
         message: "navigation query unavailable",
       },
     });
+  });
+
+  it("streams the View matrix and owner chunk without waiting on navigation", async () => {
+    await database.insert(views).values({
+      id: 10,
+      userId: "reconciliation-user",
+      name: "Reading",
+      contentFilter: 3,
+      placement: 1,
+    });
+    let resolveNavigation!: (snapshot: NavigationSnapshot) => void;
+    vi.mocked(navigationSnapshot.queryNavigationSnapshot).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveNavigation = resolve;
+        }),
+    );
+
+    const generator = reconcileApplicationState({
+      database,
+      userId: "reconciliation-user",
+      request: {
+        type: "full",
+        reconciliationId: "nav-deferred",
+        selection: {
+          type: "cold",
+          contentStatus: { saveStatus: "inbox", archiveStatus: "unread" },
+          membershipRevision: 4,
+        },
+      },
+    });
+
+    const beforeNavigation: string[] = [];
+    while (true) {
+      const { value, done } = await generator.next();
+      if (done) throw new Error("Stream ended before the owner chunk");
+      beforeNavigation.push(value.chunk.type);
+      if (value.chunk.type === "automatic-rss-owner") break;
+    }
+    expect(beforeNavigation).not.toContain("navigation-snapshot");
+    expect(
+      beforeNavigation.filter((type) => type === "active-first-page"),
+    ).toHaveLength(8);
+
+    resolveNavigation({ feeds: {}, tags: {}, viewFeeds: {} });
+    const afterNavigation: string[] = [];
+    for await (const event of generator) afterNavigation.push(event.chunk.type);
+    expect(afterNavigation).toEqual([
+      "navigation-snapshot",
+      "domain-complete",
+      "epoch-complete",
+    ]);
+  });
+
+  it("yields an already-resolved navigation before the first View-matrix page", async () => {
+    await database.insert(views).values({
+      id: 10,
+      userId: "reconciliation-user",
+      name: "Reading",
+      contentFilter: 3,
+      placement: 1,
+    });
+    vi.mocked(navigationSnapshot.queryNavigationSnapshot).mockResolvedValue({
+      feeds: {},
+      tags: {},
+      viewFeeds: {},
+    });
+
+    const events = await collect({
+      type: "full",
+      reconciliationId: "nav-early",
+      selection: {
+        type: "cold",
+        contentStatus: { saveStatus: "inbox", archiveStatus: "unread" },
+        membershipRevision: 4,
+      },
+    });
+
+    const chunkTypes = events.map(({ chunk }) => chunk.type);
+    const navigationIndex = chunkTypes.indexOf("navigation-snapshot");
+    const firstPageIndex = chunkTypes.indexOf("active-first-page");
+    const matrixStartIndex = chunkTypes.indexOf(
+      "active-first-page",
+      firstPageIndex + 1,
+    );
+    expect(navigationIndex).toBeGreaterThan(firstPageIndex);
+    expect(navigationIndex).toBeLessThan(matrixStartIndex);
+    expect(chunkTypes[navigationIndex + 1]).toBe("domain-complete");
   });
 
   it("terminates an unavailable explicit selection with structured scope context", async () => {

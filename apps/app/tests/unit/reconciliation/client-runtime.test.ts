@@ -476,89 +476,54 @@ describe("client reconciliation runtime", () => {
     );
   });
 
-  it("keeps successful pages usable and retries a failed View cell", async () => {
-    vi.useFakeTimers();
-    const test = harness((request) => {
-      const events = completeEpoch(request.reconciliationId);
-      events.splice(4, 0, {
-        reconciliationId: request.reconciliationId,
-        chunk: {
-          type: "domain-error",
-          failure: {
-            phase: "load-view-page",
-            domain: "active-scope",
-            target: INACTIVE_VIEW_SCOPE,
-            message: "temporary View page failure",
+  // Navigation streams concurrently with the View matrix, so a failed View
+  // cell can arrive on either side of the navigation snapshot.
+  it.each([
+    { order: "before navigation", spliceIndex: 4 },
+    { order: "after navigation", spliceIndex: 6 },
+  ])(
+    "keeps successful pages usable and retries a failed View cell streamed $order",
+    async ({ spliceIndex }) => {
+      vi.useFakeTimers();
+      const test = harness((request) => {
+        const events = completeEpoch(request.reconciliationId);
+        events.splice(spliceIndex, 0, {
+          reconciliationId: request.reconciliationId,
+          chunk: {
+            type: "domain-error",
+            failure: {
+              phase: "load-view-page",
+              domain: "active-scope",
+              target: INACTIVE_VIEW_SCOPE,
+              message: "temporary View page failure",
+            },
           },
-        },
+        });
+        return events;
       });
-      return events;
-    });
-    hydrate(test.runtime);
-    test.runtime.cacheUsable();
-    test.runtime.sseConnectionChanged(true);
-    test.runtime.start();
-    await vi.advanceTimersByTimeAsync(0);
+      hydrate(test.runtime);
+      test.runtime.cacheUsable();
+      test.runtime.sseConnectionChanged(true);
+      test.runtime.start();
+      await vi.advanceTimersByTimeAsync(0);
 
-    expect(test.applications).toEqual([
-      "organization",
-      "active-scope",
-      "navigation",
-    ]);
-    expect(test.runtime.getState().serverParityAppliedAt).toBeNull();
-    expect(test.runtime.getState().retryPending).toBe(true);
-    expect(
-      test.runtime.getState().targets[
-        getReconciliationTargetKey(INACTIVE_VIEW_SCOPE)
-      ]?.status,
-    ).toBe("dirty");
+      expect(test.applications).toEqual([
+        "organization",
+        "active-scope",
+        "navigation",
+      ]);
+      expect(test.runtime.getState().serverParityAppliedAt).toBeNull();
+      expect(test.runtime.getState().retryPending).toBe(true);
+      expect(
+        test.runtime.getState().targets[
+          getReconciliationTargetKey(INACTIVE_VIEW_SCOPE)
+        ]?.status,
+      ).toBe("dirty");
 
-    test.runtime.stop();
-    vi.useRealTimers();
-  });
-
-  it("retries a failed View cell when navigation streams before the failure", async () => {
-    vi.useFakeTimers();
-    const test = harness((request) => {
-      const events = completeEpoch(request.reconciliationId);
-      // Navigation streams concurrently with the View matrix, so a failed
-      // View cell can arrive after the navigation snapshot.
-      events.splice(6, 0, {
-        reconciliationId: request.reconciliationId,
-        chunk: {
-          type: "domain-error",
-          failure: {
-            phase: "load-view-page",
-            domain: "active-scope",
-            target: INACTIVE_VIEW_SCOPE,
-            message: "temporary View page failure",
-          },
-        },
-      });
-      return events;
-    });
-    hydrate(test.runtime);
-    test.runtime.cacheUsable();
-    test.runtime.sseConnectionChanged(true);
-    test.runtime.start();
-    await vi.advanceTimersByTimeAsync(0);
-
-    expect(test.applications).toEqual([
-      "organization",
-      "active-scope",
-      "navigation",
-    ]);
-    expect(test.runtime.getState().serverParityAppliedAt).toBeNull();
-    expect(test.runtime.getState().retryPending).toBe(true);
-    expect(
-      test.runtime.getState().targets[
-        getReconciliationTargetKey(INACTIVE_VIEW_SCOPE)
-      ]?.status,
-    ).toBe("dirty");
-
-    test.runtime.stop();
-    vi.useRealTimers();
-  });
+      test.runtime.stop();
+      vi.useRealTimers();
+    },
+  );
 
   it("restores full parity after a failed View cell succeeds on retry", async () => {
     vi.useFakeTimers();
