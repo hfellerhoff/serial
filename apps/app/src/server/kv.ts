@@ -10,6 +10,12 @@ export interface KVStore {
   get: (key: string) => Promise<string | null>;
   set: (key: string, value: string, ttlSeconds?: number) => Promise<void>;
   setNX: (key: string, value: string, ttlSeconds?: number) => Promise<boolean>;
+  del: (key: string) => Promise<void>;
+  /**
+   * Atomically increment a counter, starting the TTL window when the key is
+   * created. Returns the post-increment count.
+   */
+  incr: (key: string, ttlSeconds: number) => Promise<number>;
 }
 
 // ── In-memory fallback ──────────────────────────────────────────────────────
@@ -57,6 +63,21 @@ class MemoryKV implements KVStore {
     }
     await this.set(key, value, ttlSeconds);
     return true;
+  }
+
+  async del(key: string) {
+    this.store.delete(key);
+  }
+
+  async incr(key: string, ttlSeconds: number): Promise<number> {
+    const entry = this.store.get(key);
+    if (!entry || Date.now() > entry.expiresAt) {
+      await this.set(key, "1", ttlSeconds);
+      return 1;
+    }
+    const next = (Number.parseInt(entry.value, 10) || 0) + 1;
+    entry.value = String(next);
+    return next;
   }
 
   /** Periodically sweep expired entries so they don't accumulate. */
@@ -111,6 +132,14 @@ async function createKVStore(): Promise<KVStore> {
             : await redis.set(key, value, { nx: true });
         return result !== null;
       },
+      async del(key) {
+        await redis.del(key);
+      },
+      async incr(key, ttlSeconds) {
+        const count = await redis.incr(key);
+        if (count === 1) await redis.expire(key, ttlSeconds);
+        return count;
+      },
     };
   }
 
@@ -141,6 +170,14 @@ async function createKVStore(): Promise<KVStore> {
         }
         const result = await client.set(key, value, "NX");
         return result === "OK";
+      },
+      async del(key) {
+        await client.del(key);
+      },
+      async incr(key, ttlSeconds) {
+        const count = await client.incr(key);
+        if (count === 1) await client.expire(key, ttlSeconds);
+        return count;
       },
     };
   }

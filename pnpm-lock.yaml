@@ -37,6 +37,9 @@ importers:
 
   apps/app:
     dependencies:
+      '@atproto-labs/fetch-node':
+        specifier: ^0.3.7
+        version: 0.3.7
       '@atproto/oauth-client-node':
         specifier: ^0.5.3
         version: 0.5.3

@@ -25,9 +25,12 @@ import VerifyEmailEmail from "~/emails/verify-email";
 import VerifyEmailChangeEmail from "~/emails/verify-email-change";
 import { BASE_SIGNED_OUT_URL } from "~/lib/constants";
 import {
+  isAtprotoConfigured,
   isOAuthConfigured,
   TRUSTED_ORIGINS_SET,
 } from "~/server/auth/constants";
+import { atprotoPlugin } from "~/server/auth/atproto/plugin";
+import { createKvRateLimitStorage } from "~/server/auth/rate-limit-storage";
 import {
   refreshEmailVerificationExempt,
   requiresEmailVerification,
@@ -216,10 +219,16 @@ function buildGenericOAuthPlugin() {
   ];
 }
 
+function buildAtprotoPlugin() {
+  if (!isAtprotoConfigured()) return [];
+  return [atprotoPlugin()];
+}
+
 // Classify a Better Auth request path into the explicit provider identity
-// and intent the shared policy service consumes. OAuth gates as sign-in for
-// both the start and callback paths; disallowed auto-signups are rolled
-// back by the post-auth policy instead.
+// and intent the shared policy service consumes. OAuth-style providers
+// (generic OAuth, atproto) gate as sign-in for both the start and callback
+// paths; disallowed auto-signups are rolled back by the post-auth policy
+// instead.
 function classifyAuthRequest(
   path: string,
 ): Pick<AuthAttempt, "provider" | "intent"> | undefined {
@@ -234,6 +243,9 @@ function classifyAuthRequest(
     path.startsWith("/oauth2/callback/")
   ) {
     return { provider: "oauth", intent: "sign-in" };
+  }
+  if (path === "/atproto/authorize" || path === "/atproto/callback") {
+    return { provider: "atproto", intent: "sign-in" };
   }
   return undefined;
 }
@@ -250,6 +262,9 @@ function classifyCompletedAuth(
   }
   if (path.startsWith("/oauth2/callback/")) {
     return { provider: "oauth", flow: "callback" };
+  }
+  if (path === "/atproto/callback") {
+    return { provider: "atproto", flow: "callback" };
   }
   return undefined;
 }
@@ -268,6 +283,29 @@ export const auth = betterAuth({
     provider: "sqlite",
   }),
   trustedOrigins: Array.from(TRUSTED_ORIGINS_SET),
+  /**
+   * Abuse ceilings, not precision throttles: a lax global bound on the
+   * whole auth surface, with stricter per-path rules on the atproto
+   * endpoints (declared by that plugin) because authorize fans out to
+   * outbound identity resolution. Storage is KV-backed — shared when Redis
+   * is configured, per-process otherwise. Deployments behind a proxy must
+   * forward a trustworthy client IP header for per-IP keying to hold.
+   */
+  rateLimit: {
+    // Production only (Better Auth's own default): dev and unit-test
+    // traffic shares one IP-less bucket and would trip any real ceiling.
+    enabled: env.NODE_ENV === "production",
+    window: 60,
+    max: 120,
+    customStorage: createKvRateLimitStorage(),
+    customRules: {
+      // Replace Better Auth's built-in 3-per-10s specials with Serial's
+      // lax-ceiling posture; parallel e2e workers share one IP and would
+      // trip the defaults.
+      "/sign-in/**": { window: 60, max: 60 },
+      "/sign-up/**": { window: 60, max: 60 },
+    },
+  },
   ...(env.COOKIE_DOMAIN
     ? {
         advanced: {
@@ -350,6 +388,7 @@ export const auth = betterAuth({
     tanstackStartCookies(),
     ...buildPolarPlugin(),
     ...buildGenericOAuthPlugin(),
+    ...buildAtprotoPlugin(),
     ...(IS_EMAIL_ENABLED
       ? [
           emailOTP({

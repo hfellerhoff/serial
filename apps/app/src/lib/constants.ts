@@ -27,7 +27,7 @@ export function isPublicSignupEnabled(
   return configValue === "true";
 }
 
-export const authProviderSchema = z.enum(["email", "oauth"]);
+export const authProviderSchema = z.enum(["email", "oauth", "atproto"]);
 export type AuthProvider = z.infer<typeof authProviderSchema>;
 
 /** Better Auth provider ID stored in the `account` table for email/password users */

@@ -70,6 +70,7 @@
     "benchmark:inventory:check": "node --import=tsx scripts/performance/inventory-app-queries.ts --check"
   },
   "dependencies": {
+    "@atproto-labs/fetch-node": "^0.3.7",
     "@atproto/oauth-client-node": "^0.5.3",
     "@base-ui/react": "^1.6.0",
     "@dnd-kit/core": "^6.3.1",

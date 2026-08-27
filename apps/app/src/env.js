@@ -99,6 +99,20 @@ export const env = createEnv({
     OAUTH_SCOPES: z.string().optional(),
     OAUTH_PKCE: z.stringbool().optional(),
     OAUTH_REDIRECT_URI: z.string().optional(),
+    ATPROTO_CLIENT_PRIVATE_KEYS: z
+      .string()
+      .optional()
+      .refine(
+        (val) => !(process.env.ATPROTO_STORE_ENCRYPTION_KEY && !val),
+        "ATPROTO_CLIENT_PRIVATE_KEYS is required when ATPROTO_STORE_ENCRYPTION_KEY is set. AT Protocol auth needs both, or neither to stay disabled.",
+      ),
+    ATPROTO_STORE_ENCRYPTION_KEY: z
+      .string()
+      .optional()
+      .refine(
+        (val) => !(process.env.ATPROTO_CLIENT_PRIVATE_KEYS && !val),
+        "ATPROTO_STORE_ENCRYPTION_KEY is required when ATPROTO_CLIENT_PRIVATE_KEYS is set. AT Protocol auth needs both, or neither to stay disabled.",
+      ),
     SERIAL_EXTENSION_REDIRECT_URIS: z
       .string()
       .optional()
@@ -190,6 +204,8 @@ export const env = createEnv({
     OAUTH_SCOPES: process.env.OAUTH_SCOPES,
     OAUTH_PKCE: process.env.OAUTH_PKCE,
     OAUTH_REDIRECT_URI: process.env.OAUTH_REDIRECT_URI,
+    ATPROTO_CLIENT_PRIVATE_KEYS: process.env.ATPROTO_CLIENT_PRIVATE_KEYS,
+    ATPROTO_STORE_ENCRYPTION_KEY: process.env.ATPROTO_STORE_ENCRYPTION_KEY,
     SERIAL_EXTENSION_REDIRECT_URIS: process.env.SERIAL_EXTENSION_REDIRECT_URIS,
     SERIAL_CAPTURE_MAX_CONCURRENT_FETCHES:
       process.env.SERIAL_CAPTURE_MAX_CONCURRENT_FETCHES,

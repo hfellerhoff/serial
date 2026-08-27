@@ -29,6 +29,7 @@ import { IS_DEMO_INSTANCE } from "~/lib/demo";
 const SIGN_IN_DISABLED_MESSAGES: Record<AuthProvider, string> = {
   email: "Email sign in is currently disabled",
   oauth: "OAuth is currently disabled",
+  atproto: "Atmosphere sign in is currently disabled",
 };
 
 const SIGN_UPS_DISABLED_MESSAGE = "Sign ups are currently disabled";
