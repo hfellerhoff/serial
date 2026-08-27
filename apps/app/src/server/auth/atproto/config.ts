@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHmac } from "node:crypto";
 import { JoseKey } from "@atproto/oauth-client-node";
 import { parseEncryptionKey } from "./crypto";
 import type { OAuthClientMetadataInput } from "@atproto/oauth-client-node";
@@ -128,12 +128,18 @@ export function getStoreEncryptionKey(): Buffer {
 
 /**
  * Deterministic internal placeholder email for a DID-only user. Never
- * surfaced in UI and never deliverable (`.invalid` is reserved). The hash
- * suffix keeps distinct DIDs collision-free after sanitizing; DID lookup is
- * always by provider account id, never by this address.
+ * surfaced in UI and never deliverable (`.invalid` is reserved). The suffix
+ * is keyed with the instance secret so the address is not computable from
+ * the (public) DID — Better Auth's account lookup falls back to email
+ * matching, and a predictable address would let anyone squat a DID's slot
+ * by registering it as a normal email account first. The keyed suffix also
+ * keeps distinct DIDs collision-free after sanitizing.
  */
 export function placeholderEmailForDid(did: string): string {
   const sanitized = did.toLowerCase().replace(/[^a-z0-9.-]+/g, "-");
-  const suffix = createHash("sha256").update(did).digest("hex").slice(0, 8);
+  const suffix = createHmac("sha256", env.BETTER_AUTH_SECRET)
+    .update(did)
+    .digest("hex")
+    .slice(0, 16);
   return `${sanitized}.${suffix}@atproto.invalid`;
 }

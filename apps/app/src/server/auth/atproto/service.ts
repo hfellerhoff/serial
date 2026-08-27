@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { getAtprotoClient } from "./client";
 import { ATPROTO_SCOPE } from "./config";
 import { sweepExpiredAtprotoState } from "./stores";
@@ -52,8 +52,21 @@ export async function finishAtprotoAuth(
   params: URLSearchParams,
 ): Promise<AtprotoCallbackResult> {
   const client = await getAtprotoClient();
-  const { session } = await client.callback(params);
+  const { session, state } = await client.callback(params);
   const did = session.did;
+
+  // An upgrade flow pins the subject it re-consents for. If the user
+  // switched accounts at the authorization server, destroy the session the
+  // SDK just stored and fail — completing would swap the caller's Serial
+  // session to a different user.
+  const expectedDid = parseExpectedDid(state);
+  if (expectedDid && expectedDid !== did) {
+    await session.signOut().catch(captureException);
+    throw new Error(
+      `Authorization returned ${did} but the flow was started for ${expectedDid}`,
+    );
+  }
+
   const { scope: grantedScope } = await session.getTokenInfo(false);
 
   let handle: string | null = null;
@@ -72,19 +85,44 @@ export async function finishAtprotoAuth(
   return { session, did, handle, grantedScope };
 }
 
+function parseExpectedDid(state: string | null): string | undefined {
+  if (!state) return undefined;
+  try {
+    const parsed = JSON.parse(state) as { expectedDid?: unknown };
+    return typeof parsed.expectedDid === "string"
+      ? parsed.expectedDid
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Bind a connection to its Serial user once sign-in resolved who they are.
  * The unique constraints enforce one connection per user and one user per
- * DID.
+ * DID; the guarded update refuses to steal a connection already bound to a
+ * different user and reports when no row matched, rather than surfacing a
+ * constraint violation (or nothing at all) later.
  */
 export async function bindAtprotoConnection(
   did: string,
   userId: string,
 ): Promise<void> {
-  await db
+  const result = await db
     .update(atprotoConnections)
     .set({ userId, updatedAt: new Date() })
-    .where(eq(atprotoConnections.did, did));
+    .where(
+      and(
+        eq(atprotoConnections.did, did),
+        or(
+          isNull(atprotoConnections.userId),
+          eq(atprotoConnections.userId, userId),
+        ),
+      ),
+    );
+  if (result.rowsAffected === 0) {
+    throw new Error(`No bindable atproto connection for ${did}`);
+  }
 }
 
 /**
@@ -111,7 +149,38 @@ export async function upgradeAtprotoAuth(
   scope: string,
 ): Promise<URL> {
   const client = await getAtprotoClient();
-  return client.authorize(did, { scope, prompt: "consent" });
+  return client.authorize(did, {
+    scope,
+    prompt: "consent",
+    // Verified at the callback: an upgrade must come back for this DID.
+    state: JSON.stringify({ expectedDid: did }),
+  });
+}
+
+/**
+ * Best-effort revocation of a user's grant before their row is deleted:
+ * the FK cascade destroys the connection row and with it the encrypted
+ * refresh token — the only credential able to revoke the PDS-side grant.
+ * Never throws; user deletion must not be blocked by an unreachable
+ * authorization server.
+ */
+export async function revokeAtprotoGrantsForUser(
+  userId: string,
+): Promise<void> {
+  try {
+    const row = await db
+      .select({
+        did: atprotoConnections.did,
+        session: atprotoConnections.session,
+      })
+      .from(atprotoConnections)
+      .where(eq(atprotoConnections.userId, userId))
+      .get();
+    if (!row?.session) return;
+    await revokeAtprotoConnection(row.did);
+  } catch (err) {
+    captureException(err);
+  }
 }
 
 /**

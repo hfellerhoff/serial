@@ -16,6 +16,18 @@ import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
  */
 
 const ENVELOPE_VERSION = 0x01;
+
+/**
+ * The version byte travels outside the ciphertext, so it is bound into the
+ * AAD: the day a v2 exists, a flipped byte fails authentication instead of
+ * silently selecting a different decryption path.
+ */
+function buildAad(aad: string): Buffer {
+  return Buffer.concat([
+    Buffer.from([ENVELOPE_VERSION]),
+    Buffer.from(aad, "utf8"),
+  ]);
+}
 const IV_LENGTH = 12;
 const TAG_LENGTH = 16;
 const KEY_LENGTH = 32;
@@ -51,7 +63,7 @@ export function encryptEnvelope(
 ): string {
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv(ALGORITHM, key, iv);
-  cipher.setAAD(Buffer.from(aad, "utf8"));
+  cipher.setAAD(buildAad(aad));
   const ciphertext = Buffer.concat([
     cipher.update(plaintext, "utf8"),
     cipher.final(),
@@ -82,7 +94,7 @@ export function decryptEnvelope(
   const tag = data.subarray(1 + IV_LENGTH, 1 + IV_LENGTH + TAG_LENGTH);
   const ciphertext = data.subarray(1 + IV_LENGTH + TAG_LENGTH);
   const decipher = createDecipheriv(ALGORITHM, key, iv);
-  decipher.setAAD(Buffer.from(aad, "utf8"));
+  decipher.setAAD(buildAad(aad));
   decipher.setAuthTag(tag);
   try {
     return Buffer.concat([

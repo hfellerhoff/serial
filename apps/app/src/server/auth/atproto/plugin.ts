@@ -28,6 +28,28 @@ import { logError } from "~/server/logger";
  */
 
 const SIGN_IN_ERROR_REDIRECT = "/auth/sign-in?error=atproto";
+const SIGN_IN_SUCCESS_REDIRECT = "/";
+
+// The SDK's resolver accepts full URLs and would fetch metadata from any
+// host an unauthenticated caller names. Sign-in only ever needs a DID or a
+// handle-shaped hostname, so everything else is rejected at the edge.
+const DID_PATTERN = /^did:[a-z]+:[a-zA-Z0-9._%:-]+$/;
+const HANDLE_PATTERN =
+  /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$/;
+
+const didSchema = z
+  .string()
+  .trim()
+  .max(512)
+  .regex(DID_PATTERN, "Not a valid DID");
+const identifierSchema = z
+  .string()
+  .trim()
+  .max(512)
+  .refine(
+    (value) => DID_PATTERN.test(value) || HANDLE_PATTERN.test(value),
+    "Enter a handle like name.bsky.social or a DID",
+  );
 
 export const atprotoPlugin = () => {
   return {
@@ -62,8 +84,8 @@ export const atprotoPlugin = () => {
         {
           method: "POST",
           body: z.object({
-            identifier: z.string().trim().min(1).max(512),
-            did: z.string().trim().min(1).max(512).optional(),
+            identifier: identifierSchema,
+            did: didSchema.optional(),
           }),
         },
         async (ctx) => {
@@ -124,30 +146,41 @@ export const atprotoPlugin = () => {
             throw ctx.redirect(SIGN_IN_ERROR_REDIRECT);
           }
 
+          // Any throw past this point must stay an auth-level redirect: a
+          // raw error would abort the request before the after-hook runs,
+          // leaving the just-created user without post-auth policy (and
+          // without rollback).
           const { session, user } = outcome.data;
-          await bindAtprotoConnection(did, user.id);
-          await setSessionCookie(ctx, { session, user });
-          throw ctx.redirect(`${ctx.context.options.baseURL ?? ""}/`);
+          try {
+            await bindAtprotoConnection(did, user.id);
+            await setSessionCookie(ctx, { session, user });
+          } catch (err) {
+            logError("[atproto] failed to finalize sign-in:", err);
+            throw ctx.redirect(SIGN_IN_ERROR_REDIRECT);
+          }
+          throw ctx.redirect(SIGN_IN_SUCCESS_REDIRECT);
         },
       ),
     },
     rateLimit: [
+      // Buckets are keyed per client IP and path. Authorize stays the
+      // tightest bucket because each call fans out to identity resolution.
       {
         pathMatcher: (path: string) => path === "/atproto/authorize",
-        window: 60,
-        max: 10,
-      },
-      {
-        pathMatcher: (path: string) => path === "/atproto/callback",
         window: 60,
         max: 30,
       },
       {
-        // Metadata documents are fetched by authorization servers and
-        // PDSes, not browsers; the global window applies.
-        pathMatcher: (path: string) => path.startsWith("/atproto/"),
+        pathMatcher: (path: string) => path === "/atproto/callback",
         window: 60,
         max: 60,
+      },
+      {
+        // Metadata documents are fetched by authorization servers and
+        // PDSes, not browsers.
+        pathMatcher: (path: string) => path.startsWith("/atproto/"),
+        window: 60,
+        max: 120,
       },
     ],
   } satisfies BetterAuthPlugin;

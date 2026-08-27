@@ -889,7 +889,8 @@ export const atprotoConnections = sqliteTable("atproto_connections", {
     .references(() => user.id, { onDelete: "cascade" }),
   did: text("did").notNull().unique(),
   session: text("session"),
-  scopes: text("scopes").notNull(),
+  /** Scope actually granted; null when the server omitted it. */
+  scopes: text("scopes"),
   handle: text("handle"),
   pdsUrl: text("pds_url"),
   status: text("status")

@@ -288,8 +288,10 @@ export const auth = betterAuth({
    * whole auth surface, with stricter per-path rules on the atproto
    * endpoints (declared by that plugin) because authorize fans out to
    * outbound identity resolution. Storage is KV-backed — shared when Redis
-   * is configured, per-process otherwise. Deployments behind a proxy must
-   * forward a trustworthy client IP header for per-IP keying to hold.
+   * is configured, per-process otherwise. Buckets are keyed per client IP
+   * and path; behind a reverse proxy, TRUSTED_PROXIES must list the proxy
+   * addresses so the forwarded chain resolves to the real client instead
+   * of collapsing every request into one shared bucket.
    */
   rateLimit: {
     // Production only (Better Auth's own default): dev and unit-test
@@ -306,16 +308,19 @@ export const auth = betterAuth({
       "/sign-up/**": { window: 60, max: 60 },
     },
   },
-  ...(env.COOKIE_DOMAIN
-    ? {
-        advanced: {
+  advanced: {
+    ...(env.COOKIE_DOMAIN
+      ? {
           crossSubDomainCookies: {
             enabled: true,
             domain: env.COOKIE_DOMAIN,
           },
-        },
-      }
-    : {}),
+        }
+      : {}),
+    ...(env.TRUSTED_PROXIES.length > 0
+      ? { ipAddress: { trustedProxies: env.TRUSTED_PROXIES } }
+      : {}),
+  },
   emailAndPassword: {
     enabled: true,
     maxPasswordLength: 64,
@@ -356,6 +361,15 @@ export const auth = betterAuth({
     },
     deleteUser: {
       enabled: true,
+      // Deleting the user cascades the atproto connection row away along
+      // with the encrypted refresh token — the only credential that can
+      // revoke the PDS-side grant — so revoke first, best-effort.
+      async beforeDelete(user) {
+        if (!isAtprotoConfigured()) return;
+        const { revokeAtprotoGrantsForUser } =
+          await import("~/server/auth/atproto/service");
+        await revokeAtprotoGrantsForUser(user.id);
+      },
     },
   },
   emailVerification: {

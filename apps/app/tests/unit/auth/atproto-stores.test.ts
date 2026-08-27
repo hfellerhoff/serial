@@ -167,6 +167,20 @@ describe("atproto database stores", () => {
       expect(rows).toHaveLength(0);
     });
 
+    it("treats an undecryptable row as absent and deletes it", async () => {
+      await createAtprotoStateStore(database, KEY).set(
+        "state-key",
+        SAVED_STATE,
+      );
+      const rotated = createAtprotoStateStore(database, OTHER_KEY);
+
+      expect(await rotated.get("state-key")).toBeUndefined();
+      // The poisoned row is gone, so a retry sees a clean unknown state
+      // instead of failing until the TTL.
+      const rows = await database.select().from(atprotoAuthState).all();
+      expect(rows).toHaveLength(0);
+    });
+
     it("deletes state on del (single-use consumption)", async () => {
       const store = createAtprotoStateStore(database, KEY);
       await store.set("state-key", SAVED_STATE);
@@ -202,6 +216,26 @@ describe("atproto database stores", () => {
       const rows = await database.select().from(atprotoConnections).all();
       expect(rows).toHaveLength(1);
       expect(rows[0]!.scopes).toBe("atproto repo:write");
+    });
+
+    it("records an omitted scope as unknown and never clobbers a known PDS", async () => {
+      const store = createAtprotoSessionStore(database, KEY);
+      await store.set(DID, savedSession());
+
+      const opaque = savedSession();
+      delete (opaque as unknown as { tokenSet: Record<string, unknown> })
+        .tokenSet.scope;
+      delete (opaque as unknown as { tokenSet: Record<string, unknown> })
+        .tokenSet.aud;
+      await store.set(DID, opaque);
+
+      const row = await database
+        .select()
+        .from(atprotoConnections)
+        .where(eq(atprotoConnections.did, DID))
+        .get();
+      expect(row!.scopes).toBeNull();
+      expect(row!.pdsUrl).toBe("https://pds.example.com");
     });
 
     it("destroys credentials but keeps the row on del", async () => {
@@ -289,7 +323,8 @@ describe("atproto database stores", () => {
       const dids = (await database.select().from(atprotoConnections).all()).map(
         (r) => r.did,
       );
-      expect(dids).toEqual([DID]);
+      expect(dids).toHaveLength(1);
+      expect(dids).toContain(DID);
     });
   });
 });

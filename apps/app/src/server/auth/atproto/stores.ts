@@ -1,5 +1,5 @@
 import { and, eq, isNull, lt } from "drizzle-orm";
-import { ATPROTO_SCOPE, AUTH_STATE_TTL_MS } from "./config";
+import { AUTH_STATE_TTL_MS } from "./config";
 import {
   decryptEnvelope,
   encryptEnvelope,
@@ -45,9 +45,23 @@ export function createAtprotoStateStore(
           .where(eq(atprotoAuthState.key, key));
         return undefined;
       }
-      return JSON.parse(
-        decryptEnvelope(encryptionKey, row.payload, stateAad(key)),
-      ) as NodeSavedState;
+      try {
+        return JSON.parse(
+          decryptEnvelope(encryptionKey, row.payload, stateAad(key)),
+        ) as NodeSavedState;
+      } catch (err) {
+        if (err instanceof EnvelopeDecryptionError) {
+          // Rotated key or tampered row. Delete it so the SDK sees an
+          // unknown authorization session (a clean retry) instead of the
+          // same poisoned row failing until its TTL.
+          captureException(err);
+          await database
+            .delete(atprotoAuthState)
+            .where(eq(atprotoAuthState.key, key));
+          return undefined;
+        }
+        throw err;
+      }
     },
     async set(key, state) {
       const now = new Date();
@@ -106,10 +120,13 @@ export function createAtprotoSessionStore(
         JSON.stringify(session),
         sessionAad(did),
       );
+      // Record what the authorization server actually said: an omitted
+      // scope is stored as unknown (upgrade() consults this column), and
+      // an omitted aud never clobbers a previously known PDS.
       const values = {
         session: envelope,
-        scopes: session.tokenSet.scope ?? ATPROTO_SCOPE,
-        pdsUrl: session.tokenSet.aud,
+        scopes: session.tokenSet.scope ?? null,
+        ...(session.tokenSet.aud ? { pdsUrl: session.tokenSet.aud } : {}),
         status: "active" as const,
         updatedAt: now,
       };
