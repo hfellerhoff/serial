@@ -7,6 +7,12 @@ vi.mock("~/server/email", () => ({
   sendEmail: vi.fn(),
 }));
 
+// The redirect under test only applies to credential users; the mocked session
+// has no backing database, so answer the credential-account check directly.
+vi.mock("~/server/auth/verification", () => ({
+  requiresEmailVerification: vi.fn().mockResolvedValue(true),
+}));
+
 const VALID_CONNECT_CALLBACK = `/auth/connect-extension?${new URLSearchParams({
   redirect_uri:
     "https://olpaonddchkbjpmjjfamplfaibopllam.chromiumapp.org/serial-auth",

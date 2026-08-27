@@ -25,6 +25,7 @@ import { user } from "~/server/db/schema";
 import { IS_EMAIL_ENABLED } from "~/server/email";
 import { captureException, logMessage, logWarning } from "~/server/logger";
 import { getValidatedOrigin } from "~/server/auth/constants";
+import { requiresEmailVerification } from "~/server/auth/verification";
 
 /** Cooldown window for syncAfterCheckout per user (seconds). */
 const SYNC_COOLDOWN_SECONDS = 30;
@@ -82,7 +83,11 @@ export const createCheckout = protectedProcedure
         .where(eq(user.id, context.user.id))
         .get();
 
-      if (!currentUser?.emailVerified) {
+      const mustVerify = await requiresEmailVerification(context.db, {
+        id: context.user.id,
+        emailVerified: currentUser?.emailVerified ?? false,
+      });
+      if (mustVerify) {
         return { url: null, error: "email-not-verified" as const };
       }
     }

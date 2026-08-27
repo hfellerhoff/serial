@@ -41,6 +41,7 @@ import {
   redeemInvitationToken,
   validateInvitationToken,
 } from "~/server/invitations";
+import { requiresEmailVerification } from "~/server/auth/verification";
 import { setOtpCooldown } from "~/server/otp";
 import { captureException, logError, logMessage } from "~/server/logger";
 import { env } from "~/env";
@@ -87,14 +88,17 @@ export const authMiddleware = createMiddleware().server(
       }
     }
 
-    // Redirect unverified users to the verification page. Preserve a valid
-    // extension connection callback so verification can resume that flow.
+    // Redirect unverified credential users to the verification page; users
+    // without an email + password account are exempt (see requiresEmailVerification).
+    // Preserve a valid extension connection callback so verification can
+    // resume that flow.
     if (
       IS_EMAIL_ENABLED &&
       session &&
       !session.user.emailVerified &&
       pathname !== "/auth/verify-email" &&
-      !pathname.startsWith("/api/auth/")
+      !pathname.startsWith("/api/auth/") &&
+      (await requiresEmailVerification(db, session.user))
     ) {
       const callbackURL = getExtensionConnectCallbackFromRequestUrl(
         request.url,
