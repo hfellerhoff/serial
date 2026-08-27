@@ -17,15 +17,10 @@ type VerificationDatabase = typeof defaultDb;
  * so account creation is the sole event that can change it: the create hook
  * in ./index.tsx recomputes the flag, and post-migration 0048 backfills it.
  * Staleness always errs closed: the unhookable paths (account deletion) can
- * only leave a user non-exempt who could be exempt, never the reverse.
- *
- * Caution: this helper writes the user row directly, bypassing Better Auth's
- * internalAdapter and its session-refresh bookkeeping. That is safe today
- * because session cookie caching is disabled (every getSession re-reads the
- * user row). If `session.cookieCache` is ever enabled, a cached cookie could
- * keep a stale `emailVerificationExempt: true` for the cache TTL after a
- * credential account is added — a fail-open window. Route this write through
- * the internal adapter (or invalidate the user's session cache) first.
+ * only leave a user non-exempt who could be exempt, never the reverse. That
+ * guarantee leans on `account.accountLinking.allowUnlinkingAll` staying
+ * unset — Better Auth then refuses to unlink a user's last account, so an
+ * exempt user can never reach zero accounts while keeping a stale flag.
  */
 export function requiresEmailVerification(sessionUser: {
   emailVerified: boolean;
@@ -51,6 +46,14 @@ export function computeEmailVerificationExempt(
  * Recompute and persist the exemption flag from the user's current account
  * rows. Called from the account-creation hook — a rare mutation, so the
  * account-table lookup happens here instead of on every navigation.
+ *
+ * Caution: this writes the user row directly, bypassing Better Auth's
+ * internalAdapter and its session-refresh bookkeeping. That is safe today
+ * because session cookie caching is disabled (every getSession re-reads the
+ * user row). If `session.cookieCache` is ever enabled, a cached cookie could
+ * keep a stale `emailVerificationExempt: true` for the cache TTL after a
+ * credential account is added — a fail-open window. Route this write through
+ * the internal adapter (or invalidate the user's session cache) first.
  */
 export async function refreshEmailVerificationExempt(
   database: VerificationDatabase,

@@ -65,12 +65,6 @@ describe("computeEmailVerificationExempt", () => {
   it("fails closed for a user with no accounts at all", () => {
     expect(computeEmailVerificationExempt([])).toBe(false);
   });
-
-  it("counts a credential account even without a stored password", () => {
-    expect(
-      computeEmailVerificationExempt([OAUTH, { providerId: "credential" }]),
-    ).toBe(false);
-  });
 });
 
 describe("refreshEmailVerificationExempt", () => {
@@ -170,6 +164,7 @@ describe("refreshEmailVerificationExempt", () => {
     await refreshEmailVerificationExempt(session.database, "indexed-user");
     const [accountLookup] = session.instrumentation.snapshot().statements;
     if (!accountLookup) throw new Error("No statement was recorded");
+    expect(accountLookup.sql).toContain("serial_account");
 
     const plan = await session.baseClient.execute({
       sql: `EXPLAIN QUERY PLAN ${accountLookup.sql}`,

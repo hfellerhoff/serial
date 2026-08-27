@@ -603,7 +603,14 @@ export const auth = betterAuth({
     account: {
       create: {
         async after(accountRow) {
-          await refreshEmailVerificationExempt(db, accountRow.userId);
+          try {
+            await refreshEmailVerificationExempt(db, accountRow.userId);
+          } catch (error) {
+            // The flag defaults to non-exempt (fail-closed), and Better Auth
+            // rethrows hook failures after the transaction has committed — a
+            // failed refresh must not turn a successful sign-up into a 500.
+            captureException(error);
+          }
         },
       },
     },
