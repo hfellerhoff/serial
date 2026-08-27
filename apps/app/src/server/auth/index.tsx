@@ -3,15 +3,12 @@ import { betterAuth } from "better-auth";
 import { admin, emailOTP, genericOAuth } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import { createAuthMiddleware } from "better-auth/api";
 import { createMiddleware } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { redirect } from "@tanstack/react-router";
-import { asc, count, eq } from "drizzle-orm";
 import { checkout, polar, portal, webhooks } from "@polar-sh/better-auth";
-import { createElement } from "react";
 import { db } from "../db";
-import { appConfig, session, user } from "../db/schema";
 import {
   getPolarProductIds,
   IS_BILLING_ENABLED,
@@ -22,25 +19,20 @@ import {
   applySubscriptionSideEffects,
   syncPolarDataToKV,
 } from "../subscriptions/kv";
-import NewUserNotificationEmail from "~/emails/new-user-notification";
+import type { AuthAttempt } from "~/server/auth/policy";
 import ResetPasswordEmail from "~/emails/reset-password";
 import VerifyEmailEmail from "~/emails/verify-email";
 import VerifyEmailChangeEmail from "~/emails/verify-email-change";
-import {
-  BASE_SIGNED_OUT_URL,
-  getAvailableSignupProviders,
-  getEnabledAuthProviders,
-  isPublicSignupEnabled,
-} from "~/lib/constants";
+import { BASE_SIGNED_OUT_URL } from "~/lib/constants";
 import {
   isOAuthConfigured,
   TRUSTED_ORIGINS_SET,
 } from "~/server/auth/constants";
-import { IS_EMAIL_ENABLED, sendEmail } from "~/server/email";
 import {
-  redeemInvitationToken,
-  validateInvitationToken,
-} from "~/server/invitations";
+  applyPostAuthPolicy,
+  enforceAuthAttemptPolicy,
+} from "~/server/auth/policy";
+import { IS_EMAIL_ENABLED, sendEmail } from "~/server/email";
 import { setOtpCooldown } from "~/server/otp";
 import { captureException, logError, logMessage } from "~/server/logger";
 import { env } from "~/env";
@@ -218,6 +210,28 @@ function buildGenericOAuthPlugin() {
   ];
 }
 
+// Classify a Better Auth request path into the explicit provider identity
+// and intent the shared policy service consumes. OAuth gates as sign-in for
+// both the start and callback paths; disallowed auto-signups are rolled
+// back by the post-auth policy instead.
+function classifyAuthRequest(
+  path: string,
+): Pick<AuthAttempt, "provider" | "intent"> | undefined {
+  if (path.startsWith("/sign-up")) {
+    return { provider: "email", intent: "sign-up" };
+  }
+  if (path.startsWith("/sign-in/email")) {
+    return { provider: "email", intent: "sign-in" };
+  }
+  if (
+    path.startsWith("/sign-in/oauth2") ||
+    path.startsWith("/oauth2/callback/")
+  ) {
+    return { provider: "oauth", intent: "sign-in" };
+  }
+  return undefined;
+}
+
 export const auth = betterAuth({
   baseURL: env.PUBLIC_BASE_URL,
   database: drizzleAdapter(db, {
@@ -336,232 +350,35 @@ export const auth = betterAuth({
 
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
-      const isEmailSignUp = ctx.path.startsWith("/sign-up");
-      const isEmailSignIn = ctx.path.startsWith("/sign-in/email");
-      const isOAuth =
-        ctx.path.startsWith("/sign-in/oauth2") ||
-        ctx.path.startsWith("/oauth2/callback/");
+      const attempt = classifyAuthRequest(ctx.path);
+      if (!attempt) return;
 
-      if (!isEmailSignUp && !isEmailSignIn && !isOAuth) return;
-
-      // In demo mode, allow all sign-ups without gating so auto-provisioning
-      // can create users on demand.
-      if (IS_DEMO_INSTANCE && isEmailSignUp) return;
-
-      // Allow first user to use any available method
-      const userCount = await db.select({ count: count() }).from(user).get();
-      if ((userCount?.count ?? 0) === 0) return;
-
-      const configs = await db.select().from(appConfig).all();
-      const signinConfig = configs.find(
-        (c) => c.key === "enabled-signin-providers",
-      );
-      const signupConfig = configs.find(
-        (c) => c.key === "enabled-signup-providers",
-      );
-      const publicSignupConfig = configs.find(
-        (c) => c.key === "public-signup-enabled",
-      );
-      const signinProviders = getEnabledAuthProviders(signinConfig?.value);
-
-      // Sign-in gating
-      if (isEmailSignIn && !signinProviders.includes("email")) {
-        throw new APIError("BAD_REQUEST", {
-          message: "Email sign in is currently disabled",
-        });
-      }
-
-      if (isOAuth && !signinProviders.includes("oauth")) {
-        throw new APIError("BAD_REQUEST", {
-          message: "OAuth is currently disabled",
-        });
-      }
-
-      const oauthConfigured = isOAuthConfigured();
-      const availableSignupProviders = getAvailableSignupProviders({
-        isFirstUser: false,
-        publicSignupEnabled: isPublicSignupEnabled(publicSignupConfig?.value),
-        signupProvidersConfig: signupConfig?.value,
-        oauthConfigured,
+      await enforceAuthAttemptPolicy({
+        ...attempt,
+        invitationToken: ctx.body?.invitationToken,
       });
-
-      // Sign-up gating
-      if (isEmailSignUp && !availableSignupProviders.includes("email")) {
-        // Check for a valid invitation token before blocking.
-        // The invitationToken field is an extra body param passed through by
-        // Better Auth — not schema-validated, so we type-check manually.
-        const invitationToken = ctx.body?.invitationToken;
-        if (typeof invitationToken === "string") {
-          const validatedInvitationToken =
-            await validateInvitationToken(invitationToken);
-          if (validatedInvitationToken) {
-            // Token is valid — allow sign-up to proceed. The after hook
-            // atomically records the redemption (with a transaction) to
-            // prevent TOCTOU races with concurrent sign-ups.
-            return;
-          }
-        }
-
-        throw new APIError("BAD_REQUEST", {
-          message: "Sign ups are currently disabled",
-        });
-      }
-
-      // If neither OAuth sign-in nor sign-up is allowed, the isOAuth check
-      // above already blocked it. No additional gating needed here — the
-      // after hook handles the case where OAuth sign-in is enabled but
-      // sign-up is not (rolling back auto-created users).
     }),
     after: createAuthMiddleware(async (ctx) => {
       const isEmailSignUp = ctx.path.startsWith("/sign-up");
       const isOAuthCallback = ctx.path.startsWith("/oauth2/callback/");
       if (!(isEmailSignUp || isOAuthCallback)) return;
-      if (!ctx.context?.newSession?.user?.id) return;
 
-      const userId = ctx.context.newSession.user.id;
+      const newSession = ctx.context?.newSession;
+      if (!newSession?.user?.id) return;
 
-      // Atomically record the invitation redemption. The transaction in
-      // redeemInvitationToken re-checks the max-uses count so that two
-      // concurrent sign-ups can't both consume the last slot.
-      if (isEmailSignUp) {
-        const invitationToken = ctx.body?.invitationToken;
-        if (typeof invitationToken === "string") {
-          const redeemed = await redeemInvitationToken(invitationToken, userId);
-          if (!redeemed) {
-            // Another concurrent sign-up consumed the last use between the
-            // before hook and now. Roll back the newly created user via
-            // Better Auth's deleteUser API so all related records
-            // (accounts, sessions, plugin data) are properly cleaned up.
-            const headers = new Headers();
-            headers.set(
-              "Authorization",
-              `Bearer ${ctx.context.newSession.session.token}`,
-            );
-            await auth.api.deleteUser({ headers, body: {} });
-            throw new APIError("BAD_REQUEST", {
-              message: "Sign ups are currently disabled",
-            });
-          }
-        }
-      }
-
-      // Check if this user is the first user by creation time
-      const firstUser = await db
-        .select({ id: user.id })
-        .from(user)
-        .orderBy(asc(user.createdAt))
-        .limit(1)
-        .get();
-
-      if (firstUser?.id === userId && !IS_DEMO_INSTANCE) {
-        await db.update(user).set({ role: "admin" }).where(eq(user.id, userId));
-
-        // Set sign-in and sign-up methods to match how the first user signed up
-        const method: string = isOAuthCallback ? "oauth" : "email";
-        const providers = JSON.stringify([method]);
-        await db
-          .insert(appConfig)
-          .values({
-            key: "enabled-signin-providers",
-            value: providers,
-            updatedAt: new Date(),
-          })
-          .onConflictDoUpdate({
-            target: appConfig.key,
-            set: { value: providers, updatedAt: new Date() },
-          });
-        await db
-          .insert(appConfig)
-          .values({
-            key: "enabled-signup-providers",
-            value: providers,
-            updatedAt: new Date(),
-          })
-          .onConflictDoUpdate({
-            target: appConfig.key,
-            set: { value: providers, updatedAt: new Date() },
-          });
-      } else if (isOAuthCallback) {
-        // Non-first user arriving via OAuth callback — Better Auth may have
-        // auto-created a user. If this is a brand-new user (single session)
-        // and OAuth sign-ups aren't allowed, roll back the auto-created user.
-        const sessionCount = await db
-          .select({ count: count() })
-          .from(session)
-          .where(eq(session.userId, userId))
-          .get();
-
-        if ((sessionCount?.count ?? 0) <= 1) {
-          const configs = await db.select().from(appConfig).all();
-          const publicSignupConfig = configs.find(
-            (c) => c.key === "public-signup-enabled",
-          );
-          const signupConfig = configs.find(
-            (c) => c.key === "enabled-signup-providers",
-          );
-
-          const availableProviders = getAvailableSignupProviders({
-            isFirstUser: false,
-            publicSignupEnabled: isPublicSignupEnabled(
-              publicSignupConfig?.value,
-            ),
-            signupProvidersConfig: signupConfig?.value,
-            oauthConfigured: isOAuthConfigured(),
-          });
-
-          if (!availableProviders.includes("oauth")) {
-            // Roll back the auto-created user via Better Auth's deleteUser
-            // API so all related records are properly cleaned up.
-            const rollbackHeaders = new Headers();
-            rollbackHeaders.set(
-              "Authorization",
-              `Bearer ${ctx.context.newSession.session.token}`,
-            );
-            await auth.api.deleteUser({
-              headers: rollbackHeaders,
-              body: {},
-            });
-            throw new APIError("BAD_REQUEST", {
-              message: "Sign ups are currently disabled",
-            });
-          }
-        }
-      }
-
-      // Send admin notification email for non-first user sign-ups
-      if (firstUser?.id !== userId && IS_EMAIL_ENABLED) {
-        try {
-          const notifyConfig = await db
-            .select()
-            .from(appConfig)
-            .where(eq(appConfig.key, "admin-notify-on-signup"))
-            .get();
-          const emailConfig = await db
-            .select()
-            .from(appConfig)
-            .where(eq(appConfig.key, "admin-notify-email"))
-            .get();
-
-          if (notifyConfig?.value === "true" && emailConfig?.value) {
-            const newUser = ctx.context.newSession.user;
-            const html = await render(
-              createElement(NewUserNotificationEmail, {
-                userName: newUser.name,
-                userEmail: newUser.email,
-              }),
-            );
-
-            await sendEmail({
-              to: emailConfig.value,
-              subject: `New user signed up: ${newUser.name ?? newUser.email}`,
-              html,
-            });
-          }
-        } catch (err) {
-          // Don't block sign-up if notification email fails
-          captureException(err);
-        }
-      }
+      await applyPostAuthPolicy({
+        provider: isOAuthCallback ? "oauth" : "email",
+        flow: isOAuthCallback ? "callback" : "sign-up",
+        user: newSession.user,
+        invitationToken: ctx.body?.invitationToken,
+        rollbackNewUser: async () => {
+          // Delete via Better Auth's deleteUser API so all related records
+          // (accounts, sessions, plugin data) are properly cleaned up.
+          const headers = new Headers();
+          headers.set("Authorization", `Bearer ${newSession.session.token}`);
+          await auth.api.deleteUser({ headers, body: {} });
+        },
+      });
     }),
   },
 
