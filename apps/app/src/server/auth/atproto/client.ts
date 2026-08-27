@@ -82,6 +82,9 @@ async function buildClient(): Promise<NodeOAuthClient> {
     allowHttp: IS_DEV,
     allowPrivateIps: IS_DEV,
     allowIpHost: IS_DEV,
+    // The SDK issues requests with the default redirect mode; each hop
+    // still passes the same SSRF/protocol checks.
+    allowImplicitRedirect: true,
   });
 
   return new NodeOAuthClient({
@@ -92,5 +95,8 @@ async function buildClient(): Promise<NodeOAuthClient> {
     requestLock,
     fetch,
     allowHttp: IS_DEV,
+    ...(env.ATPROTO_PLC_DIRECTORY_URL
+      ? { plcDirectoryUrl: env.ATPROTO_PLC_DIRECTORY_URL }
+      : {}),
   });
 }

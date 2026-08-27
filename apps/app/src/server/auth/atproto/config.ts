@@ -86,7 +86,8 @@ async function importKeyset(rawKeys: string): Promise<JoseKey[]> {
     );
   }
   return Promise.all(
-    jwks.map(async (jwk, i) => {
+    jwks.map(async (rawJwk, i) => {
+      const jwk = normalizeJwk(rawJwk);
       const fallbackKid =
         typeof jwk === "object" && jwk !== null && "kid" in jwk && jwk.kid
           ? undefined
@@ -101,6 +102,21 @@ async function importKeyset(rawKeys: string): Promise<JoseKey[]> {
       }
     }),
   );
+}
+
+/**
+ * Strip WebCrypto export artifacts. `key_ops: ["sign"]` on a private JWK is
+ * interpreted by @atproto/jwk as public-key usage and would make the key
+ * unusable for signing; `ext`/`use` are likewise noise for a server-held
+ * signing keyset whose usage is fixed by context.
+ */
+function normalizeJwk(jwk: unknown): unknown {
+  if (typeof jwk !== "object" || jwk === null) return jwk;
+  const rest = { ...(jwk as Record<string, unknown>) };
+  delete rest.key_ops;
+  delete rest.ext;
+  delete rest.use;
+  return rest;
 }
 
 let storeKey: Buffer | null = null;

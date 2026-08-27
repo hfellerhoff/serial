@@ -113,6 +113,12 @@ export const env = createEnv({
         (val) => !(process.env.ATPROTO_CLIENT_PRIVATE_KEYS && !val),
         "ATPROTO_STORE_ENCRYPTION_KEY is required when ATPROTO_CLIENT_PRIVATE_KEYS is set. AT Protocol auth needs both, or neither to stay disabled.",
       ),
+    /**
+     * Override the PLC directory used for DID resolution. Leave unset for
+     * the canonical https://plc.directory; needed only when testing
+     * against a local AT Protocol dev network.
+     */
+    ATPROTO_PLC_DIRECTORY_URL: z.url().optional(),
     SERIAL_EXTENSION_REDIRECT_URIS: z
       .string()
       .optional()
@@ -206,6 +212,7 @@ export const env = createEnv({
     OAUTH_REDIRECT_URI: process.env.OAUTH_REDIRECT_URI,
     ATPROTO_CLIENT_PRIVATE_KEYS: process.env.ATPROTO_CLIENT_PRIVATE_KEYS,
     ATPROTO_STORE_ENCRYPTION_KEY: process.env.ATPROTO_STORE_ENCRYPTION_KEY,
+    ATPROTO_PLC_DIRECTORY_URL: process.env.ATPROTO_PLC_DIRECTORY_URL,
     SERIAL_EXTENSION_REDIRECT_URIS: process.env.SERIAL_EXTENSION_REDIRECT_URIS,
     SERIAL_CAPTURE_MAX_CONCURRENT_FETCHES:
       process.env.SERIAL_CAPTURE_MAX_CONCURRENT_FETCHES,
