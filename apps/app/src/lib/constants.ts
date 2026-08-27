@@ -68,13 +68,12 @@ export function getAvailableSignupProviders(opts: {
   signupProvidersConfig: string | undefined | null;
   configuredProviders: AuthProvider[];
 }): AuthProvider[] {
+  const configured = new Set(opts.configuredProviders);
   if (opts.isFirstUser) {
-    return authProviderSchema.options.filter((p) =>
-      opts.configuredProviders.includes(p),
-    );
+    return authProviderSchema.options.filter((p) => configured.has(p));
   }
   if (!opts.publicSignupEnabled) return [];
   return getEnabledAuthProviders(opts.signupProvidersConfig).filter((p) =>
-    opts.configuredProviders.includes(p),
+    configured.has(p),
   );
 }

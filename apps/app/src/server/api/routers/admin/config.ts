@@ -281,9 +281,10 @@ export const getSigninConfig = publicProcedure.handler(async () => {
   const isFirstUser = (userCount?.count ?? 0) === 0;
   const oauthConfigured = isOAuthConfigured();
   const configuredProviders = getConfiguredAuthProviders();
+  const configuredProviderSet = new Set(configuredProviders);
 
   const signinProviders = getEnabledAuthProviders(signinConfig?.value).filter(
-    (p) => configuredProviders.includes(p),
+    (p) => configuredProviderSet.has(p),
   );
 
   const signupProviders = getAvailableSignupProviders({
