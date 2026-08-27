@@ -220,7 +220,7 @@ function classifyAuthRequest(
   if (path.startsWith("/sign-up")) {
     return { provider: "email", intent: "sign-up" };
   }
-  if (path.startsWith("/sign-in/email")) {
+  if (path === "/sign-in/email") {
     return { provider: "email", intent: "sign-in" };
   }
   if (
