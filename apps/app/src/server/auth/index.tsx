@@ -41,7 +41,7 @@ import {
   redeemInvitationToken,
   validateInvitationToken,
 } from "~/server/invitations";
-import { requiresEmailVerification } from "~/server/auth/verification";
+import { requiresEmailVerification } from "~/server/auth/email-verification-policy";
 import { setOtpCooldown } from "~/server/otp";
 import { captureException, logError, logMessage } from "~/server/logger";
 import { env } from "~/env";

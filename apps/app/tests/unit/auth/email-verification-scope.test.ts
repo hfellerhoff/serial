@@ -4,7 +4,7 @@ import {
   createLocalBenchmarkTarget,
   openBenchmarkDatabase,
 } from "../../../scripts/performance/database";
-import { requiresEmailVerification } from "~/server/auth/verification";
+import { requiresEmailVerification } from "~/server/auth/email-verification-policy";
 import { account, user } from "~/server/db/schema";
 
 type Session = ReturnType<typeof openBenchmarkDatabase>;
@@ -15,7 +15,11 @@ const NOW = new Date("2026-08-27T12:00:00.000Z");
 let session: Session;
 let target: Target;
 
-async function seedUser(id: string, providerIds: string[]) {
+async function seedUser(
+  id: string,
+  providerIds: string[],
+  options?: { credentialPassword?: string | null },
+) {
   await session.database.insert(user).values({
     id,
     name: id,
@@ -31,7 +35,12 @@ async function seedUser(id: string, providerIds: string[]) {
         accountId: providerId === "credential" ? id : `${providerId}-${id}`,
         providerId,
         userId: id,
-        password: providerId === "credential" ? "hashed-password" : null,
+        password:
+          providerId === "credential"
+            ? options?.credentialPassword !== undefined
+              ? options.credentialPassword
+              : "hashed-password"
+            : null,
         createdAt: NOW,
         updatedAt: NOW,
       })),
@@ -84,12 +93,25 @@ describe("requiresEmailVerification", () => {
     ).toBe(true);
   });
 
-  it("exempts an unverified user with no accounts at all", async () => {
+  it("fails closed for an unverified user with no accounts at all", async () => {
     await seedUser("orphan-user", []);
 
     expect(
       await requiresEmailVerification(session.database, {
         id: "orphan-user",
+        emailVerified: false,
+      }),
+    ).toBe(true);
+  });
+
+  it("ignores a credential account with no stored password", async () => {
+    await seedUser("passwordless-user", ["test-oauth", "credential"], {
+      credentialPassword: null,
+    });
+
+    expect(
+      await requiresEmailVerification(session.database, {
+        id: "passwordless-user",
         emailVerified: false,
       }),
     ).toBe(false);
@@ -108,7 +130,7 @@ describe("requiresEmailVerification", () => {
     expect(session.instrumentation.snapshot().statementCount).toBe(0);
   });
 
-  it("issues exactly one indexed statement for unverified users", async () => {
+  it("issues exactly one statement for unverified users", async () => {
     await seedUser("single-query-user", ["credential"]);
 
     session.instrumentation.reset();
@@ -117,5 +139,14 @@ describe("requiresEmailVerification", () => {
       emailVerified: false,
     });
     expect(session.instrumentation.snapshot().statementCount).toBe(1);
+  });
+
+  it("answers the account lookup from the user_id index", async () => {
+    const plan = await session.baseClient.execute({
+      sql: "EXPLAIN QUERY PLAN SELECT provider_id, password FROM serial_account WHERE user_id = ?",
+      args: ["single-query-user"],
+    });
+    const planText = plan.rows.map((row) => String(row.detail)).join("\n");
+    expect(planText).toContain("account_user_id_idx");
   });
 });
