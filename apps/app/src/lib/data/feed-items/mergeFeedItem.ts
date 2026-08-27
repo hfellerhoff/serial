@@ -1,3 +1,4 @@
+import { retainEligibleFeedBody } from "../offline-content";
 import { applyPendingFeedItemOverrides } from "./pendingMutations";
 import type { ApplicationFeedItem } from "~/server/db/schema";
 
@@ -58,14 +59,16 @@ export function mergeFeedItem(
   const normalizedIncomingItem = normalizeIncomingFeedItem(incomingItem);
 
   if (!existingItem) {
-    return applyPendingFeedItemOverrides(normalizedIncomingItem);
+    const item = applyPendingFeedItemOverrides(normalizedIncomingItem);
+    return retainEligibleFeedBody(undefined, item);
   }
 
   if (!hasMatchingContentHash(existingItem, incomingItem)) {
-    return applyPendingFeedItemOverrides(normalizedIncomingItem);
+    const item = applyPendingFeedItemOverrides(normalizedIncomingItem);
+    return retainEligibleFeedBody(existingItem, item);
   }
 
-  return applyPendingFeedItemOverrides(
+  const item = applyPendingFeedItemOverrides(
     mergeItemMetadata(
       {
         ...existingItem,
@@ -76,4 +79,5 @@ export function mergeFeedItem(
       normalizedIncomingItem,
     ),
   );
+  return retainEligibleFeedBody(existingItem, item);
 }

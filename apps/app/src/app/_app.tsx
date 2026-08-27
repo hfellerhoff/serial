@@ -21,6 +21,7 @@ import { useDialogStore } from "~/components/feed/dialogStore";
 import { DemoBanner } from "~/components/DemoBanner";
 import { ClientPerformanceProfiler } from "~/components/debug/ClientPerformanceProfiler";
 import { ImpersonationBanner } from "~/components/ImpersonationBanner";
+import { OfflineBanner } from "~/components/OfflineBanner";
 import { ReleaseNotifier } from "~/components/releases/ReleaseNotifier";
 import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
 import { InitialClientQueries } from "~/lib/data/InitialClientQueries";
@@ -262,6 +263,7 @@ function RootLayout() {
           <div className="flex h-svh flex-col overflow-hidden">
             <ImpersonationBanner />
             <DemoBanner />
+            <OfflineBanner />
             <SidebarProvider
               className="h-auto min-h-0 flex-1"
               style={

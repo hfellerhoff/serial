@@ -49,12 +49,21 @@ import { UNCATEGORIZED_VIEW_ID } from "~/lib/data/views/constants";
 import { useQuickCreateViewMutation } from "~/lib/data/views/mutations";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
 import { useShiftSelect } from "~/lib/hooks/useShiftSelect";
+import { OfflineMutationBoundary } from "~/components/OfflineMutationBoundary";
 
 export const Route = createFileRoute("/_app/feeds")({
   component: ManageFeedsPage,
 });
 
 function ManageFeedsPage() {
+  return (
+    <OfflineMutationBoundary>
+      <ManageFeedsPageContent />
+    </OfflineMutationBoundary>
+  );
+}
+
+function ManageFeedsPageContent() {
   const { feeds } = useFeeds();
   const { feedCategories } = useFeedCategories();
   const { contentCategories } = useContentCategories();

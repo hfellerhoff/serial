@@ -17,9 +17,11 @@ import {
   setRetainedEntityPins,
 } from "../page-retention";
 import { viewsStore } from "../views/store";
+import { shouldRetainBookmarkCapture } from "../offline-content";
 import { bookmarksStore } from "./store";
+import { bookmarkCapturesStore } from "./capture-store";
 import type { ApplicationBookmark } from "~/server/mixed-content/projection";
-import { orpc } from "~/lib/orpc";
+import { orpc, orpcRouterClient } from "~/lib/orpc";
 
 const mutationCoordinator =
   new BookmarkMutationCoordinator<ApplicationBookmark>();
@@ -73,19 +75,32 @@ function removeProjectedBookmark(bookmark: ApplicationBookmark) {
 export function useSaveBookmarkMutation() {
   return useMutation(
     orpc.bookmark.save.mutationOptions({
-      onSuccess: (result) => {
+      onSuccess: async (result) => {
         const bookmark = result.bookmark as ApplicationBookmark;
         const previousBookmark = bookmarksStore
           .getState()
           .getBookmark(bookmark.id);
         for (const removedBookmarkId of result.removedBookmarkIds ??
           (result.removedBookmarkId ? [result.removedBookmarkId] : [])) {
+          bookmarkCapturesStore.getState().remove(removedBookmarkId);
           const removedBookmark = bookmarksStore
             .getState()
             .getBookmark(removedBookmarkId);
           if (removedBookmark) removeProjectedBookmark(removedBookmark);
         }
         projectBookmark(bookmark, previousBookmark);
+        if (
+          shouldRetainBookmarkCapture(bookmark) &&
+          bookmark.captureHash &&
+          !bookmarkCapturesStore.getState().capturesDict[bookmark.id]
+        ) {
+          const captureResult = await orpcRouterClient.bookmark
+            .getCapture({ bookmarkId: bookmark.id })
+            .catch(() => null);
+          if (captureResult?.status === "capture") {
+            bookmarkCapturesStore.getState().upsert(captureResult.capture);
+          }
+        }
       },
     }),
   );

@@ -7,6 +7,7 @@ import { viewFeedsStore } from "./view-feeds/store";
 import { viewsStore } from "./views/store";
 import { feedsStore } from "./feeds/store";
 import { bookmarksStore } from "./bookmarks/store";
+import { bookmarkCapturesStore } from "./bookmarks/capture-store";
 import { mixedContentStore } from "./mixed-content/store";
 import { navigationSnapshotStore } from "./navigation/store";
 import type { ApplicationView } from "~/server/db/schema";
@@ -39,7 +40,9 @@ export const useClearAllUserData = () => {
   const resetViewFeeds = viewFeedsStore.useReset();
   const resetViews = viewsStore.useReset();
   const setViewsAtom = useSetAtom(viewsAtom);
+  const setConnectionState = useSetAtom(connectionStateAtom);
   const resetBookmarks = bookmarksStore.useReset();
+  const resetBookmarkCaptures = bookmarkCapturesStore.useReset();
   const resetMixedContent = mixedContentStore.useReset();
   const resetNavigationSnapshot = navigationSnapshotStore.useReset();
 
@@ -51,9 +54,11 @@ export const useClearAllUserData = () => {
     resetViewFeeds();
     resetViews();
     resetBookmarks();
+    resetBookmarkCaptures();
     resetMixedContent();
     resetNavigationSnapshot();
     setViewsAtom([]);
+    setConnectionState("unknown");
     // Wipe all persisted state from IndexedDB immediately.
     // The reset() calls handle in-memory state but write through a 2-second
     // throttle — clear() bypasses that so nothing survives sign-out.
@@ -70,6 +75,12 @@ export const articleZoomAtom = atom<number>(1);
 
 export const selectedItemIdAtom = atom<string | null>(null);
 export const altKeyHeldAtom = atom(false);
+
+export type ConnectionState = "unknown" | "connected" | "disconnected";
+export const connectionStateAtom = atom<ConnectionState>("unknown");
+export const isDisconnectedAtom = atom(
+  (get) => get(connectionStateAtom) === "disconnected",
+);
 
 /** When true, the header and footer bars should be hidden (e.g. scrolling down in article view). */
 export const barsHiddenAtom = atom(false);

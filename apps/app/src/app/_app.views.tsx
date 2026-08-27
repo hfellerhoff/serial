@@ -26,17 +26,29 @@ import {
 import { useShiftSelect } from "~/lib/hooks/useShiftSelect";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 import { VIEW_READ_STATUS } from "~/server/db/constants";
+import { OfflineMutationBoundary } from "~/components/OfflineMutationBoundary";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 
 export const Route = createFileRoute("/_app/views")({
   component: ManageViewsPage,
 });
 
 function ManageViewsPage() {
+  return (
+    <OfflineMutationBoundary>
+      <ManageViewsPageContent />
+    </OfflineMutationBoundary>
+  );
+}
+
+function ManageViewsPageContent() {
+  const canMutate = useCanMutate();
   const { views } = useViews();
   const { feeds } = useFeeds();
   const { contentCategories } = useContentCategories();
   const { launchDialog } = useDialogStore();
   useShortcut("a", (event) => {
+    if (!canMutate) return;
     event.preventDefault();
     launchDialog("add-view");
   });

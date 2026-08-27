@@ -29,18 +29,30 @@ import { useViews } from "~/lib/data/views";
 import { UNCATEGORIZED_VIEW_ID } from "~/lib/data/views/constants";
 import { useShiftSelect } from "~/lib/hooks/useShiftSelect";
 import { useShortcut } from "~/lib/hooks/useShortcut";
+import { OfflineMutationBoundary } from "~/components/OfflineMutationBoundary";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 
 export const Route = createFileRoute("/_app/tags")({
   component: ManageTagsPage,
 });
 
 function ManageTagsPage() {
+  return (
+    <OfflineMutationBoundary>
+      <ManageTagsPageContent />
+    </OfflineMutationBoundary>
+  );
+}
+
+function ManageTagsPageContent() {
+  const canMutate = useCanMutate();
   const { contentCategories } = useContentCategories();
   const { feedCategories } = useFeedCategories();
   const { feeds } = useFeeds();
   const { views } = useViews();
   const { launchDialog } = useDialogStore();
   useShortcut("a", (event) => {
+    if (!canMutate) return;
     event.preventDefault();
     launchDialog("add-content-category");
   });

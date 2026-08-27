@@ -21,7 +21,7 @@ function makeItem(pageIndex: number, itemIndex: number): ApplicationFeedItem {
     author: "Serial test",
     url: `https://example.com/${id}`,
     thumbnail: "",
-    content: `<p>${id}</p>`,
+    content: "",
     contentSnippet: id,
     contentType: "text",
     isWatched: false,
@@ -39,10 +39,15 @@ function makeItem(pageIndex: number, itemIndex: number): ApplicationFeedItem {
   };
 }
 
-function seedAndRetainPages(pageCount: number) {
+function seedAndRetainPages(pageCount: number, retainedBodyId?: string) {
   const items = Array.from({ length: pageCount }, (_page, pageIndex) =>
     Array.from({ length: 30 }, (_item, itemIndex) =>
-      makeItem(pageIndex, itemIndex),
+      (() => {
+        const item = makeItem(pageIndex, itemIndex);
+        return item.id === retainedBodyId
+          ? { ...item, content: "<p>Offline body</p>" }
+          : item;
+      })(),
     ),
   );
   feedItemsStore.setState({
@@ -50,6 +55,7 @@ function seedAndRetainPages(pageCount: number) {
       items.flat().map((item) => [item.id, item]),
     ),
     feedItemsOrder: items.flat().map((item) => item.id),
+    retainedFeedItemBodyIds: retainedBodyId ? { [retainedBodyId]: true } : {},
   });
   for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
     feedItemsStore.getState().retainFeedItemPage({
@@ -115,5 +121,34 @@ describe("Feed-item page retention", () => {
     expect(state.retainedFeedPages[SCOPE_KEY]).toHaveLength(8);
     expect(state.feedItemsDict["page-0-item-0"]).toBeDefined();
     expect(state.feedItemsDict["page-1-item-0"]).toBeUndefined();
+  });
+
+  it("retains a loaded Unread text body without retaining its cursor page", () => {
+    const item = makeItem(0, 0);
+    seedAndRetainPages(12, item.id);
+
+    const retained = feedItemsStore.getState();
+    expect(
+      retained.retainedFeedPages[SCOPE_KEY]?.some((page) =>
+        page.entityIds.includes(item.id),
+      ),
+    ).toBe(false);
+    expect(retained.feedItemsDict[item.id]?.content).toBe(
+      "<p>Offline body</p>",
+    );
+  });
+
+  it("removes a retained body when the item is archived", () => {
+    const item = makeItem(0, 0);
+    feedItemsStore
+      .getState()
+      .setFeedItem(item.id, { ...item, content: "<p>Offline body</p>" });
+
+    feedItemsStore.getState().setFeedItem(item.id, {
+      ...feedItemsStore.getState().feedItemsDict[item.id]!,
+      isWatched: true,
+    });
+
+    expect(feedItemsStore.getState().feedItemsDict[item.id]?.content).toBe("");
   });
 });

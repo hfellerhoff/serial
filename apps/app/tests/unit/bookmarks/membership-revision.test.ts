@@ -23,6 +23,11 @@ vi.mock("@tanstack/react-query", () => ({
 vi.mock("~/lib/orpc", () => {
   const mutationOptions = (options: unknown) => options;
   return {
+    orpcRouterClient: {
+      bookmark: {
+        getCapture: vi.fn().mockResolvedValue(null),
+      },
+    },
     orpc: {
       bookmark: {
         remove: { mutationOptions },

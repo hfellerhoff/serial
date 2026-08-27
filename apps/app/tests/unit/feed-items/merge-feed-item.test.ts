@@ -41,7 +41,7 @@ describe("mergeFeedItem", () => {
     clearPendingFeedItemOverrides();
   });
 
-  it("preserves versioned item fields when the content hash matches", () => {
+  it("preserves matching versioned fields while clearing an Archived body", () => {
     const existingItem = makeItem();
     const incomingItem = makeItem({
       title: "Incoming title",
@@ -61,7 +61,7 @@ describe("mergeFeedItem", () => {
     const mergedItem = mergeFeedItem(existingItem, incomingItem);
 
     expect(mergedItem.title).toBe("Original title");
-    expect(mergedItem.content).toBe("Original content");
+    expect(mergedItem.content).toBe("");
     expect(mergedItem.contentSnippet).toBe("Original snippet");
     expect(mergedItem.thumbnail).toBe("https://example.com/original.jpg");
     expect(mergedItem.isWatched).toBe(true);

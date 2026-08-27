@@ -1,9 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
-import { feedItemsStore, useFeedItemState } from "../store";
+import { feedItemsStore, retainFeedItemBody, useFeedItemState } from "../store";
 import { feedCategoriesStore } from "../feed-categories/store";
 import { mixedContentStore } from "../mixed-content/store";
 import { advanceMixedContentMembershipRevision } from "../mixed-content/membershipRevision";
 import { viewsStore } from "../views/store";
+import { canMutateNow } from "../offline-mutations";
 import {
   clearPendingFeedItemOverride,
   setPendingWatchedOverride,
@@ -226,6 +227,7 @@ export async function setBulkWatchedValue({
   items: BulkWatchedItem[];
   isWatched: boolean;
 }) {
+  if (!canMutateNow()) return;
   const contexts = applyOptimisticWatchedValues(items, isWatched);
 
   try {
@@ -264,6 +266,9 @@ export function useFeedItemsSetWatchLaterValueMutation(contentId: string) {
       },
       onSuccess: (serverValue, _variables, context) => {
         resolveOptimisticWatchLaterValue(context, serverValue);
+        if (serverValue.isWatchLater) {
+          void retainFeedItemBody(contentId);
+        }
       },
       onError: (_error, _variables, context) => {
         rollbackOptimisticWatchLaterValue(context);

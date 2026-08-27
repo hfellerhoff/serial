@@ -16,8 +16,12 @@ export function ArticleImageLightbox({
   className,
 }: ArticleImageLightboxProps) {
   const [open, setOpen] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string>();
+  const failed = failedSrc === src;
 
-  const toggle = () => setOpen((prev) => !prev);
+  const toggle = () => {
+    if (!failed) setOpen((prev) => !prev);
+  };
 
   return (
     <div data-lightbox style={{ position: "relative" }}>
@@ -25,17 +29,35 @@ export function ArticleImageLightbox({
         data-lightbox-trigger
         type="button"
         aria-label={alt ? `Open image preview: ${alt}` : "Open image preview"}
-        style={{ display: "block", cursor: "zoom-in" }}
+        aria-disabled={failed}
+        style={{
+          display: "block",
+          width: "100%",
+          cursor: failed ? "default" : "zoom-in",
+        }}
         onClick={toggle}
       >
-        <img
-          src={src}
-          alt={alt}
-          className={className}
-          loading="lazy"
-          decoding="async"
-          referrerPolicy="no-referrer"
-        />
+        {failed ? (
+          <span
+            data-image-fallback
+            role="img"
+            aria-label={alt}
+            className="bg-muted block aspect-square w-full rounded"
+          />
+        ) : (
+          <img
+            src={src}
+            alt={alt}
+            className={className}
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            onError={() => {
+              setFailedSrc(src);
+              setOpen(false);
+            }}
+          />
+        )}
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogPortal>

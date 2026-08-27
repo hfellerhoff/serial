@@ -6,7 +6,12 @@ import { orpcRouterClient } from "../orpc";
 import { combineAbortSignals } from "./combineAbortSignals";
 import { loadingActor } from "./loading-machine";
 import { shouldAlwaysKeepSSEConnectionAlive } from "./atoms";
-import { setDataSubscriptionConnected } from "./subscriptionConnection";
+import {
+  initializeDataSubscriptionConnection,
+  markDataSubscriptionConnected,
+  markDataSubscriptionFailed,
+  markDataSubscriptionPaused,
+} from "./subscriptionConnection";
 import { dataReconciliation } from "./reconciliation";
 import type { PublishedChunk } from "~/server/api/publisher";
 
@@ -66,6 +71,7 @@ export function useDataSubscription() {
     const controller = new AbortController();
     const { signal } = controller;
     abortControllerRef.current = controller;
+    initializeDataSubscriptionConnection(navigator.onLine !== false);
 
     // Per-connection controller — aborted on visibility change to force
     // a reconnect without tearing down the entire subscription lifecycle.
@@ -97,7 +103,7 @@ export function useDataSubscription() {
             {},
             { signal: connectionSignal },
           );
-          setDataSubscriptionConnected(true);
+          markDataSubscriptionConnected();
           dataReconciliation.sseConnectionChanged(true);
 
           for await (const payload of iterator as AsyncIterable<PublishedChunk>) {
@@ -109,15 +115,28 @@ export function useDataSubscription() {
               rafIdRef.current = requestAnimationFrame(flushBuffer);
             }
           }
+          if (!conn.signal.aborted && !signal.aborted) {
+            markDataSubscriptionFailed({
+              isOnline: navigator.onLine !== false,
+              isVisible: document.visibilityState === "visible",
+            });
+          }
         } catch (error) {
-          setDataSubscriptionConnected(false);
           dataReconciliation.sseConnectionChanged(false);
           dataReconciliation.subscriptionAttemptFailed();
 
           if (controller.signal.aborted) break;
 
           // Skip backoff for visibility-triggered reconnects
-          if (conn.signal.aborted) continue;
+          if (conn.signal.aborted) {
+            markDataSubscriptionPaused();
+            continue;
+          }
+
+          markDataSubscriptionFailed({
+            isOnline: navigator.onLine !== false,
+            isVisible: document.visibilityState === "visible",
+          });
 
           console.error("Subscription error, retrying...", error);
 
@@ -130,7 +149,7 @@ export function useDataSubscription() {
             MAX_RETRY_DELAY,
           );
         } finally {
-          setDataSubscriptionConnected(false);
+          markDataSubscriptionPaused();
           dataReconciliation.sseConnectionChanged(false);
           cleanupConnectionSignal();
         }
@@ -175,9 +194,16 @@ export function useDataSubscription() {
       dataReconciliation.environmentChanged();
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    const handleNetworkChange = () => dataReconciliation.environmentChanged();
-    window.addEventListener("online", handleNetworkChange);
-    window.addEventListener("offline", handleNetworkChange);
+    const handleOnline = () => dataReconciliation.environmentChanged();
+    const handleOffline = () => {
+      markDataSubscriptionFailed({
+        isOnline: false,
+        isVisible: document.visibilityState === "visible",
+      });
+      dataReconciliation.environmentChanged();
+    };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     // Recompute connection logic when the keep-alive atom changes
     const unsubscribeAtom = getDefaultStore().sub(
@@ -191,11 +217,11 @@ export function useDataSubscription() {
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("online", handleNetworkChange);
-      window.removeEventListener("offline", handleNetworkChange);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
       unsubscribeAtom();
       controller.abort();
-      setDataSubscriptionConnected(false);
+      markDataSubscriptionPaused();
       dataReconciliation.sseConnectionChanged(false);
       // Cancel any pending RAF flush
       if (rafIdRef.current !== null) {

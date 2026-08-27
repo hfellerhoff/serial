@@ -7,6 +7,7 @@ import {
   getRetainedPageMetrics,
   selectPersistedPages,
 } from "./page-retention";
+import { hasRetainedFeedBody } from "./offline-content";
 import type { RetainedCursorPage } from "./page-retention";
 import type { ApplicationFeedItem } from "~/server/db/schema";
 
@@ -31,6 +32,7 @@ export type FeedPageRetentionState = {
   retainedFeedPages: Record<string, RetainedFeedPage[]>;
   retainedFeedPageBytes: number;
   pageOwnedFeedItemIds: Record<string, true>;
+  retainedFeedItemBodyIds: Record<string, true>;
 };
 
 function retainedPageBytes(
@@ -107,7 +109,15 @@ export function applyFeedItemPageRetention(
 
   const feedItemsDict = { ...state.feedItemsDict };
   for (const id of Object.keys(pageOwnedFeedItemIds)) {
-    if (retainedEntityIds.has(id) || pinnedEntityIds.has(id)) continue;
+    const item = feedItemsDict[id];
+    if (
+      retainedEntityIds.has(id) ||
+      pinnedEntityIds.has(id) ||
+      (item &&
+        hasRetainedFeedBody(item, state.retainedFeedItemBodyIds[id] === true))
+    ) {
+      continue;
+    }
     delete feedItemsDict[id];
     delete pageOwnedFeedItemIds[id];
   }
@@ -133,6 +143,11 @@ export function applyFeedItemPageRetention(
       (id) => feedItemsDict[id] !== undefined,
     ),
     scopeFeedItemIds,
+    retainedFeedItemBodyIds: Object.fromEntries(
+      Object.keys(state.retainedFeedItemBodyIds)
+        .filter((id) => feedItemsDict[id] !== undefined)
+        .map((id) => [id, true as const]),
+    ),
   };
 }
 
@@ -154,7 +169,12 @@ export function getPersistedFeedItemRetentionState(
   const shouldPersistItem = (id: string) =>
     state.pageOwnedFeedItemIds[id] !== true ||
     persistedPageEntityIds.has(id) ||
-    pinnedEntityIds.has(id);
+    pinnedEntityIds.has(id) ||
+    (state.feedItemsDict[id] !== undefined &&
+      hasRetainedFeedBody(
+        state.feedItemsDict[id],
+        state.retainedFeedItemBodyIds[id] === true,
+      ));
   const feedItemsDict = Object.fromEntries(
     Object.entries(state.feedItemsDict).filter(([id]) => shouldPersistItem(id)),
   );
@@ -171,6 +191,11 @@ export function getPersistedFeedItemRetentionState(
     retainedFeedPageBytes: retainedPageBytes(retainedFeedPages),
     pageOwnedFeedItemIds: Object.fromEntries(
       Object.keys(state.pageOwnedFeedItemIds)
+        .filter((id) => shouldPersistItem(id))
+        .map((id) => [id, true as const]),
+    ),
+    retainedFeedItemBodyIds: Object.fromEntries(
+      Object.keys(state.retainedFeedItemBodyIds)
         .filter((id) => shouldPersistItem(id))
         .map((id) => [id, true as const]),
     ),

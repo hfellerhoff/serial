@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 
 export function EmptyState() {
   return (
@@ -30,6 +31,7 @@ export function EmptyState() {
 }
 
 export function FeedEmptyState() {
+  const canMutate = useCanMutate();
   const launchDialog = useDialogStore((store) => store.launchDialog);
 
   return (
@@ -51,7 +53,10 @@ export function FeedEmptyState() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex h-full flex-col justify-end">
-            <Button onClick={() => launchDialog("add-feed")}>
+            <Button
+              disabled={!canMutate}
+              onClick={() => launchDialog("add-feed")}
+            >
               <PlusIcon size={16} />
               <span className="pl-1.5">Add Feed</span>
             </Button>
