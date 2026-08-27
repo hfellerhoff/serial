@@ -13,11 +13,19 @@ type VerificationDatabase = typeof defaultDb;
  *
  * The exemption is materialized as `user.emailVerificationExempt` so the
  * per-request decision reads session state and never touches the database.
- * The flag is recomputed from account rows whenever an account is created or
- * updated (see the database hooks in ./index.tsx) and backfilled by
- * post-migration 0048. Staleness always errs closed: the unhookable paths
- * (account deletion) can only leave a user non-exempt who could be exempt,
- * never the reverse.
+ * Exemption depends only on which account rows exist — never their contents —
+ * so account creation is the sole event that can change it: the create hook
+ * in ./index.tsx recomputes the flag, and post-migration 0048 backfills it.
+ * Staleness always errs closed: the unhookable paths (account deletion) can
+ * only leave a user non-exempt who could be exempt, never the reverse.
+ *
+ * Caution: this helper writes the user row directly, bypassing Better Auth's
+ * internalAdapter and its session-refresh bookkeeping. That is safe today
+ * because session cookie caching is disabled (every getSession re-reads the
+ * user row). If `session.cookieCache` is ever enabled, a cached cookie could
+ * keep a stale `emailVerificationExempt: true` for the cache TTL after a
+ * credential account is added — a fail-open window. Route this write through
+ * the internal adapter (or invalidate the user's session cache) first.
  */
 export function requiresEmailVerification(sessionUser: {
   emailVerified: boolean;
@@ -28,22 +36,20 @@ export function requiresEmailVerification(sessionUser: {
 
 /**
  * The fail-closed exemption rule: exempt only when accounts exist and none of
- * them is a usable credential account (matching Better Auth's definition —
- * providerId "credential" with a stored password). A user with no accounts at
- * all must verify rather than being silently exempted.
+ * them is a credential account. A user with no accounts at all must verify
+ * rather than being silently exempted, and a credential row always counts —
+ * even a malformed one with no stored password.
  */
 export function computeEmailVerificationExempt(
-  accounts: Array<{ providerId: string; password: string | null }>,
+  accounts: Array<{ providerId: string }>,
 ): boolean {
   if (accounts.length === 0) return false;
-  return !accounts.some(
-    (row) => row.providerId === "credential" && row.password != null,
-  );
+  return !accounts.some((row) => row.providerId === "credential");
 }
 
 /**
  * Recompute and persist the exemption flag from the user's current account
- * rows. Called from account create/update hooks — rare mutations, so the
+ * rows. Called from the account-creation hook — a rare mutation, so the
  * account-table lookup happens here instead of on every navigation.
  */
 export async function refreshEmailVerificationExempt(
@@ -51,7 +57,7 @@ export async function refreshEmailVerificationExempt(
   userId: string,
 ): Promise<void> {
   const accounts = await database
-    .select({ providerId: account.providerId, password: account.password })
+    .select({ providerId: account.providerId })
     .from(account)
     .where(eq(account.userId, userId))
     .all();

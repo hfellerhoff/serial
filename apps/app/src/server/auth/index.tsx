@@ -594,17 +594,14 @@ export const auth = betterAuth({
         },
       },
     },
-    // Account create/update are the only mutations that can grant or revoke
-    // the email-verification exemption (linking a provider, adding a
-    // password). Deletion has no hook, but a stale flag from an unlink can
-    // only be false-when-it-could-be-true — never fail-open.
+    // Account creation is the only mutation that can grant or revoke the
+    // email-verification exemption: the flag depends solely on which account
+    // rows exist, so password updates never affect it (deliberately — Better
+    // Auth's updatePassword goes through updateMany, whose after-hook receives
+    // a row count, not a row). Deletion has no hook, but a stale flag from an
+    // unlink can only be false-when-it-could-be-true — never fail-open.
     account: {
       create: {
-        async after(accountRow) {
-          await refreshEmailVerificationExempt(db, accountRow.userId);
-        },
-      },
-      update: {
         async after(accountRow) {
           await refreshEmailVerificationExempt(db, accountRow.userId);
         },

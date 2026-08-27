@@ -17,9 +17,8 @@ type Target = ReturnType<typeof createLocalBenchmarkTarget>;
 
 const NOW = new Date("2026-08-27T12:00:00.000Z");
 
-const CREDENTIAL = { providerId: "credential", password: "hashed-password" };
-const PASSWORDLESS_CREDENTIAL = { providerId: "credential", password: null };
-const OAUTH = { providerId: "test-oauth", password: null };
+const CREDENTIAL = { providerId: "credential" };
+const OAUTH = { providerId: "test-oauth" };
 
 describe("requiresEmailVerification", () => {
   it("requires verification only for unverified, non-exempt users", () => {
@@ -67,10 +66,10 @@ describe("computeEmailVerificationExempt", () => {
     expect(computeEmailVerificationExempt([])).toBe(false);
   });
 
-  it("ignores a credential account with no stored password", () => {
+  it("counts a credential account even without a stored password", () => {
     expect(
-      computeEmailVerificationExempt([OAUTH, PASSWORDLESS_CREDENTIAL]),
-    ).toBe(true);
+      computeEmailVerificationExempt([OAUTH, { providerId: "credential" }]),
+    ).toBe(false);
   });
 });
 
@@ -165,9 +164,16 @@ describe("refreshEmailVerificationExempt", () => {
   });
 
   it("answers the account lookup from the user_id index", async () => {
+    await seedUser("indexed-user", ["credential"]);
+
+    session.instrumentation.reset();
+    await refreshEmailVerificationExempt(session.database, "indexed-user");
+    const [accountLookup] = session.instrumentation.snapshot().statements;
+    if (!accountLookup) throw new Error("No statement was recorded");
+
     const plan = await session.baseClient.execute({
-      sql: "EXPLAIN QUERY PLAN SELECT provider_id, password FROM serial_account WHERE user_id = ?",
-      args: ["bounded-user"],
+      sql: `EXPLAIN QUERY PLAN ${accountLookup.sql}`,
+      args: ["indexed-user"],
     });
     const planText = plan.rows.map((row) => String(row.detail)).join("\n");
     expect(planText).toContain("account_user_id_idx");
