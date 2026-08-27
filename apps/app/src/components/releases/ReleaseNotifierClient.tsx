@@ -14,6 +14,11 @@ export function ReleaseNotifierClient({ slug }: { slug: string | undefined }) {
 
     const lastViewedSlug = window.localStorage.getItem(RELEASE_SLUG_KEY);
 
+    if (lastViewedSlug === null) {
+      window.localStorage.setItem(RELEASE_SLUG_KEY, slug);
+      return;
+    }
+
     if (lastViewedSlug !== slug) {
       window.localStorage.setItem(RELEASE_SLUG_KEY, slug);
 
