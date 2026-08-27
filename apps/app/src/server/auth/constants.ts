@@ -1,3 +1,5 @@
+import type { AuthProvider } from "~/lib/constants";
+import { authProviderSchema } from "~/lib/constants";
 import { env } from "~/env";
 
 const BASE_ORIGIN = new URL(env.PUBLIC_BASE_URL).origin;
@@ -64,4 +66,19 @@ export function isOAuthConfigured(): boolean {
     !!clientSecret &&
     (hasDiscovery || hasManualUrls)
   );
+}
+
+// Compile-enforced to cover every provider: adding one to authProviderSchema
+// without an entry here is a type error.
+const PROVIDER_CONFIGURED: Record<AuthProvider, () => boolean> = {
+  email: () => true,
+  oauth: isOAuthConfigured,
+};
+
+/**
+ * The auth providers this instance has configured (env-dependent), in
+ * schema order.
+ */
+export function getConfiguredAuthProviders(): AuthProvider[] {
+  return authProviderSchema.options.filter((p) => PROVIDER_CONFIGURED[p]());
 }

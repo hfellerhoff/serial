@@ -11,7 +11,10 @@ import {
   getEnabledAuthProviders,
   isPublicSignupEnabled,
 } from "~/lib/constants";
-import { isOAuthConfigured } from "~/server/auth/constants";
+import {
+  getConfiguredAuthProviders,
+  isOAuthConfigured,
+} from "~/server/auth/constants";
 import { validateInvitationToken } from "~/server/invitations";
 import { env } from "~/env";
 import { publicProcedure } from "~/server/orpc/base";
@@ -277,19 +280,18 @@ export const getSigninConfig = publicProcedure.handler(async () => {
   const userCount = await db.select({ count: count() }).from(user).get();
   const isFirstUser = (userCount?.count ?? 0) === 0;
   const oauthConfigured = isOAuthConfigured();
+  const configuredProviders = getConfiguredAuthProviders();
+  const configuredProviderSet = new Set(configuredProviders);
 
-  const filterOAuth = (providers: AuthProvider[]) =>
-    oauthConfigured ? providers : providers.filter((p) => p !== "oauth");
-
-  const signinProviders = filterOAuth(
-    getEnabledAuthProviders(signinConfig?.value),
+  const signinProviders = getEnabledAuthProviders(signinConfig?.value).filter(
+    (p) => configuredProviderSet.has(p),
   );
 
   const signupProviders = getAvailableSignupProviders({
     isFirstUser,
     publicSignupEnabled: isPublicSignupEnabled(publicSignup?.value),
     signupProvidersConfig: signupConfig?.value,
-    oauthConfigured,
+    configuredProviders,
   });
 
   return {
@@ -337,7 +339,7 @@ export const getSignupConfig = publicProcedure
       isFirstUser,
       publicSignupEnabled: isPublicSignupEnabled(publicSignup?.value),
       signupProvidersConfig: signupConfig?.value,
-      oauthConfigured,
+      configuredProviders: getConfiguredAuthProviders(),
     });
 
     return {
