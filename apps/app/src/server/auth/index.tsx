@@ -19,7 +19,7 @@ import {
   applySubscriptionSideEffects,
   syncPolarDataToKV,
 } from "../subscriptions/kv";
-import type { AuthAttempt } from "~/server/auth/policy";
+import type { AuthAttempt, CompletedAuth } from "~/server/auth/policy";
 import ResetPasswordEmail from "~/emails/reset-password";
 import VerifyEmailEmail from "~/emails/verify-email";
 import VerifyEmailChangeEmail from "~/emails/verify-email-change";
@@ -232,6 +232,30 @@ function classifyAuthRequest(
   return undefined;
 }
 
+// Classify a Better Auth request path into the completed-flow identity the
+// post-auth policy consumes. Only sign-up-capable paths return a value:
+// email sign-up creates a user directly, and the OAuth callback may have
+// auto-created one.
+function classifyCompletedAuth(
+  path: string,
+): Pick<CompletedAuth, "provider" | "flow"> | undefined {
+  if (path.startsWith("/sign-up")) {
+    return { provider: "email", flow: "sign-up" };
+  }
+  if (path.startsWith("/oauth2/callback/")) {
+    return { provider: "oauth", flow: "callback" };
+  }
+  return undefined;
+}
+
+// ctx.body is unvalidated request input; only pass the token through when it
+// is actually a string.
+function getInvitationToken(body: unknown): string | undefined {
+  if (typeof body !== "object" || body === null) return undefined;
+  const token = (body as Record<string, unknown>).invitationToken;
+  return typeof token === "string" ? token : undefined;
+}
+
 export const auth = betterAuth({
   baseURL: env.PUBLIC_BASE_URL,
   database: drizzleAdapter(db, {
@@ -355,22 +379,20 @@ export const auth = betterAuth({
 
       await enforceAuthAttemptPolicy({
         ...attempt,
-        invitationToken: ctx.body?.invitationToken,
+        invitationToken: getInvitationToken(ctx.body),
       });
     }),
     after: createAuthMiddleware(async (ctx) => {
-      const isEmailSignUp = ctx.path.startsWith("/sign-up");
-      const isOAuthCallback = ctx.path.startsWith("/oauth2/callback/");
-      if (!(isEmailSignUp || isOAuthCallback)) return;
+      const completed = classifyCompletedAuth(ctx.path);
+      if (!completed) return;
 
       const newSession = ctx.context?.newSession;
       if (!newSession?.user?.id) return;
 
       await applyPostAuthPolicy({
-        provider: isOAuthCallback ? "oauth" : "email",
-        flow: isOAuthCallback ? "callback" : "sign-up",
+        ...completed,
         user: newSession.user,
-        invitationToken: ctx.body?.invitationToken,
+        invitationToken: getInvitationToken(ctx.body),
         rollbackNewUser: async () => {
           // Delete via Better Auth's deleteUser API so all related records
           // (accounts, sessions, plugin data) are properly cleaned up.

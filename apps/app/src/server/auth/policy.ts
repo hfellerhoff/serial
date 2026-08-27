@@ -11,7 +11,7 @@ import {
   getEnabledAuthProviders,
   isPublicSignupEnabled,
 } from "~/lib/constants";
-import { isOAuthConfigured } from "~/server/auth/constants";
+import { getConfiguredAuthProviders } from "~/server/auth/constants";
 import { IS_EMAIL_ENABLED, sendEmail } from "~/server/email";
 import {
   redeemInvitationToken,
@@ -36,11 +36,8 @@ const SIGN_UPS_DISABLED_MESSAGE = "Sign ups are currently disabled";
 export interface AuthAttempt {
   provider: AuthProvider;
   intent: "sign-in" | "sign-up";
-  /**
-   * Extra body param passed through by Better Auth — not schema-validated,
-   * so it is type-checked here.
-   */
-  invitationToken?: unknown;
+  /** Invitation token from the request body, if the adapter found one. */
+  invitationToken?: string;
 }
 
 /**
@@ -64,17 +61,11 @@ export async function enforceAuthAttemptPolicy(
   if ((userCount?.count ?? 0) === 0) return;
 
   const configs = await db.select().from(appConfig).all();
-  const signinConfig = configs.find(
-    (c) => c.key === "enabled-signin-providers",
-  );
-  const signupConfig = configs.find(
-    (c) => c.key === "enabled-signup-providers",
-  );
-  const publicSignupConfig = configs.find(
-    (c) => c.key === "public-signup-enabled",
-  );
 
   if (attempt.intent === "sign-in") {
+    const signinConfig = configs.find(
+      (c) => c.key === "enabled-signin-providers",
+    );
     const signinProviders = getEnabledAuthProviders(signinConfig?.value);
     if (!signinProviders.includes(attempt.provider)) {
       throw new APIError("BAD_REQUEST", {
@@ -84,16 +75,22 @@ export async function enforceAuthAttemptPolicy(
     return;
   }
 
+  const signupConfig = configs.find(
+    (c) => c.key === "enabled-signup-providers",
+  );
+  const publicSignupConfig = configs.find(
+    (c) => c.key === "public-signup-enabled",
+  );
   const availableSignupProviders = getAvailableSignupProviders({
     isFirstUser: false,
     publicSignupEnabled: isPublicSignupEnabled(publicSignupConfig?.value),
     signupProvidersConfig: signupConfig?.value,
-    oauthConfigured: isOAuthConfigured(),
+    configuredProviders: getConfiguredAuthProviders(),
   });
 
   if (!availableSignupProviders.includes(attempt.provider)) {
     // Check for a valid invitation token before blocking.
-    if (typeof attempt.invitationToken === "string") {
+    if (attempt.invitationToken !== undefined) {
       const validatedInvitationToken = await validateInvitationToken(
         attempt.invitationToken,
       );
@@ -112,12 +109,16 @@ export async function enforceAuthAttemptPolicy(
 export interface CompletedAuth {
   provider: AuthProvider;
   /**
-   * "sign-up" for explicit sign-up requests; "callback" for OAuth-style
-   * callbacks that may be either a sign-in or an auto-created sign-up.
+   * Deliberately a different axis from AuthAttempt.intent: before the
+   * request runs we know what the caller wants (sign in vs sign up); after
+   * it we only know which flow completed — "sign-up" for explicit sign-up
+   * requests, "callback" for OAuth-style callbacks that may be either a
+   * sign-in or an auto-created sign-up.
    */
   flow: "sign-up" | "callback";
   user: { id: string; name: string; email: string };
-  invitationToken?: unknown;
+  /** Invitation token from the request body, if the adapter found one. */
+  invitationToken?: string;
   /**
    * Deletes the just-created user and all related records (accounts,
    * sessions, plugin data). Supplied by the adapter because deletion goes
@@ -141,7 +142,7 @@ export async function applyPostAuthPolicy(
   // redeemInvitationToken re-checks the max-uses count so that two
   // concurrent sign-ups can't both consume the last slot.
   if (completed.flow === "sign-up") {
-    if (typeof completed.invitationToken === "string") {
+    if (completed.invitationToken !== undefined) {
       const redeemed = await redeemInvitationToken(
         completed.invitationToken,
         userId,
@@ -216,7 +217,7 @@ export async function applyPostAuthPolicy(
         isFirstUser: false,
         publicSignupEnabled: isPublicSignupEnabled(publicSignupConfig?.value),
         signupProvidersConfig: signupConfig?.value,
-        oauthConfigured: isOAuthConfigured(),
+        configuredProviders: getConfiguredAuthProviders(),
       });
 
       if (!availableProviders.includes(completed.provider)) {
@@ -252,7 +253,7 @@ export async function applyPostAuthPolicy(
 
         await sendEmail({
           to: emailConfig.value,
-          subject: `New user signed up: ${completed.user.name ?? completed.user.email}`,
+          subject: `New user signed up: ${completed.user.name}`,
           html,
         });
       }

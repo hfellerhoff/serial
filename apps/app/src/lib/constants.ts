@@ -48,7 +48,8 @@ export function getEnabledAuthProviders(
     const parsed = JSON.parse(configValue);
     if (!Array.isArray(parsed)) return DEFAULT_AUTH_PROVIDERS;
     return parsed.filter(
-      (p: unknown): p is AuthProvider => p === "email" || p === "oauth",
+      (p: unknown): p is AuthProvider =>
+        authProviderSchema.safeParse(p).success,
     );
   } catch {
     return DEFAULT_AUTH_PROVIDERS;
@@ -58,22 +59,22 @@ export function getEnabledAuthProviders(
 /**
  * Single source of truth for computing which sign-up providers are currently
  * available, factoring in the public-signup toggle, the configured provider
- * list, whether OAuth env vars are present, and the first-user special case.
+ * list, which providers this instance has configured (env-dependent, so
+ * supplied by the caller), and the first-user special case.
  */
 export function getAvailableSignupProviders(opts: {
   isFirstUser: boolean;
   publicSignupEnabled: boolean;
   signupProvidersConfig: string | undefined | null;
-  oauthConfigured: boolean;
+  configuredProviders: AuthProvider[];
 }): AuthProvider[] {
   if (opts.isFirstUser) {
-    const providers: AuthProvider[] = ["email"];
-    if (opts.oauthConfigured) providers.push("oauth");
-    return providers;
+    return authProviderSchema.options.filter((p) =>
+      opts.configuredProviders.includes(p),
+    );
   }
   if (!opts.publicSignupEnabled) return [];
-  const providers = getEnabledAuthProviders(opts.signupProvidersConfig);
-  return opts.oauthConfigured
-    ? providers
-    : providers.filter((p) => p !== "oauth");
+  return getEnabledAuthProviders(opts.signupProvidersConfig).filter((p) =>
+    opts.configuredProviders.includes(p),
+  );
 }
