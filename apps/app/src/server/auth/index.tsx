@@ -29,6 +29,10 @@ import {
   TRUSTED_ORIGINS_SET,
 } from "~/server/auth/constants";
 import {
+  refreshEmailVerificationExempt,
+  requiresEmailVerification,
+} from "~/server/auth/email-verification-policy";
+import {
   applyPostAuthPolicy,
   enforceAuthAttemptPolicy,
 } from "~/server/auth/policy";
@@ -79,14 +83,16 @@ export const authMiddleware = createMiddleware().server(
       }
     }
 
-    // Redirect unverified users to the verification page. Preserve a valid
-    // extension connection callback so verification can resume that flow.
+    // Redirect unverified credential users to the verification page; users
+    // without an email + password account are exempt (see requiresEmailVerification).
+    // Preserve a valid extension connection callback so verification can
+    // resume that flow.
     if (
       IS_EMAIL_ENABLED &&
       session &&
-      !session.user.emailVerified &&
       pathname !== "/auth/verify-email" &&
-      !pathname.startsWith("/api/auth/")
+      !pathname.startsWith("/api/auth/") &&
+      requiresEmailVerification(session.user)
     ) {
       const callbackURL = getExtensionConnectCallbackFromRequestUrl(
         request.url,
@@ -300,6 +306,13 @@ export const auth = betterAuth({
     },
   },
   user: {
+    additionalFields: {
+      emailVerificationExempt: {
+        type: "boolean",
+        defaultValue: false,
+        input: false,
+      },
+    },
     changeEmail: {
       enabled: true,
     },
@@ -416,6 +429,26 @@ export const auth = betterAuth({
             });
           } catch {
             // Customer may not exist in Polar yet (never checked out)
+          }
+        },
+      },
+    },
+    // Account creation is the only mutation that can grant or revoke the
+    // email-verification exemption: the flag depends solely on which account
+    // rows exist, so password updates never affect it (deliberately — Better
+    // Auth's updatePassword goes through updateMany, whose after-hook receives
+    // a row count, not a row). Deletion has no hook, but a stale flag from an
+    // unlink can only be false-when-it-could-be-true — never fail-open.
+    account: {
+      create: {
+        async after(accountRow) {
+          try {
+            await refreshEmailVerificationExempt(db, accountRow.userId);
+          } catch (error) {
+            // The flag defaults to non-exempt (fail-closed), and Better Auth
+            // rethrows hook failures after the transaction has committed — a
+            // failed refresh must not turn a successful sign-up into a 500.
+            captureException(error);
           }
         },
       },

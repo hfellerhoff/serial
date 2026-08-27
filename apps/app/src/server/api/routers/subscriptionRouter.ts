@@ -25,6 +25,7 @@ import { user } from "~/server/db/schema";
 import { IS_EMAIL_ENABLED } from "~/server/email";
 import { captureException, logMessage, logWarning } from "~/server/logger";
 import { getValidatedOrigin } from "~/server/auth/constants";
+import { requiresEmailVerification } from "~/server/auth/email-verification-policy";
 
 /** Cooldown window for syncAfterCheckout per user (seconds). */
 const SYNC_COOLDOWN_SECONDS = 30;
@@ -77,12 +78,17 @@ export const createCheckout = protectedProcedure
 
     if (IS_EMAIL_ENABLED) {
       const currentUser = await context.db
-        .select({ emailVerified: user.emailVerified })
+        .select({
+          emailVerified: user.emailVerified,
+          emailVerificationExempt: user.emailVerificationExempt,
+        })
         .from(user)
         .where(eq(user.id, context.user.id))
         .get();
 
-      if (!currentUser?.emailVerified) {
+      // Fail closed: a session whose user row has vanished should not reach
+      // checkout with an unverifiable email.
+      if (!currentUser || requiresEmailVerification(currentUser)) {
         return { url: null, error: "email-not-verified" as const };
       }
     }
