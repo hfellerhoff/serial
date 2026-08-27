@@ -41,7 +41,10 @@ import {
   redeemInvitationToken,
   validateInvitationToken,
 } from "~/server/invitations";
-import { requiresEmailVerification } from "~/server/auth/email-verification-policy";
+import {
+  refreshEmailVerificationExempt,
+  requiresEmailVerification,
+} from "~/server/auth/email-verification-policy";
 import { setOtpCooldown } from "~/server/otp";
 import { captureException, logError, logMessage } from "~/server/logger";
 import { env } from "~/env";
@@ -95,10 +98,9 @@ export const authMiddleware = createMiddleware().server(
     if (
       IS_EMAIL_ENABLED &&
       session &&
-      !session.user.emailVerified &&
       pathname !== "/auth/verify-email" &&
       !pathname.startsWith("/api/auth/") &&
-      (await requiresEmailVerification(db, session.user))
+      requiresEmailVerification(session.user)
     ) {
       const callbackURL = getExtensionConnectCallbackFromRequestUrl(
         request.url,
@@ -266,6 +268,13 @@ export const auth = betterAuth({
     },
   },
   user: {
+    additionalFields: {
+      emailVerificationExempt: {
+        type: "boolean",
+        defaultValue: false,
+        input: false,
+      },
+    },
     changeEmail: {
       enabled: true,
     },
@@ -582,6 +591,22 @@ export const auth = betterAuth({
           } catch {
             // Customer may not exist in Polar yet (never checked out)
           }
+        },
+      },
+    },
+    // Account create/update are the only mutations that can grant or revoke
+    // the email-verification exemption (linking a provider, adding a
+    // password). Deletion has no hook, but a stale flag from an unlink can
+    // only be false-when-it-could-be-true — never fail-open.
+    account: {
+      create: {
+        async after(accountRow) {
+          await refreshEmailVerificationExempt(db, accountRow.userId);
+        },
+      },
+      update: {
+        async after(accountRow) {
+          await refreshEmailVerificationExempt(db, accountRow.userId);
         },
       },
     },

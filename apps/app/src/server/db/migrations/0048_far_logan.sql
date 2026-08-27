@@ -1,0 +1,1 @@
+ALTER TABLE `serial_user` ADD `email_verification_exempt` integer DEFAULT false NOT NULL;

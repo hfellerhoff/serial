@@ -8,9 +8,10 @@ vi.mock("~/server/email", () => ({
 }));
 
 // The redirect under test only applies to credential users; the mocked session
-// has no backing database, so answer the credential-account check directly.
+// has no backing database, so answer the verification-policy check directly.
 vi.mock("~/server/auth/email-verification-policy", () => ({
-  requiresEmailVerification: vi.fn().mockResolvedValue(true),
+  requiresEmailVerification: vi.fn().mockReturnValue(true),
+  refreshEmailVerificationExempt: vi.fn(),
 }));
 
 async function getVerificationPolicyMock() {
@@ -79,16 +80,15 @@ describe("extension authentication handoff", () => {
       VALID_CONNECT_CALLBACK,
     );
     expect(next).not.toHaveBeenCalled();
-    expect(await getVerificationPolicyMock()).toHaveBeenCalledWith(
-      expect.anything(),
-      { emailVerified: false },
-    );
+    expect(await getVerificationPolicyMock()).toHaveBeenCalledWith({
+      emailVerified: false,
+    });
   });
 
   it("lets an exempt unverified user through without redirecting", async () => {
     const { auth, authMiddleware } = await import("~/server/auth");
     const requiresEmailVerification = await getVerificationPolicyMock();
-    requiresEmailVerification.mockResolvedValue(false);
+    requiresEmailVerification.mockReturnValue(false);
     vi.spyOn(auth.api, "getSession").mockResolvedValue({
       user: { emailVerified: false },
     } as never);
@@ -104,7 +104,7 @@ describe("extension authentication handoff", () => {
       request: new Request("https://serial.example.com/bookmarks"),
     });
 
-    expect(requiresEmailVerification).toHaveBeenCalledWith(expect.anything(), {
+    expect(requiresEmailVerification).toHaveBeenCalledWith({
       emailVerified: false,
     });
     expect(next).toHaveBeenCalledTimes(1);

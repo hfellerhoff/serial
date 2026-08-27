@@ -60,6 +60,14 @@ export const user = sqliteTable(
     name: text("name").notNull(),
     email: text("email").notNull().unique(),
     emailVerified: integer("email_verified", { mode: "boolean" }).notNull(),
+    // Policy bit, not proof of address ownership: true means this user is not
+    // required to verify their email (identity-provider-provisioned accounts).
+    // Maintained by the account-creation hook in src/server/auth/index.tsx.
+    emailVerificationExempt: integer("email_verification_exempt", {
+      mode: "boolean",
+    })
+      .notNull()
+      .default(false),
     image: text("image"),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),

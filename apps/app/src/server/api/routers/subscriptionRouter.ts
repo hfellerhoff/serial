@@ -78,22 +78,17 @@ export const createCheckout = protectedProcedure
 
     if (IS_EMAIL_ENABLED) {
       const currentUser = await context.db
-        .select({ emailVerified: user.emailVerified })
+        .select({
+          emailVerified: user.emailVerified,
+          emailVerificationExempt: user.emailVerificationExempt,
+        })
         .from(user)
         .where(eq(user.id, context.user.id))
         .get();
 
       // Fail closed: a session whose user row has vanished should not reach
       // checkout with an unverifiable email.
-      if (!currentUser) {
-        return { url: null, error: "email-not-verified" as const };
-      }
-
-      const mustVerify = await requiresEmailVerification(context.db, {
-        id: context.user.id,
-        emailVerified: currentUser.emailVerified,
-      });
-      if (mustVerify) {
+      if (!currentUser || requiresEmailVerification(currentUser)) {
         return { url: null, error: "email-not-verified" as const };
       }
     }
