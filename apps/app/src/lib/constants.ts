@@ -74,8 +74,8 @@ export function getAdminSigninMethods(options: {
 }
 
 /**
- * Whether enabling exactly `enabledProviders` would take away some admin's
- * only working sign-in method. Admins with no working method at all are
+ * Whether restricting the enabled set to `enabledProviders` would take away
+ * some admin's only working sign-in method. Admins with no working method at all are
  * skipped: the setting can't lock them out further, and refusing on their
  * behalf would reject every change, including widening ones.
  */
