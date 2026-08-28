@@ -125,6 +125,7 @@ export function PublicSignupToggle() {
   const signinProviders = data?.signinProviders ?? ["email"];
   const signupProviders = data?.signupProviders ?? ["email"];
   const oauthConfigured = data?.isOAuthConfigured ?? false;
+  const atprotoConfigured = data?.isAtprotoConfigured ?? false;
   const oauthProviderName = data?.oauthProviderName ?? "OAuth";
   const adminSigninMethods = data?.adminSigninMethods ?? ["email"];
 
@@ -175,6 +176,16 @@ export function PublicSignupToggle() {
                 isPending={signupProvidersMutation.isPending}
               />
             )}
+
+            {atprotoConfigured && (
+              <ProviderToggle
+                id="signup-atproto-toggle"
+                label="Atmosphere"
+                checked={signupProviders.includes("atproto")}
+                onToggle={(checked) => toggleSignup("atproto", checked)}
+                isPending={signupProvidersMutation.isPending}
+              />
+            )}
           </>
         )}
 
@@ -222,6 +233,17 @@ export function PublicSignupToggle() {
             onToggle={(checked) => toggleSignin("oauth", checked)}
             isPending={signinMutation.isPending}
             lockedTooltip={getSigninLockedTooltip("oauth")}
+          />
+        )}
+
+        {atprotoConfigured && (
+          <ProviderToggle
+            id="signin-atproto-toggle"
+            label="Atmosphere"
+            checked={signinProviders.includes("atproto")}
+            onToggle={(checked) => toggleSignin("atproto", checked)}
+            isPending={signinMutation.isPending}
+            lockedTooltip={getSigninLockedTooltip("atproto")}
           />
         )}
       </div>

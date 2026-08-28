@@ -6,13 +6,15 @@ import { adminProcedure } from "./base";
 import type { AuthProvider } from "~/lib/constants";
 import {
   authProviderSchema,
-  CREDENTIAL_PROVIDER_ID,
+  getAdminSigninMethods,
   getAvailableSignupProviders,
   getEnabledAuthProviders,
   isPublicSignupEnabled,
+  wouldDisableSoleAdminSigninMethod,
 } from "~/lib/constants";
 import {
   getConfiguredAuthProviders,
+  isAtprotoConfigured,
   isOAuthConfigured,
 } from "~/server/auth/constants";
 import { validateInvitationToken } from "~/server/invitations";
@@ -54,21 +56,14 @@ export const getPublicSignupSetting = adminProcedure.handler(async () => {
       )
       .all();
 
-    const oauthProviderId = env.OAUTH_PROVIDER_ID;
-
     // A method is "required" if any admin has it as their only sign-in method
-    for (const admin of adminUsers) {
-      const rows = adminAccountRows.filter((r) => r.userId === admin.id);
-      const methods: AuthProvider[] = [];
-      if (rows.some((a) => a.providerId === CREDENTIAL_PROVIDER_ID)) {
-        methods.push("email");
-      }
-      if (
-        oauthProviderId &&
-        rows.some((a) => a.providerId === oauthProviderId)
-      ) {
-        methods.push("oauth");
-      }
+    const perAdminMethods = getAdminSigninMethods({
+      adminUserIds: adminUsers.map((u) => u.id),
+      accountRows: adminAccountRows,
+      oauthProviderId: isOAuthConfigured() ? env.OAUTH_PROVIDER_ID : undefined,
+      atprotoConfigured: isAtprotoConfigured(),
+    });
+    for (const methods of perAdminMethods) {
       if (methods.length === 1) {
         requiredMethods.add(methods[0]!);
       }
@@ -80,6 +75,7 @@ export const getPublicSignupSetting = adminProcedure.handler(async () => {
     signinProviders: getEnabledAuthProviders(signinProvidersConfig?.value),
     signupProviders: getEnabledAuthProviders(signupProvidersConfig?.value),
     isOAuthConfigured: isOAuthConfigured(),
+    isAtprotoConfigured: isAtprotoConfigured(),
     oauthProviderName: env.OAUTH_PROVIDER_NAME ?? "OAuth",
     adminSigninMethods: [...requiredMethods],
   };
@@ -194,29 +190,19 @@ export const setEnabledSigninProviders = adminProcedure
         )
         .all();
 
-      const oauthProviderId = env.OAUTH_PROVIDER_ID;
-      const enabledProviderSet = new Set(input.providers);
-      for (const admin of adminUsers) {
-        const methods: AuthProvider[] = [];
-        const rows = adminAccountRows.filter((r) => r.userId === admin.id);
-        if (rows.some((a) => a.providerId === CREDENTIAL_PROVIDER_ID)) {
-          methods.push("email");
-        }
-        if (
-          oauthProviderId &&
-          rows.some((a) => a.providerId === oauthProviderId)
-        ) {
-          methods.push("oauth");
-        }
-        const hasRemaining = methods.some((method) =>
-          enabledProviderSet.has(method),
-        );
-        if (!hasRemaining) {
-          throw new ORPCError("BAD_REQUEST", {
-            message:
-              "Cannot disable sign-in methods — this would lock out an admin user",
-          });
-        }
+      const perAdminMethods = getAdminSigninMethods({
+        adminUserIds: adminUsers.map((u) => u.id),
+        accountRows: adminAccountRows,
+        oauthProviderId: isOAuthConfigured()
+          ? env.OAUTH_PROVIDER_ID
+          : undefined,
+        atprotoConfigured: isAtprotoConfigured(),
+      });
+      if (wouldDisableSoleAdminSigninMethod(perAdminMethods, input.providers)) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "Cannot disable sign-in methods — this would lock out an admin user",
+        });
       }
     }
 
