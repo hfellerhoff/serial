@@ -203,6 +203,19 @@ export async function setFeedItemAsYouTubeVideo(
   client.close();
 }
 
+export async function setFeedItemAsVideo(
+  tursoPort: number,
+  id: string,
+  videoId: string,
+) {
+  const { db, client } = getDb(tursoPort);
+  await db
+    .update(schema.feedItems)
+    .set({ contentId: videoId, contentType: "video" })
+    .where(eq(schema.feedItems.id, id));
+  client.close();
+}
+
 export async function seedBookmarkProjectionData(
   tursoPort: number,
   email: string,

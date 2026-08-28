@@ -90,6 +90,7 @@ export type ApplicationStore = {
   setFeedItems: (
     items: ApplicationFeedItem[],
     retention?: RetainFeedItemPageInput,
+    retainedBodyItemIds?: ReadonlySet<string>,
   ) => void;
   fetchFeedItemsForFeed: (feedId: number) => Promise<void>;
   fetchNewData: () => Promise<void>;
@@ -190,7 +191,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           retainedFeedItemBodyIds,
         });
       },
-      setFeedItems: (items, retention) => {
+      setFeedItems: (items, retention, retainedBodyItemIds) => {
         if (items.length === 0) return;
 
         const state = get();
@@ -217,7 +218,12 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           // entries keeps batch cost proportional to the incoming page or
           // optimistic selection instead of cloning the whole library.
           feedItemsDict[item.id] = retainedItem;
-          if (!isEligibleFeedBody(retainedItem)) {
+          if (
+            retainedBodyItemIds?.has(item.id) &&
+            isEligibleFeedBody(retainedItem)
+          ) {
+            retainedFeedItemBodyIds[item.id] = true;
+          } else if (!isEligibleFeedBody(retainedItem)) {
             delete retainedFeedItemBodyIds[item.id];
           }
         }

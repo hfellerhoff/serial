@@ -115,8 +115,10 @@ export function useUpdateBookmarkStateMutation(bookmarkId: string) {
         const previousBookmark = bookmarksStore
           .getState()
           .getBookmark(bookmarkId);
+        const previousCapture =
+          bookmarkCapturesStore.getState().capturesDict[bookmarkId];
         if (!previousBookmark) {
-          return { previousBookmark, changesMixedProjection };
+          return { previousBookmark, previousCapture, changesMixedProjection };
         }
         const now = new Date();
         const changes = [
@@ -172,7 +174,12 @@ export function useUpdateBookmarkStateMutation(bookmarkId: string) {
           releaseOptimisticBookmark(token);
           throw error;
         }
-        return { previousBookmark, token, changesMixedProjection };
+        return {
+          previousBookmark,
+          previousCapture,
+          token,
+          changesMixedProjection,
+        };
       },
       onSuccess: (bookmark, _input, context) => {
         try {
@@ -209,14 +216,18 @@ export function useUpdateBookmarkStateMutation(bookmarkId: string) {
             context.token &&
             optimisticBookmark
           ) {
-            projectBookmark(
-              mutationCoordinator.rollback(
-                optimisticBookmark,
-                context.previousBookmark,
-                context.token,
-              ),
+            const rolledBackBookmark = mutationCoordinator.rollback(
               optimisticBookmark,
+              context.previousBookmark,
+              context.token,
             );
+            projectBookmark(rolledBackBookmark, optimisticBookmark);
+            if (
+              context.previousCapture &&
+              shouldRetainBookmarkCapture(rolledBackBookmark)
+            ) {
+              bookmarkCapturesStore.getState().upsert(context.previousCapture);
+            }
           }
         } finally {
           if (context?.token) releaseOptimisticBookmark(context.token);

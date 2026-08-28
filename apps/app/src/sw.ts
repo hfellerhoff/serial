@@ -15,19 +15,14 @@ import {
   NetworkFirst,
   StaleWhileRevalidate,
 } from "workbox-strategies";
+import {
+  getCacheableNavigationResponse,
+  normalizeNavigationResponse,
+} from "~/lib/pwa/navigation-cache";
 
 declare let self: ServiceWorkerGlobalScope;
 
 const NAVIGATION_CACHE_NAME = "navigation-cache";
-
-function normalizeNavigationResponse(response: Response) {
-  if (!response.redirected) return response;
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: response.headers,
-  });
-}
 
 async function warmNavigationCache() {
   const response = await fetch(
@@ -78,7 +73,7 @@ const navigationHandler = new NetworkFirst({
   plugins: [
     {
       cacheWillUpdate: ({ response }) =>
-        Promise.resolve(normalizeNavigationResponse(response)),
+        Promise.resolve(getCacheableNavigationResponse(response)),
     },
   ],
 });

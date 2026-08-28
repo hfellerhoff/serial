@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useSetProgressMutation } from "~/lib/data/feed-items/mutations";
+import { canMutateNow } from "~/lib/data/offline-mutations";
 import { useFeedItemValue } from "~/lib/data/store";
 
 const SAVE_INTERVAL_MS = 30_000;
@@ -30,6 +31,7 @@ export function useSaveProgress({
   const save = useCallback(() => {
     const item = feedItemRef.current;
     if (!item) return;
+    if (!canMutateNow()) return;
     const { progress, duration } = getProgressRef.current();
     if (progress >= 0 && duration > 0) {
       mutateRef.current({
