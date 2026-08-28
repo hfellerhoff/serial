@@ -128,12 +128,10 @@ test.describe("admin sign-in method settings", () => {
     await clearQueryCache(page);
     await page.reload();
 
-    const signinSection = page
-      .locator("div")
-      .filter({ has: page.getByText("Sign-in methods", { exact: true }) })
-      .last();
+    // The row's label keeps its stable htmlFor id even when the switch is
+    // replaced by the locked indicator.
     await expect(
-      signinSection.getByText("Atmosphere", { exact: true }),
+      page.locator('label[for="signin-atproto-toggle"]'),
     ).toBeVisible({ timeout: 30000 });
     await expect(page.locator("#signin-atproto-toggle")).toHaveCount(0);
   });

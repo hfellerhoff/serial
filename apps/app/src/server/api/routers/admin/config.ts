@@ -6,16 +6,17 @@ import { adminProcedure } from "./base";
 import type { AuthProvider } from "~/lib/constants";
 import {
   authProviderSchema,
+  getAdminSigninMethods,
   getAvailableSignupProviders,
   getEnabledAuthProviders,
   isPublicSignupEnabled,
+  wouldDisableSoleAdminSigninMethod,
 } from "~/lib/constants";
 import {
   getConfiguredAuthProviders,
   isAtprotoConfigured,
   isOAuthConfigured,
 } from "~/server/auth/constants";
-import { getAdminSigninMethods } from "~/server/auth/policy";
 import { validateInvitationToken } from "~/server/invitations";
 import { env } from "~/env";
 import { publicProcedure } from "~/server/orpc/base";
@@ -59,7 +60,7 @@ export const getPublicSignupSetting = adminProcedure.handler(async () => {
     const perAdminMethods = getAdminSigninMethods({
       adminUserIds: adminUsers.map((u) => u.id),
       accountRows: adminAccountRows,
-      oauthProviderId: env.OAUTH_PROVIDER_ID,
+      oauthProviderId: isOAuthConfigured() ? env.OAUTH_PROVIDER_ID : undefined,
       atprotoConfigured: isAtprotoConfigured(),
     });
     for (const methods of perAdminMethods) {
@@ -189,23 +190,19 @@ export const setEnabledSigninProviders = adminProcedure
         )
         .all();
 
-      const enabledProviderSet = new Set(input.providers);
       const perAdminMethods = getAdminSigninMethods({
         adminUserIds: adminUsers.map((u) => u.id),
         accountRows: adminAccountRows,
-        oauthProviderId: env.OAUTH_PROVIDER_ID,
+        oauthProviderId: isOAuthConfigured()
+          ? env.OAUTH_PROVIDER_ID
+          : undefined,
         atprotoConfigured: isAtprotoConfigured(),
       });
-      for (const methods of perAdminMethods) {
-        const hasRemaining = methods.some((method) =>
-          enabledProviderSet.has(method),
-        );
-        if (!hasRemaining) {
-          throw new ORPCError("BAD_REQUEST", {
-            message:
-              "Cannot disable sign-in methods — this would lock out an admin user",
-          });
-        }
+      if (wouldDisableSoleAdminSigninMethod(perAdminMethods, input.providers)) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "Cannot disable sign-in methods — this would lock out an admin user",
+        });
       }
     }
 

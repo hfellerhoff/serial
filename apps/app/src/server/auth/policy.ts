@@ -7,7 +7,6 @@ import { appConfig, session, user } from "../db/schema";
 import type { AuthProvider } from "~/lib/constants";
 import NewUserNotificationEmail from "~/emails/new-user-notification";
 import {
-  CREDENTIAL_PROVIDER_ID,
   getAvailableSignupProviders,
   getEnabledAuthProviders,
   isPublicSignupEnabled,
@@ -34,41 +33,6 @@ const SIGN_IN_DISABLED_MESSAGES: Record<AuthProvider, string> = {
 };
 
 const SIGN_UPS_DISABLED_MESSAGE = "Sign ups are currently disabled";
-
-/**
- * Per-admin sign-in methods derived from account rows, counting only
- * providers this instance has configured. Lockout accounting builds on
- * this: a sign-in method may not be disabled while it is some admin's
- * only way in. Pure so both admin config handlers share one accounting
- * of which account rows count as which method.
- */
-export function getAdminSigninMethods(options: {
-  adminUserIds: string[];
-  accountRows: Array<{ userId: string; providerId: string }>;
-  oauthProviderId: string | undefined;
-  atprotoConfigured: boolean;
-}): AuthProvider[][] {
-  return options.adminUserIds.map((adminId) => {
-    const rows = options.accountRows.filter((r) => r.userId === adminId);
-    const methods: AuthProvider[] = [];
-    if (rows.some((r) => r.providerId === CREDENTIAL_PROVIDER_ID)) {
-      methods.push("email");
-    }
-    if (
-      options.oauthProviderId &&
-      rows.some((r) => r.providerId === options.oauthProviderId)
-    ) {
-      methods.push("oauth");
-    }
-    if (
-      options.atprotoConfigured &&
-      rows.some((r) => r.providerId === "atproto")
-    ) {
-      methods.push("atproto");
-    }
-    return methods;
-  });
-}
 
 export interface AuthAttempt {
   provider: AuthProvider;

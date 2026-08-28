@@ -33,6 +33,63 @@ export type AuthProvider = z.infer<typeof authProviderSchema>;
 /** Better Auth provider ID stored in the `account` table for email/password users */
 export const CREDENTIAL_PROVIDER_ID = "credential";
 
+/** Better Auth provider ID stored in the `account` table for AT Protocol users */
+export const ATPROTO_PROVIDER_ID = "atproto";
+
+/**
+ * Per-admin sign-in methods derived from account rows, counting only
+ * providers this instance has configured (env-dependent, so supplied by
+ * the caller). Lockout accounting builds on this: a sign-in method may
+ * not be disabled while it is some admin's only way in. Pure so both
+ * admin config handlers share one accounting of which account rows count
+ * as which method.
+ */
+export function getAdminSigninMethods(options: {
+  adminUserIds: string[];
+  accountRows: Array<{ userId: string; providerId: string }>;
+  /** The instance's OAuth provider id, or undefined when OAuth is not fully configured. */
+  oauthProviderId: string | undefined;
+  atprotoConfigured: boolean;
+}): AuthProvider[][] {
+  return options.adminUserIds.map((adminId) => {
+    const rows = options.accountRows.filter((r) => r.userId === adminId);
+    const methods: AuthProvider[] = [];
+    if (rows.some((r) => r.providerId === CREDENTIAL_PROVIDER_ID)) {
+      methods.push("email");
+    }
+    if (
+      options.oauthProviderId &&
+      rows.some((r) => r.providerId === options.oauthProviderId)
+    ) {
+      methods.push("oauth");
+    }
+    if (
+      options.atprotoConfigured &&
+      rows.some((r) => r.providerId === ATPROTO_PROVIDER_ID)
+    ) {
+      methods.push("atproto");
+    }
+    return methods;
+  });
+}
+
+/**
+ * Whether enabling exactly `enabledProviders` would take away some admin's
+ * only working sign-in method. Admins with no working method at all are
+ * skipped: the setting can't lock them out further, and refusing on their
+ * behalf would reject every change, including widening ones.
+ */
+export function wouldDisableSoleAdminSigninMethod(
+  perAdminMethods: AuthProvider[][],
+  enabledProviders: AuthProvider[],
+): boolean {
+  const enabled = new Set(enabledProviders);
+  return perAdminMethods.some(
+    (methods) =>
+      methods.length > 0 && !methods.some((method) => enabled.has(method)),
+  );
+}
+
 const DEFAULT_AUTH_PROVIDERS: AuthProvider[] = ["email"];
 
 /**

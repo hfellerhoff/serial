@@ -1,4 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
+import {
+  getAdminSigninMethods,
+  wouldDisableSoleAdminSigninMethod,
+} from "~/lib/constants";
 
 /**
  * Lockout accounting for admin sign-in methods: getAdminSigninMethods is
@@ -8,13 +12,6 @@ import { describe, expect, it, vi } from "vitest";
  * atproto DID must count as atproto-only, so disabling Atmosphere for
  * them is refused rather than silently locking them out.
  */
-
-vi.mock("~/server/db", () => ({ db: undefined }));
-vi.mock("~/server/auth/constants", () => ({
-  getConfiguredAuthProviders: () => ["email", "oauth", "atproto"],
-}));
-
-const { getAdminSigninMethods } = await import("~/server/auth/policy");
 
 const OAUTH_PROVIDER_ID = "test-oauth";
 
@@ -93,5 +90,31 @@ describe("getAdminSigninMethods", () => {
       atprotoConfigured: true,
     });
     expect(methods).toEqual([]);
+  });
+});
+
+describe("wouldDisableSoleAdminSigninMethod", () => {
+  it("refuses to disable an admin's only method", () => {
+    expect(
+      wouldDisableSoleAdminSigninMethod([["atproto"]], ["email", "oauth"]),
+    ).toBe(true);
+  });
+
+  it("allows disabling a method every admin can do without", () => {
+    expect(
+      wouldDisableSoleAdminSigninMethod(
+        [["email", "atproto"], ["email"]],
+        ["email"],
+      ),
+    ).toBe(false);
+  });
+
+  it("skips admins with no working sign-in method", () => {
+    // A zero-method admin (their provider's env configuration is gone)
+    // can't be locked out further; refusing on their behalf would reject
+    // every change, including widening ones.
+    expect(wouldDisableSoleAdminSigninMethod([[], ["email"]], ["email"])).toBe(
+      false,
+    );
   });
 });

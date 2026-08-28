@@ -18,7 +18,7 @@ import { env } from "~/env";
  *   node -e "crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign']).then(async k=>console.log(JSON.stringify({kid:crypto.randomUUID(),...await crypto.subtle.exportKey('jwk',k.privateKey)})))"
  */
 
-export const ATPROTO_PROVIDER_ID = "atproto";
+export { ATPROTO_PROVIDER_ID } from "~/lib/constants";
 
 /** The identity-only v1 scope; broader grants arrive via upgrade(). */
 export const ATPROTO_SCOPE = "atproto";
