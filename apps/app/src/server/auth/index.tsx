@@ -24,6 +24,7 @@ import ResetPasswordEmail from "~/emails/reset-password";
 import VerifyEmailEmail from "~/emails/verify-email";
 import VerifyEmailChangeEmail from "~/emails/verify-email-change";
 import { BASE_SIGNED_OUT_URL } from "~/lib/constants";
+import { isAtprotoPlaceholderEmail } from "~/lib/auth/atproto";
 import {
   isAtprotoConfigured,
   isOAuthConfigured,
@@ -301,6 +302,15 @@ export const auth = betterAuth({
     enabled: true,
     maxPasswordLength: 64,
     async sendResetPassword(data) {
+      // A DID-only user's internal placeholder address is never
+      // deliverable; setting a password requires adding a real email
+      // first (the settings dialog enforces the same order).
+      if (isAtprotoPlaceholderEmail(data.user.email)) {
+        logMessage(
+          "[auth] Skipped reset password email for placeholder address",
+        );
+        return;
+      }
       try {
         const html = await render(
           <ResetPasswordEmail
