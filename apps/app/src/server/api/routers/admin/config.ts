@@ -6,15 +6,16 @@ import { adminProcedure } from "./base";
 import type { AuthProvider } from "~/lib/constants";
 import {
   authProviderSchema,
-  CREDENTIAL_PROVIDER_ID,
   getAvailableSignupProviders,
   getEnabledAuthProviders,
   isPublicSignupEnabled,
 } from "~/lib/constants";
 import {
   getConfiguredAuthProviders,
+  isAtprotoConfigured,
   isOAuthConfigured,
 } from "~/server/auth/constants";
+import { getAdminSigninMethods } from "~/server/auth/policy";
 import { validateInvitationToken } from "~/server/invitations";
 import { env } from "~/env";
 import { publicProcedure } from "~/server/orpc/base";
@@ -54,21 +55,14 @@ export const getPublicSignupSetting = adminProcedure.handler(async () => {
       )
       .all();
 
-    const oauthProviderId = env.OAUTH_PROVIDER_ID;
-
     // A method is "required" if any admin has it as their only sign-in method
-    for (const admin of adminUsers) {
-      const rows = adminAccountRows.filter((r) => r.userId === admin.id);
-      const methods: AuthProvider[] = [];
-      if (rows.some((a) => a.providerId === CREDENTIAL_PROVIDER_ID)) {
-        methods.push("email");
-      }
-      if (
-        oauthProviderId &&
-        rows.some((a) => a.providerId === oauthProviderId)
-      ) {
-        methods.push("oauth");
-      }
+    const perAdminMethods = getAdminSigninMethods({
+      adminUserIds: adminUsers.map((u) => u.id),
+      accountRows: adminAccountRows,
+      oauthProviderId: env.OAUTH_PROVIDER_ID,
+      atprotoConfigured: isAtprotoConfigured(),
+    });
+    for (const methods of perAdminMethods) {
       if (methods.length === 1) {
         requiredMethods.add(methods[0]!);
       }
@@ -80,6 +74,7 @@ export const getPublicSignupSetting = adminProcedure.handler(async () => {
     signinProviders: getEnabledAuthProviders(signinProvidersConfig?.value),
     signupProviders: getEnabledAuthProviders(signupProvidersConfig?.value),
     isOAuthConfigured: isOAuthConfigured(),
+    isAtprotoConfigured: isAtprotoConfigured(),
     oauthProviderName: env.OAUTH_PROVIDER_NAME ?? "OAuth",
     adminSigninMethods: [...requiredMethods],
   };
@@ -194,20 +189,14 @@ export const setEnabledSigninProviders = adminProcedure
         )
         .all();
 
-      const oauthProviderId = env.OAUTH_PROVIDER_ID;
       const enabledProviderSet = new Set(input.providers);
-      for (const admin of adminUsers) {
-        const methods: AuthProvider[] = [];
-        const rows = adminAccountRows.filter((r) => r.userId === admin.id);
-        if (rows.some((a) => a.providerId === CREDENTIAL_PROVIDER_ID)) {
-          methods.push("email");
-        }
-        if (
-          oauthProviderId &&
-          rows.some((a) => a.providerId === oauthProviderId)
-        ) {
-          methods.push("oauth");
-        }
+      const perAdminMethods = getAdminSigninMethods({
+        adminUserIds: adminUsers.map((u) => u.id),
+        accountRows: adminAccountRows,
+        oauthProviderId: env.OAUTH_PROVIDER_ID,
+        atprotoConfigured: isAtprotoConfigured(),
+      });
+      for (const methods of perAdminMethods) {
         const hasRemaining = methods.some((method) =>
           enabledProviderSet.has(method),
         );

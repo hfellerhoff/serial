@@ -7,6 +7,7 @@ import {
 } from "./e2e/fixtures/ports";
 import { seedAdmin } from "./e2e/fixtures/auth";
 import { resetDb } from "./e2e/fixtures/reset-db";
+import { setEnabledAuthProviders } from "./e2e/fixtures/set-enabled-auth-providers";
 
 async function waitForApp(url: string, timeoutMs = 60000) {
   const deadline = Date.now() + timeoutMs;
@@ -32,6 +33,13 @@ export default async function globalSetup() {
     resetDb(SELF_HOSTED_BOOTSTRAP_TURSO_PORT),
   ]);
   await enablePublicSignups(SELF_HOSTED_TURSO_PORT);
+  // Every configured provider enabled, so the auth pages render the full
+  // provider section (email, Atmosphere, generic OAuth) for ordering specs.
+  await setEnabledAuthProviders(SELF_HOSTED_TURSO_PORT, [
+    "email",
+    "oauth",
+    "atproto",
+  ]);
   await seedAdmin({
     tursoPort: SELF_HOSTED_TURSO_PORT,
     name: "E2E Harness Admin",
