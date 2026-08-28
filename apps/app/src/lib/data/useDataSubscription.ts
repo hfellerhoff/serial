@@ -90,9 +90,10 @@ export function useDataSubscription() {
         }
 
         const conn = new AbortController();
+        const connSignal = conn.signal;
         connectionController = conn;
         const { signal: connectionSignal, cleanup: cleanupConnectionSignal } =
-          combineAbortSignals([signal, conn.signal]);
+          combineAbortSignals([signal, connSignal]);
 
         try {
           retryDelayRef.current = INITIAL_RETRY_DELAY;
@@ -107,7 +108,7 @@ export function useDataSubscription() {
           dataReconciliation.sseConnectionChanged(true);
 
           for await (const payload of iterator as AsyncIterable<PublishedChunk>) {
-            if (conn.signal.aborted) break;
+            if (connSignal.aborted) break;
 
             // Buffer the chunk and schedule a flush via RAF
             chunkBufferRef.current.push(payload);
@@ -115,7 +116,7 @@ export function useDataSubscription() {
               rafIdRef.current = requestAnimationFrame(flushBuffer);
             }
           }
-          if (!conn.signal.aborted && !signal.aborted) {
+          if (!connSignal.aborted && !signal.aborted) {
             markDataSubscriptionFailed({
               isOnline: navigator.onLine !== false,
               isVisible: document.visibilityState === "visible",
@@ -128,7 +129,7 @@ export function useDataSubscription() {
           if (controller.signal.aborted) break;
 
           // Skip backoff for visibility-triggered reconnects
-          if (conn.signal.aborted) {
+          if (connSignal.aborted) {
             markDataSubscriptionPaused();
             continue;
           }

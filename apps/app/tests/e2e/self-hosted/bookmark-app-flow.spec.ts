@@ -67,18 +67,16 @@ test.describe("Bookmark Serial-app flow", () => {
     });
     await expect(externalLink).toHaveAttribute("target", "_blank");
     await expect(externalLink).toHaveAttribute("rel", "noopener noreferrer");
-    const remoteImage = page.getByAltText("Reader image");
-    await expect(remoteImage).toHaveAttribute("referrerpolicy", "no-referrer");
-    await expect(remoteImage).toHaveAttribute("loading", "lazy");
     const remoteImageTrigger = page.getByRole("button", {
       name: "Open image preview: Reader image",
     });
     await expect(
+      remoteImageTrigger.locator("[data-image-fallback]"),
+    ).toBeVisible();
+    await expect(remoteImageTrigger).toHaveAttribute("aria-disabled", "true");
+    await expect(
       page.locator('a[href="https://example.com/image-target"]'),
     ).toHaveCount(0);
-    await remoteImageTrigger.click();
-    await expect(page.getByRole("dialog")).toBeVisible();
-    await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.locator("[data-article-video-embed]")).toBeVisible();
     await expect(page.getByTitle("YouTube video player")).toHaveAttribute(
