@@ -98,7 +98,10 @@ test.describe("atproto connection management", () => {
     });
     await page.reload();
     await openConnections();
-    await expect(page.getByText(handle)).toBeVisible();
+    // The persisted-cache restore can serve the stale "not connected"
+    // status first; the on-mount refetch replaces it (slowly under
+    // parallel-worker load).
+    await expect(page.getByText(handle)).toBeVisible({ timeout: 15000 });
 
     // Disconnect: removes the sign-in method and destroys the credential
     // material even though the seeded blob is unreadable ciphertext.
