@@ -29,6 +29,9 @@ export const AUTH_STATE_TTL_MS = 60 * 60 * 1000;
 /** Lazy so importing constants from this module never requires env. */
 const baseUrl = () => env.PUBLIC_BASE_URL.replace(/\/$/, "");
 
+/** Shared prefix for every atproto route; the rate-limit catch-all keys on it. */
+export const ATPROTO_ROUTE_PREFIX = "/atproto/";
+
 /**
  * Every atproto route, relative to the Better Auth mount (the form plugin
  * endpoints and policy classifiers see). `ATPROTO_PATHS` below is the same
@@ -36,8 +39,6 @@ const baseUrl = () => env.PUBLIC_BASE_URL.replace(/\/$/, "");
  * so a rename can't desynchronize the registered redirect_uris from the
  * routes and gates that serve them.
  */
-export const ATPROTO_ROUTE_PREFIX = "/atproto/";
-
 export const ATPROTO_ROUTES = {
   clientMetadata: `${ATPROTO_ROUTE_PREFIX}client-metadata.json`,
   jwks: `${ATPROTO_ROUTE_PREFIX}jwks.json`,

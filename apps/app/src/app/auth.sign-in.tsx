@@ -63,12 +63,7 @@ function SignIn() {
   const signedInDestination = callbackURL ?? AUTH_SIGNED_IN_URL;
 
   const navigate = Route.useNavigate();
-  useRedirectErrorToast(redirectError, () => {
-    void navigate({
-      search: (prev) => ({ ...prev, error: undefined }),
-      replace: true,
-    });
-  });
+  useRedirectErrorToast(redirectError, navigate);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
