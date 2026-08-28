@@ -6,7 +6,7 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AuthHeader } from "~/components/auth/AuthHeader";
@@ -27,8 +27,14 @@ const ERROR_MESSAGES = {
   INVALID_LOGIN: "Invalid email or password",
 };
 
+/** Messages for the ?error= param the OAuth-style callbacks redirect with. */
+const REDIRECT_ERROR_MESSAGES: Record<string, string> = {
+  atproto: "Atmosphere sign-in failed. Please try again.",
+};
+
 const signInSearchSchema = z.object({
   callbackURL: extensionConnectCallbackSchema.optional(),
+  error: z.string().optional(),
 });
 
 export const Route = createFileRoute("/auth/sign-in")({
@@ -52,8 +58,27 @@ export const Route = createFileRoute("/auth/sign-in")({
 
 function SignIn() {
   const { isForgotPasswordEnabled, authConfig } = Route.useLoaderData();
-  const { callbackURL } = Route.useSearch();
+  const { callbackURL, error: redirectError } = Route.useSearch();
   const signedInDestination = callbackURL ?? AUTH_SIGNED_IN_URL;
+
+  // Surface a callback failure once, then drop the param from the URL so a
+  // refresh doesn't re-toast (same shape as the checkout_success handling).
+  const hasProcessedRedirectError = useRef(false);
+  useEffect(() => {
+    if (!redirectError || hasProcessedRedirectError.current) return;
+    hasProcessedRedirectError.current = true;
+    toast.error(
+      REDIRECT_ERROR_MESSAGES[redirectError] ??
+        "Sign-in failed. Please try again.",
+    );
+    const params = new URLSearchParams(window.location.search);
+    params.delete("error");
+    window.history.replaceState(
+      {},
+      "",
+      window.location.pathname + (params.size > 0 ? `?${params}` : ""),
+    );
+  }, [redirectError]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

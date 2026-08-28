@@ -188,8 +188,10 @@ export async function revokeAtprotoGrantsForUser(
 
 /**
  * Revoke the grant server-side and destroy the local credential material.
- * The local session is destroyed even when the server-side call fails —
- * fail toward fewer live credentials.
+ * The disconnect runs unconditionally: the SDK's `revoke` silently returns
+ * (rather than throwing) when the stored session is unreadable — a rotated
+ * store key, for instance — and that row must not stay active with stale
+ * ciphertext. Fail toward fewer live credentials.
  */
 export async function revokeAtprotoConnection(did: string): Promise<void> {
   const client = await getAtprotoClient();
@@ -197,6 +199,7 @@ export async function revokeAtprotoConnection(did: string): Promise<void> {
     await client.revoke(did);
   } catch (err) {
     captureException(err);
+  } finally {
     await disconnectAtprotoConnection(db, did);
   }
 }

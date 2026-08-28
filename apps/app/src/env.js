@@ -149,22 +149,6 @@ export const env = createEnv({
         }
         return origins;
       }),
-    /**
-     * Comma-separated reverse-proxy IPs or CIDR ranges. Required for
-     * per-client rate limiting to key on the real client IP when the app
-     * sits behind a proxy that appends to X-Forwarded-For.
-     */
-    TRUSTED_PROXIES: z
-      .string()
-      .optional()
-      .transform((val) =>
-        val
-          ? val
-              .split(",")
-              .map((s) => s.trim())
-              .filter(Boolean)
-          : [],
-      ),
     SENTRY_DSN_BACKEND: z.url().optional(),
     SENTRY_AUTH_TOKEN: z.string().optional(),
     NODE_ENV: z
@@ -233,7 +217,6 @@ export const env = createEnv({
     SERIAL_CAPTURE_MAX_CONCURRENT_FETCHES:
       process.env.SERIAL_CAPTURE_MAX_CONCURRENT_FETCHES,
     TRUSTED_ORIGINS: process.env.TRUSTED_ORIGINS,
-    TRUSTED_PROXIES: process.env.TRUSTED_PROXIES,
     SENTRY_DSN_BACKEND: process.env.SENTRY_DSN_BACKEND,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
     COOKIE_DOMAIN: process.env.COOKIE_DOMAIN,

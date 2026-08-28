@@ -29,8 +29,8 @@ import {
   isOAuthConfigured,
   TRUSTED_ORIGINS_SET,
 } from "~/server/auth/constants";
+import { ATPROTO_ROUTES } from "~/server/auth/atproto/config";
 import { atprotoPlugin } from "~/server/auth/atproto/plugin";
-import { createKvRateLimitStorage } from "~/server/auth/rate-limit-storage";
 import {
   refreshEmailVerificationExempt,
   requiresEmailVerification,
@@ -244,7 +244,7 @@ function classifyAuthRequest(
   ) {
     return { provider: "oauth", intent: "sign-in" };
   }
-  if (path === "/atproto/authorize" || path === "/atproto/callback") {
+  if (path === ATPROTO_ROUTES.authorize || path === ATPROTO_ROUTES.callback) {
     return { provider: "atproto", intent: "sign-in" };
   }
   return undefined;
@@ -263,7 +263,7 @@ function classifyCompletedAuth(
   if (path.startsWith("/oauth2/callback/")) {
     return { provider: "oauth", flow: "callback" };
   }
-  if (path === "/atproto/callback") {
+  if (path === ATPROTO_ROUTES.callback) {
     return { provider: "atproto", flow: "callback" };
   }
   return undefined;
@@ -283,28 +283,10 @@ export const auth = betterAuth({
     provider: "sqlite",
   }),
   trustedOrigins: Array.from(TRUSTED_ORIGINS_SET),
-  /**
-   * Abuse ceilings, not precision throttles: a lax global bound on the
-   * whole auth surface, with stricter per-path rules on the atproto
-   * endpoints (declared by that plugin) because authorize fans out to
-   * outbound identity resolution. Storage is KV-backed — shared when Redis
-   * is configured, per-process otherwise. Buckets are keyed per client IP
-   * and path; behind a reverse proxy, TRUSTED_PROXIES must list the proxy
-   * addresses so the forwarded chain resolves to the real client instead
-   * of collapsing every request into one shared bucket.
-   */
-  rateLimit: {
-    // Production only (Better Auth's own default): dev and unit-test
-    // traffic shares one IP-less bucket and would trip any real ceiling.
-    enabled: env.NODE_ENV === "production",
-    window: 60,
-    max: 120,
-    customStorage: createKvRateLimitStorage(),
-    // No customRules here: Better Auth's built-in specials (3 per 10s on
-    // sign-in, sign-up, change-password, and change-email) are the
-    // credential brute-force defence and stay as they are. The atproto
-    // endpoints declare their own rules on the plugin.
-  },
+  // Rate limiting rides Better Auth's defaults (production-only, built-in
+  // 3-per-10s specials on sign-in/sign-up/change-password/change-email).
+  // The atproto plugin declares stricter per-path rules on its own
+  // endpoints because authorize fans out to outbound identity resolution.
   advanced: {
     ...(env.COOKIE_DOMAIN
       ? {
@@ -313,9 +295,6 @@ export const auth = betterAuth({
             domain: env.COOKIE_DOMAIN,
           },
         }
-      : {}),
-    ...(env.TRUSTED_PROXIES.length > 0
-      ? { ipAddress: { trustedProxies: env.TRUSTED_PROXIES } }
       : {}),
   },
   emailAndPassword: {

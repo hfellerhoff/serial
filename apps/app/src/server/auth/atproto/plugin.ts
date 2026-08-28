@@ -2,7 +2,12 @@ import { z } from "zod";
 import { APIError, createAuthEndpoint } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { handleOAuthUserInfo } from "better-auth/oauth2";
-import { ATPROTO_PROVIDER_ID, placeholderEmailForDid } from "./config";
+import {
+  ATPROTO_PROVIDER_ID,
+  ATPROTO_ROUTES,
+  placeholderEmailForDid,
+  validateAtprotoConfigAtStartup,
+} from "./config";
 import { getAtprotoClient } from "./client";
 import {
   bindAtprotoConnection,
@@ -52,11 +57,19 @@ const identifierSchema = z
   );
 
 export const atprotoPlugin = () => {
+  // Fail closed at startup on malformed config: the store key throws
+  // synchronously into the auth module's import; a bad keyset exits the
+  // process once its async import settles.
+  validateAtprotoConfigAtStartup((err) => {
+    logError("[atproto] invalid ATPROTO_CLIENT_PRIVATE_KEYS:", err);
+    process.exit(1);
+  });
+
   return {
     id: "atproto",
     endpoints: {
       atprotoClientMetadata: createAuthEndpoint(
-        "/atproto/client-metadata.json",
+        ATPROTO_ROUTES.clientMetadata,
         { method: "GET" },
         async (ctx) => {
           const client = await getAtprotoClient();
@@ -65,7 +78,7 @@ export const atprotoPlugin = () => {
       ),
 
       atprotoJwks: createAuthEndpoint(
-        "/atproto/jwks.json",
+        ATPROTO_ROUTES.jwks,
         { method: "GET" },
         async (ctx) => {
           const client = await getAtprotoClient();
@@ -80,7 +93,7 @@ export const atprotoPlugin = () => {
        * verifies the full identity chain before any session exists.
        */
       atprotoAuthorize: createAuthEndpoint(
-        "/atproto/authorize",
+        ATPROTO_ROUTES.authorize,
         {
           method: "POST",
           body: z.object({
@@ -105,7 +118,7 @@ export const atprotoPlugin = () => {
       ),
 
       atprotoCallback: createAuthEndpoint(
-        "/atproto/callback",
+        ATPROTO_ROUTES.callback,
         { method: "GET" },
         async (ctx) => {
           const url = new URL(ctx.request?.url ?? "http://invalid");
@@ -166,12 +179,12 @@ export const atprotoPlugin = () => {
       // Buckets are keyed per client IP and path. Authorize stays the
       // tightest bucket because each call fans out to identity resolution.
       {
-        pathMatcher: (path: string) => path === "/atproto/authorize",
+        pathMatcher: (path: string) => path === ATPROTO_ROUTES.authorize,
         window: 60,
         max: 30,
       },
       {
-        pathMatcher: (path: string) => path === "/atproto/callback",
+        pathMatcher: (path: string) => path === ATPROTO_ROUTES.callback,
         window: 60,
         max: 60,
       },

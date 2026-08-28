@@ -23,6 +23,9 @@ const ALLOW_INSECURE_PDS = env.NODE_ENV !== "production";
 
 const FETCH_TIMEOUT_MS = 15_000;
 
+/** Explicit cap on protocol-document responses (DID docs, metadata). */
+const RESPONSE_MAX_SIZE_BYTES = 512 * 1024;
+
 type HardenedFetch = (
   input: string | Request | URL,
   init?: RequestInit,
@@ -45,6 +48,7 @@ export function createHardenedFetch(
   const safeFetch = safeFetchWrap({
     fetch,
     timeout: FETCH_TIMEOUT_MS,
+    responseMaxSize: RESPONSE_MAX_SIZE_BYTES,
     // Real-world PDS hosts may run on non-standard ports; private and
     // non-unicast addresses stay blocked in production.
     allowCustomPort: true,

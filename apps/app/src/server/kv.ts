@@ -2,7 +2,7 @@ import { env } from "~/env";
 import { logError } from "~/server/logger";
 
 /**
- * Minimal get/set/del KV interface that works with all three KV_STORE backends.
+ * Minimal KV interface that works with all three KV_STORE backends.
  * For "none" (no Redis), falls back to an in-memory Map with TTL.
  */
 
@@ -10,14 +10,6 @@ export interface KVStore {
   get: (key: string) => Promise<string | null>;
   set: (key: string, value: string, ttlSeconds?: number) => Promise<void>;
   setNX: (key: string, value: string, ttlSeconds?: number) => Promise<boolean>;
-  del: (key: string) => Promise<void>;
-  /**
-   * Atomically increment a counter, starting the TTL window when the key is
-   * created. Returns the post-increment count. The TTL is established
-   * before the increment so a failure between the two steps loses a count
-   * instead of stranding an unexpiring key.
-   */
-  incr: (key: string, ttlSeconds: number) => Promise<number>;
   /**
    * Delete the key only if it still holds the expected value (atomic on
    * Redis backends). Returns whether a delete happened. Used for lock
@@ -72,21 +64,6 @@ class MemoryKV implements KVStore {
     }
     await this.set(key, value, ttlSeconds);
     return true;
-  }
-
-  async del(key: string) {
-    this.store.delete(key);
-  }
-
-  async incr(key: string, ttlSeconds: number): Promise<number> {
-    const entry = this.store.get(key);
-    if (!entry || Date.now() > entry.expiresAt) {
-      await this.set(key, "1", ttlSeconds);
-      return 1;
-    }
-    const next = (Number.parseInt(entry.value, 10) || 0) + 1;
-    entry.value = String(next);
-    return next;
   }
 
   async delIfEqual(key: string, expected: string): Promise<boolean> {
@@ -154,15 +131,6 @@ async function createKVStore(): Promise<KVStore> {
             : await redis.set(key, value, { nx: true });
         return result !== null;
       },
-      async del(key) {
-        await redis.del(key);
-      },
-      async incr(key, ttlSeconds) {
-        // TTL established before the increment (NX no-ops when the window
-        // already exists), so a failure never strands an unexpiring key.
-        await redis.set(key, "0", { nx: true, ex: ttlSeconds });
-        return await redis.incr(key);
-      },
       async delIfEqual(key, expected) {
         const result = await redis.eval(DEL_IF_EQUAL_LUA, [key], [expected]);
         return result === 1;
@@ -197,15 +165,6 @@ async function createKVStore(): Promise<KVStore> {
         }
         const result = await client.set(key, value, "NX");
         return result === "OK";
-      },
-      async del(key) {
-        await client.del(key);
-      },
-      async incr(key, ttlSeconds) {
-        // TTL established before the increment (NX no-ops when the window
-        // already exists), so a failure never strands an unexpiring key.
-        await client.set(key, "0", "EX", ttlSeconds, "NX");
-        return await client.incr(key);
       },
       async delIfEqual(key, expected) {
         const result = await client.eval(DEL_IF_EQUAL_LUA, 1, key, expected);

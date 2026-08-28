@@ -29,19 +29,6 @@ function fakeKv(now: () => number = () => Date.now()): KVStore {
       await this.set(key, value, ttlSeconds);
       return true;
     },
-    async del(key) {
-      store.delete(key);
-    },
-    async incr(key, ttlSeconds) {
-      const entry = live(key);
-      if (!entry) {
-        await this.set(key, "1", ttlSeconds);
-        return 1;
-      }
-      const next = (Number.parseInt(entry.value, 10) || 0) + 1;
-      entry.value = String(next);
-      return next;
-    },
     async delIfEqual(key, expected) {
       const entry = live(key);
       if (!entry || entry.value !== expected) return false;

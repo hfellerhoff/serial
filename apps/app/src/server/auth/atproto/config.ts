@@ -29,10 +29,26 @@ export const AUTH_STATE_TTL_MS = 60 * 60 * 1000;
 /** Lazy so importing constants from this module never requires env. */
 const baseUrl = () => env.PUBLIC_BASE_URL.replace(/\/$/, "");
 
+/**
+ * Every atproto route, relative to the Better Auth mount (the form plugin
+ * endpoints and policy classifiers see). `ATPROTO_PATHS` below is the same
+ * set as absolute URL paths for the published client metadata — one source,
+ * so a rename can't desynchronize the registered redirect_uris from the
+ * routes and gates that serve them.
+ */
+export const ATPROTO_ROUTES = {
+  clientMetadata: "/atproto/client-metadata.json",
+  jwks: "/atproto/jwks.json",
+  authorize: "/atproto/authorize",
+  callback: "/atproto/callback",
+} as const;
+
+const AUTH_MOUNT = "/api/auth";
+
 export const ATPROTO_PATHS = {
-  clientMetadata: "/api/auth/atproto/client-metadata.json",
-  jwks: "/api/auth/atproto/jwks.json",
-  callback: "/api/auth/atproto/callback",
+  clientMetadata: `${AUTH_MOUNT}${ATPROTO_ROUTES.clientMetadata}`,
+  jwks: `${AUTH_MOUNT}${ATPROTO_ROUTES.jwks}`,
+  callback: `${AUTH_MOUNT}${ATPROTO_ROUTES.callback}`,
 } as const;
 
 export function getAtprotoClientMetadata(): OAuthClientMetadataInput {
@@ -124,6 +140,20 @@ let storeKey: Buffer | null = null;
 export function getStoreEncryptionKey(): Buffer {
   storeKey ??= parseEncryptionKey(env.ATPROTO_STORE_ENCRYPTION_KEY!);
   return storeKey;
+}
+
+/**
+ * Parse both configured values eagerly so a malformed key fails startup
+ * with its parse error instead of surfacing at the first user sign-in.
+ * Called when the plugin is constructed (module init of the auth surface):
+ * the store key parse throws synchronously into that import; the keyset
+ * import is async, so its failure exits the process with the message.
+ */
+export function validateAtprotoConfigAtStartup(
+  onKeysetError: (err: unknown) => void,
+): void {
+  getStoreEncryptionKey();
+  getAtprotoKeyset().catch(onKeysetError);
 }
 
 /**

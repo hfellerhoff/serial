@@ -34,7 +34,8 @@ vi.mock("~/server/auth/atproto/client", () => ({
   getAtprotoClient: () => Promise.resolve(clientHolder.current),
 }));
 
-const { finishAtprotoAuth } = await import("~/server/auth/atproto/service");
+const { finishAtprotoAuth, revokeAtprotoConnection } =
+  await import("~/server/auth/atproto/service");
 
 type Session = ReturnType<typeof openBenchmarkDatabase>;
 type Target = ReturnType<typeof createLocalBenchmarkTarget>;
@@ -200,5 +201,62 @@ describe("finishAtprotoAuth", () => {
 
     expect(result.handle).toBeNull();
     expect((await connectionRow())?.handle).toBeNull();
+  });
+});
+
+describe("revokeAtprotoConnection", () => {
+  let session: Session;
+  let target: Target;
+
+  beforeEach(async () => {
+    target = createLocalBenchmarkTarget();
+    session = openBenchmarkDatabase({ url: target.url });
+    await applyMigrations(session.baseClient);
+    dbHolder.current = session.database;
+
+    await session.database.insert(atprotoConnections).values({
+      did: DID,
+      session: "encrypted-blob",
+      scopes: "atproto",
+      status: "active",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  });
+
+  afterEach(() => {
+    session.close();
+    target.cleanup();
+    dbHolder.current = undefined;
+    clientHolder.current = undefined;
+  });
+
+  async function connectionRow() {
+    const rows = await session.database.select().from(atprotoConnections).all();
+    return rows[0];
+  }
+
+  it("disconnects even when the SDK's revoke silently returns", async () => {
+    // The SDK swallows expected session errors (an unreadable blob after a
+    // key rotation) and returns without touching the store.
+    clientHolder.current = { revoke: vi.fn().mockResolvedValue(undefined) };
+
+    await revokeAtprotoConnection(DID);
+
+    const row = await connectionRow();
+    expect(row?.status).toBe("disconnected");
+    expect(row?.session).toBeNull();
+  });
+
+  it("disconnects when the server-side revocation throws", async () => {
+    clientHolder.current = {
+      revoke: vi.fn().mockRejectedValue(new Error("authorization server down")),
+    };
+
+    await expect(revokeAtprotoConnection(DID)).resolves.toBeUndefined();
+
+    const row = await connectionRow();
+    expect(row?.status).toBe("disconnected");
+    expect(row?.session).toBeNull();
   });
 });
