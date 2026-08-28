@@ -23,6 +23,46 @@ const ALLOW_INSECURE_PDS = env.NODE_ENV !== "production";
 
 const FETCH_TIMEOUT_MS = 15_000;
 
+type HardenedFetch = (
+  input: string | Request | URL,
+  init?: RequestInit,
+) => Promise<Response>;
+
+/**
+ * The hardened fetch handed to the SDK. `safeFetchWrap`'s protocol, forbidden
+ * domain, and size guards run once per call rather than per redirect hop, so a
+ * followed redirect would reach its next hop unchecked — an https → http
+ * downgrade slipping past `allowHttp: false`. Redirects are therefore never
+ * followed: the SDK sets an explicit mode at each of its own call sites, but
+ * its DPoP wrapper re-issues the request with no `init`, so the mode is
+ * re-asserted here and anything asking to follow is downgraded to "error".
+ *
+ * `fetch` is injectable for tests only; production uses the global.
+ */
+export function createHardenedFetch(
+  fetch: HardenedFetch = globalThis.fetch,
+): HardenedFetch {
+  const safeFetch = safeFetchWrap({
+    fetch,
+    timeout: FETCH_TIMEOUT_MS,
+    // Real-world PDS hosts may run on non-standard ports; private and
+    // non-unicast addresses stay blocked in production.
+    allowCustomPort: true,
+    allowHttp: ALLOW_INSECURE_PDS,
+    allowPrivateIps: ALLOW_INSECURE_PDS,
+    allowIpHost: ALLOW_INSECURE_PDS,
+  });
+
+  return (input, init) => {
+    const requested =
+      init?.redirect ?? (input instanceof Request ? input.redirect : undefined);
+    return safeFetch(input, {
+      ...init,
+      redirect: requested === "manual" ? "manual" : "error",
+    });
+  };
+}
+
 let clientPromise: Promise<NodeOAuthClient> | null = null;
 
 export function getAtprotoClient(): Promise<NodeOAuthClient> {
@@ -39,18 +79,7 @@ async function buildClient(): Promise<NodeOAuthClient> {
   const keyset = await getAtprotoKeyset();
   const encryptionKey = getStoreEncryptionKey();
 
-  const fetch = safeFetchWrap({
-    timeout: FETCH_TIMEOUT_MS,
-    // Real-world PDS hosts may run on non-standard ports; private and
-    // non-unicast addresses stay blocked in production.
-    allowCustomPort: true,
-    allowHttp: ALLOW_INSECURE_PDS,
-    allowPrivateIps: ALLOW_INSECURE_PDS,
-    allowIpHost: ALLOW_INSECURE_PDS,
-    // The SDK issues requests with the default redirect mode; each hop
-    // still passes the same SSRF/protocol checks.
-    allowImplicitRedirect: true,
-  });
+  const fetch = createHardenedFetch();
 
   return new NodeOAuthClient({
     clientMetadata: getAtprotoClientMetadata(),

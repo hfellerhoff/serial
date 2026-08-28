@@ -11,7 +11,7 @@ CREATE TABLE `serial_atproto_connections` (
 	`user_id` text,
 	`did` text NOT NULL,
 	`session` text,
-	`scopes` text NOT NULL,
+	`scopes` text,
 	`handle` text,
 	`pds_url` text,
 	`status` text DEFAULT 'active' NOT NULL,

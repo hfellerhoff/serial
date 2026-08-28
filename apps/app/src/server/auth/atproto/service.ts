@@ -1,7 +1,10 @@
 import { and, eq, isNull, or } from "drizzle-orm";
 import { getAtprotoClient } from "./client";
 import { ATPROTO_SCOPE } from "./config";
-import { sweepExpiredAtprotoState } from "./stores";
+import {
+  disconnectAtprotoConnection,
+  sweepExpiredAtprotoState,
+} from "./stores";
 import type { OAuthSession } from "@atproto/oauth-client-node";
 import { db } from "~/server/db";
 import { atprotoConnections } from "~/server/db/schema";
@@ -194,9 +197,6 @@ export async function revokeAtprotoConnection(did: string): Promise<void> {
     await client.revoke(did);
   } catch (err) {
     captureException(err);
-    await db
-      .update(atprotoConnections)
-      .set({ session: null, status: "disconnected", updatedAt: new Date() })
-      .where(eq(atprotoConnections.did, did));
+    await disconnectAtprotoConnection(db, did);
   }
 }

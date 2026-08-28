@@ -300,13 +300,10 @@ export const auth = betterAuth({
     window: 60,
     max: 120,
     customStorage: createKvRateLimitStorage(),
-    customRules: {
-      // Replace Better Auth's built-in 3-per-10s specials with Serial's
-      // lax-ceiling posture; parallel e2e workers share one IP and would
-      // trip the defaults.
-      "/sign-in/**": { window: 60, max: 60 },
-      "/sign-up/**": { window: 60, max: 60 },
-    },
+    // No customRules here: Better Auth's built-in specials (3 per 10s on
+    // sign-in, sign-up, change-password, and change-email) are the
+    // credential brute-force defence and stay as they are. The atproto
+    // endpoints declare their own rules on the plugin.
   },
   advanced: {
     ...(env.COOKIE_DOMAIN

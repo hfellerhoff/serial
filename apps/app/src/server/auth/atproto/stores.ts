@@ -139,14 +139,25 @@ export function createAtprotoSessionStore(
         });
     },
     async del(did) {
-      // Destroy the credential material; the row survives so the linking
-      // surface can show a disconnected state and rebind later.
-      await database
-        .update(atprotoConnections)
-        .set({ session: null, status: "disconnected", updatedAt: new Date() })
-        .where(eq(atprotoConnections.did, did));
+      await disconnectAtprotoConnection(database, did);
     },
   };
+}
+
+/**
+ * Destroy a connection's credential material. The row survives so the
+ * linking surface can show a disconnected state and rebind later. The one
+ * writer of that state: the session store's `del` and the revoke path both
+ * land here.
+ */
+export async function disconnectAtprotoConnection(
+  database: AtprotoDatabase,
+  did: string,
+): Promise<void> {
+  await database
+    .update(atprotoConnections)
+    .set({ session: null, status: "disconnected", updatedAt: new Date() })
+    .where(eq(atprotoConnections.did, did));
 }
 
 /**

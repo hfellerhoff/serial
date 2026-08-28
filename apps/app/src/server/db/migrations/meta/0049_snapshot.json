@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "71824ab9-9845-4e7a-96b4-517eb5643f72",
+  "id": "fda6240f-8c8a-466b-a913-ede93f4b51ca",
   "prevId": "048cd09c-23be-4029-8ab9-7d8ade72fa4a",
   "tables": {
     "serial_account": {
@@ -239,7 +239,7 @@
           "name": "scopes",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "handle": {
