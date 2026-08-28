@@ -21,6 +21,7 @@ const dbHolder = vi.hoisted(() => {
 });
 
 const revokeMock = vi.hoisted(() => vi.fn());
+const authorizeMock = vi.hoisted(() => vi.fn());
 
 vi.mock("~/server/db", () => ({
   get db() {
@@ -29,11 +30,26 @@ vi.mock("~/server/db", () => ({
 }));
 
 vi.mock("~/server/auth/atproto/client", () => ({
-  getAtprotoClient: async () => ({ revoke: revokeMock }),
+  getAtprotoClient: async () => ({
+    revoke: revokeMock,
+    authorize: authorizeMock,
+  }),
 }));
 
-const { AtprotoLinkError, completeAtprotoLink, unlinkAtprotoConnection } =
-  await import("~/server/auth/atproto/service");
+// startAtprotoLink derives its redirect URI from the public base URL.
+vi.mock("~/env", () => ({
+  env: {
+    PUBLIC_BASE_URL: "https://serial.test",
+    BETTER_AUTH_SECRET: "test-secret",
+  },
+}));
+
+const {
+  AtprotoLinkError,
+  completeAtprotoLink,
+  startAtprotoLink,
+  unlinkAtprotoConnection,
+} = await import("~/server/auth/atproto/service");
 
 type Session = ReturnType<typeof openBenchmarkDatabase>;
 type Target = ReturnType<typeof createLocalBenchmarkTarget>;
@@ -267,5 +283,23 @@ describe("atproto link and unlink", () => {
   it("unlink is a no-op for a user with no connection", async () => {
     await expect(unlinkAtprotoConnection("user-2")).resolves.toBeUndefined();
     expect(revokeMock).not.toHaveBeenCalled();
+  });
+
+  it("starting a flow revokes stale unbound connections still holding credentials", async () => {
+    // A link whose callback stored a session but never bound a user, now
+    // past the auth-state TTL.
+    await session.database
+      .update(atprotoConnections)
+      .set({ updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000) })
+      .where(eq(atprotoConnections.did, DID));
+    authorizeMock.mockResolvedValue(new URL("https://pds.example/authorize"));
+
+    await startAtprotoLink({ identifier: "user.example.com", userId: "user-1" });
+    // The sweep is fire-and-forget; give it a beat.
+    await vi.waitFor(() => expect(revokeMock).toHaveBeenCalledWith(DID));
+
+    const row = await connectionRow();
+    expect(row?.session).toBeNull();
+    expect(row?.status).toBe("disconnected");
   });
 });

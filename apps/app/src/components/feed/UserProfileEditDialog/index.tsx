@@ -102,6 +102,15 @@ export function UserProfileEditDialog() {
                   toast.error(error.message ?? "Failed to change email");
                   return "failed";
                 }
+                // Unverified users on instances without email transport get
+                // the change applied directly; everyone else gets the
+                // verification round trip.
+                const fresh = await authClient.getSession();
+                if (fresh.data?.user.email === updatedEmail) {
+                  void refetchUser();
+                  toast.success("Email updated.");
+                  return "saved";
+                }
                 toast.success(
                   "Verification email sent! Check your new inbox to confirm.",
                 );

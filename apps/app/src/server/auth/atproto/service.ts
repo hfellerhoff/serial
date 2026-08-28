@@ -1,8 +1,9 @@
-import { and, eq, isNull, or } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, lt, or } from "drizzle-orm";
 import { getAtprotoClient } from "./client";
 import {
   ATPROTO_PROVIDER_ID,
   ATPROTO_SCOPE,
+  AUTH_STATE_TTL_MS,
   getAtprotoLinkRedirectUri,
 } from "./config";
 import {
@@ -49,10 +50,36 @@ export async function startAtprotoAuth(input: {
 }): Promise<URL> {
   const client = await getAtprotoClient();
   // Opportunistic cleanup of expired attempts; never blocks the flow.
-  sweepExpiredAtprotoState(db).catch(captureException);
+  sweepStaleAtprotoConnections().catch(captureException);
   return client.authorize(input.identifier, {
     scope: input.scope ?? ATPROTO_SCOPE,
   });
+}
+
+/**
+ * Opportunistic cleanup: revoke stale unbound connections that still hold
+ * credentials (a link or sign-in whose callback completed the code
+ * exchange but never bound a user), then remove expired state and
+ * credential-free unbound rows. Revocation disconnects the row, so the
+ * store sweep can delete it once it goes stale again.
+ */
+async function sweepStaleAtprotoConnections(): Promise<void> {
+  const cutoff = new Date(Date.now() - AUTH_STATE_TTL_MS);
+  const orphans = await db
+    .select({ did: atprotoConnections.did })
+    .from(atprotoConnections)
+    .where(
+      and(
+        isNull(atprotoConnections.userId),
+        isNotNull(atprotoConnections.session),
+        lt(atprotoConnections.updatedAt, cutoff),
+      ),
+    )
+    .all();
+  for (const orphan of orphans) {
+    await revokeAtprotoConnection(orphan.did);
+  }
+  await sweepExpiredAtprotoState(db);
 }
 
 /**
@@ -182,7 +209,7 @@ export async function startAtprotoLink(input: {
   userId: string;
 }): Promise<URL> {
   const client = await getAtprotoClient();
-  sweepExpiredAtprotoState(db).catch(captureException);
+  sweepStaleAtprotoConnections().catch(captureException);
   return client.authorize(input.identifier, {
     scope: ATPROTO_SCOPE,
     state: JSON.stringify({ linkUserId: input.userId }),

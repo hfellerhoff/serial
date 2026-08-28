@@ -21,6 +21,7 @@ import {
   bindAtprotoConnection,
   completeAtprotoLink,
   finishAtprotoAuth,
+  revokeAtprotoConnection,
   startAtprotoAuth,
 } from "./service";
 import type { BetterAuthPlugin } from "better-auth";
@@ -131,6 +132,15 @@ export const atprotoPlugin = () => {
             throw ctx.redirect(SIGN_IN_ERROR_REDIRECT);
           }
 
+          // A link flow's code can only be exchanged against the link
+          // redirect URI, so this should be unreachable — but sign-in and
+          // link state must never cross, and that invariant belongs to us,
+          // not the authorization server.
+          if (result.linkUserId) {
+            logError("[atproto] link state arrived on the sign-in callback");
+            throw ctx.redirect(SIGN_IN_ERROR_REDIRECT);
+          }
+
           const { did, handle } = result;
           const outcome = await handleOAuthUserInfo(ctx, {
             userInfo: {
@@ -212,6 +222,18 @@ export const atprotoPlugin = () => {
             });
           } catch (err) {
             logError("[atproto] link failed:", err);
+            const isConflict =
+              err instanceof AtprotoLinkError && err.code === "conflict";
+            // The code exchange already stored a live session for the DID.
+            // On every non-conflict failure the connection is unbound, so
+            // revoke it rather than leak an orphaned grant at the PDS. A
+            // conflict means the DID's row is bound to its existing owner
+            // and the fresh session now backs their connection — leave it.
+            if (!isConflict) {
+              await revokeAtprotoConnection(result.did).catch((revokeErr) =>
+                logError("[atproto] failed to revoke after link failure:", revokeErr),
+              );
+            }
             const linkResult: AtprotoLinkResult =
               err instanceof AtprotoLinkError && err.code !== "state"
                 ? err.code
