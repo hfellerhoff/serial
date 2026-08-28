@@ -45,6 +45,7 @@ export const ATPROTO_ROUTES = {
   jwks: `${ATPROTO_ROUTE_PREFIX}jwks.json`,
   authorize: `${ATPROTO_ROUTE_PREFIX}authorize`,
   callback: `${ATPROTO_ROUTE_PREFIX}callback`,
+  typeahead: `${ATPROTO_ROUTE_PREFIX}typeahead`,
 } as const;
 
 const AUTH_MOUNT = "/api/auth";

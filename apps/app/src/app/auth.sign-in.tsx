@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { AtprotoAuthButton } from "~/components/auth/AtprotoAuthButton";
 import { AuthHeader } from "~/components/auth/AuthHeader";
 import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";
@@ -78,6 +79,9 @@ function SignIn() {
   const showOAuth =
     authConfig.isOAuthConfigured &&
     authConfig.signinProviders.includes("oauth");
+  // Configured-and-enabled: the loader already intersects enabled providers
+  // with the instance's configured set.
+  const showAtproto = authConfig.signinProviders.includes("atproto");
 
   return (
     <>
@@ -178,7 +182,7 @@ function SignIn() {
             </>
           )}
 
-          {showEmail && showOAuth && (
+          {showEmail && (showOAuth || showAtproto) && (
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
@@ -187,6 +191,15 @@ function SignIn() {
                 <span className="bg-card text-muted-foreground px-2">or</span>
               </div>
             </div>
+          )}
+
+          {showAtproto && (
+            <AtprotoAuthButton
+              intent="sign-in"
+              variant={showEmail ? "outline" : "default"}
+              disabled={loading}
+              onBusyChange={setLoading}
+            />
           )}
 
           {showOAuth && (

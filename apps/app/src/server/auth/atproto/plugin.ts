@@ -15,6 +15,7 @@ import {
   finishAtprotoAuth,
   startAtprotoAuth,
 } from "./service";
+import { searchAtprotoActorsTypeahead } from "./typeahead";
 import type { BetterAuthPlugin } from "better-auth";
 import { logError } from "~/server/logger";
 
@@ -118,6 +119,23 @@ export const atprotoPlugin = () => {
         },
       ),
 
+      /**
+       * Proxy for the auth-page handle typeahead: only the search term goes
+       * upstream, and any upstream failure degrades to an empty suggestion
+       * list — plain typed entry always stays available.
+       */
+      atprotoTypeahead: createAuthEndpoint(
+        ATPROTO_ROUTES.typeahead,
+        {
+          method: "GET",
+          query: z.object({ q: z.string().trim().min(1).max(100) }),
+        },
+        async (ctx) => {
+          const actors = await searchAtprotoActorsTypeahead(ctx.query.q);
+          return ctx.json({ actors });
+        },
+      ),
+
       atprotoCallback: createAuthEndpoint(
         ATPROTO_ROUTES.callback,
         { method: "GET" },
@@ -188,6 +206,13 @@ export const atprotoPlugin = () => {
         pathMatcher: (path: string) => path === ATPROTO_ROUTES.callback,
         window: 60,
         max: 60,
+      },
+      {
+        // Debounced keystrokes; roomier than authorize but still bounded so
+        // the proxy can't be driven as a free search relay.
+        pathMatcher: (path: string) => path === ATPROTO_ROUTES.typeahead,
+        window: 60,
+        max: 120,
       },
       {
         // Metadata documents are fetched by authorization servers and
