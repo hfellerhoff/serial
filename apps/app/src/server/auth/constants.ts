@@ -70,9 +70,22 @@ export function isOAuthConfigured(): boolean {
 
 // Compile-enforced to cover every provider: adding one to authProviderSchema
 // without an entry here is a type error.
+/**
+ * Whether AT Protocol auth is configured. Both variables are required
+ * together — env validation fails startup on a partial pair — so either
+ * check alone would do; requiring both keeps this true only in states the
+ * atproto client can actually start from.
+ */
+export function isAtprotoConfigured(): boolean {
+  return (
+    !!env.ATPROTO_CLIENT_PRIVATE_KEYS && !!env.ATPROTO_STORE_ENCRYPTION_KEY
+  );
+}
+
 const PROVIDER_CONFIGURED: Record<AuthProvider, () => boolean> = {
   email: () => true,
   oauth: isOAuthConfigured,
+  atproto: isAtprotoConfigured,
 };
 
 /**

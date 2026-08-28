@@ -13,12 +13,14 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { authClient, signUp } from "~/lib/auth-client";
 import { AUTH_SIGNED_IN_URL } from "~/lib/auth/constants";
+import { useRedirectErrorToast } from "~/lib/auth/redirect-error";
 import { extensionConnectCallbackSchema } from "~/lib/extension-auth";
 import { orpcRouterClient } from "~/lib/orpc";
 
 const signUpSearchSchema = z.object({
   token: z.string().optional(),
   callbackURL: extensionConnectCallbackSchema.optional(),
+  error: z.string().optional(),
 });
 
 export const Route = createFileRoute("/auth/sign-up")({
@@ -35,8 +37,11 @@ function SignUp() {
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [loading, setLoading] = useState(false);
-  const { token, callbackURL } = Route.useSearch();
+  const { token, callbackURL, error: redirectError } = Route.useSearch();
   const signedInDestination = callbackURL ?? AUTH_SIGNED_IN_URL;
+
+  const navigate = Route.useNavigate();
+  useRedirectErrorToast(redirectError, navigate);
 
   const signupStatus = Route.useLoaderData();
   const signupsEnabled = signupStatus.enabled === true;

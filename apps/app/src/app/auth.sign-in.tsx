@@ -19,6 +19,7 @@ import {
   AUTH_RESET_PASSWORD_URL,
   AUTH_SIGNED_IN_URL,
 } from "~/lib/auth/constants";
+import { useRedirectErrorToast } from "~/lib/auth/redirect-error";
 import { extensionConnectCallbackSchema } from "~/lib/extension-auth";
 import { orpc, orpcRouterClient } from "~/lib/orpc";
 import { fetchIsForgotPasswordEnabled } from "~/server/auth/endpoints";
@@ -29,21 +30,27 @@ const ERROR_MESSAGES = {
 
 const signInSearchSchema = z.object({
   callbackURL: extensionConnectCallbackSchema.optional(),
+  error: z.string().optional(),
 });
 
 export const Route = createFileRoute("/auth/sign-in")({
   component: SignIn,
   validateSearch: signInSearchSchema,
-  loaderDeps: ({ search }) => ({ callbackURL: search.callbackURL }),
+  loaderDeps: ({ search }) => ({
+    callbackURL: search.callbackURL,
+    error: search.error,
+  }),
   loader: async ({ deps }) => {
     const [isForgotPasswordEnabled, authConfig] = await Promise.all([
       fetchIsForgotPasswordEnabled(),
       orpcRouterClient.admin.getSigninConfig(),
     ]);
     if (authConfig.isFirstUser) {
+      // Forward the callback error too: a failed atproto flow during
+      // first-user bootstrap lands here and must still surface its toast.
       throw redirect({
         to: "/auth/sign-up",
-        search: { callbackURL: deps.callbackURL },
+        search: { callbackURL: deps.callbackURL, error: deps.error },
       });
     }
     return { isForgotPasswordEnabled, authConfig };
@@ -52,8 +59,11 @@ export const Route = createFileRoute("/auth/sign-in")({
 
 function SignIn() {
   const { isForgotPasswordEnabled, authConfig } = Route.useLoaderData();
-  const { callbackURL } = Route.useSearch();
+  const { callbackURL, error: redirectError } = Route.useSearch();
   const signedInDestination = callbackURL ?? AUTH_SIGNED_IN_URL;
+
+  const navigate = Route.useNavigate();
+  useRedirectErrorToast(redirectError, navigate);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

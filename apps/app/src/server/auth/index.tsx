@@ -25,9 +25,12 @@ import VerifyEmailEmail from "~/emails/verify-email";
 import VerifyEmailChangeEmail from "~/emails/verify-email-change";
 import { BASE_SIGNED_OUT_URL } from "~/lib/constants";
 import {
+  isAtprotoConfigured,
   isOAuthConfigured,
   TRUSTED_ORIGINS_SET,
 } from "~/server/auth/constants";
+import { ATPROTO_ROUTES } from "~/server/auth/atproto/config";
+import { atprotoPlugin } from "~/server/auth/atproto/plugin";
 import {
   refreshEmailVerificationExempt,
   requiresEmailVerification,
@@ -216,10 +219,16 @@ function buildGenericOAuthPlugin() {
   ];
 }
 
+function buildAtprotoPlugin() {
+  if (!isAtprotoConfigured()) return [];
+  return [atprotoPlugin()];
+}
+
 // Classify a Better Auth request path into the explicit provider identity
-// and intent the shared policy service consumes. OAuth gates as sign-in for
-// both the start and callback paths; disallowed auto-signups are rolled
-// back by the post-auth policy instead.
+// and intent the shared policy service consumes. OAuth-style providers
+// (generic OAuth, atproto) gate as sign-in for both the start and callback
+// paths; disallowed auto-signups are rolled back by the post-auth policy
+// instead.
 function classifyAuthRequest(
   path: string,
 ): Pick<AuthAttempt, "provider" | "intent"> | undefined {
@@ -234,6 +243,9 @@ function classifyAuthRequest(
     path.startsWith("/oauth2/callback/")
   ) {
     return { provider: "oauth", intent: "sign-in" };
+  }
+  if (path === ATPROTO_ROUTES.authorize || path === ATPROTO_ROUTES.callback) {
+    return { provider: "atproto", intent: "sign-in" };
   }
   return undefined;
 }
@@ -250,6 +262,9 @@ function classifyCompletedAuth(
   }
   if (path.startsWith("/oauth2/callback/")) {
     return { provider: "oauth", flow: "callback" };
+  }
+  if (path === ATPROTO_ROUTES.callback) {
+    return { provider: "atproto", flow: "callback" };
   }
   return undefined;
 }
@@ -268,16 +283,20 @@ export const auth = betterAuth({
     provider: "sqlite",
   }),
   trustedOrigins: Array.from(TRUSTED_ORIGINS_SET),
-  ...(env.COOKIE_DOMAIN
-    ? {
-        advanced: {
+  // Rate limiting rides Better Auth's defaults (production-only, built-in
+  // 3-per-10s specials on sign-in/sign-up/change-password/change-email).
+  // The atproto plugin declares stricter per-path rules on its own
+  // endpoints because authorize fans out to outbound identity resolution.
+  advanced: {
+    ...(env.COOKIE_DOMAIN
+      ? {
           crossSubDomainCookies: {
             enabled: true,
             domain: env.COOKIE_DOMAIN,
           },
-        },
-      }
-    : {}),
+        }
+      : {}),
+  },
   emailAndPassword: {
     enabled: true,
     maxPasswordLength: 64,
@@ -318,6 +337,15 @@ export const auth = betterAuth({
     },
     deleteUser: {
       enabled: true,
+      // Deleting the user cascades the atproto connection row away along
+      // with the encrypted refresh token — the only credential that can
+      // revoke the PDS-side grant — so revoke first, best-effort.
+      async beforeDelete(user) {
+        if (!isAtprotoConfigured()) return;
+        const { revokeAtprotoGrantsForUser } =
+          await import("~/server/auth/atproto/service");
+        await revokeAtprotoGrantsForUser(user.id);
+      },
     },
   },
   emailVerification: {
@@ -350,6 +378,7 @@ export const auth = betterAuth({
     tanstackStartCookies(),
     ...buildPolarPlugin(),
     ...buildGenericOAuthPlugin(),
+    ...buildAtprotoPlugin(),
     ...(IS_EMAIL_ENABLED
       ? [
           emailOTP({
