@@ -194,8 +194,10 @@ export async function revokeAtprotoGrantsForUser(
  * ciphertext. Fail toward fewer live credentials.
  */
 export async function revokeAtprotoConnection(did: string): Promise<void> {
-  const client = await getAtprotoClient();
   try {
+    // Client construction stays inside the try: a failure there (bad
+    // keyset, unreachable config) must still fall through to disconnect.
+    const client = await getAtprotoClient();
     await client.revoke(did);
   } catch (err) {
     captureException(err);

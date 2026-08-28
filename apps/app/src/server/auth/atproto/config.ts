@@ -36,11 +36,13 @@ const baseUrl = () => env.PUBLIC_BASE_URL.replace(/\/$/, "");
  * so a rename can't desynchronize the registered redirect_uris from the
  * routes and gates that serve them.
  */
+export const ATPROTO_ROUTE_PREFIX = "/atproto/";
+
 export const ATPROTO_ROUTES = {
-  clientMetadata: "/atproto/client-metadata.json",
-  jwks: "/atproto/jwks.json",
-  authorize: "/atproto/authorize",
-  callback: "/atproto/callback",
+  clientMetadata: `${ATPROTO_ROUTE_PREFIX}client-metadata.json`,
+  jwks: `${ATPROTO_ROUTE_PREFIX}jwks.json`,
+  authorize: `${ATPROTO_ROUTE_PREFIX}authorize`,
+  callback: `${ATPROTO_ROUTE_PREFIX}callback`,
 } as const;
 
 const AUTH_MOUNT = "/api/auth";

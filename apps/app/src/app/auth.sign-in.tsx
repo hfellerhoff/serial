@@ -6,7 +6,7 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AuthHeader } from "~/components/auth/AuthHeader";
@@ -19,17 +19,13 @@ import {
   AUTH_RESET_PASSWORD_URL,
   AUTH_SIGNED_IN_URL,
 } from "~/lib/auth/constants";
+import { useRedirectErrorToast } from "~/lib/auth/redirect-error";
 import { extensionConnectCallbackSchema } from "~/lib/extension-auth";
 import { orpc, orpcRouterClient } from "~/lib/orpc";
 import { fetchIsForgotPasswordEnabled } from "~/server/auth/endpoints";
 
 const ERROR_MESSAGES = {
   INVALID_LOGIN: "Invalid email or password",
-};
-
-/** Messages for the ?error= param the OAuth-style callbacks redirect with. */
-const REDIRECT_ERROR_MESSAGES: Record<string, string> = {
-  atproto: "Atmosphere sign-in failed. Please try again.",
 };
 
 const signInSearchSchema = z.object({
@@ -40,16 +36,21 @@ const signInSearchSchema = z.object({
 export const Route = createFileRoute("/auth/sign-in")({
   component: SignIn,
   validateSearch: signInSearchSchema,
-  loaderDeps: ({ search }) => ({ callbackURL: search.callbackURL }),
+  loaderDeps: ({ search }) => ({
+    callbackURL: search.callbackURL,
+    error: search.error,
+  }),
   loader: async ({ deps }) => {
     const [isForgotPasswordEnabled, authConfig] = await Promise.all([
       fetchIsForgotPasswordEnabled(),
       orpcRouterClient.admin.getSigninConfig(),
     ]);
     if (authConfig.isFirstUser) {
+      // Forward the callback error too: a failed atproto flow during
+      // first-user bootstrap lands here and must still surface its toast.
       throw redirect({
         to: "/auth/sign-up",
-        search: { callbackURL: deps.callbackURL },
+        search: { callbackURL: deps.callbackURL, error: deps.error },
       });
     }
     return { isForgotPasswordEnabled, authConfig };
@@ -61,24 +62,13 @@ function SignIn() {
   const { callbackURL, error: redirectError } = Route.useSearch();
   const signedInDestination = callbackURL ?? AUTH_SIGNED_IN_URL;
 
-  // Surface a callback failure once, then drop the param from the URL so a
-  // refresh doesn't re-toast (same shape as the checkout_success handling).
-  const hasProcessedRedirectError = useRef(false);
-  useEffect(() => {
-    if (!redirectError || hasProcessedRedirectError.current) return;
-    hasProcessedRedirectError.current = true;
-    toast.error(
-      REDIRECT_ERROR_MESSAGES[redirectError] ??
-        "Sign-in failed. Please try again.",
-    );
-    const params = new URLSearchParams(window.location.search);
-    params.delete("error");
-    window.history.replaceState(
-      {},
-      "",
-      window.location.pathname + (params.size > 0 ? `?${params}` : ""),
-    );
-  }, [redirectError]);
+  const navigate = Route.useNavigate();
+  useRedirectErrorToast(redirectError, () => {
+    void navigate({
+      search: (prev) => ({ ...prev, error: undefined }),
+      replace: true,
+    });
+  });
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -4,6 +4,7 @@ import { setSessionCookie } from "better-auth/cookies";
 import { handleOAuthUserInfo } from "better-auth/oauth2";
 import {
   ATPROTO_PROVIDER_ID,
+  ATPROTO_ROUTE_PREFIX,
   ATPROTO_ROUTES,
   placeholderEmailForDid,
   validateAtprotoConfigAtStartup,
@@ -191,7 +192,7 @@ export const atprotoPlugin = () => {
       {
         // Metadata documents are fetched by authorization servers and
         // PDSes, not browsers.
-        pathMatcher: (path: string) => path.startsWith("/atproto/"),
+        pathMatcher: (path: string) => path.startsWith(ATPROTO_ROUTE_PREFIX),
         window: 60,
         max: 120,
       },

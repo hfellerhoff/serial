@@ -40,14 +40,13 @@ export class EnvelopeDecryptionError extends Error {
   }
 }
 
-/** Parse a base64 key and enforce the AES-256 length. */
+/**
+ * Parse a base64 key and enforce the AES-256 length. `Buffer.from` never
+ * throws on malformed base64 (it drops invalid characters), so the length
+ * check is the one guard that catches every bad value.
+ */
 export function parseEncryptionKey(base64Key: string): Buffer {
-  let key: Buffer;
-  try {
-    key = Buffer.from(base64Key, "base64");
-  } catch {
-    throw new Error("ATPROTO_STORE_ENCRYPTION_KEY is not valid base64");
-  }
+  const key = Buffer.from(base64Key, "base64");
   if (key.length !== KEY_LENGTH) {
     throw new Error(
       `ATPROTO_STORE_ENCRYPTION_KEY must decode to ${KEY_LENGTH} bytes, got ${key.length}. Generate one with: openssl rand -base64 32`,
