@@ -46,12 +46,16 @@ test.describe("atmosphere sign-in entry", () => {
     });
 
     await page.goto("/auth/sign-in");
-    await page
-      .getByRole("button", { name: "Sign in with Atmosphere" })
-      .click();
 
     const handleInput = page.getByLabel("Atmosphere handle");
-    await expect(handleInput).toBeVisible();
+    // Retry the click until the handle step opens — the button renders
+    // server-side but its onClick only attaches once React hydrates.
+    await expect(async () => {
+      await page
+        .getByRole("button", { name: "Sign in with Atmosphere" })
+        .click();
+      await expect(handleInput).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 15000 });
     await expect(handleInput).toBeFocused();
 
     // Keystrokes only ever reach the Serial proxy, never an AppView.
@@ -106,7 +110,13 @@ test.describe("atmosphere sign-up entry", () => {
       providerButtons.indexOf("Sign up with TestOAuth"),
     );
 
-    await atmosphere.click();
-    await expect(page.getByLabel("Atmosphere handle")).toBeVisible();
+    // Retry the click until the handle step opens — the button renders
+    // server-side but its onClick only attaches once React hydrates.
+    await expect(async () => {
+      await atmosphere.click();
+      await expect(page.getByLabel("Atmosphere handle")).toBeVisible({
+        timeout: 1000,
+      });
+    }).toPass({ timeout: 15000 });
   });
 });

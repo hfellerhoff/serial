@@ -30,6 +30,12 @@ test("first-admin sign-up offers Atmosphere alongside email", async ({
     providerButtons.indexOf("Sign up with TestOAuth"),
   );
 
-  await atmosphere.click();
-  await expect(page.getByLabel("Atmosphere handle")).toBeVisible();
+  // Retry the click until the handle step opens — the button renders
+  // server-side but its onClick only attaches once React hydrates.
+  await expect(async () => {
+    await atmosphere.click();
+    await expect(page.getByLabel("Atmosphere handle")).toBeVisible({
+      timeout: 1000,
+    });
+  }).toPass({ timeout: 15000 });
 });
