@@ -19,18 +19,21 @@ import {
   applySubscriptionSideEffects,
   syncPolarDataToKV,
 } from "../subscriptions/kv";
-import type { AuthAttempt, CompletedAuth } from "~/server/auth/policy";
 import ResetPasswordEmail from "~/emails/reset-password";
 import VerifyEmailEmail from "~/emails/verify-email";
 import VerifyEmailChangeEmail from "~/emails/verify-email-change";
 import { BASE_SIGNED_OUT_URL } from "~/lib/constants";
+import { isAtprotoPlaceholderEmail } from "~/lib/auth/atproto";
 import {
   isAtprotoConfigured,
   isOAuthConfigured,
   TRUSTED_ORIGINS_SET,
 } from "~/server/auth/constants";
-import { ATPROTO_ROUTES } from "~/server/auth/atproto/config";
 import { atprotoPlugin } from "~/server/auth/atproto/plugin";
+import {
+  classifyAuthRequest,
+  classifyCompletedAuth,
+} from "~/server/auth/classify";
 import {
   refreshEmailVerificationExempt,
   requiresEmailVerification,
@@ -224,51 +227,6 @@ function buildAtprotoPlugin() {
   return [atprotoPlugin()];
 }
 
-// Classify a Better Auth request path into the explicit provider identity
-// and intent the shared policy service consumes. OAuth-style providers
-// (generic OAuth, atproto) gate as sign-in for both the start and callback
-// paths; disallowed auto-signups are rolled back by the post-auth policy
-// instead.
-function classifyAuthRequest(
-  path: string,
-): Pick<AuthAttempt, "provider" | "intent"> | undefined {
-  if (path.startsWith("/sign-up")) {
-    return { provider: "email", intent: "sign-up" };
-  }
-  if (path === "/sign-in/email") {
-    return { provider: "email", intent: "sign-in" };
-  }
-  if (
-    path.startsWith("/sign-in/oauth2") ||
-    path.startsWith("/oauth2/callback/")
-  ) {
-    return { provider: "oauth", intent: "sign-in" };
-  }
-  if (path === ATPROTO_ROUTES.authorize || path === ATPROTO_ROUTES.callback) {
-    return { provider: "atproto", intent: "sign-in" };
-  }
-  return undefined;
-}
-
-// Classify a Better Auth request path into the completed-flow identity the
-// post-auth policy consumes. Only sign-up-capable paths return a value:
-// email sign-up creates a user directly, and the OAuth callback may have
-// auto-created one.
-function classifyCompletedAuth(
-  path: string,
-): Pick<CompletedAuth, "provider" | "flow"> | undefined {
-  if (path.startsWith("/sign-up")) {
-    return { provider: "email", flow: "sign-up" };
-  }
-  if (path.startsWith("/oauth2/callback/")) {
-    return { provider: "oauth", flow: "callback" };
-  }
-  if (path === ATPROTO_ROUTES.callback) {
-    return { provider: "atproto", flow: "callback" };
-  }
-  return undefined;
-}
-
 // ctx.body is unvalidated request input; only pass the token through when it
 // is actually a string.
 function getInvitationToken(body: unknown): string | undefined {
@@ -301,6 +259,15 @@ export const auth = betterAuth({
     enabled: true,
     maxPasswordLength: 64,
     async sendResetPassword(data) {
+      // A DID-only user's internal placeholder address is never
+      // deliverable; setting a password requires adding a real email
+      // first (the settings dialog enforces the same order).
+      if (isAtprotoPlaceholderEmail(data.user.email)) {
+        logMessage(
+          "[auth] Skipped reset password email for placeholder address",
+        );
+        return;
+      }
       try {
         const html = await render(
           <ResetPasswordEmail
@@ -333,7 +300,15 @@ export const auth = betterAuth({
       },
     },
     changeEmail: {
+      // Without email transport a verification round trip can never
+      // complete, which would leave a DID-only user unable to ever add a
+      // real email (and therefore a password). Apply an unverified user's
+      // change directly in that case — "verified when transport is
+      // configured" per the atproto onboarding decision. Verified users
+      // are unaffected: the option only applies when emailVerified is
+      // false.
       enabled: true,
+      updateEmailWithoutVerification: !IS_EMAIL_ENABLED,
     },
     deleteUser: {
       enabled: true,
@@ -350,6 +325,9 @@ export const auth = betterAuth({
   },
   emailVerification: {
     sendVerificationEmail: async ({ user, url }) => {
+      // Better Auth still invokes this after a direct (no-transport) email
+      // update; without a provider the send below would reject unhandled.
+      if (!IS_EMAIL_ENABLED) return;
       try {
         const html = await render(
           <VerifyEmailChangeEmail

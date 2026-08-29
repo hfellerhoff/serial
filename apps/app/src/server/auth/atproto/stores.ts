@@ -164,6 +164,11 @@ export async function disconnectAtprotoConnection(
  * Remove expired authorization state and connection rows that finished the
  * OAuth callback but were never bound to a user (abandoned or rolled-back
  * sign-ups). Runs opportunistically when an authorize flow starts.
+ *
+ * Only credential-free rows are deleted: an unbound row whose session is
+ * still set holds the sole token able to revoke the PDS-side grant, and
+ * hard-deleting it would leak that grant forever. The service's sweep
+ * wrapper revokes those first (see sweepStaleAtprotoConnections).
  */
 export async function sweepExpiredAtprotoState(
   database: AtprotoDatabase,
@@ -177,6 +182,7 @@ export async function sweepExpiredAtprotoState(
     .where(
       and(
         isNull(atprotoConnections.userId),
+        isNull(atprotoConnections.session),
         lt(atprotoConnections.updatedAt, new Date(now - AUTH_STATE_TTL_MS)),
       ),
     );

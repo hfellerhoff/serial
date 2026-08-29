@@ -34,6 +34,14 @@ const SIGN_IN_DISABLED_MESSAGES: Record<AuthProvider, string> = {
 
 const SIGN_UPS_DISABLED_MESSAGE = "Sign ups are currently disabled";
 
+/**
+ * How recently a user must have been created for the callback rollback to
+ * treat them as auto-created by that same callback. Generous — the row is
+ * written milliseconds before the after-hook runs — while keeping any
+ * established account safely out of rollback's reach.
+ */
+const AUTO_SIGNUP_ROLLBACK_WINDOW_MS = 60 * 1000;
+
 export interface AuthAttempt {
   provider: AuthProvider;
   intent: "sign-in" | "sign-up";
@@ -196,16 +204,29 @@ export async function applyPostAuthPolicy(
       });
   } else if (completed.flow === "callback") {
     // Non-first user arriving via a callback — the provider may have
-    // auto-created a user. If this is a brand-new user (single session)
-    // and sign-ups for this provider aren't allowed, roll back the
-    // auto-created user.
+    // auto-created a user. Roll back only when this is genuinely that
+    // auto-created user: created within this request (creation recency)
+    // and holding no other session. Session count alone is not enough — an
+    // established user whose provider was linked as an add-on connection
+    // can arrive via callback with exactly one session (all others
+    // expired), and deleting them here would destroy a real account.
+    const userRow = await db
+      .select({ createdAt: user.createdAt })
+      .from(user)
+      .where(eq(user.id, userId))
+      .get();
+    const wasJustCreated =
+      !!userRow &&
+      Date.now() - userRow.createdAt.getTime() <=
+        AUTO_SIGNUP_ROLLBACK_WINDOW_MS;
+
     const sessionCount = await db
       .select({ count: count() })
       .from(session)
       .where(eq(session.userId, userId))
       .get();
 
-    if ((sessionCount?.count ?? 0) <= 1) {
+    if (wasJustCreated && (sessionCount?.count ?? 0) <= 1) {
       const configs = await db.select().from(appConfig).all();
       const publicSignupConfig = configs.find(
         (c) => c.key === "public-signup-enabled",
