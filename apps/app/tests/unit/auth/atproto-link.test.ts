@@ -47,6 +47,7 @@ vi.mock("~/env", () => ({
 const {
   AtprotoLinkError,
   completeAtprotoLink,
+  revokeAtprotoConnectionIfUnbound,
   startAtprotoLink,
   unlinkAtprotoConnection,
 } = await import("~/server/auth/atproto/service");
@@ -283,6 +284,23 @@ describe("atproto link and unlink", () => {
   it("unlink is a no-op for a user with no connection", async () => {
     await expect(unlinkAtprotoConnection("user-2")).resolves.toBeUndefined();
     expect(revokeMock).not.toHaveBeenCalled();
+  });
+
+  it("conditional revoke destroys an unbound connection's credentials", async () => {
+    await revokeAtprotoConnectionIfUnbound(DID);
+    expect(revokeMock).toHaveBeenCalledWith(DID);
+    expect((await connectionRow())?.session).toBeNull();
+  });
+
+  it("conditional revoke leaves a bound connection alone", async () => {
+    await session.database
+      .update(atprotoConnections)
+      .set({ userId: "user-2" })
+      .where(eq(atprotoConnections.did, DID));
+
+    await revokeAtprotoConnectionIfUnbound(DID);
+    expect(revokeMock).not.toHaveBeenCalled();
+    expect((await connectionRow())?.session).toBe("ciphertext");
   });
 
   it("starting a flow revokes stale unbound connections still holding credentials", async () => {

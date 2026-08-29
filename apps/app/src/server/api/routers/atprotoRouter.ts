@@ -3,7 +3,8 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import {
   ATPROTO_PROVIDER_ID,
-  CREDENTIAL_PROVIDER_ID,
+  getAdminSigninMethods,
+  getEnabledAuthProviders,
 } from "~/lib/constants";
 import { identifierSchema } from "~/server/auth/atproto/schemas";
 import { getKV } from "~/server/kv";
@@ -12,7 +13,7 @@ import {
   isOAuthConfigured,
 } from "~/server/auth/constants";
 import { refreshEmailVerificationExempt } from "~/server/auth/email-verification-policy";
-import { account, atprotoConnections } from "~/server/db/schema";
+import { account, appConfig, atprotoConnections } from "~/server/db/schema";
 import { protectedProcedure } from "~/server/orpc/base";
 import { logError } from "~/server/logger";
 import { env } from "~/env";
@@ -27,22 +28,39 @@ import { env } from "~/env";
 
 export const getConnectionStatus = protectedProcedure.handler(
   async ({ context }) => {
-    const connection = await context.db.query.atprotoConnections.findFirst({
-      where: eq(atprotoConnections.userId, context.user.id),
-    });
+    const [connection, accountRow] = await Promise.all([
+      context.db.query.atprotoConnections.findFirst({
+        where: eq(atprotoConnections.userId, context.user.id),
+      }),
+      context.db
+        .select({ accountId: account.accountId })
+        .from(account)
+        .where(
+          and(
+            eq(account.userId, context.user.id),
+            eq(account.providerId, ATPROTO_PROVIDER_ID),
+          ),
+        )
+        .get(),
+    ]);
 
     const isConnected =
       !!connection && connection.status === "active" && !!connection.session;
-    // A bound row whose credentials were destroyed (failed refresh, grant
-    // revoked at the PDS, rotated store key): the atproto sign-in method
-    // still exists, so the row must surface reconnect and disconnect
+    // The sign-in method (the account row) can outlive its working
+    // credentials: a bound row whose blob was destroyed (failed refresh,
+    // grant revoked at the PDS, rotated store key) or a connection lost
+    // mid-unlink. Either way the row must surface reconnect and disconnect
     // affordances rather than a bare "not connected".
-    const needsReconnect = !!connection && !isConnected;
+    const needsReconnect = (!!connection || !!accountRow) && !isConnected;
 
     return {
       isConnected,
       needsReconnect,
-      handle: connection ? (connection.handle ?? connection.did) : null,
+      handle:
+        connection?.handle ??
+        connection?.did ??
+        accountRow?.accountId ??
+        null,
       isConfigured: isAtprotoConfigured(),
     };
   },
@@ -137,7 +155,11 @@ export const linkAccount = protectedProcedure
 
 export const unlinkAccount = protectedProcedure.handler(async ({ context }) => {
   const accountRows = await context.db
-    .select({ id: account.id, providerId: account.providerId })
+    .select({
+      id: account.id,
+      userId: account.userId,
+      providerId: account.providerId,
+    })
     .from(account)
     .where(eq(account.userId, context.user.id))
     .all();
@@ -152,16 +174,26 @@ export const unlinkAccount = protectedProcedure.handler(async ({ context }) => {
     return { success: true };
   }
 
-  // Refuse to remove the user's sole sign-in method: they need a password
-  // credential or a generic OAuth account on a still-configured provider
-  // to keep a way back in.
-  const hasCredential = accountRows.some(
-    (row) => row.providerId === CREDENTIAL_PROVIDER_ID,
+  // Refuse to remove the user's sole sign-in method. Methods are counted
+  // by the same shared accounting the admin lockout guard uses, then
+  // intersected with the enabled sign-in providers: a credential row is no
+  // way back in while email sign-in is switched off.
+  const signinConfig = await context.db
+    .select({ value: appConfig.value })
+    .from(appConfig)
+    .where(eq(appConfig.key, "enabled-signin-providers"))
+    .get();
+  const enabledProviders = getEnabledAuthProviders(signinConfig?.value);
+  const [methods = []] = getAdminSigninMethods({
+    adminUserIds: [context.user.id],
+    accountRows,
+    oauthProviderId: isOAuthConfigured() ? env.OAUTH_PROVIDER_ID : undefined,
+    atprotoConfigured: isAtprotoConfigured(),
+  });
+  const remainingMethods = methods.filter(
+    (method) => method !== "atproto" && enabledProviders.includes(method),
   );
-  const hasUsableOAuth =
-    isOAuthConfigured() &&
-    accountRows.some((row) => row.providerId === env.OAUTH_PROVIDER_ID);
-  if (atprotoRows.length > 0 && !hasCredential && !hasUsableOAuth) {
+  if (atprotoRows.length > 0 && remainingMethods.length === 0) {
     throw new ORPCError("PRECONDITION_FAILED", {
       message:
         "Atmosphere is your only way to sign in. Add a password before disconnecting it.",

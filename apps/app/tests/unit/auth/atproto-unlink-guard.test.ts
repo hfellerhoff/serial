@@ -7,7 +7,12 @@ import {
   openBenchmarkDatabase,
 } from "../../../scripts/performance/database";
 import type { ORPCContext } from "~/server/orpc/base";
-import { account, atprotoConnections, user } from "~/server/db/schema";
+import {
+  account,
+  appConfig,
+  atprotoConnections,
+  user,
+} from "~/server/db/schema";
 
 /**
  * The ConnectionsDialog procedures: unlink must refuse to remove the
@@ -124,6 +129,20 @@ describe("atproto connection procedures", () => {
     });
   }
 
+  async function setEnabledSigninProviders(providers: string[]) {
+    await session.database
+      .insert(appConfig)
+      .values({
+        key: "enabled-signin-providers",
+        value: JSON.stringify(providers),
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: appConfig.key,
+        set: { value: JSON.stringify(providers), updatedAt: new Date() },
+      });
+  }
+
   async function atprotoAccountRows() {
     return session.database
       .select()
@@ -186,6 +205,7 @@ describe("atproto connection procedures", () => {
 
   it("counts a generic OAuth account only while that provider is configured", async () => {
     await seedLinked({ extraProviderId: "oidc" });
+    await setEnabledSigninProviders(["email", "oauth", "atproto"]);
 
     // Provider env has since been removed: the OAuth row is unusable.
     testState.oauthConfigured = false;
@@ -194,6 +214,20 @@ describe("atproto connection procedures", () => {
     );
 
     testState.oauthConfigured = true;
+    await api().atproto.unlinkAccount();
+    expect(await atprotoAccountRows()).toHaveLength(0);
+  });
+
+  it("counts a credential account only while email sign-in is enabled", async () => {
+    await seedLinked({ extraProviderId: "credential" });
+    // The admin narrowed sign-in to atproto only: the credential row is no
+    // way back in, so unlinking would lock this user out.
+    await setEnabledSigninProviders(["atproto"]);
+    await expect(api().atproto.unlinkAccount()).rejects.toThrow(
+      /only way to sign in/,
+    );
+
+    await setEnabledSigninProviders(["email", "atproto"]);
     await api().atproto.unlinkAccount();
     expect(await atprotoAccountRows()).toHaveLength(0);
   });

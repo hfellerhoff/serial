@@ -3,10 +3,12 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, DownloadIcon, Trash2Icon } from "lucide-react";
 
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useDialogStore } from "../dialogStore";
 import { DeleteAccountSection } from "./DeleteAccountSection";
 import { ExportDataSection } from "./ExportDataSection";
+import { fetchIsForgotPasswordEnabled } from "~/server/auth/endpoints";
 import { EditableSavableTextField } from "~/components/form/EditableSavableTextField";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
@@ -37,6 +39,14 @@ export function UserProfileEditDialog() {
   const rawEmail = data?.user.email ?? "";
   const hasRealEmail = !!rawEmail && !isAtprotoPlaceholderEmail(rawEmail);
   const userEmail = hasRealEmail ? rawEmail : "";
+
+  // Password changes go through the emailed reset flow, which the reset
+  // page refuses without transport — same gate the sign-in page puts on
+  // "Forgot your password?".
+  const { data: isPasswordResetAvailable } = useQuery({
+    queryKey: ["is-forgot-password-enabled"],
+    queryFn: () => fetchIsForgotPasswordEnabled(),
+  });
 
   if (settingsPane === "export") {
     return (
@@ -120,7 +130,9 @@ export function UserProfileEditDialog() {
             />
             <div className="grid gap-2">
               <Label>Password</Label>
-              {hasRealEmail ? (
+              {/* While availability is still loading, keep the link — the
+                  reset page itself degrades gracefully. */}
+              {hasRealEmail && isPasswordResetAvailable !== false ? (
                 <Button variant="outline" asChild>
                   <Link
                     to={AUTH_RESET_PASSWORD_URL}
@@ -137,7 +149,9 @@ export function UserProfileEditDialog() {
                     Update password
                   </Button>
                   <p className="text-muted-foreground text-sm">
-                    Add an email address to set a password.
+                    {hasRealEmail
+                      ? "Password reset is unavailable on this instance. Contact your admin to set a password."
+                      : "Add an email address to set a password."}
                   </p>
                 </>
               )}

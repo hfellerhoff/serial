@@ -13,6 +13,7 @@ import {
 import type { OAuthSession } from "@atproto/oauth-client-node";
 import { db } from "~/server/db";
 import { account, atprotoConnections } from "~/server/db/schema";
+import { getKV } from "~/server/kv";
 import { captureException } from "~/server/logger";
 
 /**
@@ -56,14 +57,30 @@ export async function startAtprotoAuth(input: {
   });
 }
 
+/** At most one revocation sweep per interval, instance-wide via KV. */
+const SWEEP_INTERVAL_SECONDS = 5 * 60;
+/** Revocations are serial outbound calls; bound the batch per sweep. */
+const SWEEP_MAX_REVOCATIONS = 10;
+
 /**
  * Opportunistic cleanup: revoke stale unbound connections that still hold
  * credentials (a link or sign-in whose callback completed the code
  * exchange but never bound a user), then remove expired state and
  * credential-free unbound rows. Revocation disconnects the row, so the
- * store sweep can delete it once it goes stale again.
+ * store sweep can delete it once it goes stale again. Fires on the
+ * authorize paths, so it is throttled and bounded: revocations are
+ * network calls, and an authorization-server outage must not multiply
+ * them under concurrent sign-ins.
  */
 async function sweepStaleAtprotoConnections(): Promise<void> {
+  const kv = await getKV();
+  const acquired = await kv.setNX(
+    "atproto-connection-sweep",
+    "running",
+    SWEEP_INTERVAL_SECONDS,
+  );
+  if (!acquired) return;
+
   const cutoff = new Date(Date.now() - AUTH_STATE_TTL_MS);
   const orphans = await db
     .select({ did: atprotoConnections.did })
@@ -75,6 +92,7 @@ async function sweepStaleAtprotoConnections(): Promise<void> {
         lt(atprotoConnections.updatedAt, cutoff),
       ),
     )
+    .limit(SWEEP_MAX_REVOCATIONS)
     .all();
   for (const orphan of orphans) {
     await revokeAtprotoConnection(orphan.did);
@@ -327,6 +345,29 @@ export async function completeAtprotoLink(input: {
       err instanceof Error ? err.message : `Could not bind ${did}`,
     );
   }
+}
+
+/**
+ * Revoke a DID's stored session only when its connection row is unbound —
+ * the cleanup for a failed link or sign-in whose code exchange already
+ * stored credentials. A bound row is deliberately left alone: whoever
+ * completed that exchange authenticated as the DID at the PDS, the
+ * account row already maps the DID to its owning user for sign-in, and
+ * the freshly stored session is an equally valid credential for the same
+ * identity backing the owner's connection — revoking it would only break
+ * the owner (the SDK revokes the previous grant before the exchange, so
+ * there is no older session to fall back to).
+ */
+export async function revokeAtprotoConnectionIfUnbound(
+  did: string,
+): Promise<void> {
+  const row = await db
+    .select({ userId: atprotoConnections.userId })
+    .from(atprotoConnections)
+    .where(eq(atprotoConnections.did, did))
+    .get();
+  if (row && row.userId !== null) return;
+  await revokeAtprotoConnection(did);
 }
 
 /**

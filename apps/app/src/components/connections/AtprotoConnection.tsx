@@ -144,6 +144,10 @@ export function AtprotoConnectionListItem({
             e.stopPropagation();
             unlinkMutation.mutate(undefined);
           }}
+          // In the reconnect state the row itself is clickable; keyboard
+          // activation must not bubble into its Enter/Space handler (which
+          // would preventDefault this button and open the link form).
+          onKeyDown={(e) => e.stopPropagation()}
           disabled={unlinkMutation.isPending}
         >
           {unlinkMutation.isPending ? (

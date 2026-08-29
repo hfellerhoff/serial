@@ -21,7 +21,7 @@ import {
   bindAtprotoConnection,
   completeAtprotoLink,
   finishAtprotoAuth,
-  revokeAtprotoConnection,
+  revokeAtprotoConnectionIfUnbound,
   startAtprotoAuth,
 } from "./service";
 import type { BetterAuthPlugin } from "better-auth";
@@ -222,18 +222,17 @@ export const atprotoPlugin = () => {
             });
           } catch (err) {
             logError("[atproto] link failed:", err);
-            const isConflict =
-              err instanceof AtprotoLinkError && err.code === "conflict";
             // The code exchange already stored a live session for the DID.
-            // On every non-conflict failure the connection is unbound, so
-            // revoke it rather than leak an orphaned grant at the PDS. A
-            // conflict means the DID's row is bound to its existing owner
-            // and the fresh session now backs their connection — leave it.
-            if (!isConflict) {
-              await revokeAtprotoConnection(result.did).catch((revokeErr) =>
-                logError("[atproto] failed to revoke after link failure:", revokeErr),
-              );
-            }
+            // When the failure leaves the connection unbound, revoke it
+            // rather than leak an orphaned grant at the PDS; a row bound
+            // to its owner is left alone (see the helper's rationale).
+            await revokeAtprotoConnectionIfUnbound(result.did).catch(
+              (revokeErr) =>
+                logError(
+                  "[atproto] failed to revoke after link failure:",
+                  revokeErr,
+                ),
+            );
             const linkResult: AtprotoLinkResult =
               err instanceof AtprotoLinkError && err.code !== "state"
                 ? err.code
