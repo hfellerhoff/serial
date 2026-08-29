@@ -56,6 +56,9 @@ export function AtprotoAuthButton({
   const [activeIndex, setActiveIndex] = useState(-1);
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  /** Escape-collapse should hand keyboard focus back to the trigger. */
+  const returnFocus = useRef(false);
 
   const query = identifier.trim();
   const searchable =
@@ -69,7 +72,12 @@ export function AtprotoAuthButton({
       : undefined;
 
   useEffect(() => {
-    if (open) inputRef.current?.focus();
+    if (open) {
+      inputRef.current?.focus();
+    } else if (returnFocus.current) {
+      returnFocus.current = false;
+      triggerRef.current?.focus();
+    }
   }, [open]);
 
   useEffect(() => {
@@ -144,6 +152,7 @@ export function AtprotoAuthButton({
   if (!open) {
     return (
       <Button
+        ref={triggerRef}
         variant={variant}
         className="w-full"
         disabled={disabled}
@@ -185,6 +194,7 @@ export function AtprotoAuthButton({
             : undefined
         }
         value={identifier}
+        onFocus={() => setDismissed(false)}
         onChange={(e) => {
           setIdentifier(e.target.value);
           setSelected(null);
@@ -212,12 +222,17 @@ export function AtprotoAuthButton({
           }
           if (e.key === "Escape") {
             e.preventDefault();
-            if (visibleSuggestions.length > 0) {
+            // Gate on intent, not list presence: a query that is (or is
+            // about to be) searching dismisses first even if results are
+            // still in flight, so the same keystroke can't tear the step
+            // down just because the network was slow.
+            if (searchable && !dismissed) {
               setDismissed(true);
               setActiveIndex(-1);
             } else {
-              // Second escape (or none to dismiss): back to the provider
-              // button.
+              // Second escape (or nothing to dismiss): back to the
+              // provider button, focus included.
+              returnFocus.current = true;
               setOpen(false);
             }
             return;

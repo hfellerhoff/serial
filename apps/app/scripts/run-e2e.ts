@@ -1,4 +1,4 @@
-import { randomInt } from "node:crypto";
+import { randomBytes, randomInt, webcrypto } from "node:crypto";
 import { existsSync } from "node:fs";
 import net from "node:net";
 import { spawn, spawnSync } from "node:child_process";
@@ -112,7 +112,24 @@ const additionalPortEnvironment = Object.fromEntries(
 );
 // The stub AppView backing the atproto typeahead runs only in the
 // self-hosted environment; both its app servers (main and bootstrap) must
-// point at it so no spec can reach a real AppView.
+// point at it so no spec can reach a real AppView. The atproto key
+// material is generated fresh per run rather than committed — no private
+// key ever lives in the repo, test-only or otherwise.
+async function generateAtprotoTestKeys() {
+  const keyPair = await webcrypto.subtle.generateKey(
+    { name: "ECDSA", namedCurve: "P-256" },
+    true,
+    ["sign"],
+  );
+  const jwk = await webcrypto.subtle.exportKey("jwk", keyPair.privateKey);
+  return {
+    ATPROTO_CLIENT_PRIVATE_KEYS: JSON.stringify([
+      { kid: "serial-e2e-atproto", ...jwk },
+    ]),
+    ATPROTO_STORE_ENCRYPTION_KEY: randomBytes(32).toString("base64"),
+  };
+}
+
 const appviewPort =
   additionalPortEnvironment.SERIAL_TEST_SELF_HOSTED_APPVIEW_PORT;
 const appviewEnvironment = appviewPort
@@ -120,6 +137,7 @@ const appviewEnvironment = appviewPort
       ATPROTO_APPVIEW_URL: `http://127.0.0.1:${appviewPort}`,
       SERIAL_TEST_APPVIEW_ALLOW_LOOPBACK: "1",
       SERIAL_TEST_APPVIEW_ORIGIN: `http://127.0.0.1:${appviewPort}`,
+      ...(await generateAtprotoTestKeys()),
     }
   : {};
 

@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { createHardenedFetch } from "./client";
 import { DID_PATTERN, HANDLE_PATTERN } from "./config";
+import { createHardenedFetch } from "./hardened-fetch";
 import { env } from "~/env";
+import { isAuthorizedTestLoopbackUrl } from "~/server/http/testLoopbackOrigin";
 import { logError } from "~/server/logger";
 
 /**
@@ -30,7 +31,7 @@ const TYPEAHEAD_TIMEOUT_MS = 5_000;
 const upstreamActorSchema = z.object({
   did: z.string().max(512).regex(DID_PATTERN),
   handle: z.string().max(512).regex(HANDLE_PATTERN),
-  displayName: z.string().max(640).optional(),
+  displayName: z.string().max(640).optional().catch(undefined),
   avatar: z
     .url({ protocol: /^https$/ })
     .optional()
@@ -49,48 +50,18 @@ export interface AtprotoActorSuggestion {
 type TypeaheadFetch = (input: string, init?: RequestInit) => Promise<Response>;
 
 /**
- * E2e escape hatch mirroring authorizedTestRssOrigin: the stub AppView
- * lives on loopback http, which the hardened fetch rejects in production
- * builds. The flag alone is not enough — a separate variable must name the
- * exact loopback http origin, and the configured AppView must match it
- * with no path, port games, or embedded credentials. Even then only the
- * transport checks loosen; the size cap and redirect ban stay.
+ * E2e escape hatch: the stub AppView lives on loopback http, which the
+ * hardened fetch rejects in production builds. The shared loopback guard
+ * requires the flag plus a separate variable naming the exact bare origin;
+ * even then only the transport checks loosen — the size cap and redirect
+ * ban stay.
  */
-function authorizedTestAppviewOrigin(): URL | undefined {
-  if (process.env.SERIAL_TEST_APPVIEW_ALLOW_LOOPBACK !== "1") return undefined;
-
-  const configuredValue = process.env.SERIAL_TEST_APPVIEW_ORIGIN;
-  if (!configuredValue) return undefined;
-
-  try {
-    const configured = new URL(configuredValue);
-    if (
-      configured.origin !== configuredValue ||
-      configured.protocol !== "http:" ||
-      (configured.hostname !== "127.0.0.1" && configured.hostname !== "[::1]")
-    ) {
-      return undefined;
-    }
-    return configured;
-  } catch {
-    return undefined;
-  }
-}
-
 export function isAuthorizedTestAppview(appviewUrl: string): boolean {
-  const configured = authorizedTestAppviewOrigin();
-  if (!configured) return false;
-
-  try {
-    const target = new URL(appviewUrl);
-    return (
-      target.origin === configured.origin &&
-      !target.username &&
-      !target.password
-    );
-  } catch {
-    return false;
-  }
+  return isAuthorizedTestLoopbackUrl(
+    appviewUrl,
+    "SERIAL_TEST_APPVIEW_ALLOW_LOOPBACK",
+    "SERIAL_TEST_APPVIEW_ORIGIN",
+  );
 }
 
 let defaultFetch: TypeaheadFetch | null = null;

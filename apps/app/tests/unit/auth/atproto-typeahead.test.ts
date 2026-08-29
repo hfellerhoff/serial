@@ -7,8 +7,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
  * typed entry always stays available.
  */
 
-vi.mock("~/server/db", () => ({ db: {} }));
-vi.mock("~/server/kv", () => ({ getKV: () => undefined }));
 vi.mock("~/server/logger", () => ({ logError: () => undefined }));
 vi.mock("~/env", () => ({
   env: { NODE_ENV: "test", ATPROTO_APPVIEW_URL: undefined },

@@ -203,11 +203,12 @@ export const atprotoPlugin = () => {
         max: 60,
       },
       {
-        // Debounced keystrokes; roomier than authorize, tighter than the
-        // catch-all so the proxy can't be driven as a free search relay.
+        // Debounced keystrokes fire roughly once per typing pause, so a
+        // legitimate correction-heavy session needs real headroom; still
+        // bounded so the proxy can't be driven as a free search relay.
         pathMatcher: (path: string) => path === ATPROTO_ROUTES.typeahead,
         window: 60,
-        max: 60,
+        max: 180,
       },
       {
         // Metadata documents are fetched by authorization servers and
