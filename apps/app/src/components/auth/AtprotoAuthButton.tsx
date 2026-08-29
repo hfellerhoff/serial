@@ -51,6 +51,7 @@ export function AtprotoAuthButton({
   const [identifier, setIdentifier] = useState("");
   const [selected, setSelected] = useState<ActorSuggestion | null>(null);
   const [suggestions, setSuggestions] = useState<ActorSuggestion[]>([]);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -58,6 +59,10 @@ export function AtprotoAuthButton({
   const searchable =
     query.length >= TYPEAHEAD_MIN_CHARS && selected?.handle !== query;
   const visibleSuggestions = searchable ? suggestions : [];
+  const activeSuggestion =
+    activeIndex >= 0 && activeIndex < visibleSuggestions.length
+      ? visibleSuggestions[activeIndex]
+      : undefined;
 
   useEffect(() => {
     if (open) inputRef.current?.focus();
@@ -75,6 +80,7 @@ export function AtprotoAuthButton({
         )
         .then(({ data }) => {
           setSuggestions(data?.actors ?? []);
+          setActiveIndex(-1);
         })
         .catch(() => {
           // A real failure degrades to plain entry; an abort just means a
@@ -89,27 +95,42 @@ export function AtprotoAuthButton({
     };
   }, [query, searchable]);
 
+  const selectSuggestion = (suggestion: ActorSuggestion) => {
+    setSelected(suggestion);
+    setIdentifier(suggestion.handle);
+    setSuggestions([]);
+    setActiveIndex(-1);
+  };
+
   const submit = async () => {
     if (!query || busy) return;
     setBusy(true);
 
-    const { data, error } = await authClient.$fetch<{ url: string }>(
-      AUTHORIZE_PATH,
-      {
-        method: "POST",
-        body: {
-          identifier: query,
-          ...(selected?.handle === query ? { did: selected.did } : {}),
+    // An HTTP error resolves to { error }; a transport failure (offline,
+    // DNS) rejects. Both degrade to a toast, and busy stays set only when
+    // the redirect is actually underway.
+    try {
+      const { data, error } = await authClient.$fetch<{ url: string }>(
+        AUTHORIZE_PATH,
+        {
+          method: "POST",
+          body: {
+            identifier: query,
+            ...(selected?.handle === query ? { did: selected.did } : {}),
+          },
         },
-      },
-    );
+      );
 
-    if (error || !data?.url) {
-      toast.error(error?.message ?? GENERIC_ERROR_MESSAGE);
+      if (error || !data?.url) {
+        toast.error(error?.message ?? GENERIC_ERROR_MESSAGE);
+        setBusy(false);
+        return;
+      }
+      window.location.assign(data.url);
+    } catch {
+      toast.error(GENERIC_ERROR_MESSAGE);
       setBusy(false);
-      return;
     }
-    window.location.assign(data.url);
   };
 
   if (!open) {
@@ -138,37 +159,76 @@ export function AtprotoAuthButton({
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={visibleSuggestions.length > 0}
+        aria-controls="atproto-suggestions"
+        aria-activedescendant={
+          activeSuggestion
+            ? `atproto-option-${activeSuggestion.did}`
+            : undefined
+        }
         value={identifier}
         onChange={(e) => {
           setIdentifier(e.target.value);
           setSelected(null);
+          setActiveIndex(-1);
         }}
         onKeyDown={(e) => {
+          if (e.key === "ArrowDown" && visibleSuggestions.length > 0) {
+            e.preventDefault();
+            setActiveIndex((i) =>
+              Math.min(i + 1, visibleSuggestions.length - 1),
+            );
+            return;
+          }
+          if (e.key === "ArrowUp" && visibleSuggestions.length > 0) {
+            e.preventDefault();
+            setActiveIndex((i) => Math.max(i - 1, -1));
+            return;
+          }
+          if (e.key === "Escape" && visibleSuggestions.length > 0) {
+            e.preventDefault();
+            setSuggestions([]);
+            setActiveIndex(-1);
+            return;
+          }
           if (e.key === "Enter") {
             e.preventDefault();
+            if (activeSuggestion) {
+              selectSuggestion(activeSuggestion);
+              return;
+            }
             void submit();
           }
         }}
       />
       {visibleSuggestions.length > 0 && (
         <div
+          id="atproto-suggestions"
+          role="listbox"
           className="overflow-hidden rounded-md border"
           aria-label="Suggested accounts"
         >
-          {visibleSuggestions.map((suggestion) => (
+          {visibleSuggestions.map((suggestion, index) => (
             <button
               key={suggestion.did}
+              id={`atproto-option-${suggestion.did}`}
               type="button"
-              className="hover:bg-accent flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm"
-              onClick={() => {
-                setSelected(suggestion);
-                setIdentifier(suggestion.handle);
-                setSuggestions([]);
-              }}
+              role="option"
+              aria-selected={index === activeIndex}
+              className={`hover:bg-accent flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm ${
+                index === activeIndex ? "bg-accent" : ""
+              }`}
+              onClick={() => selectSuggestion(suggestion)}
             >
               <Avatar>
                 {suggestion.avatar && (
-                  <AvatarImage src={suggestion.avatar} alt="" />
+                  <AvatarImage
+                    src={suggestion.avatar}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                  />
                 )}
                 <AvatarFallback>
                   {suggestion.handle.charAt(0).toUpperCase()}

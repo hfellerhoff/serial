@@ -41,9 +41,13 @@ type HardenedFetch = (
  * re-asserted here and anything asking to follow is downgraded to "error".
  *
  * `fetch` is injectable for tests only; production uses the global.
+ * `allowInsecure` widens only the transport checks (http, private and IP
+ * hosts) — the size cap and redirect ban always hold. The e2e stub-AppView
+ * escape hatch forces it on for an authorized loopback origin.
  */
 export function createHardenedFetch(
   fetch: HardenedFetch = globalThis.fetch,
+  { allowInsecure = ALLOW_INSECURE_PDS }: { allowInsecure?: boolean } = {},
 ): HardenedFetch {
   const safeFetch = safeFetchWrap({
     fetch,
@@ -52,9 +56,9 @@ export function createHardenedFetch(
     // Real-world PDS hosts may run on non-standard ports; private and
     // non-unicast addresses stay blocked in production.
     allowCustomPort: true,
-    allowHttp: ALLOW_INSECURE_PDS,
-    allowPrivateIps: ALLOW_INSECURE_PDS,
-    allowIpHost: ALLOW_INSECURE_PDS,
+    allowHttp: allowInsecure,
+    allowPrivateIps: allowInsecure,
+    allowIpHost: allowInsecure,
   });
 
   return (input, init) => {

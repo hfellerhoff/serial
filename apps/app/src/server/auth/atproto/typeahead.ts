@@ -21,13 +21,17 @@ export const TYPEAHEAD_LIMIT = 5;
 const TYPEAHEAD_TIMEOUT_MS = 5_000;
 
 // The avatar URL lands in an <img src> in an unauthenticated visitor's
-// browser, so only https survives; a malformed actor drops alone instead of
+// browser, so only https survives — a rejected avatar drops alone (the
+// actor renders avatar-less), and a malformed actor drops alone instead of
 // voiding the whole suggestion list.
 const upstreamActorSchema = z.object({
   did: z.string().max(512),
   handle: z.string().max(512),
   displayName: z.string().max(640).optional(),
-  avatar: z.url({ protocol: /^https$/ }).optional(),
+  avatar: z
+    .url({ protocol: /^https$/ })
+    .optional()
+    .catch(undefined),
 });
 
 const upstreamResponseSchema = z.object({ actors: z.array(z.unknown()) });
@@ -44,15 +48,42 @@ type TypeaheadFetch = (input: string, init?: RequestInit) => Promise<Response>;
 /**
  * E2e escape hatch mirroring authorizedTestRssOrigin: the stub AppView
  * lives on loopback http, which the hardened fetch rejects in production
- * builds. Only an explicitly flagged loopback http origin bypasses it.
+ * builds. The flag alone is not enough — a separate variable must name the
+ * exact loopback http origin, and the configured AppView must match it
+ * with no path, port games, or embedded credentials. Even then only the
+ * transport checks loosen; the size cap and redirect ban stay.
  */
-function isAuthorizedTestAppview(appviewUrl: string): boolean {
-  if (process.env.SERIAL_TEST_APPVIEW_ALLOW_LOOPBACK !== "1") return false;
+function authorizedTestAppviewOrigin(): URL | undefined {
+  if (process.env.SERIAL_TEST_APPVIEW_ALLOW_LOOPBACK !== "1") return undefined;
+
+  const configuredValue = process.env.SERIAL_TEST_APPVIEW_ORIGIN;
+  if (!configuredValue) return undefined;
+
   try {
-    const parsed = new URL(appviewUrl);
+    const configured = new URL(configuredValue);
+    if (
+      configured.origin !== configuredValue ||
+      configured.protocol !== "http:" ||
+      (configured.hostname !== "127.0.0.1" && configured.hostname !== "[::1]")
+    ) {
+      return undefined;
+    }
+    return configured;
+  } catch {
+    return undefined;
+  }
+}
+
+export function isAuthorizedTestAppview(appviewUrl: string): boolean {
+  const configured = authorizedTestAppviewOrigin();
+  if (!configured) return false;
+
+  try {
+    const target = new URL(appviewUrl);
     return (
-      parsed.protocol === "http:" &&
-      (parsed.hostname === "127.0.0.1" || parsed.hostname === "[::1]")
+      target.origin === configured.origin &&
+      !target.username &&
+      !target.password
     );
   } catch {
     return false;
@@ -62,9 +93,10 @@ function isAuthorizedTestAppview(appviewUrl: string): boolean {
 let defaultFetch: TypeaheadFetch | null = null;
 
 function getDefaultFetch(): TypeaheadFetch {
-  defaultFetch ??= isAuthorizedTestAppview(getAppviewUrl())
-    ? (input, init) => globalThis.fetch(input, init)
-    : createHardenedFetch();
+  defaultFetch ??= createHardenedFetch(
+    globalThis.fetch,
+    isAuthorizedTestAppview(getAppviewUrl()) ? { allowInsecure: true } : {},
+  );
   return defaultFetch;
 }
 

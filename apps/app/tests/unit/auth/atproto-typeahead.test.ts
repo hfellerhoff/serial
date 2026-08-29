@@ -15,8 +15,11 @@ vi.mock("~/env", () => ({
 }));
 
 const { env } = await import("~/env");
-const { searchAtprotoActorsTypeahead, TYPEAHEAD_LIMIT } =
-  await import("~/server/auth/atproto/typeahead");
+const {
+  isAuthorizedTestAppview,
+  searchAtprotoActorsTypeahead,
+  TYPEAHEAD_LIMIT,
+} = await import("~/server/auth/atproto/typeahead");
 
 type MutableEnv = { ATPROTO_APPVIEW_URL: string | undefined };
 
@@ -142,7 +145,7 @@ describe("searchAtprotoActorsTypeahead", () => {
     ]);
   });
 
-  it("drops non-https avatar URLs with the actor they rode in on", async () => {
+  it("strips non-https avatar URLs but keeps the actor", async () => {
     const stub = stubFetch(
       jsonResponse({
         actors: [
@@ -161,6 +164,7 @@ describe("searchAtprotoActorsTypeahead", () => {
     );
 
     await expect(searchAtprotoActorsTypeahead("al", stub)).resolves.toEqual([
+      { did: "did:plc:mallory", handle: "mallory.example" },
       {
         did: "did:plc:alice",
         handle: "alice.example",
@@ -175,5 +179,56 @@ describe("searchAtprotoActorsTypeahead", () => {
     await expect(searchAtprotoActorsTypeahead("alice", stub)).resolves.toEqual(
       [],
     );
+  });
+});
+
+describe("isAuthorizedTestAppview", () => {
+  const STUB_ORIGIN = "http://127.0.0.1:3009";
+
+  function authorize(origin = STUB_ORIGIN) {
+    vi.stubEnv("SERIAL_TEST_APPVIEW_ALLOW_LOOPBACK", "1");
+    vi.stubEnv("SERIAL_TEST_APPVIEW_ORIGIN", origin);
+  }
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("refuses without the flag, even for a loopback origin", () => {
+    vi.stubEnv("SERIAL_TEST_APPVIEW_ORIGIN", STUB_ORIGIN);
+    expect(isAuthorizedTestAppview(STUB_ORIGIN)).toBe(false);
+  });
+
+  it("refuses the flag alone, with no origin named", () => {
+    vi.stubEnv("SERIAL_TEST_APPVIEW_ALLOW_LOOPBACK", "1");
+    expect(isAuthorizedTestAppview(STUB_ORIGIN)).toBe(false);
+  });
+
+  it("authorizes only the exact named loopback origin", () => {
+    authorize();
+    expect(isAuthorizedTestAppview(STUB_ORIGIN)).toBe(true);
+    expect(isAuthorizedTestAppview("http://127.0.0.1:9999")).toBe(false);
+    expect(isAuthorizedTestAppview("http://192.168.1.10:3009")).toBe(false);
+  });
+
+  it("refuses a non-loopback or https authorized origin outright", () => {
+    authorize("http://appview.internal:3009");
+    expect(isAuthorizedTestAppview("http://appview.internal:3009")).toBe(false);
+
+    authorize("https://127.0.0.1:3009");
+    expect(isAuthorizedTestAppview("https://127.0.0.1:3009")).toBe(false);
+  });
+
+  it("refuses an authorized value that is not a bare origin", () => {
+    authorize(`${STUB_ORIGIN}/xrpc`);
+    expect(isAuthorizedTestAppview(`${STUB_ORIGIN}/xrpc`)).toBe(false);
+  });
+
+  it("refuses embedded credentials and malformed URLs", () => {
+    authorize();
+    expect(isAuthorizedTestAppview("http://user:pass@127.0.0.1:3009")).toBe(
+      false,
+    );
+    expect(isAuthorizedTestAppview("not a url")).toBe(false);
   });
 });

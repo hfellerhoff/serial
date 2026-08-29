@@ -74,13 +74,8 @@ export default defineConfig({
           ? productionTestServer
           : "pnpm dev:test:self-hosted",
       ),
-      // Point the typeahead proxy at the stub AppView so specs stay
-      // hermetic; dotenv leaves already-set variables alone. The loopback
-      // flag lets the proxy's production-hardened fetch reach the stub.
-      env: {
-        ATPROTO_APPVIEW_URL: `http://127.0.0.1:${SELF_HOSTED_APPVIEW_SERVER_PORT}`,
-        SERIAL_TEST_APPVIEW_ALLOW_LOOPBACK: "1",
-      },
+      // run-e2e.ts points ATPROTO_APPVIEW_URL at the stub AppView for both
+      // app servers; dotenv leaves already-set variables alone.
       url: `http://localhost:${SELF_HOSTED_APP_PORT}`,
       stdout: "pipe",
       timeout: 120_000,

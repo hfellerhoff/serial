@@ -41,7 +41,8 @@ export default async function globalSetup() {
   });
   // Every configured provider enabled, so the auth pages render the full
   // provider section (email, Atmosphere, generic OAuth) for ordering specs.
-  // Must run after seedAdmin, which resets both provider lists to email-only.
+  // seedAdmin seeds email-only rows when they're absent; this runs after it
+  // so the full set overwrites them.
   await setEnabledAuthProviders(SELF_HOSTED_TURSO_PORT, [
     "email",
     "oauth",

@@ -110,12 +110,26 @@ const additionalPortEnvironment = Object.fromEntries(
     String(additionalPorts[index]),
   ]),
 );
+// The stub AppView backing the atproto typeahead runs only in the
+// self-hosted environment; both its app servers (main and bootstrap) must
+// point at it so no spec can reach a real AppView.
+const appviewPort =
+  additionalPortEnvironment.SERIAL_TEST_SELF_HOSTED_APPVIEW_PORT;
+const appviewEnvironment = appviewPort
+  ? {
+      ATPROTO_APPVIEW_URL: `http://127.0.0.1:${appviewPort}`,
+      SERIAL_TEST_APPVIEW_ALLOW_LOOPBACK: "1",
+      SERIAL_TEST_APPVIEW_ORIGIN: `http://127.0.0.1:${appviewPort}`,
+    }
+  : {};
+
 const childEnvironment = {
   ...process.env,
   [environment.appPortVariable]: String(appPort),
   [environment.tursoPortVariable]: String(tursoPort),
   [environment.rssPortVariable]: String(rssPort),
   ...additionalPortEnvironment,
+  ...appviewEnvironment,
   DATABASE_URL: `http://127.0.0.1:${tursoPort}`,
   PUBLIC_BASE_URL: appUrl,
   VITE_PUBLIC_BASE_URL: appUrl,
