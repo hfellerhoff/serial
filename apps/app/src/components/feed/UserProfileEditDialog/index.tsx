@@ -3,16 +3,19 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, DownloadIcon, Trash2Icon } from "lucide-react";
 
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useDialogStore } from "../dialogStore";
 import { DeleteAccountSection } from "./DeleteAccountSection";
 import { ExportDataSection } from "./ExportDataSection";
+import { fetchIsForgotPasswordEnabled } from "~/server/auth/endpoints";
 import { EditableSavableTextField } from "~/components/form/EditableSavableTextField";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
 import { authClient } from "~/lib/auth-client";
+import { isAtprotoPlaceholderEmail } from "~/lib/auth/atproto";
 import { AUTH_RESET_PASSWORD_URL } from "~/lib/auth/constants";
 import { useUpdateNameMutation } from "~/lib/data/user/useUpdateNameMutation";
 import { userEmailSchema, userNameSchema } from "~/server/api/schemas";
@@ -30,7 +33,22 @@ export function UserProfileEditDialog() {
     launchDialog("edit-user-profile", { settingsPane: pane });
   };
 
-  const userEmail = data?.user.email ?? "";
+  // A DID-only (Atmosphere) user carries an internal placeholder email
+  // that is never surfaced: show the field empty and require a real email
+  // before a password can be set (the reset flow delivers by email).
+  const rawEmail = data?.user.email ?? "";
+  const hasRealEmail = !!rawEmail && !isAtprotoPlaceholderEmail(rawEmail);
+  const userEmail = hasRealEmail ? rawEmail : "";
+
+  // Password changes go through the emailed reset flow, which the reset
+  // page refuses without transport — same gate the sign-in page puts on
+  // "Forgot your password?".
+  const { data: isPasswordResetAvailable } = useQuery({
+    queryKey: ["is-forgot-password-enabled"],
+    queryFn: () => fetchIsForgotPasswordEnabled(),
+    // Constant for the process lifetime (env-derived).
+    staleTime: Infinity,
+  });
 
   if (settingsPane === "export") {
     return (
@@ -96,6 +114,15 @@ export function UserProfileEditDialog() {
                   toast.error(error.message ?? "Failed to change email");
                   return "failed";
                 }
+                // Unverified users on instances without email transport get
+                // the change applied directly; everyone else gets the
+                // verification round trip.
+                const fresh = await authClient.getSession();
+                if (fresh.data?.user.email === updatedEmail) {
+                  void refetchUser();
+                  toast.success("Email updated.");
+                  return "saved";
+                }
                 toast.success(
                   "Verification email sent! Check your new inbox to confirm.",
                 );
@@ -105,16 +132,31 @@ export function UserProfileEditDialog() {
             />
             <div className="grid gap-2">
               <Label>Password</Label>
-              <Button variant="outline" asChild>
-                <Link
-                  to={AUTH_RESET_PASSWORD_URL}
-                  search={{
-                    email: userEmail,
-                  }}
-                >
-                  Update password
-                </Link>
-              </Button>
+              {/* While availability is still loading, keep the link — the
+                  reset page itself degrades gracefully. */}
+              {hasRealEmail && isPasswordResetAvailable !== false ? (
+                <Button variant="outline" asChild>
+                  <Link
+                    to={AUTH_RESET_PASSWORD_URL}
+                    search={{
+                      email: userEmail,
+                    }}
+                  >
+                    Update password
+                  </Link>
+                </Button>
+              ) : (
+                <>
+                  <Button variant="outline" disabled>
+                    Update password
+                  </Button>
+                  <p className="text-muted-foreground text-sm">
+                    {hasRealEmail
+                      ? "Password reset is unavailable on this instance. Contact your admin to set a password."
+                      : "Add an email address to set a password."}
+                  </p>
+                </>
+              )}
             </div>
           </>
         )}

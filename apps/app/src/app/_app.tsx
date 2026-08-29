@@ -9,6 +9,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckIcon } from "lucide-react";
 import { Suspense, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { AppDialogs } from "../components/feed/AppDialogs";
 import { Header } from "../components/feed/Header";
 import { GlobalImportDropzone } from "../components/feed/import/GlobalImportDropzone";
@@ -27,6 +28,7 @@ import { InitialClientQueries } from "~/lib/data/InitialClientQueries";
 import { loadingActor } from "~/lib/data/loading-machine";
 import { usePlanSuccessStore } from "~/lib/data/plan-success";
 import { useSubscription } from "~/lib/data/subscription";
+import { ATPROTO_LINK_RESULT_PARAM } from "~/lib/auth/atproto";
 import { useAltKeyHeld } from "~/lib/hooks/useAltKeyHeld";
 import { authMiddleware } from "~/server/auth";
 import { orpc, orpcRouterClient } from "~/lib/orpc";
@@ -178,6 +180,44 @@ function useCheckoutSuccess() {
   return { awaitingUpgrade, billingEnabled };
 }
 
+const ATPROTO_LINK_ERROR_MESSAGES: Record<string, string> = {
+  conflict: "That Atmosphere account is already connected to another user.",
+  exists:
+    "You already have an Atmosphere account connected. Disconnect it first.",
+};
+
+/**
+ * Detect the ?atproto_link= result param the AT Protocol link callback
+ * redirects back with, toast the outcome, and re-open the connections
+ * dialog so the user sees the connection's state.
+ */
+function useAtprotoLinkReturn() {
+  const launchDialog = useDialogStore((s) => s.launchDialog);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get(ATPROTO_LINK_RESULT_PARAM);
+    if (!result) return;
+
+    // Clean the query param from the URL
+    params.delete(ATPROTO_LINK_RESULT_PARAM);
+    const newUrl =
+      window.location.pathname +
+      (params.size > 0 ? `?${params.toString()}` : "");
+    window.history.replaceState({}, "", newUrl);
+
+    if (result === "success") {
+      toast.success("Atmosphere account connected");
+    } else {
+      toast.error(
+        ATPROTO_LINK_ERROR_MESSAGES[result] ??
+          "Couldn't connect your Atmosphere account. Please try again.",
+      );
+    }
+    launchDialog("connections");
+  }, [launchDialog]);
+}
+
 /**
  * Detect ?subscription=open query param (set by the Polar portal return URL)
  * and re-open the subscription dialog.
@@ -244,6 +284,7 @@ function CheckoutSuccessDialog({
 function RootLayout() {
   useAltKeyHeld();
   usePortalReturn();
+  useAtprotoLinkReturn();
   const { pathname } = useLocation();
   const { awaitingUpgrade, billingEnabled } = useCheckoutSuccess();
   const showPlanSuccess = usePlanSuccessStore((s) => s.showDialog);

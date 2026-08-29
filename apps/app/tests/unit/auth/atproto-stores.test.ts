@@ -20,6 +20,7 @@ import {
 import {
   createAtprotoSessionStore,
   createAtprotoStateStore,
+  disconnectAtprotoConnection,
   sweepExpiredAtprotoState,
 } from "~/server/auth/atproto/stores";
 import { atprotoAuthState, atprotoConnections, user } from "~/server/db/schema";
@@ -307,11 +308,22 @@ describe("atproto database stores", () => {
         .update(atprotoConnections)
         .set({ userId: "user-1", updatedAt: staleDate })
         .where(eq(atprotoConnections.did, DID));
+      // A stale unbound row that STILL holds credentials must survive: its
+      // session is the only token able to revoke the PDS-side grant, and
+      // the service-level sweep revokes it before this deletion applies.
       await sessionStore.set(OTHER_DID, savedSession());
       await database
         .update(atprotoConnections)
         .set({ updatedAt: staleDate })
         .where(eq(atprotoConnections.did, OTHER_DID));
+      // A stale unbound row whose credentials are already destroyed is
+      // deletable garbage.
+      await sessionStore.set("did:plc:revokedorphan", savedSession());
+      await disconnectAtprotoConnection(database, "did:plc:revokedorphan");
+      await database
+        .update(atprotoConnections)
+        .set({ updatedAt: staleDate })
+        .where(eq(atprotoConnections.did, "did:plc:revokedorphan"));
 
       await sweepExpiredAtprotoState(database);
 
@@ -323,8 +335,9 @@ describe("atproto database stores", () => {
       const dids = (await database.select().from(atprotoConnections).all()).map(
         (r) => r.did,
       );
-      expect(dids).toHaveLength(1);
+      expect(dids).toHaveLength(2);
       expect(dids).toContain(DID);
+      expect(dids).toContain(OTHER_DID);
     });
   });
 });

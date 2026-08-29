@@ -37,12 +37,13 @@ export const CREDENTIAL_PROVIDER_ID = "credential";
 export const ATPROTO_PROVIDER_ID = "atproto";
 
 /**
- * Per-admin sign-in methods derived from account rows, counting only
+ * Per-user sign-in methods derived from account rows, counting only
  * providers this instance has configured (env-dependent, so supplied by
- * the caller). Lockout accounting builds on this: a sign-in method may
- * not be disabled while it is some admin's only way in. Pure so both
- * admin config handlers share one accounting of which account rows count
- * as which method.
+ * the caller). Named for its original caller, admin lockout accounting (a
+ * sign-in method may not be disabled while it is some admin's only way
+ * in); the connection unlink guard shares it for the same question about
+ * any user. Pure so every guard shares one accounting of which account
+ * rows count as which method.
  */
 export function getAdminSigninMethods(options: {
   adminUserIds: string[];

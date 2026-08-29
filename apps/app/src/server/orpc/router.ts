@@ -2,6 +2,7 @@ import * as adminRouter from "~/server/api/routers/admin";
 import * as feedRouter from "~/server/api/routers/feed-router";
 import * as feedItemRouter from "~/server/api/routers/feedItemRouter";
 import * as initialRouter from "~/server/api/routers/initialRouter";
+import * as atprotoRouter from "~/server/api/routers/atprotoRouter";
 import * as instapaperRouter from "~/server/api/routers/instapaperRouter";
 import * as userConfigRouter from "~/server/api/routers/userConfigRouter";
 import * as userRouter from "~/server/api/routers/userRouter";
@@ -20,6 +21,7 @@ export const orpcRouter = {
   initial: initialRouter,
   userConfig: userConfigRouter,
   instapaper: instapaperRouter,
+  atproto: atprotoRouter,
   user: userRouter,
   feedCategories: feedCategoriesRouter,
   contentCategories: contentCategoriesRouter,

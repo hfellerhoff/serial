@@ -111,7 +111,28 @@ describe("finishAtprotoAuth", () => {
     expect(result.did).toBe(DID);
     expect(result.handle).toBe("reader.bsky.social");
     expect(result.grantedScope).toBe("atproto");
+    expect(result.linkUserId).toBeNull();
     expect((await connectionRow())?.handle).toBe("reader.bsky.social");
+  });
+
+  it("surfaces the link state's user and passes the redirect URI through", async () => {
+    const oauth = oauthSession(DID);
+    const callback = vi.fn().mockResolvedValue({
+      session: oauth,
+      state: JSON.stringify({ linkUserId: "user-1" }),
+    });
+    clientHolder.current = fakeClient({ callback });
+
+    const result = await finishAtprotoAuth(new URLSearchParams("code=abc"), {
+      redirectUri: "https://serial.test/api/auth/atproto/link-callback",
+    });
+
+    expect(result.linkUserId).toBe("user-1");
+    // The code exchange must run against the link redirect URI, not the
+    // default sign-in callback.
+    expect(callback).toHaveBeenCalledWith(expect.any(URLSearchParams), {
+      redirect_uri: "https://serial.test/api/auth/atproto/link-callback",
+    });
   });
 
   it("surfaces a failed callback validation and persists nothing", async () => {

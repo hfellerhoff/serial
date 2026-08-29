@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { DID_PATTERN, HANDLE_PATTERN } from "./config";
 import { createHardenedFetch } from "./hardened-fetch";
+import { DID_PATTERN, HANDLE_PATTERN } from "./schemas";
 import { env } from "~/env";
 import { isAuthorizedTestLoopbackUrl } from "~/server/http/testLoopbackOrigin";
 import { logError } from "~/server/logger";

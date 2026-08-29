@@ -47,6 +47,83 @@ export async function cleanupUser(tursoPort: number, email: string) {
   client.close();
 }
 
+/**
+ * Seed a linked AT Protocol connection for a user: the account row plus an
+ * active connection row, the state the link callback leaves behind. The
+ * stored session blob is deliberately unreadable ciphertext — unlink must
+ * still disconnect (mirroring a rotated store key).
+ */
+export async function seedAtprotoLink(
+  tursoPort: number,
+  email: string,
+  options: { did: string; handle: string },
+) {
+  const { db, client } = getDb(tursoPort);
+  const testUser = await db
+    .select({ id: schema.user.id })
+    .from(schema.user)
+    .where(eq(schema.user.email, email))
+    .get();
+  if (!testUser) {
+    client.close();
+    throw new Error("Atproto link seed user was not found");
+  }
+  const now = new Date();
+  await db.insert(schema.account).values({
+    id: createId(),
+    accountId: options.did,
+    providerId: "atproto",
+    userId: testUser.id,
+    scope: "atproto",
+    createdAt: now,
+    updatedAt: now,
+  });
+  await db.insert(schema.atprotoConnections).values({
+    did: options.did,
+    userId: testUser.id,
+    session: "e2e-unreadable-ciphertext",
+    scopes: "atproto",
+    handle: options.handle,
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  });
+  client.close();
+}
+
+/** The database state the unlink assertions check. */
+export async function getAtprotoLinkState(tursoPort: number, did: string) {
+  const { db, client } = getDb(tursoPort);
+  const accountRows = await db
+    .select({ id: schema.account.id })
+    .from(schema.account)
+    .where(eq(schema.account.accountId, did))
+    .all();
+  const connection = await db
+    .select({
+      userId: schema.atprotoConnections.userId,
+      status: schema.atprotoConnections.status,
+      session: schema.atprotoConnections.session,
+    })
+    .from(schema.atprotoConnections)
+    .where(eq(schema.atprotoConnections.did, did))
+    .get();
+  client.close();
+  return {
+    accountRowCount: accountRows.length,
+    connection: connection ?? null,
+  };
+}
+
+/** Remove a seeded connection row (unlink leaves it unbound, not deleted). */
+export async function cleanupAtprotoConnection(tursoPort: number, did: string) {
+  const { db, client } = getDb(tursoPort);
+  await db
+    .delete(schema.atprotoConnections)
+    .where(eq(schema.atprotoConnections.did, did));
+  client.close();
+}
+
 export async function seedExtensionSession(tursoPort: number, email: string) {
   const { db, client } = getDb(tursoPort);
   const testUser = await db

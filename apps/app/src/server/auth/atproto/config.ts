@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 import { JoseKey } from "@atproto/oauth-client-node";
 import { parseEncryptionKey } from "./crypto";
 import type { OAuthClientMetadataInput } from "@atproto/oauth-client-node";
+import { ATPROTO_PLACEHOLDER_EMAIL_DOMAIN } from "~/lib/auth/atproto";
 import { env } from "~/env";
 
 /**
@@ -20,17 +21,6 @@ import { env } from "~/env";
 
 // Canonical definition lives in ~/lib/constants, beside the other provider ids.
 export { ATPROTO_PROVIDER_ID } from "~/lib/constants";
-
-/**
- * What may name an identity at the edge. The SDK's resolver accepts full
- * URLs and would fetch metadata from any host an unauthenticated caller
- * names; sign-in only ever needs a DID or a handle-shaped hostname, so
- * everything else is rejected — both on the authorize endpoint and when
- * filtering typeahead suggestions from an upstream AppView.
- */
-export const DID_PATTERN = /^did:[a-z]+:[a-zA-Z0-9._%:-]+$/;
-export const HANDLE_PATTERN =
-  /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$/;
 
 /** The identity-only v1 scope; broader grants arrive via upgrade(). */
 export const ATPROTO_SCOPE = "atproto";
@@ -57,6 +47,10 @@ export const ATPROTO_ROUTES = {
   authorize: `${ATPROTO_ROUTE_PREFIX}authorize`,
   callback: `${ATPROTO_ROUTE_PREFIX}callback`,
   typeahead: `${ATPROTO_ROUTE_PREFIX}typeahead`,
+  // Link flows land on their own registered redirect URI so the policy
+  // classifiers in server/auth/index.tsx (which gate the sign-in callback
+  // path) never treat an add-on link as a sign-in or roll it back.
+  linkCallback: `${ATPROTO_ROUTE_PREFIX}link-callback`,
 } as const;
 
 const AUTH_MOUNT = "/api/auth";
@@ -65,7 +59,20 @@ export const ATPROTO_PATHS = {
   clientMetadata: `${AUTH_MOUNT}${ATPROTO_ROUTES.clientMetadata}`,
   jwks: `${AUTH_MOUNT}${ATPROTO_ROUTES.jwks}`,
   callback: `${AUTH_MOUNT}${ATPROTO_ROUTES.callback}`,
+  linkCallback: `${AUTH_MOUNT}${ATPROTO_ROUTES.linkCallback}`,
 } as const;
+
+/**
+ * Absolute redirect URI of the link callback. authorize() defaults to the
+ * first registered redirect URI (the sign-in callback); link flows pass
+ * this one explicitly at both the authorize and the code-exchange leg.
+ */
+export function getAtprotoLinkRedirectUri(): `https://${string}` {
+  // PUBLIC_BASE_URL is always https-served where atproto is enabled (the
+  // authorization server refuses plain-http redirect URIs anyway); the
+  // assertion satisfies the SDK's template-literal redirect_uri type.
+  return `${baseUrl()}${ATPROTO_PATHS.linkCallback}` as `https://${string}`;
+}
 
 export function getAtprotoClientMetadata(): OAuthClientMetadataInput {
   const base = baseUrl();
@@ -73,7 +80,12 @@ export function getAtprotoClientMetadata(): OAuthClientMetadataInput {
     client_id: `${base}${ATPROTO_PATHS.clientMetadata}`,
     client_name: "Serial",
     client_uri: base,
-    redirect_uris: [`${base}${ATPROTO_PATHS.callback}`],
+    redirect_uris: [
+      // Order matters: the SDK defaults to the first entry, which must stay
+      // the sign-in callback.
+      `${base}${ATPROTO_PATHS.callback}`,
+      `${base}${ATPROTO_PATHS.linkCallback}`,
+    ],
     grant_types: ["authorization_code", "refresh_token"],
     response_types: ["code"],
     scope: ATPROTO_SCOPE,
@@ -187,5 +199,5 @@ export function placeholderEmailForDid(did: string): string {
     .update(did)
     .digest("hex")
     .slice(0, 16);
-  return `${sanitized}.${suffix}@atproto.invalid`;
+  return `${sanitized}.${suffix}@${ATPROTO_PLACEHOLDER_EMAIL_DOMAIN}`;
 }

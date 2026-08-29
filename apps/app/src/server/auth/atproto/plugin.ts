@@ -1,24 +1,33 @@
 import { z } from "zod";
-import { APIError, createAuthEndpoint } from "better-auth/api";
+import {
+  APIError,
+  createAuthEndpoint,
+  getSessionFromCtx,
+} from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { handleOAuthUserInfo } from "better-auth/oauth2";
 import {
   ATPROTO_PROVIDER_ID,
   ATPROTO_ROUTE_PREFIX,
   ATPROTO_ROUTES,
-  DID_PATTERN,
-  HANDLE_PATTERN,
+  getAtprotoLinkRedirectUri,
   placeholderEmailForDid,
   validateAtprotoConfigAtStartup,
 } from "./config";
 import { getAtprotoClient } from "./client";
+import { didSchema, identifierSchema } from "./schemas";
 import {
+  AtprotoLinkError,
   bindAtprotoConnection,
+  completeAtprotoLink,
   finishAtprotoAuth,
+  revokeAtprotoConnectionIfUnbound,
   startAtprotoAuth,
 } from "./service";
 import { searchAtprotoActorsTypeahead } from "./typeahead";
 import type { BetterAuthPlugin } from "better-auth";
+import type { AtprotoLinkResult } from "~/lib/auth/atproto";
+import { ATPROTO_LINK_RESULT_PARAM } from "~/lib/auth/atproto";
 import { logError } from "~/server/logger";
 
 /**
@@ -39,19 +48,13 @@ import { logError } from "~/server/logger";
 const SIGN_IN_ERROR_REDIRECT = "/auth/sign-in?error=atproto";
 const SIGN_IN_SUCCESS_REDIRECT = "/";
 
-const didSchema = z
-  .string()
-  .trim()
-  .max(512)
-  .regex(DID_PATTERN, "Not a valid DID");
-const identifierSchema = z
-  .string()
-  .trim()
-  .max(512)
-  .refine(
-    (value) => DID_PATTERN.test(value) || HANDLE_PATTERN.test(value),
-    "Enter a handle like name.bsky.social or a DID",
-  );
+/**
+ * Link flows return into the signed-in app rather than the auth pages; the
+ * app shell reads the result param, toasts it, and reopens the connections
+ * dialog.
+ */
+const linkResultRedirect = (result: AtprotoLinkResult) =>
+  `/?${ATPROTO_LINK_RESULT_PARAM}=${result}`;
 
 export const atprotoPlugin = () => {
   // Fail closed at startup on malformed config: the store key throws
@@ -147,6 +150,15 @@ export const atprotoPlugin = () => {
             throw ctx.redirect(SIGN_IN_ERROR_REDIRECT);
           }
 
+          // A link flow's code can only be exchanged against the link
+          // redirect URI, so this should be unreachable — but sign-in and
+          // link state must never cross, and that invariant belongs to us,
+          // not the authorization server.
+          if (result.linkUserId) {
+            logError("[atproto] link state arrived on the sign-in callback");
+            throw ctx.redirect(SIGN_IN_ERROR_REDIRECT);
+          }
+
           const { did, handle } = result;
           const outcome = await handleOAuthUserInfo(ctx, {
             userInfo: {
@@ -188,6 +200,67 @@ export const atprotoPlugin = () => {
           throw ctx.redirect(SIGN_IN_SUCCESS_REDIRECT);
         },
       ),
+
+      /**
+       * Complete a link flow: attach the verified DID to the signed-in
+       * user as an add-on connection. Deliberately not classified by the
+       * policy hooks in server/auth/index.tsx — no user is created and no
+       * session is issued here, so sign-in gating and auto-signup rollback
+       * do not apply; the oRPC link procedure already required a session
+       * to start the flow.
+       */
+      atprotoLinkCallback: createAuthEndpoint(
+        ATPROTO_ROUTES.linkCallback,
+        { method: "GET" },
+        async (ctx) => {
+          const session = await getSessionFromCtx(ctx);
+          if (!session) {
+            throw ctx.redirect(linkResultRedirect("error"));
+          }
+
+          const url = new URL(ctx.request?.url ?? "http://invalid");
+          let result;
+          try {
+            result = await finishAtprotoAuth(url.searchParams, {
+              redirectUri: getAtprotoLinkRedirectUri(),
+            });
+          } catch (err) {
+            logError("[atproto] link callback failed:", err);
+            throw ctx.redirect(linkResultRedirect("error"));
+          }
+
+          try {
+            await completeAtprotoLink({
+              did: result.did,
+              grantedScope: result.grantedScope,
+              sessionUserId: session.user.id,
+              linkUserId: result.linkUserId,
+              createAccountRow: (data) =>
+                ctx.context.internalAdapter.createAccount(data),
+            });
+          } catch (err) {
+            logError("[atproto] link failed:", err);
+            // The code exchange already stored a live session for the DID.
+            // When the failure leaves the connection unbound, revoke it
+            // rather than leak an orphaned grant at the PDS; a row bound
+            // to its owner is left alone (see the helper's rationale).
+            await revokeAtprotoConnectionIfUnbound(result.did).catch(
+              (revokeErr) =>
+                logError(
+                  "[atproto] failed to revoke after link failure:",
+                  revokeErr,
+                ),
+            );
+            const linkResult: AtprotoLinkResult =
+              err instanceof AtprotoLinkError && err.code !== "state"
+                ? err.code
+                : "error";
+            throw ctx.redirect(linkResultRedirect(linkResult));
+          }
+
+          throw ctx.redirect(linkResultRedirect("success"));
+        },
+      ),
     },
     rateLimit: [
       // Buckets are keyed per client IP and path. Authorize stays the
@@ -198,7 +271,9 @@ export const atprotoPlugin = () => {
         max: 30,
       },
       {
-        pathMatcher: (path: string) => path === ATPROTO_ROUTES.callback,
+        pathMatcher: (path: string) =>
+          path === ATPROTO_ROUTES.callback ||
+          path === ATPROTO_ROUTES.linkCallback,
         window: 60,
         max: 60,
       },
