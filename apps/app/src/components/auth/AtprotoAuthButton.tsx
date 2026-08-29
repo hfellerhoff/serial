@@ -1,6 +1,7 @@
 import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import type { AtprotoActorSuggestion } from "~/server/auth/atproto/typeahead";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -13,6 +14,11 @@ import { authClient } from "~/lib/auth-client";
  * authoritative and submittable; typeahead suggestions are a convenience
  * fetched exclusively through Serial's proxy, and a selected suggestion
  * threads its DID to the authorize endpoint to skip one resolution.
+ *
+ * The suggestion list is a hand-wired combobox rather than the ui/command
+ * (cmdk) kit: cmdk is shaped for overlay search surfaces, while this is a
+ * small inline list inside the auth card whose input must stay an ordinary
+ * form field.
  *
  * Deliberately deferred: the page's ?callbackURL= is not threaded through
  * the OAuth round trip — the callback's success redirect is fixed at "/"
@@ -28,13 +34,6 @@ const TYPEAHEAD_DEBOUNCE_MS = 300;
 const GENERIC_ERROR_MESSAGE =
   "Could not start Atmosphere sign in. Please try again.";
 
-interface ActorSuggestion {
-  did: string;
-  handle: string;
-  displayName?: string;
-  avatar?: string;
-}
-
 interface AtprotoAuthButtonProps {
   intent: "sign-in" | "sign-up";
   variant: "outline" | "default";
@@ -49,8 +48,11 @@ export function AtprotoAuthButton({
 }: AtprotoAuthButtonProps) {
   const [open, setOpen] = useState(false);
   const [identifier, setIdentifier] = useState("");
-  const [selected, setSelected] = useState<ActorSuggestion | null>(null);
-  const [suggestions, setSuggestions] = useState<ActorSuggestion[]>([]);
+  const [selected, setSelected] = useState<AtprotoActorSuggestion | null>(null);
+  const [suggestions, setSuggestions] = useState<AtprotoActorSuggestion[]>([]);
+  /** The query the current suggestions answer; stale results never render. */
+  const [suggestionsFor, setSuggestionsFor] = useState("");
+  const [dismissed, setDismissed] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -58,7 +60,9 @@ export function AtprotoAuthButton({
   const query = identifier.trim();
   const searchable =
     query.length >= TYPEAHEAD_MIN_CHARS && selected?.handle !== query;
-  const visibleSuggestions = searchable ? suggestions : [];
+  const suggestionsCurrent = searchable && suggestionsFor === query;
+  const visibleSuggestions =
+    suggestionsCurrent && !dismissed ? suggestions : [];
   const activeSuggestion =
     activeIndex >= 0 && activeIndex < visibleSuggestions.length
       ? visibleSuggestions[activeIndex]
@@ -74,18 +78,22 @@ export function AtprotoAuthButton({
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => {
       void authClient
-        .$fetch<{ actors: ActorSuggestion[] }>(
+        .$fetch<{ actors: AtprotoActorSuggestion[] }>(
           `${TYPEAHEAD_PATH}?q=${encodeURIComponent(query)}`,
           { signal: controller.signal },
         )
         .then(({ data }) => {
           setSuggestions(data?.actors ?? []);
+          setSuggestionsFor(query);
           setActiveIndex(-1);
         })
         .catch(() => {
           // A real failure degrades to plain entry; an abort just means a
           // newer query superseded this one, so its results stay.
-          if (!controller.signal.aborted) setSuggestions([]);
+          if (!controller.signal.aborted) {
+            setSuggestions([]);
+            setSuggestionsFor(query);
+          }
         });
     }, TYPEAHEAD_DEBOUNCE_MS);
 
@@ -95,15 +103,15 @@ export function AtprotoAuthButton({
     };
   }, [query, searchable]);
 
-  const selectSuggestion = (suggestion: ActorSuggestion) => {
+  const selectSuggestion = (suggestion: AtprotoActorSuggestion) => {
     setSelected(suggestion);
     setIdentifier(suggestion.handle);
-    setSuggestions([]);
     setActiveIndex(-1);
+    inputRef.current?.focus();
   };
 
   const submit = async () => {
-    if (!query || busy) return;
+    if (!query || busy || disabled) return;
     setBusy(true);
 
     // An HTTP error resolves to { error }; a transport failure (offline,
@@ -149,7 +157,15 @@ export function AtprotoAuthButton({
   }
 
   return (
-    <div className="grid gap-2">
+    <div
+      className="grid gap-2"
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+          setDismissed(true);
+          setActiveIndex(-1);
+        }
+      }}
+    >
       <Label htmlFor="atproto-identifier">Atmosphere handle</Label>
       <Input
         id="atproto-identifier"
@@ -172,14 +188,21 @@ export function AtprotoAuthButton({
         onChange={(e) => {
           setIdentifier(e.target.value);
           setSelected(null);
+          setDismissed(false);
           setActiveIndex(-1);
         }}
         onKeyDown={(e) => {
-          if (e.key === "ArrowDown" && visibleSuggestions.length > 0) {
-            e.preventDefault();
-            setActiveIndex((i) =>
-              Math.min(i + 1, visibleSuggestions.length - 1),
-            );
+          if (e.key === "ArrowDown") {
+            if (dismissed && suggestionsCurrent && suggestions.length > 0) {
+              e.preventDefault();
+              setDismissed(false);
+              setActiveIndex(0);
+            } else if (visibleSuggestions.length > 0) {
+              e.preventDefault();
+              setActiveIndex((i) =>
+                Math.min(i + 1, visibleSuggestions.length - 1),
+              );
+            }
             return;
           }
           if (e.key === "ArrowUp" && visibleSuggestions.length > 0) {
@@ -187,10 +210,16 @@ export function AtprotoAuthButton({
             setActiveIndex((i) => Math.max(i - 1, -1));
             return;
           }
-          if (e.key === "Escape" && visibleSuggestions.length > 0) {
+          if (e.key === "Escape") {
             e.preventDefault();
-            setSuggestions([]);
-            setActiveIndex(-1);
+            if (visibleSuggestions.length > 0) {
+              setDismissed(true);
+              setActiveIndex(-1);
+            } else {
+              // Second escape (or none to dismiss): back to the provider
+              // button.
+              setOpen(false);
+            }
             return;
           }
           if (e.key === "Enter") {
@@ -217,6 +246,11 @@ export function AtprotoAuthButton({
               type="button"
               role="option"
               aria-selected={index === activeIndex}
+              // DOM focus stays on the input (aria-activedescendant
+              // pattern): options leave the tab order, and mousedown is
+              // swallowed so a click can't blur the input first.
+              tabIndex={-1}
+              onMouseDown={(e) => e.preventDefault()}
               className={`hover:bg-accent flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm ${
                 index === activeIndex ? "bg-accent" : ""
               }`}

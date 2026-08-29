@@ -173,6 +173,39 @@ describe("searchAtprotoActorsTypeahead", () => {
     ]);
   });
 
+  it("drops actors whose did or handle would fail the authorize schema", async () => {
+    const stub = stubFetch(
+      jsonResponse({
+        actors: [
+          { did: "https://evil.example/metadata", handle: "alice.example" },
+          { did: "did:plc:alice", handle: "not a handle" },
+          { did: "did:plc:bob", handle: "bob.example" },
+        ],
+      }),
+    );
+
+    await expect(searchAtprotoActorsTypeahead("al", stub)).resolves.toEqual([
+      { did: "did:plc:bob", handle: "bob.example" },
+    ]);
+  });
+
+  it("dedupes actors by did, keeping the first", async () => {
+    const stub = stubFetch(
+      jsonResponse({
+        actors: [
+          { did: "did:plc:alice", handle: "alice.example" },
+          { did: "did:plc:alice", handle: "alice-alias.example" },
+          { did: "did:plc:bob", handle: "bob.example" },
+        ],
+      }),
+    );
+
+    await expect(searchAtprotoActorsTypeahead("al", stub)).resolves.toEqual([
+      { did: "did:plc:alice", handle: "alice.example" },
+      { did: "did:plc:bob", handle: "bob.example" },
+    ]);
+  });
+
   it("degrades to no suggestions when the fetch itself fails", async () => {
     const stub = stubFetch(new Error("network unreachable"));
 

@@ -21,6 +21,17 @@ import { env } from "~/env";
 // Canonical definition lives in ~/lib/constants, beside the other provider ids.
 export { ATPROTO_PROVIDER_ID } from "~/lib/constants";
 
+/**
+ * What may name an identity at the edge. The SDK's resolver accepts full
+ * URLs and would fetch metadata from any host an unauthenticated caller
+ * names; sign-in only ever needs a DID or a handle-shaped hostname, so
+ * everything else is rejected — both on the authorize endpoint and when
+ * filtering typeahead suggestions from an upstream AppView.
+ */
+export const DID_PATTERN = /^did:[a-z]+:[a-zA-Z0-9._%:-]+$/;
+export const HANDLE_PATTERN =
+  /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$/;
+
 /** The identity-only v1 scope; broader grants arrive via upgrade(). */
 export const ATPROTO_SCOPE = "atproto";
 

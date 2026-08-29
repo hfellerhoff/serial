@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createHardenedFetch } from "./client";
+import { DID_PATTERN, HANDLE_PATTERN } from "./config";
 import { env } from "~/env";
 import { logError } from "~/server/logger";
 
@@ -20,13 +21,15 @@ export const TYPEAHEAD_LIMIT = 5;
 /** Suggestions are worthless once the user has moved on; give up early. */
 const TYPEAHEAD_TIMEOUT_MS = 5_000;
 
-// The avatar URL lands in an <img src> in an unauthenticated visitor's
-// browser, so only https survives — a rejected avatar drops alone (the
-// actor renders avatar-less), and a malformed actor drops alone instead of
-// voiding the whole suggestion list.
+// Suggestions must already satisfy what the authorize endpoint accepts —
+// a hostile upstream actor otherwise becomes a suggestion guaranteed to
+// 400 on selection. The avatar URL lands in an <img src> in an
+// unauthenticated visitor's browser, so only https survives — a rejected
+// avatar drops alone (the actor renders avatar-less), and a malformed
+// actor drops alone instead of voiding the whole suggestion list.
 const upstreamActorSchema = z.object({
-  did: z.string().max(512),
-  handle: z.string().max(512),
+  did: z.string().max(512).regex(DID_PATTERN),
+  handle: z.string().max(512).regex(HANDLE_PATTERN),
   displayName: z.string().max(640).optional(),
   avatar: z
     .url({ protocol: /^https$/ })
@@ -131,16 +134,22 @@ export async function searchAtprotoActorsTypeahead(
       return [];
     }
 
-    return parsed.data.actors
-      .map((actor) => upstreamActorSchema.safeParse(actor))
-      .filter((result) => result.success)
-      .slice(0, TYPEAHEAD_LIMIT)
-      .map(({ data: { did, handle, displayName, avatar } }) => ({
+    // Deduped by DID: duplicates would collide as React keys and as the
+    // option ids aria-activedescendant resolves against.
+    const suggestions = new Map<string, AtprotoActorSuggestion>();
+    for (const actor of parsed.data.actors) {
+      if (suggestions.size >= TYPEAHEAD_LIMIT) break;
+      const result = upstreamActorSchema.safeParse(actor);
+      if (!result.success || suggestions.has(result.data.did)) continue;
+      const { did, handle, displayName, avatar } = result.data;
+      suggestions.set(did, {
         did,
         handle,
         ...(displayName ? { displayName } : {}),
         ...(avatar ? { avatar } : {}),
-      }));
+      });
+    }
+    return [...suggestions.values()];
   } catch (err) {
     logError("[atproto] typeahead failed:", err);
     return [];

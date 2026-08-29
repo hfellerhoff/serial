@@ -11,6 +11,7 @@ export async function setEnabledAuthProviders(
   const client = createClient({ url: `http://127.0.0.1:${tursoPort}` });
   const db = drizzle({ client, schema });
   const value = JSON.stringify(providers);
+  const now = new Date();
 
   try {
     for (const key of [
@@ -19,10 +20,10 @@ export async function setEnabledAuthProviders(
     ] as const) {
       await db
         .insert(schema.appConfig)
-        .values({ key, value, updatedAt: new Date() })
+        .values({ key, value, updatedAt: now })
         .onConflictDoUpdate({
           target: schema.appConfig.key,
-          set: { value, updatedAt: new Date() },
+          set: { value, updatedAt: now },
         });
 
       const row = await db

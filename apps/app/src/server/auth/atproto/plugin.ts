@@ -6,6 +6,8 @@ import {
   ATPROTO_PROVIDER_ID,
   ATPROTO_ROUTE_PREFIX,
   ATPROTO_ROUTES,
+  DID_PATTERN,
+  HANDLE_PATTERN,
   placeholderEmailForDid,
   validateAtprotoConfigAtStartup,
 } from "./config";
@@ -36,13 +38,6 @@ import { logError } from "~/server/logger";
 
 const SIGN_IN_ERROR_REDIRECT = "/auth/sign-in?error=atproto";
 const SIGN_IN_SUCCESS_REDIRECT = "/";
-
-// The SDK's resolver accepts full URLs and would fetch metadata from any
-// host an unauthenticated caller names. Sign-in only ever needs a DID or a
-// handle-shaped hostname, so everything else is rejected at the edge.
-const DID_PATTERN = /^did:[a-z]+:[a-zA-Z0-9._%:-]+$/;
-const HANDLE_PATTERN =
-  /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$/;
 
 const didSchema = z
   .string()
