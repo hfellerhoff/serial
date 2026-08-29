@@ -5,6 +5,12 @@ import { SELF_HOSTED_TURSO_PORT } from "../fixtures/ports";
 import { setEnabledAuthProviders } from "../fixtures/set-enabled-auth-providers";
 import type { Page } from "@playwright/test";
 
+// The pre-flight describe below mutates the global signup-provider config
+// while other describes in this file assert the Atmosphere buttons render,
+// so this file opts out of fullyParallel: its tests run in order in one
+// worker (without serial mode's skip-on-failure coupling).
+test.describe.configure({ mode: "default" });
+
 /**
  * The Atmosphere (AT Protocol) entry points on the auth pages. This
  * instance has atproto configured (test keys) and every provider enabled,
@@ -289,8 +295,11 @@ test.describe("atmosphere authorize sign-up pre-flight", () => {
       // sign-ups-disabled rejection.
       const outcome = await postAuthorize(page, "known.test", did);
       expect(outcome.status).toBe(400);
-      expect(outcome.body.message).not.toContain(
-        "Sign ups are currently disabled",
+      // The exact generic authorize failure — asserting only "not the
+      // signups-disabled message" would also pass if the sign-in gate
+      // (wrongly) rejected the request first.
+      expect(outcome.body.message).toContain(
+        "Could not start Atmosphere sign in",
       );
     } finally {
       await cleanupSeededUser(userId);

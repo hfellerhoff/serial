@@ -1,5 +1,9 @@
 import type { AuthProvider } from "~/lib/constants";
-import { authProviderSchema } from "~/lib/constants";
+import {
+  ATPROTO_PROVIDER_ID,
+  authProviderSchema,
+  CREDENTIAL_PROVIDER_ID,
+} from "~/lib/constants";
 import { getAtprotoClientMode } from "~/server/auth/atproto/mode";
 import { logWarning } from "~/server/logger";
 import { env } from "~/env";
@@ -111,4 +115,23 @@ const PROVIDER_CONFIGURED: Record<AuthProvider, () => boolean> = {
  */
 export function getConfiguredAuthProviders(): AuthProvider[] {
   return authProviderSchema.options.filter((p) => PROVIDER_CONFIGURED[p]());
+}
+
+/**
+ * The `account.providerId` value rows for a given auth provider carry —
+ * the env-dependent counterpart of the pure account-row accounting in
+ * ~/lib/constants. Undefined for oauth when the instance has no OAuth
+ * provider configured (no row can legitimately exist for it then).
+ */
+export function getAccountProviderId(
+  provider: AuthProvider,
+): string | undefined {
+  switch (provider) {
+    case "email":
+      return CREDENTIAL_PROVIDER_ID;
+    case "oauth":
+      return env.OAUTH_PROVIDER_ID;
+    case "atproto":
+      return ATPROTO_PROVIDER_ID;
+  }
 }

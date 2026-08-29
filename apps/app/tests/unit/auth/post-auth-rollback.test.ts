@@ -4,14 +4,22 @@ import {
   createLocalBenchmarkTarget,
   openBenchmarkDatabase,
 } from "../../../scripts/performance/database";
-import { appConfig, session as sessionTable, user } from "~/server/db/schema";
+import {
+  account,
+  appConfig,
+  session as sessionTable,
+  user,
+} from "~/server/db/schema";
 
 /**
  * The auto-signup rollback in applyPostAuthPolicy must only ever delete a
  * user the callback itself just created. An established user signing in
  * through a linked provider can arrive with exactly one session (all
  * others expired), so session count alone must not trigger rollback —
- * creation recency is required too.
+ * creation recency is required too. And a just-created user reached by
+ * implicit account linking (another provider's row, or several rows) is
+ * not the callback's own auto-signup either, so the user's sole account
+ * row must belong to the callback's provider.
  */
 
 const dbHolder = vi.hoisted(() => {
@@ -27,6 +35,8 @@ vi.mock("~/server/db", () => ({
 
 vi.mock("~/server/auth/constants", () => ({
   getConfiguredAuthProviders: () => ["email", "atproto"],
+  getAccountProviderId: (provider: string) =>
+    provider === "email" ? "credential" : provider,
 }));
 
 const { applyPostAuthPolicy } = await import("~/server/auth/policy");
@@ -67,7 +77,11 @@ describe("post-auth callback rollback", () => {
     dbHolder.current = undefined;
   });
 
-  async function insertCallbackUser(id: string, createdAt: Date) {
+  async function insertCallbackUser(
+    id: string,
+    createdAt: Date,
+    accountProviderIds: string[] = ["atproto"],
+  ) {
     await session.database.insert(user).values({
       id,
       name: id,
@@ -76,6 +90,16 @@ describe("post-auth callback rollback", () => {
       createdAt,
       updatedAt: new Date(),
     });
+    for (const providerId of accountProviderIds) {
+      await session.database.insert(account).values({
+        id: `account-${id}-${providerId}`,
+        accountId: `${providerId}-${id}`,
+        providerId,
+        userId: id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
     await session.database.insert(sessionTable).values({
       id: `session-${id}`,
       userId: id,
@@ -114,6 +138,31 @@ describe("post-auth callback rollback", () => {
     const rollback = vi.fn().mockResolvedValue(undefined);
 
     await applyPostAuthPolicy(completedAuth("user-linked", rollback));
+    expect(rollback).not.toHaveBeenCalled();
+  });
+
+  it("never rolls back a just-created user the callback linked to (multiple account rows)", async () => {
+    // Signed up with email moments ago, then the callback implicitly
+    // linked the atproto account — a real user, not an auto-signup.
+    await insertCallbackUser("user-just-linked", new Date(), [
+      "credential",
+      "atproto",
+    ]);
+    const rollback = vi.fn().mockResolvedValue(undefined);
+
+    await applyPostAuthPolicy(completedAuth("user-just-linked", rollback));
+    expect(rollback).not.toHaveBeenCalled();
+  });
+
+  it("never rolls back a just-created user whose sole account row belongs to another provider", async () => {
+    // e.g. an admin-seeded credential-only row reached by a callback that
+    // issued no account row of its own.
+    await insertCallbackUser("user-credential-only", new Date(), [
+      "credential",
+    ]);
+    const rollback = vi.fn().mockResolvedValue(undefined);
+
+    await applyPostAuthPolicy(completedAuth("user-credential-only", rollback));
     expect(rollback).not.toHaveBeenCalled();
   });
 });

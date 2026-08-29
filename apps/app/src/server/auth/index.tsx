@@ -42,7 +42,10 @@ import {
   applyPostAuthPolicy,
   enforceAuthAttemptPolicy,
 } from "~/server/auth/policy";
-import { rollbackAutoCreatedUserFromHook } from "~/server/auth/rollback";
+import {
+  revokeAtprotoGrantsBeforeUserDeletion,
+  rollbackAutoCreatedUserFromHook,
+} from "~/server/auth/rollback";
 import { IS_EMAIL_ENABLED, sendEmail } from "~/server/email";
 import { setOtpCooldown } from "~/server/otp";
 import { captureException, logError, logMessage } from "~/server/logger";
@@ -313,14 +316,8 @@ export const auth = betterAuth({
     },
     deleteUser: {
       enabled: true,
-      // Deleting the user cascades the atproto connection row away along
-      // with the encrypted refresh token — the only credential that can
-      // revoke the PDS-side grant — so revoke first, best-effort.
       async beforeDelete(user) {
-        if (!isAtprotoConfigured()) return;
-        const { revokeAtprotoGrantsForUser } =
-          await import("~/server/auth/atproto/service");
-        await revokeAtprotoGrantsForUser(user.id);
+        await revokeAtprotoGrantsBeforeUserDeletion(user.id);
       },
     },
   },

@@ -11,7 +11,10 @@ import {
   getEnabledAuthProviders,
   isPublicSignupEnabled,
 } from "~/lib/constants";
-import { getConfiguredAuthProviders } from "~/server/auth/constants";
+import {
+  getAccountProviderId,
+  getConfiguredAuthProviders,
+} from "~/server/auth/constants";
 import { IS_EMAIL_ENABLED, sendEmail } from "~/server/email";
 import {
   redeemInvitationToken,
@@ -40,7 +43,7 @@ const SIGN_UPS_DISABLED_MESSAGE = "Sign ups are currently disabled";
  * written milliseconds before the after-hook runs — while keeping any
  * established account safely out of rollback's reach.
  */
-const AUTO_SIGNUP_ROLLBACK_WINDOW_MS = 60 * 1000;
+export const AUTO_SIGNUP_ROLLBACK_WINDOW_MS = 60 * 1000;
 
 export interface AuthAttempt {
   provider: AuthProvider;
@@ -265,7 +268,27 @@ export async function applyPostAuthPolicy(
       .where(eq(session.userId, userId))
       .get();
 
-    if (wasJustCreated && (sessionCount?.count ?? 0) <= 1) {
+    // A callback can also arrive for an established user who just linked
+    // this provider (implicit account linking), and such a user may pass
+    // both checks above (created moments earlier, no session issued by
+    // their own sign-up flow). Only a user whose sole account row belongs
+    // to this callback's provider can be its auto-created sign-up; anyone
+    // with another provider's row — or more than one row — got here by
+    // linking to an account that already existed.
+    const accountRows = await db
+      .select({ providerId: account.providerId })
+      .from(account)
+      .where(eq(account.userId, userId))
+      .all();
+    const isSoleProviderAccount =
+      accountRows.length === 1 &&
+      accountRows[0]!.providerId === getAccountProviderId(completed.provider);
+
+    if (
+      wasJustCreated &&
+      (sessionCount?.count ?? 0) <= 1 &&
+      isSoleProviderAccount
+    ) {
       const configs = await db.select().from(appConfig).all();
       const publicSignupConfig = configs.find(
         (c) => c.key === "public-signup-enabled",

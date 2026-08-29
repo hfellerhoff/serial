@@ -121,6 +121,12 @@ export const atprotoPlugin = () => {
           // feedback on the auth page instead of create-then-roll-back at
           // the callback. Sign-in only — the link flow starts through the
           // oRPC link procedure, not this endpoint.
+          //
+          // Accepted trade-off: while sign-ups are unavailable, the
+          // distinct rejection lets a caller probe whether a DID has an
+          // account here (bounded by this path's rate limit). That
+          // membership oracle is inherent to giving real users immediate
+          // feedback and is the user-approved behavior — not a bug.
           await enforceResolvedSignupPolicy({
             provider: "atproto",
             providerId: ATPROTO_PROVIDER_ID,
