@@ -92,7 +92,7 @@ describe("getAtprotoClientMetadata in loopback mode", () => {
     setEnv({ PUBLIC_BASE_URL: "http://localhost:3000", NODE_ENV: "development" });
     const metadata = getAtprotoClientMetadata();
 
-    expect(metadata.client_id.startsWith("http://localhost?")).toBe(true);
+    expect(metadata.client_id?.startsWith("http://localhost?")).toBe(true);
     expect(metadata.token_endpoint_auth_method).toBe("none");
     // Order matters: the SDK defaults to the first entry, the sign-in
     // callback; the mapped host keeps "localhost" out of the redirect URIs.
