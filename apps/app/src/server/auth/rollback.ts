@@ -59,7 +59,12 @@ export async function rollbackAutoCreatedUser(userId: string): Promise<void> {
     const deleted = await tx
       .delete(user)
       .where(and(eq(user.id, userId), gte(user.createdAt, cutoff)));
-    if (deleted.rowsAffected === 0) return;
+    if (deleted.rowsAffected === 0) {
+      logError(
+        `[auth] auto-signup rollback lost the window race for ${userId}`,
+      );
+      return;
+    }
     await tx.delete(session).where(eq(session.userId, userId));
     await tx.delete(account).where(eq(account.userId, userId));
     await tx
