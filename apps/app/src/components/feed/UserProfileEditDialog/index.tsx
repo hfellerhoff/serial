@@ -46,6 +46,8 @@ export function UserProfileEditDialog() {
   const { data: isPasswordResetAvailable } = useQuery({
     queryKey: ["is-forgot-password-enabled"],
     queryFn: () => fetchIsForgotPasswordEnabled(),
+    // Constant for the process lifetime (env-derived).
+    staleTime: Infinity,
   });
 
   if (settingsPane === "export") {
