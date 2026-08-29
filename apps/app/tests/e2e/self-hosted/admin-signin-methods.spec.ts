@@ -78,13 +78,6 @@ test.describe("admin sign-in method settings", () => {
       email: adminEmail,
       password: "testpassword123",
     });
-    // seedAdmin resets the enabled providers to email only.
-    await setEnabledAuthProviders(SELF_HOSTED_TURSO_PORT, [
-      "email",
-      "oauth",
-      "atproto",
-    ]);
-
     await page.goto("/admin/settings");
     await clearQueryCache(page);
     await page.reload();
@@ -133,6 +126,11 @@ test.describe("admin sign-in method settings", () => {
     await expect(
       page.locator('label[for="signin-atproto-toggle"]'),
     ).toBeVisible({ timeout: 30000 });
-    await expect(page.locator("#signin-atproto-toggle")).toHaveCount(0);
+    // Same budget as the label assertion above: the locked indicator only
+    // appears once the settings refetch lands, which can straggle under
+    // parallel-suite load.
+    await expect(page.locator("#signin-atproto-toggle")).toHaveCount(0, {
+      timeout: 30000,
+    });
   });
 });

@@ -14,6 +14,25 @@ import type { Page } from "@playwright/test";
  */
 
 /**
+ * Load an auth page until the Atmosphere button renders. Ordinarily one
+ * load suffices; the retry rides out the brief window in which
+ * admin-signin-methods.spec.ts (same parallel project, shared database)
+ * has Atmosphere sign-in toggled off.
+ */
+async function gotoWithAtmosphere(
+  page: Page,
+  path: string,
+  buttonName: string,
+) {
+  await expect(async () => {
+    await page.goto(path);
+    await expect(page.getByRole("button", { name: buttonName })).toBeVisible({
+      timeout: 3000,
+    });
+  }).toPass({ timeout: 45000 });
+}
+
+/**
  * Open the handle step, retrying the click until it takes — the button
  * renders server-side but its onClick only attaches once React hydrates.
  */
@@ -31,12 +50,9 @@ test.describe("atmosphere sign-in entry", () => {
   test("renders above the generic OAuth button, below the email form", async ({
     page,
   }) => {
-    await page.goto("/auth/sign-in");
+    await gotoWithAtmosphere(page, "/auth/sign-in", "Sign in with Atmosphere");
 
     await expect(page.getByRole("button", { name: /login/i })).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Sign in with Atmosphere" }),
-    ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Sign in with TestOAuth" }),
     ).toBeVisible();
@@ -60,7 +76,7 @@ test.describe("atmosphere sign-in entry", () => {
       }
     });
 
-    await page.goto("/auth/sign-in");
+    await gotoWithAtmosphere(page, "/auth/sign-in", "Sign in with Atmosphere");
     const handleInput = await openHandleStep(page, "Sign in with Atmosphere");
     await expect(handleInput).toBeFocused();
 
@@ -85,7 +101,7 @@ test.describe("atmosphere sign-in entry", () => {
   test("shows suggestions and threads the selected DID to authorize", async ({
     page,
   }) => {
-    await page.goto("/auth/sign-in");
+    await gotoWithAtmosphere(page, "/auth/sign-in", "Sign in with Atmosphere");
     const handleInput = await openHandleStep(page, "Sign in with Atmosphere");
 
     // Two characters are enough to surface stub-AppView suggestions.
@@ -127,13 +143,10 @@ test.describe("atmosphere sign-up entry", () => {
   test("renders above the generic OAuth button with its own handle step", async ({
     page,
   }) => {
-    await page.goto("/auth/sign-up");
+    await gotoWithAtmosphere(page, "/auth/sign-up", "Sign up with Atmosphere");
 
     await expect(
       page.getByRole("button", { name: /create an account/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Sign up with Atmosphere" }),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Sign up with TestOAuth" }),
