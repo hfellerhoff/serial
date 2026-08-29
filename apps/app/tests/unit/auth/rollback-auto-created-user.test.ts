@@ -190,7 +190,8 @@ describe("rollbackAutoCreatedUser", () => {
     expect(await session.database.select().from(user).all()).toHaveLength(0);
   });
 
-  it("refuses to delete a user created outside the rollback window", async () => {
+  it("touches nothing for a user created outside the rollback window — not even grant revocation", async () => {
+    atprotoConfigured.current = true;
     await seedAutoCreatedUser(
       "user-established",
       new Date(Date.now() - 10 * 60 * 1000),
@@ -198,6 +199,7 @@ describe("rollbackAutoCreatedUser", () => {
 
     await rollbackAutoCreatedUser("user-established");
 
+    expect(revokeAtprotoGrantsForUser).not.toHaveBeenCalled();
     expect(await session.database.select().from(user).all()).toHaveLength(1);
     expect(await session.database.select().from(account).all()).toHaveLength(1);
     expect(
@@ -260,6 +262,12 @@ describe("rollbackAutoCreatedUserFromHook", () => {
   it("strips the merged session cookie even when deletion fails, then rethrows", async () => {
     atprotoConfigured.current = false;
     dbHolder.current = {
+      // The window pre-check finds a just-created row; the deletion fails.
+      select: () => ({
+        from: () => ({
+          where: () => ({ get: () => Promise.resolve({ id: "user-any" }) }),
+        }),
+      }),
       transaction: () => Promise.reject(new Error("db unavailable")),
     };
     const { ctx, responseHeaders, authCookies } = makeHookContext();

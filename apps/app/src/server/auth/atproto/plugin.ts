@@ -134,7 +134,14 @@ export const atprotoPlugin = () => {
           });
 
           try {
-            const url = await startAtprotoAuth({ identifier: did });
+            // The typed identifier (not the resolved DID) stays the
+            // authorize input: the SDK forwards it as the login_hint, and
+            // a handle reads better than a DID on the authorization
+            // server's sign-in form. Resolution is cached, so this costs
+            // no extra outbound call.
+            const url = await startAtprotoAuth({
+              identifier: ctx.body.did ?? ctx.body.identifier,
+            });
             return ctx.json({ url: url.toString() });
           } catch (err) {
             logError("[atproto] authorize failed:", err);

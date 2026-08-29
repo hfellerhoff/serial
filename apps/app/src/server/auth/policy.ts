@@ -200,7 +200,12 @@ export async function applyPostAuthPolicy(
       );
       if (!redeemed) {
         // Another concurrent sign-up consumed the last use between the
-        // attempt gate and now. Roll back the newly created user.
+        // attempt gate and now. Roll back the newly created user. Note
+        // the rollback primitive only deletes rows created within
+        // AUTO_SIGNUP_ROLLBACK_WINDOW_MS; a sign-up request that somehow
+        // spent longer than that between user insert and this hook keeps
+        // its row (the session cookie is still stripped) rather than
+        // risking an established user's data.
         await completed.rollbackNewUser();
         throw new APIError("BAD_REQUEST", {
           message: SIGN_UPS_DISABLED_MESSAGE,
