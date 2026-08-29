@@ -1,6 +1,10 @@
 import { createHmac } from "node:crypto";
-import { JoseKey } from "@atproto/oauth-client-node";
+import {
+  buildAtprotoLoopbackClientMetadata,
+  JoseKey,
+} from "@atproto/oauth-client-node";
 import { parseEncryptionKey } from "./crypto";
+import { getAtprotoClientMode } from "./mode";
 import type { OAuthClientMetadataInput } from "@atproto/oauth-client-node";
 import { ATPROTO_PLACEHOLDER_EMAIL_DOMAIN } from "~/lib/auth/atproto";
 import { env } from "~/env";
@@ -62,19 +66,57 @@ export const ATPROTO_PATHS = {
   linkCallback: `${AUTH_MOUNT}${ATPROTO_ROUTES.linkCallback}`,
 } as const;
 
+/** https everywhere except the dev loopback client's 127.0.0.1 URIs. */
+export type AtprotoRedirectUri =
+  | `https://${string}`
+  | `http://127.0.0.1:${string}`;
+
+/**
+ * Base URL the registered redirect URIs are built from. The dev loopback
+ * client must register them on a loopback IP — RFC 8252 forbids the
+ * "localhost" hostname there — so a localhost base maps to 127.0.0.1; QA
+ * the flow in the browser on that origin so the callback's session cookie
+ * lands on the host serving the app.
+ */
+function redirectBaseUrl(): string {
+  if (getAtprotoClientMode() !== "loopback") return baseUrl();
+  const url = new URL(baseUrl());
+  url.hostname = "127.0.0.1";
+  return url.toString().replace(/\/$/, "");
+}
+
 /**
  * Absolute redirect URI of the link callback. authorize() defaults to the
  * first registered redirect URI (the sign-in callback); link flows pass
  * this one explicitly at both the authorize and the code-exchange leg.
  */
-export function getAtprotoLinkRedirectUri(): `https://${string}` {
-  // PUBLIC_BASE_URL is always https-served where atproto is enabled (the
-  // authorization server refuses plain-http redirect URIs anyway); the
-  // assertion satisfies the SDK's template-literal redirect_uri type.
-  return `${baseUrl()}${ATPROTO_PATHS.linkCallback}` as `https://${string}`;
+export function getAtprotoLinkRedirectUri(): AtprotoRedirectUri {
+  // PUBLIC_BASE_URL is https-served everywhere atproto is enabled except
+  // the dev loopback client (the authorization server refuses other
+  // plain-http redirect URIs anyway); the assertion satisfies the SDK's
+  // template-literal redirect_uri type.
+  return `${redirectBaseUrl()}${ATPROTO_PATHS.linkCallback}` as AtprotoRedirectUri;
 }
 
 export function getAtprotoClientMetadata(): OAuthClientMetadataInput {
+  // A plain-http loopback base URL gets the SDK's RFC 8252 development
+  // client: `http://localhost` client_id carrying the
+  // real scope and redirect URIs in its query, auth method "none". It is
+  // the only client shape an authorization server accepts from a
+  // non-https origin, and Bluesky's servers accept it, so the full round
+  // trip is testable locally. Confidential-client behavior
+  // (private_key_jwt, metadata/JWKS documents) still needs an https
+  // deployment to validate.
+  if (getAtprotoClientMode() === "loopback") {
+    return buildAtprotoLoopbackClientMetadata({
+      scope: ATPROTO_SCOPE,
+      redirect_uris: [
+        // Same order rule as below: the SDK defaults to the first entry.
+        `${redirectBaseUrl()}${ATPROTO_PATHS.callback}`,
+        `${redirectBaseUrl()}${ATPROTO_PATHS.linkCallback}`,
+      ],
+    });
+  }
   const base = baseUrl();
   return {
     client_id: `${base}${ATPROTO_PATHS.clientMetadata}`,

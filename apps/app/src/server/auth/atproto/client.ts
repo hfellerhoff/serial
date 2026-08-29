@@ -4,6 +4,7 @@ import {
   getAtprotoKeyset,
   getStoreEncryptionKey,
 } from "./config";
+import { getAtprotoClientMode } from "./mode";
 import { ALLOW_INSECURE_PDS, createHardenedFetch } from "./hardened-fetch";
 import { createAtprotoRequestLock } from "./lock";
 import { createAtprotoSessionStore, createAtprotoStateStore } from "./stores";
@@ -31,14 +32,17 @@ export function getAtprotoClient(): Promise<NodeOAuthClient> {
 }
 
 async function buildClient(): Promise<NodeOAuthClient> {
-  const keyset = await getAtprotoKeyset();
+  // The dev loopback client is public (auth method "none"): passing the
+  // keyset would attach a JWKS to metadata that must not carry one.
+  const keyset =
+    getAtprotoClientMode() === "loopback" ? undefined : await getAtprotoKeyset();
   const encryptionKey = getStoreEncryptionKey();
 
   const fetch = createHardenedFetch();
 
   return new NodeOAuthClient({
     clientMetadata: getAtprotoClientMetadata(),
-    keyset,
+    ...(keyset ? { keyset } : {}),
     stateStore: createAtprotoStateStore(db, encryptionKey),
     sessionStore: createAtprotoSessionStore(db, encryptionKey),
     requestLock: createAtprotoRequestLock(getKV),

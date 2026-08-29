@@ -9,13 +9,37 @@ import {
   seedAtprotoLink,
 } from "../fixtures/seed-db";
 import { signUp } from "../fixtures/auth";
+import type { Page } from "@playwright/test";
 
 /**
  * The ConnectionsDialog surface for the AT Protocol connection. The full
  * authorize round trip needs a real authorization server, so the link
  * state is seeded directly (the rows the link callback leaves behind) and
- * the dialog + unlink flow run end to end against the real app server.
+ * the dialog + unlink flow run end to end against the real app server;
+ * the handle typeahead runs against the stub AppView.
  */
+
+async function openConnections(page: Page, userName: string) {
+  // The left sidebar is offcanvas until opened, and a pre-hydration
+  // click on the toggle is swallowed — retry until the user menu is
+  // actually reachable.
+  const userButton = page
+    .getByRole("button", { name: new RegExp(userName) })
+    .first();
+  const userButtonInViewport = async () => {
+    const box = await userButton.boundingBox();
+    return !!box && box.x >= 0;
+  };
+  await expect(async () => {
+    if (!(await userButtonInViewport())) {
+      await page.getByRole("button", { name: "Menu" }).click();
+    }
+    await expect(userButton).toBeInViewport({ timeout: 2000 });
+  }).toPass({ timeout: 20000, intervals: [500, 1000, 2000] });
+  await userButton.click();
+  await page.getByRole("menuitem", { name: "Connections" }).click();
+  await expect(page.getByText("Manage your connected services")).toBeVisible();
+}
 
 test.describe("atproto connection management", () => {
   test.use({ viewport: { width: 1920, height: 1080 } });
@@ -47,33 +71,9 @@ test.describe("atproto connection management", () => {
       password: "password123",
     });
 
-    const openConnections = async () => {
-      // The left sidebar is offcanvas until opened, and a pre-hydration
-      // click on the toggle is swallowed — retry until the user menu is
-      // actually reachable.
-      const userButton = page
-        .getByRole("button", { name: /Atmosphere Tester/ })
-        .first();
-      const userButtonInViewport = async () => {
-        const box = await userButton.boundingBox();
-        return !!box && box.x >= 0;
-      };
-      await expect(async () => {
-        if (!(await userButtonInViewport())) {
-          await page.getByRole("button", { name: "Menu" }).click();
-        }
-        await expect(userButton).toBeInViewport({ timeout: 2000 });
-      }).toPass({ timeout: 20000, intervals: [500, 1000, 2000] });
-      await userButton.click();
-      await page.getByRole("menuitem", { name: "Connections" }).click();
-      await expect(
-        page.getByText("Manage your connected services"),
-      ).toBeVisible();
-    };
-
     // Not yet linked: the Atmosphere row is configured and clickable, and
     // opens the handle entry form.
-    await openConnections();
+    await openConnections(page, "Atmosphere Tester");
     const atmosphereRow = page
       .locator("div")
       .filter({ has: page.getByText("Atmosphere", { exact: true }) })
@@ -97,7 +97,7 @@ test.describe("atproto connection management", () => {
       }
     });
     await page.reload();
-    await openConnections();
+    await openConnections(page, "Atmosphere Tester");
     // The persisted-cache restore can serve the stale "not connected"
     // status first; the on-mount refetch replaces it (slowly under
     // parallel-worker load).
@@ -120,5 +120,51 @@ test.describe("atproto connection management", () => {
         accountRowCount: 0,
         connection: { userId: null, status: "disconnected", session: null },
       });
+  });
+
+  test("handle typeahead suggests accounts and threads the selected DID", async ({
+    page,
+  }) => {
+    test.setTimeout(60000);
+    testEmail = generateTestEmail();
+    did = "";
+
+    await signUp({
+      page,
+      name: "Typeahead Tester",
+      email: testEmail,
+      password: "password123",
+    });
+
+    await openConnections(page, "Typeahead Tester");
+    await page
+      .locator("div")
+      .filter({ has: page.getByText("Atmosphere", { exact: true }) })
+      .filter({ hasText: "Not connected" })
+      .last()
+      .click();
+
+    // Two characters are enough to surface stub-AppView suggestions; the
+    // same shared field the auth pages use drives the link form.
+    const handleInput = page.getByLabel("Handle");
+    await handleInput.fill("al");
+    const suggestions = page.getByLabel("Suggested accounts");
+    await expect(suggestions.getByText("Alice Test")).toBeVisible();
+    await expect(suggestions.getByText("alice.test")).toBeVisible();
+
+    // Selecting fills the input and threads the DID into the link start
+    // as a resolution shortcut.
+    await suggestions.getByText("Alice Test").click();
+    await expect(handleInput).toHaveValue("alice.test");
+    await expect(suggestions).not.toBeVisible();
+
+    const linkRequest = page.waitForRequest(
+      (request) => request.url().includes("/api/rpc/atproto/linkAccount"),
+      { timeout: 10_000 },
+    );
+    await page.getByRole("button", { name: "Connect" }).click();
+    const request = await linkRequest;
+    expect(request.postData()).toContain("alice.test");
+    expect(request.postData()).toContain("did:plc:e2e-alice");
   });
 });

@@ -10,6 +10,7 @@ import {
   disconnectAtprotoConnection,
   sweepExpiredAtprotoState,
 } from "./stores";
+import type { AtprotoRedirectUri } from "./config";
 import type { OAuthSession } from "@atproto/oauth-client-node";
 import { db } from "~/server/db";
 import { account, atprotoConnections } from "~/server/db/schema";
@@ -114,7 +115,7 @@ export async function finishAtprotoAuth(
      * the default sign-in callback (the SDK exchanges the code against the
      * first registered redirect URI unless told otherwise).
      */
-    redirectUri?: `https://${string}`;
+    redirectUri?: AtprotoRedirectUri;
   },
 ): Promise<AtprotoCallbackResult> {
   const client = await getAtprotoClient();

@@ -6,7 +6,7 @@ import {
   getAdminSigninMethods,
   getEnabledAuthProviders,
 } from "~/lib/constants";
-import { identifierSchema } from "~/server/auth/atproto/schemas";
+import { didSchema, identifierSchema } from "~/server/auth/atproto/schemas";
 import { getKV } from "~/server/kv";
 import {
   isAtprotoConfigured,
@@ -89,7 +89,17 @@ async function enforceLinkRateLimit(userId: string): Promise<void> {
 }
 
 export const linkAccount = protectedProcedure
-  .input(z.object({ identifier: identifierSchema }))
+  .input(
+    z.object({
+      identifier: identifierSchema,
+      /**
+       * Optional pre-resolved DID from the typeahead, trusted only as a
+       * resolution shortcut — the SDK still verifies the full identity
+       * chain before the callback binds anything.
+       */
+      did: didSchema.optional(),
+    }),
+  )
   .handler(async ({ context, input }) => {
     if (!isAtprotoConfigured()) {
       throw new ORPCError("PRECONDITION_FAILED", {
@@ -123,10 +133,11 @@ export const linkAccount = protectedProcedure
         ),
       )
       .get();
+    const resolutionTarget = input.did ?? input.identifier;
     if (
       existingAccount &&
-      input.identifier.startsWith("did:") &&
-      existingAccount.accountId !== input.identifier
+      resolutionTarget.startsWith("did:") &&
+      existingAccount.accountId !== resolutionTarget
     ) {
       throw new ORPCError("CONFLICT", {
         message:
@@ -140,7 +151,7 @@ export const linkAccount = protectedProcedure
       const { startAtprotoLink } =
         await import("~/server/auth/atproto/service");
       const url = await startAtprotoLink({
-        identifier: input.identifier,
+        identifier: resolutionTarget,
         userId: context.user.id,
       });
       return { url: url.toString() };
