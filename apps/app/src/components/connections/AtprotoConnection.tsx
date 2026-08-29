@@ -44,10 +44,7 @@ export function AtprotoConnectionForm() {
           spellCheck={false}
         />
       </div>
-      <Button
-        type="submit"
-        disabled={linkMutation.isPending || !handle}
-      >
+      <Button type="submit" disabled={linkMutation.isPending || !handle}>
         {linkMutation.isPending ? (
           <Loader2Icon className="animate-spin" size={16} />
         ) : (

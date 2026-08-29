@@ -29,7 +29,13 @@ export function classifyAuthRequest(
   ) {
     return { provider: "oauth", intent: "sign-in" };
   }
-  if (path === ATPROTO_ROUTES.authorize || path === ATPROTO_ROUTES.callback) {
+  // The typeahead gates with the rest of the atproto surface so a disabled
+  // provider exposes no anonymous relay into the AppView search index.
+  if (
+    path === ATPROTO_ROUTES.authorize ||
+    path === ATPROTO_ROUTES.callback ||
+    path === ATPROTO_ROUTES.typeahead
+  ) {
     return { provider: "atproto", intent: "sign-in" };
   }
   return undefined;

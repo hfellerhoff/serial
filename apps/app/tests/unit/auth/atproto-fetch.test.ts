@@ -7,10 +7,8 @@ import { describe, expect, it, vi } from "vitest";
  * followed implicitly, whatever mode the caller asked for.
  */
 
-vi.mock("~/server/db", () => ({ db: {} }));
-vi.mock("~/server/kv", () => ({ getKV: () => undefined }));
-
-const { createHardenedFetch } = await import("~/server/auth/atproto/client");
+const { createHardenedFetch } =
+  await import("~/server/auth/atproto/hardened-fetch");
 
 function stubFetch() {
   return vi.fn((input: string | Request | URL, init?: RequestInit) => {

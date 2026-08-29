@@ -312,7 +312,10 @@ describe("atproto link and unlink", () => {
       .where(eq(atprotoConnections.did, DID));
     authorizeMock.mockResolvedValue(new URL("https://pds.example/authorize"));
 
-    await startAtprotoLink({ identifier: "user.example.com", userId: "user-1" });
+    await startAtprotoLink({
+      identifier: "user.example.com",
+      userId: "user-1",
+    });
     // The sweep is fire-and-forget; give it a beat.
     await vi.waitFor(() => expect(revokeMock).toHaveBeenCalledWith(DID));
 

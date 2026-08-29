@@ -119,6 +119,14 @@ export const env = createEnv({
      * against a local AT Protocol dev network.
      */
     ATPROTO_PLC_DIRECTORY_URL: z.url().optional(),
+    /**
+     * AppView backing the handle typeahead on the auth pages. Leave unset
+     * for the public Bluesky AppView; self-hosters can point it at any
+     * host serving app.bsky.actor.searchActorsTypeahead. In production the
+     * proxy's hardened fetch requires an https, publicly routable host;
+     * http and private addresses work only outside production.
+     */
+    ATPROTO_APPVIEW_URL: z.url().optional(),
     SERIAL_EXTENSION_REDIRECT_URIS: z
       .string()
       .optional()
@@ -213,6 +221,7 @@ export const env = createEnv({
     ATPROTO_CLIENT_PRIVATE_KEYS: process.env.ATPROTO_CLIENT_PRIVATE_KEYS,
     ATPROTO_STORE_ENCRYPTION_KEY: process.env.ATPROTO_STORE_ENCRYPTION_KEY,
     ATPROTO_PLC_DIRECTORY_URL: process.env.ATPROTO_PLC_DIRECTORY_URL,
+    ATPROTO_APPVIEW_URL: process.env.ATPROTO_APPVIEW_URL,
     SERIAL_EXTENSION_REDIRECT_URIS: process.env.SERIAL_EXTENSION_REDIRECT_URIS,
     SERIAL_CAPTURE_MAX_CONCURRENT_FETCHES:
       process.env.SERIAL_CAPTURE_MAX_CONCURRENT_FETCHES,

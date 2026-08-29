@@ -31,6 +31,12 @@ export const SELF_HOSTED_BOOTSTRAP_APP_PORT = getPort(
 export const DEMO_TURSO_PORT = getPort("SERIAL_TEST_DEMO_TURSO_PORT", 8083);
 export const DEMO_APP_PORT = getPort("SERIAL_TEST_DEMO_APP_PORT", 3005);
 
+/** Stub AppView backing the atproto handle typeahead in self-hosted e2e */
+export const SELF_HOSTED_APPVIEW_SERVER_PORT = getPort(
+  "SERIAL_TEST_SELF_HOSTED_APPVIEW_PORT",
+  3009,
+);
+
 /** RSS fixture servers (one per test environment for full isolation) */
 export const SELF_HOSTED_RSS_SERVER_PORT = getPort(
   "SERIAL_TEST_SELF_HOSTED_RSS_PORT",

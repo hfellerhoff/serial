@@ -57,10 +57,7 @@ export const getConnectionStatus = protectedProcedure.handler(
       isConnected,
       needsReconnect,
       handle:
-        connection?.handle ??
-        connection?.did ??
-        accountRow?.accountId ??
-        null,
+        connection?.handle ?? connection?.did ?? accountRow?.accountId ?? null,
       isConfigured: isAtprotoConfigured(),
     };
   },
@@ -78,7 +75,9 @@ const LINK_RATE_LIMIT_WINDOW_SECONDS = 60;
 
 async function enforceLinkRateLimit(userId: string): Promise<void> {
   const kv = await getKV();
-  const window = Math.floor(Date.now() / (LINK_RATE_LIMIT_WINDOW_SECONDS * 1000));
+  const window = Math.floor(
+    Date.now() / (LINK_RATE_LIMIT_WINDOW_SECONDS * 1000),
+  );
   const key = `atproto-link-rate:${userId}:${window}`;
   const count = Number((await kv.get(key)) ?? "0");
   if (count >= LINK_RATE_LIMIT_MAX_PER_WINDOW) {
@@ -138,7 +137,8 @@ export const linkAccount = protectedProcedure
     try {
       // Dynamic import keeps the SDK off the module graph of unconfigured
       // instances, matching the auth module's own pattern.
-      const { startAtprotoLink } = await import("~/server/auth/atproto/service");
+      const { startAtprotoLink } =
+        await import("~/server/auth/atproto/service");
       const url = await startAtprotoLink({
         identifier: input.identifier,
         userId: context.user.id,

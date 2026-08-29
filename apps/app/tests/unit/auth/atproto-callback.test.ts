@@ -117,12 +117,10 @@ describe("finishAtprotoAuth", () => {
 
   it("surfaces the link state's user and passes the redirect URI through", async () => {
     const oauth = oauthSession(DID);
-    const callback = vi
-      .fn()
-      .mockResolvedValue({
-        session: oauth,
-        state: JSON.stringify({ linkUserId: "user-1" }),
-      });
+    const callback = vi.fn().mockResolvedValue({
+      session: oauth,
+      state: JSON.stringify({ linkUserId: "user-1" }),
+    });
     clientHolder.current = fakeClient({ callback });
 
     const result = await finishAtprotoAuth(new URLSearchParams("code=abc"), {

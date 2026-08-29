@@ -46,6 +46,7 @@ export const ATPROTO_ROUTES = {
   jwks: `${ATPROTO_ROUTE_PREFIX}jwks.json`,
   authorize: `${ATPROTO_ROUTE_PREFIX}authorize`,
   callback: `${ATPROTO_ROUTE_PREFIX}callback`,
+  typeahead: `${ATPROTO_ROUTE_PREFIX}typeahead`,
   // Link flows land on their own registered redirect URI so the policy
   // classifiers in server/auth/index.tsx (which gate the sign-in callback
   // path) never treat an add-on link as a sign-in or roll it back.

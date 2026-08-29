@@ -109,7 +109,10 @@ export async function getAtprotoLinkState(tursoPort: number, did: string) {
     .where(eq(schema.atprotoConnections.did, did))
     .get();
   client.close();
-  return { accountRowCount: accountRows.length, connection: connection ?? null };
+  return {
+    accountRowCount: accountRows.length,
+    connection: connection ?? null,
+  };
 }
 
 /** Remove a seeded connection row (unlink leaves it unbound, not deleted). */

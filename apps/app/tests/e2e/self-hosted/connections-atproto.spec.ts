@@ -105,7 +105,10 @@ test.describe("atproto connection management", () => {
 
     // Disconnect: removes the sign-in method and destroys the credential
     // material even though the seeded blob is unreadable ciphertext.
-    await page.getByRole("button", { name: /disconnect/i }).first().click();
+    await page
+      .getByRole("button", { name: /disconnect/i })
+      .first()
+      .click();
     await expect(page.getByText("Atmosphere account disconnected")).toBeVisible(
       { timeout: 10000 },
     );

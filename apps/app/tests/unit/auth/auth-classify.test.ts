@@ -37,6 +37,13 @@ describe("classifyAuthRequest", () => {
     expect(classifyAuthRequest(ATPROTO_ROUTES.linkCallback)).toBeUndefined();
   });
 
+  it("gates the typeahead with the rest of the atproto surface", () => {
+    expect(classifyAuthRequest(ATPROTO_ROUTES.typeahead)).toEqual({
+      provider: "atproto",
+      intent: "sign-in",
+    });
+  });
+
   it("classifies the email and oauth paths", () => {
     expect(classifyAuthRequest("/sign-up/email")).toEqual({
       provider: "email",

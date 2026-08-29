@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { AtprotoAuthButton } from "~/components/auth/AtprotoAuthButton";
 import { AuthHeader } from "~/components/auth/AuthHeader";
 import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";
@@ -50,6 +51,10 @@ function SignUp() {
   const showOAuth =
     signupStatus.isOAuthConfigured &&
     signupStatus.signupProviders.includes("oauth");
+  // Configured-and-enabled: the loader already intersects enabled providers
+  // with the instance's configured set, and invite-token sign-ups stay
+  // email-only upstream.
+  const showAtproto = signupStatus.signupProviders.includes("atproto");
 
   if (!signupsEnabled) {
     return (
@@ -180,7 +185,7 @@ function SignUp() {
             </>
           )}
 
-          {showEmail && showOAuth && (
+          {showEmail && (showOAuth || showAtproto) && (
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
@@ -189,6 +194,14 @@ function SignUp() {
                 <span className="bg-card text-muted-foreground px-2">or</span>
               </div>
             </div>
+          )}
+
+          {showAtproto && (
+            <AtprotoAuthButton
+              intent="sign-up"
+              variant={showEmail ? "outline" : "default"}
+              disabled={loading}
+            />
           )}
 
           {showOAuth && (

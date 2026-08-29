@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 import { baseConfig } from "./playwright.config";
 import {
   SELF_HOSTED_APP_PORT,
+  SELF_HOSTED_APPVIEW_SERVER_PORT,
   SELF_HOSTED_BOOTSTRAP_APP_PORT,
   SELF_HOSTED_BOOTSTRAP_TURSO_PORT,
   SELF_HOSTED_RSS_SERVER_PORT,
@@ -73,6 +74,8 @@ export default defineConfig({
           ? productionTestServer
           : "pnpm dev:test:self-hosted",
       ),
+      // run-e2e.ts points ATPROTO_APPVIEW_URL at the stub AppView for both
+      // app servers; dotenv leaves already-set variables alone.
       url: `http://localhost:${SELF_HOSTED_APP_PORT}`,
       stdout: "pipe",
       timeout: 120_000,
@@ -97,6 +100,13 @@ export default defineConfig({
         `node --import=tsx tests/e2e/fixtures/rss-server.ts ${SELF_HOSTED_RSS_SERVER_PORT}`,
       ),
       url: `http://127.0.0.1:${SELF_HOSTED_RSS_SERVER_PORT}`,
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      command: supervisedWebServerCommand(
+        `node --import=tsx tests/e2e/fixtures/appview-server.ts ${SELF_HOSTED_APPVIEW_SERVER_PORT}`,
+      ),
+      url: `http://127.0.0.1:${SELF_HOSTED_APPVIEW_SERVER_PORT}`,
       reuseExistingServer: !process.env.CI,
     },
   ],
