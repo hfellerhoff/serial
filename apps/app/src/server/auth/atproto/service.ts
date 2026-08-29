@@ -58,6 +58,21 @@ export async function startAtprotoAuth(input: {
   });
 }
 
+/**
+ * Resolve a typed identifier to its DID without starting a flow, so the
+ * authorize endpoint can pre-flight sign-up policy before issuing a
+ * redirect. A value that is already a DID is returned as-is: the SDK
+ * verifies the full identity chain during the callback regardless, and the
+ * pre-flight only needs the same value the flow itself will authorize
+ * with.
+ */
+export async function resolveAtprotoDid(identifier: string): Promise<string> {
+  if (identifier.startsWith("did:")) return identifier;
+  const client = await getAtprotoClient();
+  const info = await client.oauthResolver.resolveIdentity(identifier);
+  return info.did;
+}
+
 /** At most one revocation sweep per interval, instance-wide via KV. */
 const SWEEP_INTERVAL_SECONDS = 5 * 60;
 /** Revocations are serial outbound calls; bound the batch per sweep. */

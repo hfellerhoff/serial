@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { AtprotoAuthButton } from "~/components/auth/AtprotoAuthButton";
+import { AtprotoAuthButton } from "~/components/auth/AtprotoAuthForm";
 import { AuthHeader } from "~/components/auth/AuthHeader";
 import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";

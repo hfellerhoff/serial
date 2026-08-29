@@ -1,9 +1,9 @@
 import { render } from "react-email";
 import { APIError } from "better-auth/api";
-import { asc, count, eq } from "drizzle-orm";
+import { and, asc, count, eq } from "drizzle-orm";
 import { createElement } from "react";
 import { db } from "../db";
-import { appConfig, session, user } from "../db/schema";
+import { account, appConfig, session, user } from "../db/schema";
 import type { AuthProvider } from "~/lib/constants";
 import NewUserNotificationEmail from "~/emails/new-user-notification";
 import {
@@ -115,6 +115,42 @@ export async function enforceAuthAttemptPolicy(
   }
 }
 
+/**
+ * Pre-flight sign-up gate for OAuth-style providers that can resolve the
+ * provider-side account id before redirecting (atproto resolves the DID
+ * from the typed identifier; generic OAuth cannot pre-flight because its
+ * account id only arrives in the callback). An existing account row makes
+ * the attempt a plain sign-in; without one the callback would auto-create
+ * a user, so the attempt must clear sign-up policy now — immediate
+ * feedback on the auth page instead of create-then-roll-back. The
+ * post-auth rollback stays as defense-in-depth for the race where the
+ * account row disappears between this check and the callback.
+ */
+export async function enforceResolvedSignupPolicy(input: {
+  provider: AuthProvider;
+  /** The provider's Better Auth `account.providerId` value. */
+  providerId: string;
+  /** Provider-side account id (the DID for atproto). */
+  accountId: string;
+}): Promise<void> {
+  const existing = await db
+    .select({ id: account.id })
+    .from(account)
+    .where(
+      and(
+        eq(account.providerId, input.providerId),
+        eq(account.accountId, input.accountId),
+      ),
+    )
+    .get();
+  if (existing) return;
+
+  await enforceAuthAttemptPolicy({
+    provider: input.provider,
+    intent: "sign-up",
+  });
+}
+
 export interface CompletedAuth {
   provider: AuthProvider;
   /**
@@ -130,8 +166,11 @@ export interface CompletedAuth {
   invitationToken?: string;
   /**
    * Deletes the just-created user and all related records (accounts,
-   * sessions, plugin data). Supplied by the adapter because deletion goes
-   * through the Better Auth API with the new session's credentials.
+   * sessions, plugin data). Supplied by the adapter because deletion is a
+   * server-side mechanism the policy stays agnostic to — the after-hook's
+   * request carries no usable credentials (the new session only exists on
+   * the response), so the adapter deletes directly rather than through a
+   * credentialed Better Auth API call.
    */
   rollbackNewUser: () => Promise<void>;
 }

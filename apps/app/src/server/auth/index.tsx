@@ -42,6 +42,7 @@ import {
   applyPostAuthPolicy,
   enforceAuthAttemptPolicy,
 } from "~/server/auth/policy";
+import { rollbackAutoCreatedUserFromHook } from "~/server/auth/rollback";
 import { IS_EMAIL_ENABLED, sendEmail } from "~/server/email";
 import { setOtpCooldown } from "~/server/otp";
 import { captureException, logError, logMessage } from "~/server/logger";
@@ -413,13 +414,8 @@ export const auth = betterAuth({
         ...completed,
         user: newSession.user,
         invitationToken: getInvitationToken(ctx.body),
-        rollbackNewUser: async () => {
-          // Delete via Better Auth's deleteUser API so all related records
-          // (accounts, sessions, plugin data) are properly cleaned up.
-          const headers = new Headers();
-          headers.set("Authorization", `Bearer ${newSession.session.token}`);
-          await auth.api.deleteUser({ headers, body: {} });
-        },
+        rollbackNewUser: () =>
+          rollbackAutoCreatedUserFromHook(ctx, newSession.user.id),
       });
     }),
   },
