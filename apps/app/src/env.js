@@ -122,7 +122,9 @@ export const env = createEnv({
     /**
      * AppView backing the handle typeahead on the auth pages. Leave unset
      * for the public Bluesky AppView; self-hosters can point it at any
-     * host serving app.bsky.actor.searchActorsTypeahead.
+     * host serving app.bsky.actor.searchActorsTypeahead. In production the
+     * proxy's hardened fetch requires an https, publicly routable host;
+     * http and private addresses work only outside production.
      */
     ATPROTO_APPVIEW_URL: z.url().optional(),
     SERIAL_EXTENSION_REDIRECT_URIS: z

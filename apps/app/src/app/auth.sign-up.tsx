@@ -201,7 +201,6 @@ function SignUp() {
               intent="sign-up"
               variant={showEmail ? "outline" : "default"}
               disabled={loading}
-              onBusyChange={setLoading}
             />
           )}
 

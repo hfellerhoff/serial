@@ -1,15 +1,31 @@
 import { expect, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 /**
  * The Atmosphere (AT Protocol) entry points on the auth pages. This
  * instance has atproto configured (test keys) and every provider enabled,
  * so the full provider section renders: email form, then Atmosphere above
- * the generic OAuth button.
+ * the generic OAuth button. The typeahead proxy points at the stub AppView
+ * fixture, keeping suggestion specs hermetic.
  *
  * No PDS is reachable from this environment, so specs cover the UI flow up
  * to the authorize call and its error surface; the full round trip is
  * covered by the release-gate matrix.
  */
+
+/**
+ * Open the handle step, retrying the click until it takes — the button
+ * renders server-side but its onClick only attaches once React hydrates.
+ */
+async function openHandleStep(page: Page, buttonName: string) {
+  const handleInput = page.getByLabel("Atmosphere handle");
+  await expect(async () => {
+    if (await handleInput.isVisible()) return;
+    await page.getByRole("button", { name: buttonName }).click();
+    await expect(handleInput).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15000 });
+  return handleInput;
+}
 
 test.describe("atmosphere sign-in entry", () => {
   test("renders above the generic OAuth button, below the email form", async ({
@@ -18,10 +34,9 @@ test.describe("atmosphere sign-in entry", () => {
     await page.goto("/auth/sign-in");
 
     await expect(page.getByRole("button", { name: /login/i })).toBeVisible();
-    const atmosphere = page.getByRole("button", {
-      name: "Sign in with Atmosphere",
-    });
-    await expect(atmosphere).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Sign in with Atmosphere" }),
+    ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Sign in with TestOAuth" }),
     ).toBeVisible();
@@ -46,16 +61,7 @@ test.describe("atmosphere sign-in entry", () => {
     });
 
     await page.goto("/auth/sign-in");
-
-    const handleInput = page.getByLabel("Atmosphere handle");
-    // Retry the click until the handle step opens — the button renders
-    // server-side but its onClick only attaches once React hydrates.
-    await expect(async () => {
-      await page
-        .getByRole("button", { name: "Sign in with Atmosphere" })
-        .click();
-      await expect(handleInput).toBeVisible({ timeout: 1000 });
-    }).toPass({ timeout: 15000 });
+    const handleInput = await openHandleStep(page, "Sign in with Atmosphere");
     await expect(handleInput).toBeFocused();
 
     // Keystrokes only ever reach the Serial proxy, never an AppView.
@@ -74,6 +80,37 @@ test.describe("atmosphere sign-in entry", () => {
       page.getByText(/could not start atmosphere sign in/i),
     ).toBeVisible({ timeout: 20_000 });
     await expect(page).toHaveURL(/\/auth\/sign-in/);
+  });
+
+  test("shows suggestions and threads the selected DID to authorize", async ({
+    page,
+  }) => {
+    await page.goto("/auth/sign-in");
+    const handleInput = await openHandleStep(page, "Sign in with Atmosphere");
+
+    // Two characters are enough to surface stub-AppView suggestions.
+    await handleInput.fill("al");
+    const suggestions = page.getByLabel("Suggested accounts");
+    await expect(suggestions.getByText("Alice Test")).toBeVisible();
+    await expect(suggestions.getByText("alice.test")).toBeVisible();
+    await expect(suggestions.getByText("Alina Test")).toBeVisible();
+
+    // Selecting fills the input and threads the DID into the authorize
+    // body as a resolution shortcut.
+    await suggestions.getByText("Alice Test").click();
+    await expect(handleInput).toHaveValue("alice.test");
+    await expect(suggestions).not.toBeVisible();
+
+    const authorizeRequest = page.waitForRequest(
+      (request) => request.url().includes("/api/auth/atproto/authorize"),
+      { timeout: 10_000 },
+    );
+    await page.getByRole("button", { name: "Continue" }).click();
+    const request = await authorizeRequest;
+    expect(request.postDataJSON()).toEqual({
+      identifier: "alice.test",
+      did: "did:plc:e2e-alice",
+    });
   });
 
   test("surfaces a failed callback redirect as a toast", async ({ page }) => {
@@ -95,10 +132,9 @@ test.describe("atmosphere sign-up entry", () => {
     await expect(
       page.getByRole("button", { name: /create an account/i }),
     ).toBeVisible();
-    const atmosphere = page.getByRole("button", {
-      name: "Sign up with Atmosphere",
-    });
-    await expect(atmosphere).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Sign up with Atmosphere" }),
+    ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Sign up with TestOAuth" }),
     ).toBeVisible();
@@ -110,13 +146,6 @@ test.describe("atmosphere sign-up entry", () => {
       providerButtons.indexOf("Sign up with TestOAuth"),
     );
 
-    // Retry the click until the handle step opens — the button renders
-    // server-side but its onClick only attaches once React hydrates.
-    await expect(async () => {
-      await atmosphere.click();
-      await expect(page.getByLabel("Atmosphere handle")).toBeVisible({
-        timeout: 1000,
-      });
-    }).toPass({ timeout: 15000 });
+    await openHandleStep(page, "Sign up with Atmosphere");
   });
 });

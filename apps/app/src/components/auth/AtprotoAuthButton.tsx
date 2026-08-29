@@ -1,11 +1,7 @@
 import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "~/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -17,6 +13,11 @@ import { authClient } from "~/lib/auth-client";
  * authoritative and submittable; typeahead suggestions are a convenience
  * fetched exclusively through Serial's proxy, and a selected suggestion
  * threads its DID to the authorize endpoint to skip one resolution.
+ *
+ * Deliberately deferred: the page's ?callbackURL= is not threaded through
+ * the OAuth round trip — the callback's success redirect is fixed at "/"
+ * in the plugin. Carrying it through the encrypted state payload is a
+ * follow-up once a flow (extension connect) actually needs it.
  */
 
 const TYPEAHEAD_PATH = "/atproto/typeahead";
@@ -37,16 +38,14 @@ interface ActorSuggestion {
 interface AtprotoAuthButtonProps {
   intent: "sign-in" | "sign-up";
   variant: "outline" | "default";
+  /** The page's own submission state; busy-ness here stays internal. */
   disabled: boolean;
-  /** Mirrors the in-flight authorize call into the page's loading state. */
-  onBusyChange: (busy: boolean) => void;
 }
 
 export function AtprotoAuthButton({
   intent,
   variant,
   disabled,
-  onBusyChange,
 }: AtprotoAuthButtonProps) {
   const [open, setOpen] = useState(false);
   const [identifier, setIdentifier] = useState("");
@@ -78,7 +77,9 @@ export function AtprotoAuthButton({
           setSuggestions(data?.actors ?? []);
         })
         .catch(() => {
-          // Aborted or failed: degrade silently to plain entry.
+          // A real failure degrades to plain entry; an abort just means a
+          // newer query superseded this one, so its results stay.
+          if (!controller.signal.aborted) setSuggestions([]);
         });
     }, TYPEAHEAD_DEBOUNCE_MS);
 
@@ -91,7 +92,6 @@ export function AtprotoAuthButton({
   const submit = async () => {
     if (!query || busy) return;
     setBusy(true);
-    onBusyChange(true);
 
     const { data, error } = await authClient.$fetch<{ url: string }>(
       AUTHORIZE_PATH,
@@ -107,7 +107,6 @@ export function AtprotoAuthButton({
     if (error || !data?.url) {
       toast.error(error?.message ?? GENERIC_ERROR_MESSAGE);
       setBusy(false);
-      onBusyChange(false);
       return;
     }
     window.location.assign(data.url);
@@ -135,6 +134,7 @@ export function AtprotoAuthButton({
         id="atproto-identifier"
         ref={inputRef}
         placeholder="name.bsky.social"
+        autoComplete="username"
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}
@@ -151,7 +151,10 @@ export function AtprotoAuthButton({
         }}
       />
       {visibleSuggestions.length > 0 && (
-        <div className="overflow-hidden rounded-md border">
+        <div
+          className="overflow-hidden rounded-md border"
+          aria-label="Suggested accounts"
+        >
           {visibleSuggestions.map((suggestion) => (
             <button
               key={suggestion.did}

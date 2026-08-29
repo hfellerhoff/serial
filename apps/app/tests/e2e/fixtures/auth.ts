@@ -127,15 +127,15 @@ export async function seedAdmin({
             VALUES (?, ?, 'credential', ?, ?, ?, ?)`,
       args: [accountId, userId, userId, hashed, now, now],
     },
-    // Set enabled-signin-providers to email
+    // Ensure the provider lists exist without clobbering them: specs call
+    // this mid-suite, and global setup owns the actual enabled set.
     {
-      sql: `INSERT OR REPLACE INTO serial_app_config (key, value, updated_at)
+      sql: `INSERT OR IGNORE INTO serial_app_config (key, value, updated_at)
             VALUES ('enabled-signin-providers', '["email"]', ?)`,
       args: [now],
     },
-    // Set enabled-signup-providers to email
     {
-      sql: `INSERT OR REPLACE INTO serial_app_config (key, value, updated_at)
+      sql: `INSERT OR IGNORE INTO serial_app_config (key, value, updated_at)
             VALUES ('enabled-signup-providers', '["email"]', ?)`,
       args: [now],
     },

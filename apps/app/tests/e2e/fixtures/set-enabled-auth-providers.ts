@@ -12,30 +12,32 @@ export async function setEnabledAuthProviders(
   const db = drizzle({ client, schema });
   const value = JSON.stringify(providers);
 
-  for (const key of [
-    "enabled-signin-providers",
-    "enabled-signup-providers",
-  ] as const) {
-    await db
-      .insert(schema.appConfig)
-      .values({ key, value, updatedAt: new Date() })
-      .onConflictDoUpdate({
-        target: schema.appConfig.key,
-        set: { value, updatedAt: new Date() },
-      });
+  try {
+    for (const key of [
+      "enabled-signin-providers",
+      "enabled-signup-providers",
+    ] as const) {
+      await db
+        .insert(schema.appConfig)
+        .values({ key, value, updatedAt: new Date() })
+        .onConflictDoUpdate({
+          target: schema.appConfig.key,
+          set: { value, updatedAt: new Date() },
+        });
 
-    const row = await db
-      .select()
-      .from(schema.appConfig)
-      .where(eq(schema.appConfig.key, key))
-      .get();
+      const row = await db
+        .select()
+        .from(schema.appConfig)
+        .where(eq(schema.appConfig.key, key))
+        .get();
 
-    if (row?.value !== value) {
-      throw new Error(
-        `setEnabledAuthProviders: expected "${value}" for ${key} but got "${row?.value}"`,
-      );
+      if (row?.value !== value) {
+        throw new Error(
+          `setEnabledAuthProviders: expected "${value}" for ${key} but got "${row?.value}"`,
+        );
+      }
     }
+  } finally {
+    client.close();
   }
-
-  client.close();
 }

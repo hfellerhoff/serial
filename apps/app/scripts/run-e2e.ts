@@ -33,6 +33,7 @@ const environments: Record<
     additionalPortVariables: [
       "SERIAL_TEST_SELF_HOSTED_BOOTSTRAP_APP_PORT",
       "SERIAL_TEST_SELF_HOSTED_BOOTSTRAP_TURSO_PORT",
+      "SERIAL_TEST_SELF_HOSTED_APPVIEW_PORT",
     ],
   },
   demo: {

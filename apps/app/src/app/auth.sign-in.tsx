@@ -198,7 +198,6 @@ function SignIn() {
               intent="sign-in"
               variant={showEmail ? "outline" : "default"}
               disabled={loading}
-              onBusyChange={setLoading}
             />
           )}
 

@@ -9,14 +9,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("~/server/db", () => ({ db: {} }));
 vi.mock("~/server/kv", () => ({ getKV: () => undefined }));
+vi.mock("~/server/logger", () => ({ logError: () => undefined }));
 vi.mock("~/env", () => ({
   env: { NODE_ENV: "test", ATPROTO_APPVIEW_URL: undefined },
 }));
 
 const { env } = await import("~/env");
-const { searchAtprotoActorsTypeahead, TYPEAHEAD_LIMIT } = await import(
-  "~/server/auth/atproto/typeahead"
-);
+const { searchAtprotoActorsTypeahead, TYPEAHEAD_LIMIT } =
+  await import("~/server/auth/atproto/typeahead");
 
 type MutableEnv = { ATPROTO_APPVIEW_URL: string | undefined };
 
@@ -123,11 +123,50 @@ describe("searchAtprotoActorsTypeahead", () => {
   });
 
   it("degrades to no suggestions on a malformed body", async () => {
-    const stub = stubFetch(jsonResponse({ actors: [{ handle: 42 }] }));
+    const stub = stubFetch(jsonResponse({ error: "not actors" }));
 
     await expect(searchAtprotoActorsTypeahead("alice", stub)).resolves.toEqual(
       [],
     );
+  });
+
+  it("drops a malformed actor without voiding the rest", async () => {
+    const stub = stubFetch(
+      jsonResponse({
+        actors: [{ handle: 42 }, { did: "did:plc:bob", handle: "bob.example" }],
+      }),
+    );
+
+    await expect(searchAtprotoActorsTypeahead("bo", stub)).resolves.toEqual([
+      { did: "did:plc:bob", handle: "bob.example" },
+    ]);
+  });
+
+  it("drops non-https avatar URLs with the actor they rode in on", async () => {
+    const stub = stubFetch(
+      jsonResponse({
+        actors: [
+          {
+            did: "did:plc:mallory",
+            handle: "mallory.example",
+            avatar: "javascript:alert(1)",
+          },
+          {
+            did: "did:plc:alice",
+            handle: "alice.example",
+            avatar: "https://cdn.example/alice.jpg",
+          },
+        ],
+      }),
+    );
+
+    await expect(searchAtprotoActorsTypeahead("al", stub)).resolves.toEqual([
+      {
+        did: "did:plc:alice",
+        handle: "alice.example",
+        avatar: "https://cdn.example/alice.jpg",
+      },
+    ]);
   });
 
   it("degrades to no suggestions when the fetch itself fails", async () => {
