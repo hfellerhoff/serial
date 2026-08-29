@@ -19,6 +19,12 @@ test.skip(
 );
 
 async function prepareControlledShell(page: Page) {
+  const serviceWorkerResponse = await page.request.get("/sw.js");
+  expect(serviceWorkerResponse.status()).toBe(200);
+  expect(serviceWorkerResponse.headers()["content-type"]).toContain(
+    "javascript",
+  );
+
   await page.evaluate(() => navigator.serviceWorker.ready);
   if (
     !(await page.evaluate(() => Boolean(navigator.serviceWorker.controller)))

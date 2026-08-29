@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './app/__root'
+import { Route as SwDotjsRouteImport } from './app/sw[.]js'
 import { Route as SitemapRouteImport } from './app/sitemap'
 import { Route as MaintenanceRouteImport } from './app/maintenance'
 import { Route as AuthRouteImport } from './app/auth'
@@ -42,6 +43,11 @@ import { Route as AppAdminInvitesRouteImport } from './app/_app.admin.invites'
 import { Route as AppAdminInfoRouteImport } from './app/_app.admin.info'
 import { Route as AppAdminUserIdRouteImport } from './app/_app.admin.user.$id'
 
+const SwDotjsRoute = SwDotjsRouteImport.update({
+  id: '/sw.js',
+  path: '/sw.js',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapRoute = SitemapRouteImport.update({
   id: '/sitemap',
   path: '/sitemap',
@@ -208,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/maintenance': typeof MaintenanceRoute
   '/sitemap': typeof SitemapRoute
+  '/sw.js': typeof SwDotjsRoute
   '/debug': typeof AppDebugRoute
   '/feeds': typeof AppFeedsRoute
   '/import': typeof AppImportRoute
@@ -240,6 +247,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/maintenance': typeof MaintenanceRoute
   '/sitemap': typeof SitemapRoute
+  '/sw.js': typeof SwDotjsRoute
   '/debug': typeof AppDebugRoute
   '/feeds': typeof AppFeedsRoute
   '/import': typeof AppImportRoute
@@ -275,6 +283,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/maintenance': typeof MaintenanceRoute
   '/sitemap': typeof SitemapRoute
+  '/sw.js': typeof SwDotjsRoute
   '/_app/debug': typeof AppDebugRoute
   '/_app/feeds': typeof AppFeedsRoute
   '/_app/import': typeof AppImportRoute
@@ -311,6 +320,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/maintenance'
     | '/sitemap'
+    | '/sw.js'
     | '/debug'
     | '/feeds'
     | '/import'
@@ -343,6 +353,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/maintenance'
     | '/sitemap'
+    | '/sw.js'
     | '/debug'
     | '/feeds'
     | '/import'
@@ -377,6 +388,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/maintenance'
     | '/sitemap'
+    | '/sw.js'
     | '/_app/debug'
     | '/_app/feeds'
     | '/_app/import'
@@ -412,6 +424,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   MaintenanceRoute: typeof MaintenanceRoute
   SitemapRoute: typeof SitemapRoute
+  SwDotjsRoute: typeof SwDotjsRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiDemoProvisionRoute: typeof ApiDemoProvisionRoute
@@ -424,6 +437,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sw.js': {
+      id: '/sw.js'
+      path: '/sw.js'
+      fullPath: '/sw.js'
+      preLoaderRoute: typeof SwDotjsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap': {
       id: '/sitemap'
       path: '/sitemap'
@@ -712,6 +732,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   MaintenanceRoute: MaintenanceRoute,
   SitemapRoute: SitemapRoute,
+  SwDotjsRoute: SwDotjsRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiDemoProvisionRoute: ApiDemoProvisionRoute,
