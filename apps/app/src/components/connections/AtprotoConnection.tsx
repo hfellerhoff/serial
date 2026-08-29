@@ -71,6 +71,7 @@ export function AtprotoConnectionListItem({
 
   const computedStatus = status ?? {
     isConnected: false,
+    needsReconnect: false,
     handle: null,
     isConfigured: false,
   };
@@ -121,13 +122,21 @@ export function AtprotoConnectionListItem({
           <span className="text-muted-foreground text-sm">
             {computedStatus.handle}
           </span>
+        ) : computedStatus.needsReconnect ? (
+          // Credentials were lost (revoked at the PDS, failed refresh) but
+          // the sign-in method still exists: the row re-links on click and
+          // keeps its disconnect affordance.
+          <span className="text-muted-foreground text-sm">
+            Reconnect {computedStatus.handle}
+          </span>
         ) : (
           <span className="text-muted-foreground text-sm">Not connected</span>
         )}
       </div>
       {isLoading ? (
         <Loader2Icon className="text-muted-foreground animate-spin" size={20} />
-      ) : !computedStatus.isConfigured ? null : computedStatus.isConnected ? (
+      ) : !computedStatus.isConfigured ? null : computedStatus.isConnected ||
+        computedStatus.needsReconnect ? (
         <Button
           variant="outline"
           size="sm"

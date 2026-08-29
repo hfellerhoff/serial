@@ -137,9 +137,32 @@ describe("atproto connection procedures", () => {
     const status = await api().atproto.getConnectionStatus();
     expect(status).toEqual({
       isConnected: true,
+      needsReconnect: false,
       handle: "guarded.example.com",
       isConfigured: true,
     });
+  });
+
+  it("surfaces a bound connection whose credentials were destroyed as reconnectable", async () => {
+    await seedLinked({ extraProviderId: "credential" });
+    await session.database
+      .update(atprotoConnections)
+      .set({ session: null, status: "disconnected" })
+      .where(eq(atprotoConnections.did, DID));
+
+    const status = await api().atproto.getConnectionStatus();
+    expect(status).toEqual({
+      isConnected: false,
+      needsReconnect: true,
+      handle: "guarded.example.com",
+      isConfigured: true,
+    });
+
+    // The sign-in method still exists, so disconnect must work from here.
+    await api().atproto.unlinkAccount();
+    expect(await atprotoAccountRows()).toHaveLength(0);
+    const after = await api().atproto.getConnectionStatus();
+    expect(after.needsReconnect).toBe(false);
   });
 
   it("refuses to unlink the sole sign-in method", async () => {

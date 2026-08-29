@@ -33,10 +33,16 @@ export const getConnectionStatus = protectedProcedure.handler(
 
     const isConnected =
       !!connection && connection.status === "active" && !!connection.session;
+    // A bound row whose credentials were destroyed (failed refresh, grant
+    // revoked at the PDS, rotated store key): the atproto sign-in method
+    // still exists, so the row must surface reconnect and disconnect
+    // affordances rather than a bare "not connected".
+    const needsReconnect = !!connection && !isConnected;
 
     return {
       isConnected,
-      handle: isConnected ? (connection.handle ?? connection.did) : null,
+      needsReconnect,
+      handle: connection ? (connection.handle ?? connection.did) : null,
       isConfigured: isAtprotoConfigured(),
     };
   },
