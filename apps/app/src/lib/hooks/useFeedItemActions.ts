@@ -110,7 +110,12 @@ export function useFeedItemActions(itemId: string) {
     const shouldOpenInSerial =
       feed?.openLocation === "serial" || !feed?.openLocation;
 
-    if (connectionState === "disconnected" || shouldOpenInSerial) {
+    // While disconnected, canOpen has restricted opening to retained text
+    // bodies, which only the reader can render.
+    if (connectionState === "disconnected") {
+      captureRootScrollRestoration(itemId);
+      void router.navigate({ to: `/read/${item.id}` });
+    } else if (shouldOpenInSerial) {
       captureRootScrollRestoration(itemId);
       void router.navigate({ to: `/${itemDestination}/${item.id}` });
     } else {

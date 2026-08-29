@@ -15,26 +15,23 @@ import {
   NetworkFirst,
   StaleWhileRevalidate,
 } from "workbox-strategies";
-import {
-  getCacheableNavigationResponse,
-  normalizeNavigationResponse,
-} from "~/lib/pwa/navigation-cache";
+import { getCacheableNavigationResponse } from "~/lib/pwa/navigation-cache";
 
 declare let self: ServiceWorkerGlobalScope;
 
 const NAVIGATION_CACHE_NAME = "navigation-cache";
 
 async function warmNavigationCache() {
-  const response = await fetch(
-    new Request("/", {
-      credentials: "include",
-      headers: { Accept: "text/html" },
-      redirect: "follow",
-    }),
-  );
-  if (!response.ok) return;
+  const request = new Request("/", {
+    credentials: "include",
+    headers: { Accept: "text/html" },
+    redirect: "follow",
+  });
+  const response = await fetch(request);
+  const cacheable = getCacheableNavigationResponse(request.url, response);
+  if (!cacheable) return;
   const cache = await caches.open(NAVIGATION_CACHE_NAME);
-  await cache.put("/", normalizeNavigationResponse(response));
+  await cache.put("/", cacheable);
 }
 
 // Take control of all open clients as soon as the SW activates, and warm
@@ -72,8 +69,8 @@ const navigationHandler = new NetworkFirst({
   networkTimeoutSeconds: 3,
   plugins: [
     {
-      cacheWillUpdate: ({ response }) =>
-        Promise.resolve(getCacheableNavigationResponse(response)),
+      cacheWillUpdate: ({ request, response }) =>
+        Promise.resolve(getCacheableNavigationResponse(request.url, response)),
     },
   ],
 });

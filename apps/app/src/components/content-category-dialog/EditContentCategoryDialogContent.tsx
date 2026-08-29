@@ -6,6 +6,7 @@ import { CategoryFeedsInput } from "./CategoryFeedsInput";
 import { CategoryNameInput } from "./CategoryNameInput";
 import type { FeedCategorization } from "~/server/api/routers/contentCategoriesRouter";
 import { Button } from "~/components/ui/button";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import {
   useDeleteContentCategoryMutation,
@@ -23,6 +24,7 @@ export function EditContentCategoryDialogContent({
   initialFeedIds: number[];
   onClose: () => void;
 }) {
+  const canMutate = useCanMutate();
   const [isUpdatingContentCategory, setIsUpdatingContentCategory] =
     useState(false);
   const [isDeletingContentCategory, setIsDeletingContentCategory] =
@@ -43,11 +45,11 @@ export function EditContentCategoryDialogContent({
       footer={
         <div className="flex gap-2">
           <Button
-            disabled={isDeletingContentCategory}
+            disabled={!canMutate || isDeletingContentCategory}
             className="flex-1"
             variant="destructive"
             onClick={() => {
-              if (selectedContentCategoryId === null) return;
+              if (!canMutate || selectedContentCategoryId === null) return;
 
               setIsDeletingContentCategory(true);
               try {
@@ -74,9 +76,9 @@ export function EditContentCategoryDialogContent({
             {isDeletingContentCategory ? "Deleting..." : "Delete"}
           </Button>
           <Button
-            disabled={isFormDisabled || isUpdatingContentCategory}
+            disabled={!canMutate || isFormDisabled || isUpdatingContentCategory}
             onClick={() => {
-              if (selectedContentCategoryId === null) return;
+              if (!canMutate || selectedContentCategoryId === null) return;
 
               setIsUpdatingContentCategory(true);
               try {

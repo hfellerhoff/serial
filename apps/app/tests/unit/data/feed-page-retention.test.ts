@@ -6,6 +6,7 @@ import {
   setRetainedEntityPins,
 } from "~/lib/data/page-retention";
 import { feedItemsStore, getFeedItemScopeKey } from "~/lib/data/store";
+import { getPersistedFeedItemRetentionState } from "~/lib/data/feed-page-retention";
 import { CONTENT_STATUS_FILTERS } from "~/lib/content-status";
 
 const SCOPE_KEY = getFeedItemScopeKey("view", 7, CONTENT_STATUS_FILTERS[0]);
@@ -138,7 +139,7 @@ describe("Feed-item page retention", () => {
     );
   });
 
-  it("removes a retained body when the item is archived", () => {
+  it("drops body retention when the item is archived", () => {
     const item = makeItem(0, 0);
     feedItemsStore
       .getState()
@@ -149,6 +150,17 @@ describe("Feed-item page retention", () => {
       isWatched: true,
     });
 
-    expect(feedItemsStore.getState().feedItemsDict[item.id]?.content).toBe("");
+    // The live store keeps the body so the online reader can render it...
+    expect(feedItemsStore.getState().feedItemsDict[item.id]?.content).toBe(
+      "<p>Offline body</p>",
+    );
+    expect(feedItemsStore.getState().retainedFeedItemBodyIds[item.id]).toBe(
+      undefined,
+    );
+    // ...while the persisted snapshot no longer carries it.
+    expect(
+      getPersistedFeedItemRetentionState(feedItemsStore.getState())
+        .feedItemsDict[item.id]?.content,
+    ).toBe("");
   });
 });

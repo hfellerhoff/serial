@@ -10,6 +10,7 @@ import {
 import type { ViewLayout } from "~/server/db/constants";
 import type { ContentFilter } from "~/lib/views/contentFilter";
 import { Button } from "~/components/ui/button";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { useEditViewMutation } from "~/lib/data/views/mutations";
 import { useViews } from "~/lib/data/views";
@@ -32,6 +33,7 @@ export function BulkEditViewsDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const canMutate = useCanMutate();
   const [isUpdating, setIsUpdating] = useState(false);
   const { mutateAsync: editView } = useEditViewMutation();
   const { views } = useViews();
@@ -76,7 +78,7 @@ export function BulkEditViewsDialog({
   }, [open, selectedViewIds, views]);
 
   const handleSave = async () => {
-    if (selectedViewIds.length === 0) return;
+    if (!canMutate || selectedViewIds.length === 0) return;
 
     setIsUpdating(true);
     const count = selectedViewIds.length;
@@ -136,7 +138,11 @@ export function BulkEditViewsDialog({
           >
             Cancel
           </Button>
-          <Button className="flex-1" onClick={handleSave} disabled={isUpdating}>
+          <Button
+            className="flex-1"
+            onClick={handleSave}
+            disabled={!canMutate || isUpdating}
+          >
             {isUpdating ? "Saving..." : "Save"}
           </Button>
         </div>

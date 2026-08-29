@@ -166,6 +166,7 @@ function ManageViewsPageContent() {
   };
 
   const handleDelete = async () => {
+    if (!canMutate) return;
     const ids = Array.from(selectedViewIds);
     const count = ids.length;
     setShowDeleteDialog(false);
@@ -383,7 +384,7 @@ function ManageViewsPageContent() {
             variant="destructive"
             className="flex-1"
             onClick={handleDelete}
-            disabled={isDeletingView}
+            disabled={!canMutate || isDeletingView}
           >
             {isDeletingView ? "Deleting..." : "Delete"}
           </Button>

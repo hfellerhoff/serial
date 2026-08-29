@@ -24,7 +24,7 @@ export function retainEligibleFeedBody(
   nextItem: ApplicationFeedItem,
 ) {
   if (nextItem.contentType !== "text" || nextItem.isWatched) {
-    return nextItem.content ? { ...nextItem, content: "" } : nextItem;
+    return nextItem;
   }
   if (
     !nextItem.content &&
@@ -39,6 +39,30 @@ export function retainEligibleFeedBody(
     };
   }
   return nextItem;
+}
+
+// Memoized per entity object so repeated persistence flushes hand the
+// normalized IDB diff a stable stripped identity instead of a fresh clone.
+const strippedBodiesForPersistence = new WeakMap<
+  ApplicationFeedItem,
+  ApplicationFeedItem
+>();
+
+/**
+ * Archived and video bodies must not survive in client persistence. The live
+ * store keeps them so the online reader can render without a refetch; only
+ * the persisted snapshot is stripped.
+ */
+export function stripIneligibleFeedBodyForPersistence(
+  item: ApplicationFeedItem,
+) {
+  if (isEligibleFeedBody(item) || !item.content) return item;
+  let stripped = strippedBodiesForPersistence.get(item);
+  if (!stripped) {
+    stripped = { ...item, content: "" };
+    strippedBodiesForPersistence.set(item, stripped);
+  }
+  return stripped;
 }
 
 export function shouldRetainBookmarkCapture(

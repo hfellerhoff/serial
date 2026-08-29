@@ -153,9 +153,10 @@ describe("optimistic feed item mutations", () => {
     expect(retainLoadedFeedItemBody(previousFeedItem.id)).toBe(true);
 
     const context = applyOptimisticWatchedValue(previousFeedItem.id, true);
+    // The live body survives the optimistic Archive; only retention drops.
     expect(
       feedItemsStore.getState().feedItemsDict[previousFeedItem.id]?.content,
-    ).toBe("");
+    ).toBe(previousFeedItem.content);
     expect(
       feedItemsStore.getState().retainedFeedItemBodyIds[previousFeedItem.id],
     ).toBeUndefined();

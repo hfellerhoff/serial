@@ -7,7 +7,10 @@ import {
   getRetainedPageMetrics,
   selectPersistedPages,
 } from "./page-retention";
-import { hasRetainedFeedBody } from "./offline-content";
+import {
+  hasRetainedFeedBody,
+  stripIneligibleFeedBodyForPersistence,
+} from "./offline-content";
 import type { RetainedCursorPage } from "./page-retention";
 import type { ApplicationFeedItem } from "~/server/db/schema";
 
@@ -176,7 +179,9 @@ export function getPersistedFeedItemRetentionState(
         state.retainedFeedItemBodyIds[id] === true,
       ));
   const feedItemsDict = Object.fromEntries(
-    Object.entries(state.feedItemsDict).filter(([id]) => shouldPersistItem(id)),
+    Object.entries(state.feedItemsDict)
+      .filter(([id]) => shouldPersistItem(id))
+      .map(([id, item]) => [id, stripIneligibleFeedBodyForPersistence(item)]),
   );
   return {
     feedItemsDict,

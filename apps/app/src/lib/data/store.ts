@@ -268,17 +268,14 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
 
         for (const item of items) {
           const existing = feedItemsDict[item.id];
-          if (
-            existing &&
-            existing.contentType === "text" &&
-            !existing.isWatched
-          ) {
-            feedItemsDict[item.id] = {
+          if (existing) {
+            const updated = {
               ...existing,
               content: item.content,
               contentSnippet: item.contentSnippet,
             };
-            if (item.content.trim()) {
+            feedItemsDict[item.id] = updated;
+            if (isEligibleFeedBody(updated)) {
               retainedFeedItemBodyIds[item.id] = true;
             }
           }
@@ -565,6 +562,21 @@ export function retainLoadedFeedItemBody(itemId: string) {
     },
   });
   return true;
+}
+
+export function retainLoadedFeedItemBodies(itemIds: readonly string[]) {
+  const state = feedItemsStore.getState();
+  const eligibleIds = itemIds.filter((itemId) => {
+    const item = state.feedItemsDict[itemId];
+    return item !== undefined && isEligibleFeedBody(item);
+  });
+  if (eligibleIds.length === 0) return;
+  feedItemsStore.setState({
+    retainedFeedItemBodyIds: {
+      ...state.retainedFeedItemBodyIds,
+      ...Object.fromEntries(eligibleIds.map((itemId) => [itemId, true])),
+    },
+  });
 }
 
 export async function retainFeedItemBody(itemId: string) {

@@ -203,6 +203,7 @@ function ManageTagsPageContent() {
   };
 
   const handleDelete = async () => {
+    if (!canMutate) return;
     const ids = Array.from(selectedTagIds);
     const count = ids.length;
     setShowDeleteDialog(false);
@@ -412,7 +413,7 @@ function ManageTagsPageContent() {
             variant="destructive"
             className="flex-1"
             onClick={handleDelete}
-            disabled={isDeletingTag}
+            disabled={!canMutate || isDeletingTag}
           >
             {isDeletingTag ? "Deleting..." : "Delete"}
           </Button>

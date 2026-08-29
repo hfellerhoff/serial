@@ -14,6 +14,7 @@ import {
 import {
   deleteBookmark,
   getBookmarkCapture,
+  getBookmarkCaptures,
   persistBookmarkSave,
   saveBookmarkFromExtension,
   setBookmarkTag,
@@ -356,6 +357,35 @@ describe("Bookmark persistence", () => {
         bookmarkId: created.bookmark.id,
       }),
     ).toBeNull();
+  });
+
+  it("loads captures in one user-scoped batch", async () => {
+    const first = await saveCaptured(
+      "user-one",
+      "https://example.com/batch-one",
+    );
+    const second = await saveCaptured(
+      "user-one",
+      "https://example.com/batch-two",
+    );
+    const otherUser = await saveCaptured(
+      "user-two",
+      "https://example.com/batch-other-user",
+    );
+
+    const captures = await getBookmarkCaptures({
+      database,
+      userId: "user-one",
+      bookmarkIds: [
+        first.bookmark.id,
+        second.bookmark.id,
+        otherUser.bookmark.id,
+      ],
+    });
+
+    expect(captures.map(({ bookmarkId }) => bookmarkId).sort()).toEqual(
+      [first.bookmark.id, second.bookmark.id].sort(),
+    );
   });
 
   it("matches validated provider identity before canonical URL", async () => {

@@ -809,7 +809,7 @@ function FeedItemDisplay({
         to={href}
         target={target}
         rel={rel}
-        preload={canOpen && !target ? "intent" : undefined}
+        preload={canOpen && !target && !isOffline ? "intent" : undefined}
         aria-disabled={!canOpen}
         tabIndex={canOpen ? undefined : -1}
         onClick={(event) => {
@@ -934,7 +934,7 @@ function FeedGridItemDisplay({
         to={href}
         target={target}
         rel={rel}
-        preload={canOpen && !target ? "intent" : undefined}
+        preload={canOpen && !target && !isOffline ? "intent" : undefined}
         aria-disabled={!canOpen}
         tabIndex={canOpen ? undefined : -1}
         onClick={(event) => {
