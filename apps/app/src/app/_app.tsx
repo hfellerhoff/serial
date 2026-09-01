@@ -188,7 +188,7 @@ const ATPROTO_LINK_ERROR_MESSAGES: Record<string, string> = {
 
 /**
  * Detect the ?atproto_link= result param the AT Protocol link callback
- * redirects back with, toast the outcome, and re-open the connections
+ * redirects back with, toast failures, and re-open the connections
  * dialog so the user sees the connection's state.
  */
 function useAtprotoLinkReturn() {
@@ -220,9 +220,8 @@ function useAtprotoLinkReturn() {
       queryKey: orpc.atproto.getConnectionStatus.queryKey(),
     });
 
-    if (result === "success") {
-      toast.success("Atmosphere account connected");
-    } else {
+    // Success needs no toast — the reopened dialog's connected row says it.
+    if (result !== "success") {
       toast.error(
         ATPROTO_LINK_ERROR_MESSAGES[result] ??
           "Couldn't connect your Atmosphere account. Please try again.",
