@@ -216,16 +216,33 @@ export async function applyPostAuthPolicy(
 
   // Check if this user is the first user by creation time
   const firstUser = await db
-    .select({ id: user.id })
+    .select({ id: user.id, createdAt: user.createdAt })
     .from(user)
     .orderBy(asc(user.createdAt))
     .limit(1)
     .get();
 
-  if (firstUser?.id === userId && !IS_DEMO_INSTANCE) {
+  // Promotion and provider recording belong to genuine bootstrap only: the
+  // request that created the first user. A "sign-up" flow always just
+  // created its user; a callback also completes plain sign-ins, so it must
+  // additionally pass the creation-recency signal the auto-signup rollback
+  // below uses. Without this gate, every later sign-in by the first user
+  // would re-promote them (resurrecting a deliberately demoted admin) and
+  // rewrite the provider configs to whichever method they happened to use.
+  const isFirstUserBootstrap =
+    firstUser?.id === userId &&
+    (completed.flow === "sign-up" ||
+      Date.now() - firstUser.createdAt.getTime() <=
+        AUTO_SIGNUP_ROLLBACK_WINDOW_MS);
+
+  if (isFirstUserBootstrap && !IS_DEMO_INSTANCE) {
     await db.update(user).set({ role: "admin" }).where(eq(user.id, userId));
 
-    // Set sign-in and sign-up methods to match how the first user signed up
+    // Record the sign-in and sign-up methods to match how the first user
+    // signed up — written once: existing rows always win, so bootstrap can
+    // never clobber a configuration that already exists (a seeded test
+    // database, or any regression that re-enters this branch). From here
+    // on, only the admin settings surface changes these values.
     const providers = JSON.stringify([completed.provider]);
     await db
       .insert(appConfig)
@@ -234,10 +251,7 @@ export async function applyPostAuthPolicy(
         value: providers,
         updatedAt: new Date(),
       })
-      .onConflictDoUpdate({
-        target: appConfig.key,
-        set: { value: providers, updatedAt: new Date() },
-      });
+      .onConflictDoNothing({ target: appConfig.key });
     await db
       .insert(appConfig)
       .values({
@@ -245,10 +259,7 @@ export async function applyPostAuthPolicy(
         value: providers,
         updatedAt: new Date(),
       })
-      .onConflictDoUpdate({
-        target: appConfig.key,
-        set: { value: providers, updatedAt: new Date() },
-      });
+      .onConflictDoNothing({ target: appConfig.key });
   } else if (completed.flow === "callback") {
     // Non-first user arriving via a callback — the provider may have
     // auto-created a user. Roll back only when this is genuinely that

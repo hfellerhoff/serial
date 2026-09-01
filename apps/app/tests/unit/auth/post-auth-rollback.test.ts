@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   applyMigrations,
@@ -164,5 +165,92 @@ describe("post-auth callback rollback", () => {
 
     await applyPostAuthPolicy(completedAuth("user-credential-only", rollback));
     expect(rollback).not.toHaveBeenCalled();
+  });
+
+  // The first-user branch is bootstrap-only: promotion and provider
+  // recording belong to the request that created the first user, never to
+  // their later sign-ins — and the config rows are written once, so an
+  // existing configuration always wins.
+
+  async function providerConfigs() {
+    const configs = await session.database.select().from(appConfig).all();
+    return {
+      signin: configs.find((c) => c.key === "enabled-signin-providers")?.value,
+      signup: configs.find((c) => c.key === "enabled-signup-providers")?.value,
+    };
+  }
+
+  it("leaves config and role alone when the established first user signs in via callback", async () => {
+    await session.database.insert(appConfig).values([
+      {
+        key: "enabled-signin-providers",
+        value: JSON.stringify(["email"]),
+        updatedAt: new Date(),
+      },
+      {
+        key: "enabled-signup-providers",
+        value: JSON.stringify(["email"]),
+        updatedAt: new Date(),
+      },
+    ]);
+    const rollback = vi.fn().mockResolvedValue(undefined);
+
+    await applyPostAuthPolicy(completedAuth("user-first", rollback));
+
+    expect(rollback).not.toHaveBeenCalled();
+    const configs = await providerConfigs();
+    expect(configs.signin).toBe(JSON.stringify(["email"]));
+    expect(configs.signup).toBe(JSON.stringify(["email"]));
+    const firstUser = await session.database
+      .select({ role: user.role })
+      .from(user)
+      .where(eq(user.id, "user-first"))
+      .get();
+    // A demoted first admin must stay demoted.
+    expect(firstUser?.role).not.toBe("admin");
+  });
+
+  it("bootstraps promotion and provider recording for a just-created first user", async () => {
+    await session.database.delete(user).where(eq(user.id, "user-first"));
+    await insertCallbackUser("user-boot", new Date());
+    const rollback = vi.fn().mockResolvedValue(undefined);
+
+    await applyPostAuthPolicy(completedAuth("user-boot", rollback));
+
+    expect(rollback).not.toHaveBeenCalled();
+    const configs = await providerConfigs();
+    expect(configs.signin).toBe(JSON.stringify(["atproto"]));
+    expect(configs.signup).toBe(JSON.stringify(["atproto"]));
+    const bootUser = await session.database
+      .select({ role: user.role })
+      .from(user)
+      .where(eq(user.id, "user-boot"))
+      .get();
+    expect(bootUser?.role).toBe("admin");
+  });
+
+  it("never clobbers provider config that already exists at bootstrap", async () => {
+    await session.database.delete(user).where(eq(user.id, "user-first"));
+    await session.database.insert(appConfig).values([
+      {
+        key: "enabled-signin-providers",
+        value: JSON.stringify(["email", "atproto"]),
+        updatedAt: new Date(),
+      },
+      {
+        key: "enabled-signup-providers",
+        value: JSON.stringify(["email"]),
+        updatedAt: new Date(),
+      },
+    ]);
+    await insertCallbackUser("user-boot", new Date());
+    const rollback = vi.fn().mockResolvedValue(undefined);
+
+    await applyPostAuthPolicy(completedAuth("user-boot", rollback));
+
+    expect(rollback).not.toHaveBeenCalled();
+    const configs = await providerConfigs();
+    expect(configs.signin).toBe(JSON.stringify(["email", "atproto"]));
+    expect(configs.signup).toBe(JSON.stringify(["email"]));
   });
 });
