@@ -21,6 +21,7 @@ import {
   bindAtprotoConnection,
   completeAtprotoLink,
   finishAtprotoAuth,
+  resolveAndStoreAtprotoHandle,
   resolveAtprotoDid,
   revokeAtprotoConnectionIfUnbound,
   startAtprotoAuth,
@@ -260,6 +261,9 @@ export const atprotoPlugin = () => {
           try {
             result = await finishAtprotoAuth(url.searchParams, {
               redirectUri: getAtprotoLinkRedirectUri(),
+              // Bind first, resolve the handle after: display data must not
+              // hold up the redirect or the connected state.
+              deferHandleResolution: true,
             });
           } catch (err) {
             logError("[atproto] link callback failed:", err);
@@ -294,6 +298,10 @@ export const atprotoPlugin = () => {
                 : "error";
             throw ctx.redirect(linkResultRedirect(linkResult));
           }
+
+          // Backfill the handle in the background (it reports its own
+          // failures); until it lands the connections UI shows the DID.
+          void resolveAndStoreAtprotoHandle(result.did);
 
           throw ctx.redirect(linkResultRedirect("success"));
         },

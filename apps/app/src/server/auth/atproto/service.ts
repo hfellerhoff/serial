@@ -131,6 +131,16 @@ export async function finishAtprotoAuth(
      * first registered redirect URI unless told otherwise).
      */
     redirectUri?: AtprotoRedirectUri;
+    /**
+     * Skip the handle resolution (the result's `handle` stays null) so the
+     * caller can run it after its own critical writes. Resolution verifies
+     * the handle bidirectionally over DNS/well-known and can stall for tens
+     * of seconds on a slow domain; the link callback must not let display
+     * data hold up the user bind and the redirect, or the connections UI
+     * reads "Not connected" long after consent was granted. Sign-in keeps
+     * the blocking default: the handle names the auto-created user.
+     */
+    deferHandleResolution?: boolean;
   },
 ): Promise<AtprotoCallbackResult> {
   const client = await getAtprotoClient();
@@ -155,18 +165,9 @@ export async function finishAtprotoAuth(
 
   const { scope: grantedScope } = await session.getTokenInfo(false);
 
-  let handle: string | null = null;
-  try {
-    const info = await client.oauthResolver.resolveIdentity(did);
-    if (info.handle !== "handle.invalid") handle = info.handle;
-    await db
-      .update(atprotoConnections)
-      .set({ handle, updatedAt: new Date() })
-      .where(eq(atprotoConnections.did, did));
-  } catch (err) {
-    // Display data only — the authenticated session is already durable.
-    captureException(err);
-  }
+  const handle = options?.deferHandleResolution
+    ? null
+    : await resolveAndStoreAtprotoHandle(did);
 
   return {
     session,
@@ -175,6 +176,31 @@ export async function finishAtprotoAuth(
     grantedScope,
     linkUserId: appState.linkUserId ?? null,
   };
+}
+
+/**
+ * Resolve a connection's current handle and store it — display data only,
+ * the authenticated session is already durable, so every failure degrades
+ * to null (the UI falls back to the DID). The link callback runs this
+ * fire-and-forget after binding the user, so slow DNS/well-known
+ * verification can never delay the redirect or the connected state.
+ */
+export async function resolveAndStoreAtprotoHandle(
+  did: string,
+): Promise<string | null> {
+  try {
+    const client = await getAtprotoClient();
+    const info = await client.oauthResolver.resolveIdentity(did);
+    const handle = info.handle !== "handle.invalid" ? info.handle : null;
+    await db
+      .update(atprotoConnections)
+      .set({ handle, updatedAt: new Date() })
+      .where(eq(atprotoConnections.did, did));
+    return handle;
+  } catch (err) {
+    captureException(err);
+    return null;
+  }
 }
 
 /**
