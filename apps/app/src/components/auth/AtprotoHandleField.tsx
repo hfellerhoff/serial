@@ -1,23 +1,41 @@
-import { Loader2 } from "lucide-react";
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from "@serial/ui";
+import clsx from "clsx";
+import { AtSignIcon, Loader2, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { AtprotoActorSuggestion } from "~/server/auth/atproto/typeahead";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "~/components/ui/combobox";
 import { Label } from "~/components/ui/label";
 import { authClient } from "~/lib/auth-client";
+import { identifierSchema } from "~/server/auth/atproto/schemas";
 
 /**
  * The Atmosphere handle entry step, shared by the auth pages
- * (AtprotoAuthButton) and the connections dialog (AtprotoConnectionForm):
- * a labelled input with typeahead suggestions and a submit button. Typed
- * input is always authoritative and submittable; suggestions are a
- * convenience fetched exclusively through Serial's proxy, and a selected
- * suggestion threads its DID to the submit handler to skip one resolution.
+ * (AtprotoAuthForm) and the connections dialog (AtprotoConnectionForm):
+ * a labelled account picker with a submit button. Picking from the
+ * typeahead dropdown (fetched exclusively through Serial's proxy) swaps
+ * the input for the chosen account's Item card and threads its DID through
+ * the submission to skip one resolution; Enter only confirms a highlighted
+ * suggestion, never submits. The typed value remains submittable via the
+ * button once it parses as a handle or DID, as a fallback for accounts the
+ * typeahead can't see.
  *
- * The suggestion list is a hand-wired combobox rather than the ui/command
- * (cmdk) kit: cmdk is shaped for overlay search surfaces, while this is a
- * small inline list whose input must stay an ordinary form field.
+ * Built on the ui/combobox (Base UI) kit: results are server-filtered, so
+ * the root gets `filter={null}` and a controlled `open`, and the popup
+ * floats over the layout so an arriving list never shifts the field.
  */
 
 const TYPEAHEAD_PATH = "/atproto/typeahead";
@@ -35,6 +53,8 @@ interface AtprotoHandleFieldProps {
   label: string;
   submitLabel: string;
   submitVariant?: "outline" | "default";
+  /** "lg" on the auth pages; the connections dialog keeps the default. */
+  size?: "default" | "lg";
   /** The caller's submission state; disables and shows the spinner. */
   busy: boolean;
   disabled?: boolean;
@@ -52,6 +72,7 @@ export function AtprotoHandleField({
   label,
   submitLabel,
   submitVariant = "default",
+  size = "default",
   busy,
   disabled = false,
   focusOnMount = false,
@@ -64,26 +85,23 @@ export function AtprotoHandleField({
   /** The query the current suggestions answer; stale results never render. */
   const [suggestionsFor, setSuggestionsFor] = useState("");
   const [dismissed, setDismissed] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
+  /** Enter only confirms a suggestion the combobox has highlighted. */
+  const highlightedRef = useRef<AtprotoActorSuggestion | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const query = identifier.trim();
-  const searchable =
-    query.length >= TYPEAHEAD_MIN_CHARS && selected?.handle !== query;
+  const searchable = query.length >= TYPEAHEAD_MIN_CHARS;
   const suggestionsCurrent = searchable && suggestionsFor === query;
   const visibleSuggestions =
     suggestionsCurrent && !dismissed ? suggestions : [];
-  const activeSuggestion =
-    activeIndex >= 0 && activeIndex < visibleSuggestions.length
-      ? visibleSuggestions[activeIndex]
-      : undefined;
+  const open = visibleSuggestions.length > 0;
 
   useEffect(() => {
     if (focusOnMount) inputRef.current?.focus();
   }, [focusOnMount]);
 
   useEffect(() => {
-    if (!searchable) return;
+    if (!searchable || selected !== null) return;
 
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => {
@@ -95,11 +113,10 @@ export function AtprotoHandleField({
         .then(({ data }) => {
           setSuggestions(data?.actors ?? []);
           setSuggestionsFor(query);
-          setActiveIndex(-1);
         })
         .catch(() => {
-          // A real failure degrades to plain entry; an abort just means a
-          // newer query superseded this one, so its results stay.
+          // A real failure degrades silently; an abort just means a newer
+          // query superseded this one, so its results stay.
           if (!controller.signal.aborted) {
             setSuggestions([]);
             setSuggestionsFor(query);
@@ -111,124 +128,162 @@ export function AtprotoHandleField({
       controller.abort();
       window.clearTimeout(timeoutId);
     };
-  }, [query, searchable]);
+  }, [query, searchable, selected]);
 
-  const selectSuggestion = (suggestion: AtprotoActorSuggestion) => {
-    setSelected(suggestion);
-    setIdentifier(suggestion.handle);
-    setActiveIndex(-1);
-    inputRef.current?.focus();
-  };
+  // The typed value stays submittable so a handle the typeahead doesn't
+  // return (unindexed PDS, proxy outage) — or a raw DID — can't lock the
+  // user out; the same schema gates the authorize endpoint server-side.
+  const typedIdentifierValid = identifierSchema.safeParse(query).success;
 
   const submit = () => {
-    if (!query || busy || disabled) return;
-    onSubmit({
-      identifier: query,
-      ...(selected?.handle === query ? { did: selected.did } : {}),
-    });
+    if (busy || disabled) return;
+    if (selected) {
+      onSubmit({ identifier: selected.handle, did: selected.did });
+      return;
+    }
+    if (!typedIdentifierValid) return;
+    onSubmit({ identifier: query });
   };
 
-  return (
-    <div
-      className="grid gap-2"
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget)) {
-          setDismissed(true);
-          setActiveIndex(-1);
-        }
-      }}
-    >
-      <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        ref={inputRef}
-        placeholder="name.bsky.social"
-        autoComplete="username"
-        autoCapitalize="none"
-        autoCorrect="off"
-        spellCheck={false}
-        role="combobox"
-        aria-autocomplete="list"
-        aria-expanded={visibleSuggestions.length > 0}
-        aria-controls={`${id}-suggestions`}
-        aria-activedescendant={
-          activeSuggestion ? `${id}-option-${activeSuggestion.did}` : undefined
-        }
-        value={identifier}
-        onFocus={() => setDismissed(false)}
-        onChange={(e) => {
-          setIdentifier(e.target.value);
-          setSelected(null);
-          setDismissed(false);
-          setActiveIndex(-1);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowDown") {
-            if (dismissed && suggestionsCurrent && suggestions.length > 0) {
-              e.preventDefault();
-              setDismissed(false);
-              setActiveIndex(0);
-            } else if (visibleSuggestions.length > 0) {
-              e.preventDefault();
-              setActiveIndex((i) =>
-                Math.min(i + 1, visibleSuggestions.length - 1),
-              );
-            }
-            return;
-          }
-          if (e.key === "ArrowUp" && visibleSuggestions.length > 0) {
-            e.preventDefault();
-            setActiveIndex((i) => Math.max(i - 1, -1));
-            return;
-          }
-          if (e.key === "Escape") {
-            // Gate on intent, not list presence: a query that is (or is
-            // about to be) searching dismisses first even if results are
-            // still in flight, so the same keystroke can't tear the step
-            // down just because the network was slow.
-            if (searchable && !dismissed) {
-              e.preventDefault();
-              setDismissed(true);
-              setActiveIndex(-1);
-            } else if (onCollapse) {
-              // Second escape (or nothing to dismiss): back to the caller.
-              e.preventDefault();
-              onCollapse();
-            }
-            return;
-          }
-          if (e.key === "Enter") {
-            e.preventDefault();
-            if (activeSuggestion) {
-              selectSuggestion(activeSuggestion);
-              return;
-            }
-            submit();
-          }
-        }}
-      />
-      {visibleSuggestions.length > 0 && (
-        <div
-          id={`${id}-suggestions`}
-          role="listbox"
-          className="overflow-hidden rounded-md border"
-          aria-label="Suggested accounts"
+  const clearSelection = () => {
+    if (busy || disabled) return;
+    setSelected(null);
+    setDismissed(false);
+    // The input remounts holding the cleared account's handle, ready to
+    // edit; focus lands after the swap.
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
+  if (selected) {
+    return (
+      <div className="grid gap-2">
+        <Label htmlFor={id}>{label}</Label>
+        <Item variant="outline" render={<div />}>
+          <ItemMedia>
+            <AtprotoSuggestionAvatar suggestion={selected} />
+          </ItemMedia>
+          <ItemContent className="gap-0">
+            <ItemTitle>{selected.displayName ?? selected.handle}</ItemTitle>
+            <ItemDescription>{selected.handle}</ItemDescription>
+          </ItemContent>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Choose a different account"
+            disabled={busy || disabled}
+            onClick={clearSelection}
+          >
+            <XIcon size={16} />
+          </Button>
+        </Item>
+        <Button
+          variant={submitVariant}
+          size={size}
+          className="w-full"
+          disabled={disabled || busy}
+          onClick={submit}
         >
-          {visibleSuggestions.map((suggestion, index) => (
-            <AtprotoSuggestionOption
-              key={suggestion.did}
-              fieldId={id}
-              suggestion={suggestion}
-              active={index === activeIndex}
-              onSelect={selectSuggestion}
-            />
-          ))}
+          {busy ? <Loader2 size={16} className="animate-spin" /> : submitLabel}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Combobox<AtprotoActorSuggestion>
+        items={visibleSuggestions}
+        filter={null}
+        autoHighlight
+        open={open}
+        onOpenChange={(nextOpen) => {
+          setDismissed(!nextOpen);
+          if (!nextOpen) highlightedRef.current = undefined;
+        }}
+        inputValue={identifier}
+        onInputValueChange={(value, eventDetails) => {
+          // Base UI resets its transient input state whenever the popup
+          // closes: once on close (reason "none") and again after the exit
+          // animation unmounts it (reason "input-clear" when nothing is
+          // selected). The debounce-driven controlled `open` closes
+          // mid-typing, so those programmatic resets must not clobber the
+          // typed value. Real typing always arrives as "input-change".
+          if (
+            eventDetails.reason === "none" ||
+            eventDetails.reason === "input-clear"
+          ) {
+            return;
+          }
+          setIdentifier(value);
+          setDismissed(false);
+        }}
+        value={selected}
+        onValueChange={(next) => setSelected(next)}
+        itemToStringLabel={(suggestion) => suggestion.handle}
+        isItemEqualToValue={(a, b) => a?.did === b?.did}
+        onItemHighlighted={(item) => {
+          highlightedRef.current = item ?? undefined;
+        }}
+      >
+        <div className="relative">
+          <AtSignIcon
+            size={16}
+            className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
+          />
+          <ComboboxInput
+            id={id}
+            ref={inputRef}
+            className={clsx("pl-9", size === "lg" && "h-10")}
+            placeholder="name.bsky.social"
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            disabled={disabled}
+            onFocus={() => setDismissed(false)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                // Selection is required: Enter confirms the highlighted
+                // suggestion (handled by the combobox) and otherwise does
+                // nothing.
+                if (!(open && highlightedRef.current)) e.preventDefault();
+                return;
+              }
+              if (e.key === "Escape") {
+                if (open) return; // The combobox dismisses its own popup.
+                // Gate on intent, not list presence: a query that is (or is
+                // about to be) searching dismisses first even if results are
+                // still in flight, so the same keystroke can't tear the step
+                // down just because the network was slow.
+                if (searchable && !dismissed) {
+                  e.preventDefault();
+                  setDismissed(true);
+                } else if (onCollapse) {
+                  // Second escape (or nothing to dismiss): back to the caller.
+                  e.preventDefault();
+                  onCollapse();
+                }
+              }
+            }}
+          />
         </div>
-      )}
+        <ComboboxContent aria-label="Suggested accounts">
+          <ComboboxList>
+            {(suggestion: AtprotoActorSuggestion) => (
+              <AtprotoSuggestionOption
+                key={suggestion.did}
+                suggestion={suggestion}
+              />
+            )}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
       <Button
         variant={submitVariant}
+        size={size}
         className="w-full"
-        disabled={disabled || busy || !query}
+        disabled={disabled || busy || !typedIdentifierValid}
         onClick={submit}
       >
         {busy ? <Loader2 size={16} className="animate-spin" /> : submitLabel}
@@ -237,45 +292,35 @@ export function AtprotoHandleField({
   );
 }
 
-function AtprotoSuggestionOption({
-  fieldId,
+function AtprotoSuggestionAvatar({
   suggestion,
-  active,
-  onSelect,
 }: {
-  fieldId: string;
   suggestion: AtprotoActorSuggestion;
-  active: boolean;
-  onSelect: (suggestion: AtprotoActorSuggestion) => void;
 }) {
   return (
-    <button
-      id={`${fieldId}-option-${suggestion.did}`}
-      type="button"
-      role="option"
-      aria-selected={active}
-      // DOM focus stays on the input (aria-activedescendant pattern):
-      // options leave the tab order, and mousedown is swallowed so a
-      // click can't blur the input first.
-      tabIndex={-1}
-      onMouseDown={(e) => e.preventDefault()}
-      className={`hover:bg-accent flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm ${
-        active ? "bg-accent" : ""
-      }`}
-      onClick={() => onSelect(suggestion)}
-    >
-      <Avatar>
-        {suggestion.avatar && (
-          <AvatarImage
-            src={suggestion.avatar}
-            alt=""
-            referrerPolicy="no-referrer"
-          />
-        )}
-        <AvatarFallback>
-          {suggestion.handle.charAt(0).toUpperCase()}
-        </AvatarFallback>
-      </Avatar>
+    <Avatar>
+      {suggestion.avatar && (
+        <AvatarImage
+          src={suggestion.avatar}
+          alt=""
+          referrerPolicy="no-referrer"
+        />
+      )}
+      <AvatarFallback>
+        {suggestion.handle.charAt(0).toUpperCase()}
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+
+function AtprotoSuggestionOption({
+  suggestion,
+}: {
+  suggestion: AtprotoActorSuggestion;
+}) {
+  return (
+    <ComboboxItem value={suggestion}>
+      <AtprotoSuggestionAvatar suggestion={suggestion} />
       <div className="min-w-0">
         <p className="truncate">
           {suggestion.displayName ?? suggestion.handle}
@@ -284,6 +329,6 @@ function AtprotoSuggestionOption({
           {suggestion.handle}
         </p>
       </div>
-    </button>
+    </ComboboxItem>
   );
 }
