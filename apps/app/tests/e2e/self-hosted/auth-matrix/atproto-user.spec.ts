@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { seedSession, waitForReactHydration } from "../../fixtures/auth";
 import { openSidebar } from "../../fixtures/sidebar";
@@ -177,7 +178,7 @@ test.describe("DID-only session", () => {
   }) => {
     test.setTimeout(120000);
     const seeded = await seedAtprotoOnlyUser(SELF_HOSTED_TURSO_PORT, {
-      did: "did:plc:e2e-did-only-user",
+      did: `did:plc:e2e${randomBytes(6).toString("hex")}`,
       handle: "didonly.test",
       name: "DID Only User",
     });
@@ -206,6 +207,11 @@ test.describe("DID-only session", () => {
       .first();
     await expect(userButton).toBeInViewport({ timeout: 15000 });
     await userButton.click();
+    // The open menu anchors the absence check — without it the count-0
+    // assertion would pass vacuously before the dropdown rendered.
+    await expect(
+      page.getByRole("menuitem", { name: "Connections" }),
+    ).toBeVisible();
     await expect(page.getByText("atproto.invalid")).toHaveCount(0);
   });
 });

@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { expect, test } from "@playwright/test";
+import { clearQueryCache } from "../../fixtures/query-cache";
 import {
   SELF_HOSTED_APP_PORT,
   SELF_HOSTED_TURSO_PORT,
@@ -45,16 +46,6 @@ async function openConnections(page: Page, userName: string) {
   await userButton.click();
   await page.getByRole("menuitem", { name: "Connections" }).click();
   await expect(page.getByText("Manage your connected services")).toBeVisible();
-}
-
-async function clearQueryCache(page: Page) {
-  await page.evaluate(() => {
-    try {
-      localStorage.removeItem("REACT_QUERY_OFFLINE_CACHE");
-    } catch {
-      // localStorage may not be available in some contexts
-    }
-  });
 }
 
 test.describe("atproto connection management", () => {
@@ -218,7 +209,7 @@ test.describe("atproto connection management", () => {
   }) => {
     test.setTimeout(60000);
     testEmail = "";
-    did = "did:plc:e2e-sole-method-user";
+    did = `did:plc:e2e${randomBytes(6).toString("hex")}`;
 
     const seeded = await seedAtprotoOnlyUser(SELF_HOSTED_TURSO_PORT, {
       did,

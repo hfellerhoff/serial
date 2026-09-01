@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { seedSession, waitForReactHydration } from "../fixtures/auth";
 import { openSidebar } from "../fixtures/sidebar";
@@ -12,6 +13,7 @@ import {
   generateTestEmail,
   seedAtprotoOnlyUser,
 } from "../fixtures/seed-db";
+import { setEnabledAuthProviders } from "../fixtures/set-enabled-auth-providers";
 
 /**
  * Email-verification scoping across user shapes. This is the one instance
@@ -35,7 +37,10 @@ async function fetchLatestOtp(recipient: string) {
           emails: Array<{ html?: string }>;
         };
         for (const email of emails.reverse()) {
-          const match = /\b(\d{6})\b/.exec(email.html ?? "");
+          // The OTP is the letter-spaced code element's entire text node;
+          // matching an element-delimited token keeps a stray 6-digit
+          // sequence elsewhere in the document from hijacking the code.
+          const match = />(\d{6})</.exec(email.html ?? "");
           if (match) {
             otp = match[1];
             return true;
@@ -54,6 +59,17 @@ test.describe("email verification scoping", () => {
 
   let credentialEmail: string;
   let atprotoEmail: string | undefined;
+
+  test.beforeEach(async () => {
+    // Own the baseline instead of inheriting it from the other config
+    // specs' afterEach restores — a hard worker crash elsewhere must not
+    // leak a partial provider set into this spec.
+    await setEnabledAuthProviders(SELF_HOSTED_CONFIG_TURSO_PORT, [
+      "email",
+      "oauth",
+      "atproto",
+    ]);
+  });
 
   test.afterEach(async () => {
     if (credentialEmail) {
@@ -105,7 +121,7 @@ test.describe("email verification scoping", () => {
     test.setTimeout(120000);
     credentialEmail = "";
     const seeded = await seedAtprotoOnlyUser(SELF_HOSTED_CONFIG_TURSO_PORT, {
-      did: "did:plc:e2e-exempt-user",
+      did: `did:plc:e2e${randomBytes(6).toString("hex")}`,
       handle: "exempt.test",
       name: "Exempt Atmosphere User",
     });
@@ -135,6 +151,11 @@ test.describe("email verification scoping", () => {
       .first();
     await expect(userButton).toBeInViewport({ timeout: 15000 });
     await userButton.click();
+    // The open menu anchors the absence check — without it the count-0
+    // assertion would pass vacuously before the dropdown rendered.
+    await expect(
+      page.getByRole("menuitem", { name: "Connections" }),
+    ).toBeVisible();
     await expect(page.getByText("atproto.invalid")).toHaveCount(0);
   });
 });

@@ -31,6 +31,8 @@
     "test:e2e:ownership": "pnpm --filter @serial/app test:e2e:ownership",
     "test:e2e:self-hosted": "pnpm --filter @serial/app test:e2e:self-hosted",
     "test:e2e:self-hosted-bootstrap": "pnpm --filter @serial/app test:e2e:self-hosted-bootstrap",
+    "test:e2e:self-hosted-config": "pnpm --filter @serial/app test:e2e:self-hosted-config",
+    "test:e2e:self-hosted-unconfigured": "pnpm --filter @serial/app test:e2e:self-hosted-unconfigured",
     "test:e2e:demo": "pnpm --filter @serial/app test:e2e:demo"
   },
   "devDependencies": {

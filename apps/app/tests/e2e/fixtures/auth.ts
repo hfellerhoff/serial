@@ -1,7 +1,8 @@
+import { readFileSync } from "node:fs";
 import { expect } from "@playwright/test";
 import { createClient } from "@libsql/client";
 import { createId } from "@paralleldrive/cuid2";
-import { hashPassword } from "better-auth/crypto";
+import { hashPassword, makeSignature } from "better-auth/crypto";
 import { getTestClientIp, TEST_CLIENT_IP_HEADER } from "./client-ip";
 import type { Locator, Page } from "@playwright/test";
 
@@ -164,27 +165,24 @@ export async function signUpAsAdmin({
 }
 
 /**
- * Matches the committed BETTER_AUTH_SECRET in .env.test.self-hosted; the
- * signed-cookie shape mirrors better-call's format (see the unit-suite
- * twin in tests/unit/auth/email-verification-session.test.ts).
+ * The committed test secret, read from the same env file the app servers
+ * load so a secret change cannot silently desynchronize the fixture.
  */
-const TEST_BETTER_AUTH_SECRET = "test-secret-key-for-self-hosted-tests";
+function readTestBetterAuthSecret() {
+  const envFile = readFileSync(
+    new URL("../../../.env.test.self-hosted", import.meta.url),
+    "utf8",
+  );
+  const secret = /^BETTER_AUTH_SECRET=(.+)$/m.exec(envFile)?.[1];
+  if (!secret) {
+    throw new Error("BETTER_AUTH_SECRET not found in .env.test.self-hosted");
+  }
+  return secret;
+}
 
-async function signSessionCookie(token: string, secret: string) {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const signature = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(token),
-  );
-  const base64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
-  return encodeURIComponent(`${token}.${base64}`);
+async function signSessionCookie(token: string) {
+  const signature = await makeSignature(token, readTestBetterAuthSecret());
+  return encodeURIComponent(`${token}.${signature}`);
 }
 
 /**
@@ -216,7 +214,7 @@ export async function seedSession({
   await page.context().addCookies([
     {
       name: "better-auth.session_token",
-      value: await signSessionCookie(token, TEST_BETTER_AUTH_SECRET),
+      value: await signSessionCookie(token),
       url: baseUrl,
     },
   ]);

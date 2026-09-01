@@ -1,7 +1,9 @@
 import { spawn, spawnSync } from "node:child_process";
 import net from "node:net";
 
-const STARTUP_TIMEOUT_MS = 150_000;
+// Covers four production `vite preview` app servers plus the fixture
+// servers booting in parallel per probe run.
+const STARTUP_TIMEOUT_MS = 240_000;
 const CLEANUP_TIMEOUT_MS = 15_000;
 const POLL_INTERVAL_MS = 100;
 const REPETITIONS_PER_SIGNAL = 2;
@@ -133,7 +135,10 @@ async function waitForReady(
     const processGroupIds = parseProcessGroupIds(currentOutput);
     if (
       ports &&
-      processGroupIds.length >= 4 &&
+      // Seven webServer entries (4 app + rss + appview + email) each report
+      // a process group; require most of them before treating the run as
+      // started, leaving slack for reporting races.
+      processGroupIds.length >= 6 &&
       currentOutput.includes("SERIAL_E2E_CLEANUP_READY")
     ) {
       return { ports, processGroupIds };

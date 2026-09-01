@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { clearQueryCache } from "../fixtures/query-cache";
 import { signIn, signOut, signUpAsAdmin } from "../fixtures/auth";
 import { SELF_HOSTED_TURSO_PORT } from "../fixtures/ports";
 import { cleanupUser, generateTestEmail } from "../fixtures/seed-db";
@@ -13,16 +14,6 @@ import type { Page } from "@playwright/test";
  * refetching. In tests where we sign out / sign in and expect fresh data, we
  * must clear this cache to force a server round-trip.
  */
-async function clearQueryCache(page: Page) {
-  await page.evaluate(() => {
-    try {
-      localStorage.removeItem("REACT_QUERY_OFFLINE_CACHE");
-    } catch {
-      // localStorage may not be available in some contexts
-    }
-  });
-}
-
 async function waitForHomeData(page: Page) {
   await expect(page.getByRole("heading", { name: "Serial" })).toBeVisible({
     timeout: 30_000,

@@ -73,9 +73,14 @@ test("email-and-atproto set promotes Atmosphere to the primary method", async ({
   expect(secondaryButtons).toEqual(["Sign in with Email"]);
 });
 
-test("full set renders oauth primary with Atmosphere and email secondaries on both pages", async ({
+test("an explicitly set full set restores oauth-primary ordering", async ({
   page,
 }) => {
+  // The full-set presentation itself (both pages, subscreens) is owned by
+  // auth-matrix/atproto-user.spec.ts on the shared instance, whose baseline
+  // comes from global setup. What is specific to this instance is that an
+  // explicit setEnabledAuthProviders round trip lands back on the same
+  // ordering — the set-and-assert cell for the full set.
   await setEnabledAuthProviders(SELF_HOSTED_CONFIG_TURSO_PORT, [
     "email",
     "oauth",
@@ -94,27 +99,4 @@ test("full set renders oauth primary with Atmosphere and email secondaries on bo
     "Sign in with Atmosphere",
     "Sign in with Email",
   ]);
-
-  await page.goto("/auth/sign-up");
-  await expect(
-    page.getByRole("button", { name: "Sign up with TestOAuth" }),
-  ).toBeVisible({ timeout: 15000 });
-  const signupButtons = await page
-    .getByRole("button", { name: /sign up with/i })
-    .allTextContents();
-  expect(signupButtons).toEqual([
-    "Sign up with TestOAuth",
-    "Sign up with Atmosphere",
-    "Sign up with Email",
-  ]);
-
-  // The secondary Atmosphere entry opens its handle subscreen. The button
-  // renders server-side but its onClick only attaches once React hydrates,
-  // so retry the click until it takes.
-  const handleInput = page.getByLabel("Atmosphere handle");
-  await expect(async () => {
-    if (await handleInput.isVisible()) return;
-    await page.getByRole("button", { name: "Sign up with Atmosphere" }).click();
-    await expect(handleInput).toBeVisible({ timeout: 1000 });
-  }).toPass({ timeout: 15000 });
 });

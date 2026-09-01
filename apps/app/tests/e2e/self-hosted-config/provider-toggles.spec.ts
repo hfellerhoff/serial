@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { createClient } from "@libsql/client";
 import { createId } from "@paralleldrive/cuid2";
+import { clearQueryCache } from "../fixtures/query-cache";
 import { signUpAsAdmin } from "../fixtures/auth";
 import { SELF_HOSTED_CONFIG_TURSO_PORT } from "../fixtures/ports";
 import { cleanupUser, generateTestEmail } from "../fixtures/seed-db";
@@ -37,16 +38,6 @@ async function seedAtprotoOnlyAdmin(tursoPort: number, email: string) {
   ]);
 
   client.close();
-}
-
-async function clearQueryCache(page: Page) {
-  await page.evaluate(() => {
-    try {
-      localStorage.removeItem("REACT_QUERY_OFFLINE_CACHE");
-    } catch {
-      // localStorage may not be available in some contexts
-    }
-  });
 }
 
 test.describe("admin sign-in method settings", () => {
@@ -273,7 +264,8 @@ test.describe("atmosphere authorize sign-up pre-flight", () => {
     );
     expect(rejected.status).toBe(400);
     expect(rejected.body.message).toContain("Sign ups are currently disabled");
-    // Rejected pre-flight, so no account or user row was ever created.
+    // Rejected pre-flight, so no user row was ever created (account rows
+    // hang off users, so the user count is the sharper proxy).
     expect(await countUserRows()).toBe(before);
   });
 

@@ -48,11 +48,38 @@ export async function cleanupUser(tursoPort: number, email: string) {
 }
 
 /**
- * Seed a linked AT Protocol connection for a user: the account row plus an
- * active connection row, the state the link callback leaves behind. The
- * stored session blob is deliberately unreadable ciphertext — unlink must
- * still disconnect (mirroring a rotated store key).
+ * The account row plus an active connection row, the state the link
+ * callback leaves behind. The stored session blob is deliberately
+ * unreadable ciphertext — unlink must still disconnect (mirroring a
+ * rotated store key).
  */
+async function insertAtprotoLinkRows(
+  db: ReturnType<typeof getDb>["db"],
+  options: { userId: string; did: string; handle: string },
+) {
+  const now = new Date();
+  await db.insert(schema.account).values({
+    id: createId(),
+    accountId: options.did,
+    providerId: "atproto",
+    userId: options.userId,
+    scope: "atproto",
+    createdAt: now,
+    updatedAt: now,
+  });
+  await db.insert(schema.atprotoConnections).values({
+    did: options.did,
+    userId: options.userId,
+    session: "e2e-unreadable-ciphertext",
+    scopes: "atproto",
+    handle: options.handle,
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
+/** Seed a linked AT Protocol connection for an existing user by email. */
 export async function seedAtprotoLink(
   tursoPort: number,
   email: string,
@@ -68,26 +95,7 @@ export async function seedAtprotoLink(
     client.close();
     throw new Error("Atproto link seed user was not found");
   }
-  const now = new Date();
-  await db.insert(schema.account).values({
-    id: createId(),
-    accountId: options.did,
-    providerId: "atproto",
-    userId: testUser.id,
-    scope: "atproto",
-    createdAt: now,
-    updatedAt: now,
-  });
-  await db.insert(schema.atprotoConnections).values({
-    did: options.did,
-    userId: testUser.id,
-    session: "e2e-unreadable-ciphertext",
-    scopes: "atproto",
-    handle: options.handle,
-    status: "active",
-    createdAt: now,
-    updatedAt: now,
-  });
+  await insertAtprotoLinkRows(db, { userId: testUser.id, ...options });
   client.close();
 }
 
@@ -117,25 +125,7 @@ export async function seedAtprotoOnlyUser(
     createdAt: now,
     updatedAt: now,
   });
-  await db.insert(schema.account).values({
-    id: createId(),
-    accountId: options.did,
-    providerId: "atproto",
-    userId,
-    scope: "atproto",
-    createdAt: now,
-    updatedAt: now,
-  });
-  await db.insert(schema.atprotoConnections).values({
-    did: options.did,
-    userId,
-    session: "e2e-unreadable-ciphertext",
-    scopes: "atproto",
-    handle: options.handle,
-    status: "active",
-    createdAt: now,
-    updatedAt: now,
-  });
+  await insertAtprotoLinkRows(db, { userId, ...options });
   client.close();
   return { userId, email };
 }

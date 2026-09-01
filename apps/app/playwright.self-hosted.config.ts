@@ -23,10 +23,11 @@ const productionTestServer =
 
 /**
  * An isolated app server + database cloned from the proven bootstrap
- * template: own DB file, own ports, own webServer entry, serial project.
- * `extraEnvironment` lets an instance diverge from the shared flavor
- * (blanked ATPROTO_* keys, the stub email provider); dotenv leaves
- * already-set variables alone, so these overrides win over the env file.
+ * template: own DB file, own ports, own webServer entry, serially-run
+ * project. `extraEnvironment` lets an instance diverge from the shared
+ * flavor (blanked ATPROTO_* keys, the stub email provider); the overrides
+ * land in the server's process env, where they beat both run-e2e.ts's
+ * injected values and the env file (dotenv leaves set variables alone).
  */
 function isolatedInstanceServer({
   dbFile,
@@ -105,9 +106,9 @@ export default defineConfig({
       },
     },
     isolatedProject("self-hosted-bootstrap", SELF_HOSTED_BOOTSTRAP_APP_PORT),
-    // Serial instance for every spec that sets and asserts a specific
-    // enabled-provider set: nothing else mutates its database, so a
-    // beforeEach-configured state holds for the whole test.
+    // Serially-run instance for every spec that sets and asserts a
+    // specific enabled-provider set: nothing else mutates its database,
+    // so a beforeEach-configured state holds for the whole test.
     isolatedProject("self-hosted-config", SELF_HOSTED_CONFIG_APP_PORT),
     // App server started without the ATPROTO_* keys: configured-ness is
     // env-level, so the soft-disable path needs its own server.
@@ -153,12 +154,13 @@ export default defineConfig({
       dbFile: "serial-test-self-hosted-unconfigured.db",
       tursoPort: SELF_HOSTED_UNCONFIGURED_TURSO_PORT,
       appPort: SELF_HOSTED_UNCONFIGURED_APP_PORT,
-      // Blank the run-e2e-injected atproto keys: emptyStringAsUndefined in
-      // src/env.js turns these into unset, leaving atproto unconfigured.
+      // Blank the atproto key pair that run-e2e.ts injects into every
+      // server's process env (the env file has no ATPROTO_* lines):
+      // emptyStringAsUndefined in src/env.js turns the blanks into unset,
+      // and isAtprotoConfigured() gates on exactly this pair.
       extraEnvironment: {
         ATPROTO_CLIENT_PRIVATE_KEYS: "",
         ATPROTO_STORE_ENCRYPTION_KEY: "",
-        ATPROTO_APPVIEW_URL: "",
       },
     }),
     {

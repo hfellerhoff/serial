@@ -9,10 +9,9 @@ import { createServer } from "node:http";
 
 const port = Number(process.argv[2]) || 3012;
 
+/** The Resend payload fields specs read back; the rest is stored as-is. */
 interface CapturedEmail {
-  from?: string;
   to?: string | string[];
-  subject?: string;
   html?: string;
 }
 
@@ -48,6 +47,13 @@ const server = createServer((req, res) => {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ id: `e2e-email-${emails.length}` }));
     });
+    return;
+  }
+
+  if (req.method === "DELETE" && url.pathname === "/e2e/emails") {
+    emails.length = 0;
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ cleared: true }));
     return;
   }
 
