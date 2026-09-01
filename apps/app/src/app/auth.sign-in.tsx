@@ -43,12 +43,12 @@ const signInSearchSchema = z.object({
 export const Route = createFileRoute("/auth/sign-in")({
   component: SignIn,
   validateSearch: signInSearchSchema,
-  loaderDeps: ({ search }) => ({
-    callbackURL: search.callbackURL,
-    error: search.error,
-    method: search.method,
-  }),
-  loader: async ({ deps }) => {
+  // Deliberately empty: the loader's data depends on no search param, and
+  // listing params here folds them into the match id — every ?method=
+  // subscreen toggle would then re-run both server calls. The first-user
+  // redirect below reads the live search from `location` instead.
+  loaderDeps: () => ({}),
+  loader: async ({ location }) => {
     const [isForgotPasswordEnabled, authConfig] = await Promise.all([
       fetchIsForgotPasswordEnabled(),
       orpcRouterClient.admin.getSigninConfig(),
@@ -57,12 +57,13 @@ export const Route = createFileRoute("/auth/sign-in")({
       // Forward the callback error too: a failed atproto flow during
       // first-user bootstrap lands here and must still surface its toast
       // (and reopen its subscreen via `method`).
+      const search = signInSearchSchema.parse(location.search);
       throw redirect({
         to: "/auth/sign-up",
         search: {
-          callbackURL: deps.callbackURL,
-          error: deps.error,
-          method: deps.method,
+          callbackURL: search.callbackURL,
+          error: search.error,
+          method: search.method,
         },
       });
     }

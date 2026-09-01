@@ -241,6 +241,14 @@ export function AtprotoHandleField({
             autoCorrect="off"
             spellCheck={false}
             disabled={disabled}
+            // Advertise that the next Escape belongs to this field (it
+            // dismisses the popup or the pending search). A surrounding
+            // Radix dialog's escape listener runs before this element's
+            // handlers ever could, so it checks this attribute to leave
+            // the keystroke alone; see ControlledResponsiveDialog.
+            data-escape-dismisses={
+              open || (searchable && !dismissed) ? "true" : undefined
+            }
             onFocus={() => setDismissed(false)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {

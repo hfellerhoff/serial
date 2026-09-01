@@ -161,6 +161,14 @@ test.describe("atproto connection management", () => {
       page.getByText("Connect your Atmosphere account"),
     ).toBeVisible();
 
+    // Escape during the debounce window — popup closed, search pending —
+    // dismisses the pending search rather than the dialog too.
+    await handleInput.fill("alic");
+    await handleInput.press("Escape");
+    await expect(
+      page.getByText("Connect your Atmosphere account"),
+    ).toBeVisible();
+
     // Typing again reopens the suggestions.
     await handleInput.fill("ali");
     await expect(suggestions.getByText("Alice Test")).toBeVisible();

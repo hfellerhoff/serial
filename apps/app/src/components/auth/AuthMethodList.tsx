@@ -1,5 +1,6 @@
 import { ArrowLeftIcon, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import type { ReactNode } from "react";
 import type { AuthProvider } from "~/lib/constants";
 import type {
@@ -115,10 +116,17 @@ export function AuthMethodList({
 
   const startOAuth = async () => {
     setOauthRedirecting(true);
-    await authClient.signIn.oauth2({
+    const { error } = await authClient.signIn.oauth2({
       providerId: oauthProviderId,
       callbackURL: signedInDestination,
     });
+    // On success the browser is already navigating away; only a failure
+    // resolves with an error. Re-enable the methods — leaving them
+    // disabled would dead-end the whole page on a misconfigured provider.
+    if (error) {
+      toast.error("Could not start sign in. Please try again.");
+      setOauthRedirecting(false);
+    }
   };
 
   if (view.openMethod) {
