@@ -239,10 +239,13 @@ export async function applyPostAuthPolicy(
     await db.update(user).set({ role: "admin" }).where(eq(user.id, userId));
 
     // Record the sign-in and sign-up methods to match how the first user
-    // signed up — written once: existing rows always win, so bootstrap can
-    // never clobber a configuration that already exists (a seeded test
-    // database, or any regression that re-enters this branch). From here
-    // on, only the admin settings surface changes these values.
+    // signed up. Overwriting is deliberate and safe *here*: only a genuine
+    // bootstrap reaches this write (the gate above), and a bootstrap onto
+    // surviving config rows means the instance was re-bootstrapped — its
+    // sole user self-deleted and someone new signed up. Stale config must
+    // then follow the new admin's method, or an admin who signed up via a
+    // method the old rows disable is locked out permanently. Outside
+    // bootstrap, only the admin settings surface changes these values.
     const providers = JSON.stringify([completed.provider]);
     await db
       .insert(appConfig)
@@ -251,7 +254,10 @@ export async function applyPostAuthPolicy(
         value: providers,
         updatedAt: new Date(),
       })
-      .onConflictDoNothing({ target: appConfig.key });
+      .onConflictDoUpdate({
+        target: appConfig.key,
+        set: { value: providers, updatedAt: new Date() },
+      });
     await db
       .insert(appConfig)
       .values({
@@ -259,7 +265,10 @@ export async function applyPostAuthPolicy(
         value: providers,
         updatedAt: new Date(),
       })
-      .onConflictDoNothing({ target: appConfig.key });
+      .onConflictDoUpdate({
+        target: appConfig.key,
+        set: { value: providers, updatedAt: new Date() },
+      });
   } else if (completed.flow === "callback") {
     // Non-first user arriving via a callback — the provider may have
     // auto-created a user. Roll back only when this is genuinely that

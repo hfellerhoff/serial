@@ -1,12 +1,14 @@
 import { and, eq, isNotNull, isNull, lt, or } from "drizzle-orm";
 import { getAtprotoClient } from "./client";
 import {
+  assertAllowedAtprotoScope,
   ATPROTO_PROVIDER_ID,
   ATPROTO_SCOPE,
   AUTH_STATE_TTL_MS,
   getAtprotoLinkRedirectUri,
 } from "./config";
 import {
+  claimStaleAtprotoOrphan,
   disconnectAtprotoConnection,
   sweepExpiredAtprotoState,
 } from "./stores";
@@ -111,7 +113,18 @@ async function sweepStaleAtprotoConnections(): Promise<void> {
     .limit(SWEEP_MAX_REVOCATIONS)
     .all();
   for (const orphan of orphans) {
-    await revokeAtprotoConnection(orphan.did);
+    // Claim (disconnect) the row under the same unbound + stale guard
+    // before hitting the PDS: if a sign-in or refresh bound or re-touched
+    // it since the snapshot, skip it entirely rather than revoke a live
+    // grant the user just minted.
+    // oxlint-disable-next-line react-doctor/async-await-in-loop
+    const claimed = await claimStaleAtprotoOrphan(db, orphan.did, cutoff);
+    if (!claimed) continue;
+    // The row is already disconnected by the claim; only the PDS-side
+    // grant remains to revoke. Serial and bounded by design: revocations
+    // are outbound calls that must not fan out under an auth-server outage.
+    // oxlint-disable-next-line react-doctor/async-await-in-loop
+    await revokeAtprotoGrantAtPds(orphan.did);
   }
   await sweepExpiredAtprotoState(db);
 }
@@ -456,6 +469,9 @@ export async function upgradeAtprotoAuth(
   did: string,
   scope: string,
 ): Promise<URL> {
+  // Never hand an unbounded caller-supplied scope to the authorization
+  // server; a broader grant must be added to the allowlist deliberately.
+  assertAllowedAtprotoScope(scope);
   const client = await getAtprotoClient();
   return client.authorize(did, {
     scope,
@@ -500,13 +516,22 @@ export async function revokeAtprotoGrantsForUser(
  */
 export async function revokeAtprotoConnection(did: string): Promise<void> {
   try {
-    // Client construction stays inside the try: a failure there (bad
-    // keyset, unreachable config) must still fall through to disconnect.
+    await revokeAtprotoGrantAtPds(did);
+  } finally {
+    await disconnectAtprotoConnection(db, did);
+  }
+}
+
+/**
+ * Revoke only the PDS-side grant, never touching the DB row. Never throws:
+ * a failure (bad keyset, unreachable authorization server) is captured, so
+ * callers that have already settled the local row aren't blocked.
+ */
+async function revokeAtprotoGrantAtPds(did: string): Promise<void> {
+  try {
     const client = await getAtprotoClient();
     await client.revoke(did);
   } catch (err) {
     captureException(err);
-  } finally {
-    await disconnectAtprotoConnection(db, did);
   }
 }

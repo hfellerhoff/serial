@@ -39,7 +39,7 @@ vi.mock("~/env", () => ({
 }));
 
 const { getAtprotoClientMode } = await import("~/server/auth/atproto/mode");
-const { getAtprotoClientMetadata } =
+const { getAtprotoClientMetadata, assertAllowedAtprotoScope } =
   await import("~/server/auth/atproto/config");
 const { isAtprotoConfigured } = await import("~/server/auth/constants");
 
@@ -163,5 +163,22 @@ describe("isAtprotoConfigured soft-disable", () => {
       NODE_ENV: "development",
     });
     expect(isAtprotoConfigured()).toBe(true);
+  });
+});
+
+describe("assertAllowedAtprotoScope", () => {
+  it("accepts the identity scope", () => {
+    expect(() => assertAllowedAtprotoScope("atproto")).not.toThrow();
+  });
+
+  it("rejects an empty scope", () => {
+    expect(() => assertAllowedAtprotoScope("   ")).toThrow(/scope is required/);
+  });
+
+  it("rejects any token outside the allowlist, even beside an allowed one", () => {
+    expect(() => assertAllowedAtprotoScope("repo:*")).toThrow(/Disallowed/);
+    expect(() => assertAllowedAtprotoScope("atproto repo:*")).toThrow(
+      /Disallowed/,
+    );
   });
 });

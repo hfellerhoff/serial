@@ -88,6 +88,7 @@ export function AtprotoHandleField({
   /** Enter only confirms a suggestion the combobox has highlighted. */
   const highlightedRef = useRef<AtprotoActorSuggestion | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
+  const submitRef = useRef<HTMLButtonElement>(null);
 
   const query = identifier.trim();
   const searchable = query.length >= TYPEAHEAD_MIN_CHARS;
@@ -99,6 +100,13 @@ export function AtprotoHandleField({
   useEffect(() => {
     if (focusOnMount) inputRef.current?.focus();
   }, [focusOnMount]);
+
+  useEffect(() => {
+    // Standard focus management: picking an account completes the entry
+    // step, so focus moves to the submit button — Enter then activates it
+    // natively, no synthetic key handling.
+    if (selected) submitRef.current?.focus();
+  }, [selected]);
 
   useEffect(() => {
     if (!searchable || selected !== null) return;
@@ -177,6 +185,7 @@ export function AtprotoHandleField({
           </Button>
         </Item>
         <Button
+          ref={submitRef}
           variant={submitVariant}
           size={size}
           className="w-full"

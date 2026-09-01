@@ -161,6 +161,32 @@ export async function disconnectAtprotoConnection(
 }
 
 /**
+ * Claim a still-stale orphan for the revocation sweep: disconnect it only
+ * if it is *still* unbound and untouched since the sweep's snapshot cutoff.
+ * A concurrent sign-in or session refresh sets `userId` or bumps
+ * `updatedAt` to ~now (past the cutoff), so this no-ops on it and the
+ * caller must not revoke — otherwise the sweep would kill a grant a user
+ * just minted. Returns whether the row was claimed.
+ */
+export async function claimStaleAtprotoOrphan(
+  database: AtprotoDatabase,
+  did: string,
+  cutoff: Date,
+): Promise<boolean> {
+  const result = await database
+    .update(atprotoConnections)
+    .set({ session: null, status: "disconnected", updatedAt: new Date() })
+    .where(
+      and(
+        eq(atprotoConnections.did, did),
+        isNull(atprotoConnections.userId),
+        lt(atprotoConnections.updatedAt, cutoff),
+      ),
+    );
+  return result.rowsAffected > 0;
+}
+
+/**
  * Remove expired authorization state and connection rows that finished the
  * OAuth callback but were never bound to a user (abandoned or rolled-back
  * sign-ups). Runs opportunistically when an authorize flow starts.

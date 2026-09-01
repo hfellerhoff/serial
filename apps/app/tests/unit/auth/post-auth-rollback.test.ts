@@ -229,12 +229,15 @@ describe("post-auth callback rollback", () => {
     expect(bootUser?.role).toBe("admin");
   });
 
-  it("never clobbers provider config that already exists at bootstrap", async () => {
+  it("re-applies provider config over stale rows when the instance re-bootstraps", async () => {
+    // The previous sole user (who signed up with email) is gone; their
+    // config rows survive. The new first admin signs up via atproto and
+    // must not be locked out by the stale ["email"] setting.
     await session.database.delete(user).where(eq(user.id, "user-first"));
     await session.database.insert(appConfig).values([
       {
         key: "enabled-signin-providers",
-        value: JSON.stringify(["email", "atproto"]),
+        value: JSON.stringify(["email"]),
         updatedAt: new Date(),
       },
       {
@@ -250,7 +253,7 @@ describe("post-auth callback rollback", () => {
 
     expect(rollback).not.toHaveBeenCalled();
     const configs = await providerConfigs();
-    expect(configs.signin).toBe(JSON.stringify(["email", "atproto"]));
-    expect(configs.signup).toBe(JSON.stringify(["email"]));
+    expect(configs.signin).toBe(JSON.stringify(["atproto"]));
+    expect(configs.signup).toBe(JSON.stringify(["atproto"]));
   });
 });

@@ -181,11 +181,16 @@ test.describe("atproto connection management", () => {
     ).toBeVisible();
     await expect(suggestions).not.toBeVisible();
 
+    // Selection moves focus to the submit button, so Enter submits via
+    // the button's native activation.
+    const connectButton = page.getByRole("button", { name: "Connect" });
+    await expect(connectButton).toBeFocused();
+
     const linkRequest = page.waitForRequest(
       (request) => request.url().includes("/api/rpc/atproto/linkAccount"),
       { timeout: 10_000 },
     );
-    await page.getByRole("button", { name: "Connect" }).click();
+    await connectButton.press("Enter");
     const request = await linkRequest;
     expect(request.postData()).toContain("alice.test");
     expect(request.postData()).toContain("did:plc:e2e-alice");
