@@ -18,6 +18,7 @@ import {
   parseEncryptionKey,
 } from "~/server/auth/atproto/crypto";
 import {
+  claimStaleAtprotoOrphan,
   createAtprotoSessionStore,
   createAtprotoStateStore,
   disconnectAtprotoConnection,
@@ -278,6 +279,70 @@ describe("atproto database stores", () => {
         updatedAt: new Date(),
       });
       expect(await store.get(OTHER_DID)).toBeUndefined();
+    });
+  });
+
+  describe("claimStaleAtprotoOrphan", () => {
+    const staleDate = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const cutoff = new Date(Date.now() - 60 * 60 * 1000);
+
+    async function seedOrphan(did: string) {
+      const sessionStore = createAtprotoSessionStore(database, KEY);
+      await sessionStore.set(did, savedSession());
+      await database
+        .update(atprotoConnections)
+        .set({ updatedAt: staleDate })
+        .where(eq(atprotoConnections.did, did));
+    }
+
+    it("claims and disconnects a still-stale unbound orphan", async () => {
+      await seedOrphan(DID);
+
+      expect(await claimStaleAtprotoOrphan(database, DID, cutoff)).toBe(true);
+      const row = await database
+        .select()
+        .from(atprotoConnections)
+        .where(eq(atprotoConnections.did, DID))
+        .get();
+      expect(row!.status).toBe("disconnected");
+      expect(row!.session).toBeNull();
+    });
+
+    it("does not claim a row bound since the snapshot", async () => {
+      await database.insert(user).values({
+        id: "user-1",
+        name: "user-1",
+        email: "user-1@example.com",
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      await seedOrphan(DID);
+      await database
+        .update(atprotoConnections)
+        .set({ userId: "user-1" })
+        .where(eq(atprotoConnections.did, DID));
+
+      expect(await claimStaleAtprotoOrphan(database, DID, cutoff)).toBe(false);
+      const row = await database
+        .select()
+        .from(atprotoConnections)
+        .where(eq(atprotoConnections.did, DID))
+        .get();
+      // Left intact — a concurrent sign-in owns it now.
+      expect(row!.status).toBe("active");
+      expect(row!.session).not.toBeNull();
+    });
+
+    it("does not claim a row refreshed past the cutoff since the snapshot", async () => {
+      await seedOrphan(DID);
+      // A fresh session.set bumps updatedAt to ~now (an in-flight sign-in).
+      await database
+        .update(atprotoConnections)
+        .set({ updatedAt: new Date() })
+        .where(eq(atprotoConnections.did, DID));
+
+      expect(await claimStaleAtprotoOrphan(database, DID, cutoff)).toBe(false);
     });
   });
 
