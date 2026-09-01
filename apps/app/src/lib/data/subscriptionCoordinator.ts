@@ -10,6 +10,7 @@ import { viewsStore } from "./views/store";
 import { isBookmarkProjectionChange } from "./mixed-content/bookmarkProjection";
 import { advanceMixedContentMembershipRevision } from "./mixed-content/membershipRevision";
 import { refreshNavigationSnapshotSafely } from "./navigation/store";
+import { hydrateOfflineBodiesForPage } from "./offline-hydration";
 import { hasFeedItemListProjectionChanged } from "./feed-items/listProjection";
 import type { LoadedMixedScope } from "./mixed-content/store";
 import type { PublishedChunk } from "~/server/api/publisher";
@@ -50,6 +51,7 @@ export function applyRequestedMixedContentPage(input: {
     replacesScope: input.replacesScope,
   });
   mixedContentStore.getState().applyPage(input);
+  void hydrateOfflineBodiesForPage(input.page);
 }
 
 export function applyPublishedChunks(

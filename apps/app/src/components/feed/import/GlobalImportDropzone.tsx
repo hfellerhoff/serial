@@ -5,6 +5,7 @@ import { FileUpIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { getInitialFeedDataFromFiles } from "./utils/getInitialFeedDataFromFileInputElement";
 import { useImportDropStore } from "~/lib/data/import-drop";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 
 function containsFiles(dataTransfer: DataTransfer) {
   return (
@@ -15,6 +16,7 @@ function containsFiles(dataTransfer: DataTransfer) {
 }
 
 export function GlobalImportDropzone() {
+  const canMutate = useCanMutate();
   const navigate = useNavigate();
   const setPendingResult = useImportDropStore(
     (state) => state.setPendingResult,
@@ -31,6 +33,7 @@ export function GlobalImportDropzone() {
     };
 
     const onDragEnter = (event: DragEvent) => {
+      if (!canMutate) return;
       const dataTransfer = event.dataTransfer;
       if (!dataTransfer || !containsFiles(dataTransfer)) return;
 
@@ -40,6 +43,7 @@ export function GlobalImportDropzone() {
     };
 
     const onDragOver = (event: DragEvent) => {
+      if (!canMutate) return;
       const dataTransfer = event.dataTransfer;
       if (!dataTransfer || !containsFiles(dataTransfer)) return;
 
@@ -59,6 +63,7 @@ export function GlobalImportDropzone() {
     };
 
     const onDrop = async (event: DragEvent) => {
+      if (!canMutate) return;
       const dataTransfer = event.dataTransfer;
       if (!dataTransfer || !containsFiles(dataTransfer)) return;
 
@@ -89,7 +94,7 @@ export function GlobalImportDropzone() {
       window.removeEventListener("drop", onDrop);
       window.removeEventListener("dragend", resetDragState);
     };
-  }, [navigate, setPendingResult]);
+  }, [canMutate, navigate, setPendingResult]);
 
   const isVisible = isDraggingOpml || isProcessing;
 

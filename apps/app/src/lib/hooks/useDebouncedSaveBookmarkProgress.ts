@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { getShortcutKeys, SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { useBookmarkValue } from "~/lib/data/bookmarks";
 import { useUpdateBookmarkStateMutation } from "~/lib/data/bookmarks/mutations";
+import { canMutateNow } from "~/lib/data/offline-mutations";
 
 const NAV_KEYS = new Set([
   ...getShortcutKeys(SHORTCUT_KEYS.ARROW_UP),
@@ -32,6 +33,7 @@ export function useDebouncedSaveBookmarkProgress({
 
   const save = useCallback(() => {
     if (!bookmarkRef.current) return;
+    if (!canMutateNow()) return;
     const { progress, duration } = getProgressRef.current();
     if (progress < 0 || duration <= 0) return;
     mutateRef.current({ bookmarkId, progress, duration });

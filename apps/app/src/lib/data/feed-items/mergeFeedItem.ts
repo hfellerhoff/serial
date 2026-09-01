@@ -57,11 +57,7 @@ export function mergeFeedItem(
 ): ApplicationFeedItem {
   const normalizedIncomingItem = normalizeIncomingFeedItem(incomingItem);
 
-  if (!existingItem) {
-    return applyPendingFeedItemOverrides(normalizedIncomingItem);
-  }
-
-  if (!hasMatchingContentHash(existingItem, incomingItem)) {
+  if (!existingItem || !hasMatchingContentHash(existingItem, incomingItem)) {
     return applyPendingFeedItemOverrides(normalizedIncomingItem);
   }
 

@@ -11,17 +11,19 @@ import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { useBookmarkValue } from "~/lib/data/bookmarks";
 import { useUpdateBookmarkStateMutation } from "~/lib/data/bookmarks/mutations";
 import { useShortcut } from "~/lib/hooks/useShortcut";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 
 export function BookmarkReaderActions({ bookmarkId }: { bookmarkId: string }) {
   const bookmark = useBookmarkValue(bookmarkId);
+  const canMutate = useCanMutate();
   const { mutate: updateState } = useUpdateBookmarkStateMutation(bookmarkId);
 
   const toggleSaved = () => {
-    if (!bookmark) return;
+    if (!bookmark || !canMutate) return;
     updateState({ bookmarkId, isSaved: !bookmark.isSaved });
   };
   const toggleRead = () => {
-    if (!bookmark) return;
+    if (!bookmark || !canMutate) return;
     updateState({ bookmarkId, isRead: !bookmark.isRead });
   };
 
@@ -36,6 +38,7 @@ export function BookmarkReaderActions({ bookmarkId }: { bookmarkId: string }) {
         shortcut={SHORTCUT_KEYS.TOGGLE_SAVED}
         variant={bookmark.isSaved ? "secondary" : "outline"}
         aria-label={bookmark.isSaved ? "Unsave" : "Save"}
+        disabled={!canMutate}
         onClick={toggleSaved}
         size="icon md:default"
       >
@@ -52,6 +55,7 @@ export function BookmarkReaderActions({ bookmarkId }: { bookmarkId: string }) {
         shortcut={SHORTCUT_KEYS.TOGGLE_READ}
         variant={bookmark.isRead ? "secondary" : "outline"}
         aria-label={bookmark.isRead ? "Unarchive" : "Archive"}
+        disabled={!canMutate}
         onClick={toggleRead}
         size="icon md:default"
       >

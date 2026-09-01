@@ -13,13 +13,13 @@ const productionTestServer =
   `./node_modules/.bin/concurrently --kill-others ` +
   `"turso dev --db-file serial-test-self-hosted.db --port ${SELF_HOSTED_TURSO_PORT}" ` +
   `"./node_modules/.bin/dotenv -e .env.test.self-hosted -- node --import tsx src/server/db/migrate.ts && ` +
-  `./node_modules/.bin/dotenv -e .env.test.self-hosted -- env CI=1 ./node_modules/.bin/vite preview --port ${SELF_HOSTED_APP_PORT} --strictPort"`;
+  `./node_modules/.bin/dotenv -e .env.test.self-hosted -- env CI=1 NODE_ENV=production PORT=${SELF_HOSTED_APP_PORT} pnpm start"`;
 
 const bootstrapProductionTestServer =
   `./node_modules/.bin/concurrently --kill-others ` +
   `"turso dev --db-file serial-test-self-hosted-bootstrap.db --port ${SELF_HOSTED_BOOTSTRAP_TURSO_PORT}" ` +
   `"./node_modules/.bin/dotenv -e .env.test.self-hosted -- node --import tsx src/server/db/migrate.ts && ` +
-  `./node_modules/.bin/dotenv -e .env.test.self-hosted -- env CI=1 ./node_modules/.bin/vite preview --port ${SELF_HOSTED_BOOTSTRAP_APP_PORT} --strictPort"`;
+  `./node_modules/.bin/dotenv -e .env.test.self-hosted -- env CI=1 NODE_ENV=production PORT=${SELF_HOSTED_BOOTSTRAP_APP_PORT} pnpm start"`;
 
 const bootstrapDevelopmentTestServer =
   `./node_modules/.bin/concurrently --kill-others ` +

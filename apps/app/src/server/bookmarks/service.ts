@@ -602,6 +602,25 @@ export async function getBookmarkCapture(input: {
   return { status: "capture" as const, capture: row.capture };
 }
 
+export async function getBookmarkCaptures(input: {
+  database: BookmarkDatabase;
+  userId: string;
+  bookmarkIds: string[];
+}) {
+  if (input.bookmarkIds.length === 0) return [];
+  const rows = await input.database
+    .select({ capture: pageCaptures })
+    .from(bookmarks)
+    .innerJoin(pageCaptures, eq(pageCaptures.bookmarkId, bookmarks.id))
+    .where(
+      and(
+        inArray(bookmarks.id, input.bookmarkIds),
+        eq(bookmarks.userId, input.userId),
+      ),
+    );
+  return rows.map(({ capture }) => capture);
+}
+
 export async function updateBookmarkState(input: {
   database: BookmarkDatabase;
   userId: string;

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useDialogStore } from "./dialogStore";
 import { SubscriptionDialog } from "./subscription-dialog/SubscriptionDialog";
 import { UserProfileEditDialog } from "./UserProfileEditDialog";
@@ -7,10 +8,16 @@ import { AddViewDialog } from "~/components/view-dialog";
 import { ConnectionsDialog } from "~/components/ConnectionsDialog";
 import { CustomVideoDialog } from "~/components/CustomVideoDialog";
 import { EditBookmarkDialog } from "~/components/bookmarks/BookmarkOrganizationEditor";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 
 export function AppDialogs() {
+  const canMutate = useCanMutate();
   const { dialog, closeDialog, selectedFeedId, selectedBookmarkId } =
     useDialogStore();
+
+  useEffect(() => {
+    if (!canMutate && dialog) closeDialog();
+  }, [canMutate, closeDialog, dialog]);
 
   return (
     <>

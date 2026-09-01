@@ -19,6 +19,11 @@ import {
   reconcileScopeMembershipsForItems,
 } from "./scopeMembership";
 import { refreshNavigationSnapshotSafely } from "./navigation/store";
+import {
+  hasRetainedFeedBody,
+  isEligibleFeedBody,
+  retainEligibleFeedBody,
+} from "./offline-content";
 import type {
   RetainedFeedPage,
   RetainFeedItemPageInput,
@@ -40,11 +45,16 @@ function mergeFeedItemIntoOrder(
   feedItemsOrder: string[],
   existingIds: Set<string>,
   incomingItem: IncomingFeedItem,
+  retainedFeedItemBodyIds: Record<string, true>,
 ) {
-  feedItemsDict[incomingItem.id] = mergeFeedItem(
+  const mergedItem = mergeFeedItem(
     feedItemsDict[incomingItem.id],
     incomingItem,
   );
+  feedItemsDict[incomingItem.id] = mergedItem;
+  if (!isEligibleFeedBody(mergedItem)) {
+    delete retainedFeedItemBodyIds[incomingItem.id];
+  }
 
   if (!existingIds.has(incomingItem.id)) {
     feedItemsOrder.push(incomingItem.id);
@@ -72,6 +82,7 @@ export type ApplicationStore = {
   retainedFeedPages: Record<string, RetainedFeedPage[]>;
   retainedFeedPageBytes: number;
   pageOwnedFeedItemIds: Record<string, true>;
+  retainedFeedItemBodyIds: Record<string, true>;
   retainFeedItemPage: (input: RetainFeedItemPageInput) => void;
   feedStatusDict: Record<number, FetchFeedsStatus>;
   setFeedItemsDict: (itemsDict: Record<string, ApplicationFeedItem>) => void;
@@ -79,6 +90,7 @@ export type ApplicationStore = {
   setFeedItems: (
     items: ApplicationFeedItem[],
     retention?: RetainFeedItemPageInput,
+    retainedBodyItemIds?: ReadonlySet<string>,
   ) => void;
   fetchFeedItemsForFeed: (feedId: number) => Promise<void>;
   fetchNewData: () => Promise<void>;
@@ -119,6 +131,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           retainedFeedPages: {},
           retainedFeedPageBytes: 0,
           pageOwnedFeedItemIds: {},
+          retainedFeedItemBodyIds: {},
           feedStatusDict: {},
           hasInitialData: false,
           viewFeedIds: {},
@@ -135,6 +148,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
       retainedFeedPages: {},
       retainedFeedPageBytes: 0,
       pageOwnedFeedItemIds: {},
+      retainedFeedItemBodyIds: {},
       retainFeedItemPage: (input) =>
         set(applyFeedItemPageRetention(get(), input)),
       feedStatusDict: {},
@@ -146,15 +160,22 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
       setFeedItem: (id, item) => {
         const state = get();
         const previousItem = state.feedItemsDict[id];
+        const retainedItem = retainEligibleFeedBody(previousItem, item);
+        const retainedFeedItemBodyIds = {
+          ...state.retainedFeedItemBodyIds,
+        };
+        if (!isEligibleFeedBody(retainedItem)) {
+          delete retainedFeedItemBodyIds[id];
+        }
         const projectionChanged = hasFeedItemListProjectionChanged(
           previousItem,
-          item,
+          retainedItem,
         );
 
         // Feed-item entities are normalized by id. Replacing just this entry
         // keeps progress and full-text patches O(1), while Zustand's item
         // selector still observes the new entity object.
-        state.feedItemsDict[id] = item;
+        state.feedItemsDict[id] = retainedItem;
 
         set({
           feedItemsDict: state.feedItemsDict,
@@ -162,27 +183,49 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             ? state.feedItemProjectionRevision + 1
             : state.feedItemProjectionRevision,
           scopeFeedItemIds: projectionChanged
-            ? reconcileScopeMembershipsForItem(state.scopeFeedItemIds, item)
+            ? reconcileScopeMembershipsForItem(
+                state.scopeFeedItemIds,
+                retainedItem,
+              )
             : state.scopeFeedItemIds,
+          retainedFeedItemBodyIds,
         });
       },
-      setFeedItems: (items, retention) => {
+      setFeedItems: (items, retention, retainedBodyItemIds) => {
         if (items.length === 0) return;
 
         const state = get();
         const feedItemsDict = state.feedItemsDict;
         const projectionChangedItems: ApplicationFeedItem[] = [];
+        const retainedFeedItemBodyIds = {
+          ...state.retainedFeedItemBodyIds,
+        };
 
         for (const item of items) {
+          const retainedItem = retainEligibleFeedBody(
+            state.feedItemsDict[item.id],
+            item,
+          );
           if (
-            hasFeedItemListProjectionChanged(state.feedItemsDict[item.id], item)
+            hasFeedItemListProjectionChanged(
+              state.feedItemsDict[item.id],
+              retainedItem,
+            )
           ) {
-            projectionChangedItems.push(item);
+            projectionChangedItems.push(retainedItem);
           }
           // Feed-item entities are normalized by id. Mutating only changed
           // entries keeps batch cost proportional to the incoming page or
           // optimistic selection instead of cloning the whole library.
-          feedItemsDict[item.id] = item;
+          feedItemsDict[item.id] = retainedItem;
+          if (
+            retainedBodyItemIds?.has(item.id) &&
+            isEligibleFeedBody(retainedItem)
+          ) {
+            retainedFeedItemBodyIds[item.id] = true;
+          } else if (!isEligibleFeedBody(retainedItem)) {
+            delete retainedFeedItemBodyIds[item.id];
+          }
         }
 
         const scopeFeedItemIds =
@@ -200,6 +243,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               ? state.feedItemProjectionRevision + 1
               : state.feedItemProjectionRevision,
           scopeFeedItemIds,
+          retainedFeedItemBodyIds,
         };
         set(
           retention
@@ -218,15 +262,22 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
       applyFulltextItems: (items) => {
         const feedItemsDict = get().feedItemsDict;
         const pendingFulltext = new Set(get().pendingFulltextItems);
+        const retainedFeedItemBodyIds = {
+          ...get().retainedFeedItemBodyIds,
+        };
 
         for (const item of items) {
           const existing = feedItemsDict[item.id];
           if (existing) {
-            feedItemsDict[item.id] = {
+            const updated = {
               ...existing,
               content: item.content,
               contentSnippet: item.contentSnippet,
             };
+            feedItemsDict[item.id] = updated;
+            if (isEligibleFeedBody(updated)) {
+              retainedFeedItemBodyIds[item.id] = true;
+            }
           }
           pendingFulltext.delete(item.id);
         }
@@ -234,6 +285,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
         set({
           feedItemsDict,
           pendingFulltextItems: Array.from(pendingFulltext),
+          retainedFeedItemBodyIds,
         });
       },
 
@@ -294,6 +346,9 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           const feedStatusDict = { ...get().feedStatusDict };
           const feedItemsDict = { ...get().feedItemsDict };
           const feedItemsOrder = [...get().feedItemsOrder];
+          const retainedFeedItemBodyIds = {
+            ...get().retainedFeedItemBodyIds,
+          };
           let incomingFeedItems: ApplicationFeedItem[] = [];
 
           if (incomingChunk.type === "feed-status") {
@@ -308,6 +363,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
                 feedItemsOrder,
                 existingIds,
                 item,
+                retainedFeedItemBodyIds,
               );
             });
           }
@@ -316,6 +372,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             feedItemsDict: feedItemsDict,
             feedItemsOrder,
             feedStatusDict: feedStatusDict,
+            retainedFeedItemBodyIds,
             scopeFeedItemIds:
               incomingFeedItems.length > 0
                 ? reconcileScopeMembershipsForItems(
@@ -358,6 +415,9 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
         const mergeFeedItems = (items: ApplicationFeedItem[]) => {
           const feedItemsDict = { ...get().feedItemsDict };
           const feedItemsOrder = [...get().feedItemsOrder];
+          const retainedFeedItemBodyIds = {
+            ...get().retainedFeedItemBodyIds,
+          };
           const existingIds = new Set(feedItemsOrder);
 
           items.forEach((item) => {
@@ -366,12 +426,14 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
               feedItemsOrder,
               existingIds,
               item,
+              retainedFeedItemBodyIds,
             );
           });
 
           set({
             feedItemsDict,
             feedItemsOrder,
+            retainedFeedItemBodyIds,
             scopeFeedItemIds: reconcileScopeMembershipsForItems(
               get().scopeFeedItemIds,
               getMergedFeedItems(feedItemsDict, items),
@@ -419,7 +481,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
     {
       name: "serial-application-store",
       storage: createNormalizedIDBStorage({
-        recordFields: ["feedItemsDict"],
+        recordFields: ["feedItemsDict", "retainedFeedItemBodyIds"],
         arrayFields: ["feedItemsOrder"],
       }),
       version: 1,
@@ -434,6 +496,7 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
           retainedFeedPages: persistedState.retainedFeedPages ?? {},
           retainedFeedPageBytes: persistedState.retainedFeedPageBytes ?? 0,
           pageOwnedFeedItemIds: persistedState.pageOwnedFeedItemIds ?? {},
+          retainedFeedItemBodyIds: persistedState.retainedFeedItemBodyIds ?? {},
         };
 
         // Cross-reference hydrated feed items against the feeds store's
@@ -472,6 +535,11 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
             }
             merged.feedItemsDict = newDict;
             merged.feedItemsOrder = order.filter((id) => !orphanedSet.has(id));
+            merged.retainedFeedItemBodyIds = Object.fromEntries(
+              Object.entries(merged.retainedFeedItemBodyIds).filter(
+                ([id]) => !orphanedSet.has(id),
+              ),
+            );
           }
         }
 
@@ -482,6 +550,53 @@ const vanillaApplicationStore = createStore<ApplicationStore>()(
 );
 
 export const feedItemsStore = createSelectorHooks(vanillaApplicationStore);
+
+export function retainLoadedFeedItemBody(itemId: string) {
+  const state = feedItemsStore.getState();
+  const item = state.feedItemsDict[itemId];
+  if (!item || !isEligibleFeedBody(item)) return false;
+  feedItemsStore.setState({
+    retainedFeedItemBodyIds: {
+      ...state.retainedFeedItemBodyIds,
+      [itemId]: true,
+    },
+  });
+  return true;
+}
+
+export function retainLoadedFeedItemBodies(itemIds: readonly string[]) {
+  const state = feedItemsStore.getState();
+  const eligibleIds = itemIds.filter((itemId) => {
+    const item = state.feedItemsDict[itemId];
+    return item !== undefined && isEligibleFeedBody(item);
+  });
+  if (eligibleIds.length === 0) return;
+  feedItemsStore.setState({
+    retainedFeedItemBodyIds: {
+      ...state.retainedFeedItemBodyIds,
+      ...Object.fromEntries(eligibleIds.map((itemId) => [itemId, true])),
+    },
+  });
+}
+
+export async function retainFeedItemBody(itemId: string) {
+  const state = feedItemsStore.getState();
+  const item = state.feedItemsDict[itemId];
+  if (
+    !item ||
+    item.contentType !== "text" ||
+    item.isWatched ||
+    hasRetainedFeedBody(item, state.retainedFeedItemBodyIds[itemId] === true) ||
+    (typeof navigator !== "undefined" && navigator.onLine === false)
+  ) {
+    return;
+  }
+  if (retainLoadedFeedItemBody(itemId)) return;
+  const items = await orpcRouterClient.initial.requestFullTextForItems({
+    itemIds: [itemId],
+  });
+  feedItemsStore.getState().applyFulltextItems(items);
+}
 
 export const useFeedItemsListProjection = () => {
   const revision = useStore(
@@ -512,6 +627,12 @@ export const useFeedItemValue = (id: string) => {
   return useStore(
     feedItemsStore,
     useShallow((store) => store.feedItemsDict[id]),
+  );
+};
+export const useHasRetainedFeedItemBody = (id: string) => {
+  return useStore(
+    feedItemsStore,
+    (store) => store.retainedFeedItemBodyIds[id] === true,
   );
 };
 export const useSetFeedItemValue = (id: string) => {

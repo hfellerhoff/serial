@@ -23,6 +23,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from "~/components/ui/dialog";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 
 type SaveFeedback = Pick<
   BookmarkSaveResult<unknown>,
@@ -39,6 +40,7 @@ export function BookmarkOrganizationEditor({
   onClose: () => void;
 }) {
   const bookmark = useBookmarkValue(bookmarkId);
+  const canMutate = useCanMutate();
   const { views } = useViews();
   const { contentCategories } = useContentCategories();
   const [selectedViewIds, setSelectedViewIds] = useState<number[]>(
@@ -85,6 +87,7 @@ export function BookmarkOrganizationEditor({
   }
 
   const toggleView = async (viewId: number) => {
+    if (!canMutate) return;
     const assigned = !selectedViewIds.includes(viewId);
     setSelectedViewIds((ids) =>
       assigned ? [...ids, viewId] : ids.filter((id) => id !== viewId),
@@ -99,6 +102,7 @@ export function BookmarkOrganizationEditor({
   };
 
   const toggleTag = async (tagId: number) => {
+    if (!canMutate) return;
     const assigned = !selectedTagIds.includes(tagId);
     setSelectedTagIds((ids) =>
       assigned ? [...ids, tagId] : ids.filter((id) => id !== tagId),
@@ -121,6 +125,7 @@ export function BookmarkOrganizationEditor({
       selectedViewIds={selectedViewIds}
       onToggleView={(id) => void toggleView(id)}
       onCreateView={async (name) => {
+        if (!canMutate) return;
         const createdView = await quickCreateView({ name });
         if (!createdView) return;
         setSelectedViewIds((ids) => [...ids, createdView.id]);
@@ -135,6 +140,7 @@ export function BookmarkOrganizationEditor({
       prioritizedTagIds={prioritizedTagIds}
       onToggleTag={(id) => void toggleTag(id)}
       onCreateTag={async (name) => {
+        if (!canMutate) return;
         const createdTag = await createContentCategory({
           name,
           feedCategorizations: [],
@@ -148,7 +154,9 @@ export function BookmarkOrganizationEditor({
         });
       }}
       isDeleting={isDeleting}
+      disabled={!canMutate}
       onDelete={async () => {
+        if (!canMutate) return;
         await deleteBookmark({ bookmarkId });
         toast.success("Bookmark deleted");
         onClose();

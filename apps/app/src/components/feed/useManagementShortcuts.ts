@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent } from "react";
 import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 
 export function useFeedManagementShortcuts({
   onEscape,
@@ -18,6 +19,7 @@ export function useFeedManagementShortcuts({
   isDialogOpen: boolean;
   hasSelection: boolean;
 }) {
+  const canMutate = useCanMutate();
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
     if (event.repeat) return;
     if (doesAnyFormElementHaveFocus()) return;
@@ -37,17 +39,17 @@ export function useFeedManagementShortcuts({
         }
         break;
       case "e":
-        if (!isDialogOpen && hasSelection) {
+        if (canMutate && !isDialogOpen && hasSelection) {
           onEdit();
         }
         break;
       case "c":
-        if (!isDialogOpen && hasSelection) {
+        if (canMutate && !isDialogOpen && hasSelection) {
           onClear();
         }
         break;
       case "d":
-        if (!isDialogOpen && hasSelection) {
+        if (canMutate && !isDialogOpen && hasSelection) {
           onDelete();
         }
         break;

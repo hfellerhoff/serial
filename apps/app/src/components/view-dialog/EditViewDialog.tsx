@@ -9,6 +9,7 @@ import type { ContentFilter } from "~/lib/views/contentFilter";
 import type { ApplicationView } from "~/server/db/schema";
 import type { ViewSection } from "./ViewSectionList";
 import { Button } from "~/components/ui/button";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useFeedCategories } from "~/lib/data/feed-categories";
@@ -48,6 +49,7 @@ export function EditViewDialog({
   selectedViewId: null | number;
   onClose: () => void;
 }) {
+  const canMutate = useCanMutate();
   const [isUpdatingView, setIsUpdatingView] = useState(false);
   const [isDeletingView, setIsDeletingView] = useState(false);
 
@@ -130,7 +132,7 @@ export function EditViewDialog({
   }, [feedIdsInView]);
 
   const handleSave = async () => {
-    if (selectedViewId === null) return;
+    if (!canMutate || selectedViewId === null) return;
 
     setIsUpdatingView(true);
     try {
@@ -175,11 +177,11 @@ export function EditViewDialog({
       footer={
         <div className="flex gap-2">
           <Button
-            disabled={isDeletingView}
+            disabled={!canMutate || isDeletingView}
             className="flex-1"
             variant="destructive"
             onClick={async () => {
-              if (selectedViewId === null) return;
+              if (!canMutate || selectedViewId === null) return;
 
               setIsDeletingView(true);
               try {
@@ -206,7 +208,7 @@ export function EditViewDialog({
             {isDeletingView ? "Deleting..." : "Delete"}
           </Button>
           <Button
-            disabled={isFormDisabled || isUpdatingView}
+            disabled={!canMutate || isFormDisabled || isUpdatingView}
             onClick={handleSave}
             className="flex-1"
           >

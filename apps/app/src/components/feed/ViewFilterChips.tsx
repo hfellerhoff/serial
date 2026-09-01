@@ -18,6 +18,7 @@ import {
   getViewContentAvailability,
   mixedContentStore,
 } from "~/lib/data/mixed-content/store";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 
 const VIEW_FILTER_SKELETON_WIDTHS = ["w-16", "w-22", "w-18", "w-26"];
 
@@ -32,6 +33,7 @@ function ViewFilterChipSkeletons() {
 }
 
 export function ViewFilterChips() {
+  const canMutate = useCanMutate();
   const { views, hasFetchedViews } = useViews();
   const mixedScopes = mixedContentStore.useScopes();
   const [viewFilter] = useAtom(viewFilterIdAtom);
@@ -45,6 +47,7 @@ export function ViewFilterChips() {
     return (
       <Button
         variant="outline"
+        disabled={!canMutate}
         onClick={() => {
           launchDialog("add-view");
         }}

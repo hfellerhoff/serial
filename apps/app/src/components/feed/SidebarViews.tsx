@@ -53,6 +53,7 @@ import {
   getViewContentAvailability,
   mixedContentStore,
 } from "~/lib/data/mixed-content/store";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 
 type ViewOption = ApplicationView & { hasEntries: boolean };
 
@@ -121,6 +122,7 @@ function ViewSidebarItem({
 }
 
 export function SidebarViews() {
+  const canMutate = useCanMutate();
   const [selectedViewForEditing, setSelectedViewForEditing] = useState<
     null | number
   >(null);
@@ -152,6 +154,7 @@ export function SidebarViews() {
   const viewPagesReady = availability.every((value) => value !== undefined);
 
   function handleDragEnd(event: DragEndEvent) {
+    if (!canMutate) return;
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
@@ -183,7 +186,10 @@ export function SidebarViews() {
                 <SettingsIcon size={16} />
               </Link>
             </SidebarMenuButton>
-            <SidebarMenuButton onClick={() => launchDialog("add-view")}>
+            <SidebarMenuButton
+              disabled={!canMutate}
+              onClick={() => launchDialog("add-view")}
+            >
               <PlusIcon />
             </SidebarMenuButton>
           </div>

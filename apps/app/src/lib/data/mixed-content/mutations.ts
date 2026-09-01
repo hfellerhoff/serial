@@ -6,6 +6,7 @@ import {
   clearRetainedEntityPins,
   setRetainedEntityPins,
 } from "../page-retention";
+import { canMutateNow } from "../offline-mutations";
 import { isBookmarkProjectionChange } from "./bookmarkProjection";
 import { advanceMixedContentMembershipRevision } from "./membershipRevision";
 import { mixedContentStore } from "./store";
@@ -34,6 +35,9 @@ export async function setMixedReadValue(input: {
   references: MixedContentReference[];
   isRead: boolean;
 }) {
+  if (!canMutateNow()) {
+    return { bookmarkIds: [], feedItems: [] };
+  }
   const targets = partitionMixedReadTargets(input.references);
   const previousBookmarks = targets.bookmarkIds
     .map((id) => bookmarksStore.getState().getBookmark(id))

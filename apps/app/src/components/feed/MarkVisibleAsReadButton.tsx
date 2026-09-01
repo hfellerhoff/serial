@@ -22,10 +22,12 @@ import { bookmarksStore } from "~/lib/data/bookmarks/store";
 import { setMixedReadValue } from "~/lib/data/mixed-content/mutations";
 import { useLoadMoreItems } from "~/lib/hooks/useLoadMoreItems";
 import { isInboxUnread } from "~/lib/content-status";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 
 let nextUndoRetentionOwnerId = 0;
 
 export function MarkVisibleAsReadButton() {
+  const canMutate = useCanMutate();
   const [isLoading, setIsLoading] = useState(false);
   const setSelectedItemId = useSetAtom(selectedItemIdAtom);
   const scrollToItem = useScrollToFeedItem();
@@ -45,6 +47,7 @@ export function MarkVisibleAsReadButton() {
   }, [scrollToItem, setSelectedItemId]);
 
   const handleMarkAsRead = async () => {
+    if (!canMutate) return;
     if (!isInboxUnread(contentStatusFilter) || filteredItemIds.length === 0)
       return;
 
@@ -111,7 +114,7 @@ export function MarkVisibleAsReadButton() {
     <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
       <ButtonWithShortcut
         onClick={handleMarkAsRead}
-        disabled={isLoading}
+        disabled={!canMutate || isLoading}
         className="shadow-lg"
         variant="outline"
         size="default"

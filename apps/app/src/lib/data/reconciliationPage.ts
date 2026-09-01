@@ -2,6 +2,7 @@ import { getDefaultStore } from "jotai";
 import { bookmarksStore } from "./bookmarks/store";
 import { getMixedContentMembershipRevision } from "./mixed-content/membershipRevision";
 import { getMixedScopeKey, mixedContentStore } from "./mixed-content/store";
+import { hydrateOfflineBodiesForPage } from "./offline-hydration";
 import { feedItemsStore } from "./store";
 import { viewsStore } from "./views/store";
 import {
@@ -52,6 +53,10 @@ export function applyReconciliationFirstPage(page: ActiveFirstPageResult) {
   }
   feedItemsStore.getState().setFeedItems(feedItemUpserts);
   bookmarksStore.getState().upsertMany(bookmarkUpserts);
+  void hydrateOfflineBodiesForPage({
+    feedItems: feedItemUpserts,
+    bookmarks: bookmarkUpserts,
+  });
 
   const pageResult = mixedContentStore.getState().reconcileFirstPage({
     scope: page.target.scope,

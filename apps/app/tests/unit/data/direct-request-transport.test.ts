@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ApplicationFeedItem } from "~/server/db/schema";
+import type {
+  ApplicationFeedItem,
+  DatabasePageCapture,
+} from "~/server/db/schema";
+import type { ApplicationBookmark } from "~/server/mixed-content/projection";
 import { dataRequestActions } from "~/lib/data/directRequests";
+import { bookmarkCapturesStore } from "~/lib/data/bookmarks/capture-store";
+import { bookmarksStore } from "~/lib/data/bookmarks/store";
 import {
   getMixedScopeKey,
   mixedContentStore,
@@ -13,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   invalidateQueries: vi.fn(),
   requestPage: vi.fn(),
   requestFullTextForItems: vi.fn(),
+  getCaptures: vi.fn(),
   streamingImport: vi.fn(),
 }));
 
@@ -25,6 +32,7 @@ vi.mock("~/lib/orpc", () => ({
     },
   },
   orpcRouterClient: {
+    bookmark: { getCaptures: mocks.getCaptures },
     mixedContent: { requestPage: mocks.requestPage },
     initial: {
       requestFullTextForItems: mocks.requestFullTextForItems,
@@ -66,6 +74,53 @@ function feedItem(): ApplicationFeedItem {
   };
 }
 
+function bookmark(): ApplicationBookmark {
+  return {
+    id: "bookmark-one",
+    userId: "user-one",
+    sourceUrl: "https://example.com/bookmark",
+    effectiveUrl: "https://example.com/bookmark",
+    canonicalUrl: "https://example.com/bookmark",
+    platform: "website",
+    contentType: "text",
+    orientation: null,
+    contentId: null,
+    classificationSource: "url",
+    classifierVersion: 1,
+    isSaved: true,
+    isRead: false,
+    progress: 0,
+    duration: 0,
+    savedUpdatedAt: now,
+    readUpdatedAt: now,
+    progressUpdatedAt: now,
+    createdAt: now,
+    updatedAt: now,
+    title: "Bookmark",
+    description: null,
+    author: null,
+    siteName: "example.com",
+    publishedAt: null,
+    iconUrl: null,
+    thumbnailUrl: null,
+    previewSource: "url",
+    captureHash: "capture-hash",
+    capturedAt: now,
+    viewIds: [],
+    tagIds: [],
+  };
+}
+
+const capture: DatabasePageCapture = {
+  bookmarkId: "bookmark-one",
+  contentHtml: "<p>Saved Bookmark body</p>",
+  contentHash: "capture-hash",
+  captureSource: "server-static-fetch",
+  extractorVersion: "test",
+  sanitizerPolicyVersion: 1,
+  capturedAt: now,
+};
+
 const scope = { type: "view" as const, viewId: 7 };
 const contentStatus = {
   saveStatus: "inbox" as const,
@@ -77,6 +132,8 @@ describe("direct request transport", () => {
     vi.clearAllMocks();
     mixedContentStore.getState().reset();
     feedItemsStore.getState().reset();
+    bookmarksStore.getState().reset();
+    bookmarkCapturesStore.getState().reset();
     loadingActor.send({ type: "RESET" });
   });
 
@@ -169,6 +226,61 @@ describe("direct request transport", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("hydrates missing Saved text bodies after applying a fetched page", async () => {
+    const savedFeedItem = { ...feedItem(), isWatchLater: true };
+    const savedBookmark = bookmark();
+    mocks.requestPage.mockResolvedValue({
+      references: [
+        {
+          entityKind: "feed-item",
+          entityId: savedFeedItem.id,
+          sectionPlacement: null,
+          normalizedAt: now,
+        },
+        {
+          entityKind: "bookmark",
+          entityId: savedBookmark.id,
+          sectionPlacement: null,
+          normalizedAt: now,
+        },
+      ],
+      bookmarks: [savedBookmark],
+      feedItems: [savedFeedItem],
+      cursor: null,
+      hasMore: false,
+    });
+    mocks.requestFullTextForItems.mockResolvedValue([
+      {
+        id: savedFeedItem.id,
+        content: "Saved Feed body",
+        contentSnippet: "Saved Feed preview",
+      },
+    ]);
+    mocks.getCaptures.mockResolvedValue([capture]);
+
+    await dataRequestActions.requestMixedContentPage(scope, {
+      saveStatus: "saved",
+      archiveStatus: "unread",
+    });
+
+    await vi.waitFor(() => {
+      expect(mocks.requestFullTextForItems).toHaveBeenCalledWith(
+        { itemIds: [savedFeedItem.id] },
+        expect.anything(),
+      );
+      expect(mocks.getCaptures).toHaveBeenCalledWith(
+        { bookmarkIds: [savedBookmark.id] },
+        expect.anything(),
+      );
+      expect(
+        feedItemsStore.getState().feedItemsDict[savedFeedItem.id]?.content,
+      ).toBe("Saved Feed body");
+      expect(
+        bookmarkCapturesStore.getState().capturesDict[savedBookmark.id],
+      ).toEqual(capture);
+    });
   });
 
   it("applies import progress from the direct response stream", async () => {

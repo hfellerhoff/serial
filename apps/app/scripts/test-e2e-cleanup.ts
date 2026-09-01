@@ -150,10 +150,10 @@ function assertExpectedServices(processes: ProcessRow[], ports: number[]) {
   const [appPort, tursoPort, rssPort, bootstrapAppPort, bootstrapTursoPort] =
     ports;
   const expectedFragments = [
-    `vite preview --port ${appPort}`,
+    `NODE_ENV=production PORT=${appPort} pnpm start`,
     `turso dev --db-file serial-test-self-hosted.db --port ${tursoPort}`,
     `rss-server.ts ${rssPort}`,
-    `vite preview --port ${bootstrapAppPort}`,
+    `NODE_ENV=production PORT=${bootstrapAppPort} pnpm start`,
     `turso dev --db-file serial-test-self-hosted-bootstrap.db --port ${bootstrapTursoPort}`,
   ];
   const missingFragments = expectedFragments.filter(

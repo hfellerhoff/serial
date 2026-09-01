@@ -38,6 +38,7 @@ type SelectableChipListProps = {
   createPlaceholder?: string;
   prioritizedIds?: ReadonlySet<number>;
   emptyMessage?: string;
+  disabled?: boolean;
 };
 
 const MAX_ROWS = 5;
@@ -81,6 +82,7 @@ export function SelectableChipList({
   createPlaceholder = `New ${label.toLowerCase().replace(/s$/, "")} name...`,
   prioritizedIds = new Set(),
   emptyMessage = `No ${label.toLowerCase()} available`,
+  disabled = false,
 }: SelectableChipListProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const [createSearch, setCreateSearch] = useState("");
@@ -124,6 +126,7 @@ export function SelectableChipList({
   );
   const canCreate =
     Boolean(onCreate) &&
+    !disabled &&
     Boolean(trimmedCreateSearch) &&
     !hasExactCreateMatch &&
     !isCreating;
@@ -215,6 +218,7 @@ export function SelectableChipList({
                   size="icon"
                   className="size-6"
                   aria-label={createLabel}
+                  disabled={disabled}
                 >
                   <PlusIcon size={14} />
                 </Button>
@@ -302,6 +306,7 @@ export function SelectableChipList({
                 key={option.id}
                 type="button"
                 aria-pressed={isSelected}
+                disabled={disabled}
                 onClick={() => onToggle(option.id)}
                 className={cn(
                   badgeVariants({
