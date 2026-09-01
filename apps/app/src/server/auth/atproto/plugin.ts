@@ -21,12 +21,15 @@ import {
   bindAtprotoConnection,
   completeAtprotoLink,
   finishAtprotoAuth,
+  resolveAndStoreAtprotoHandle,
+  resolveAtprotoDid,
   revokeAtprotoConnectionIfUnbound,
   startAtprotoAuth,
 } from "./service";
 import { searchAtprotoActorsTypeahead } from "./typeahead";
 import type { BetterAuthPlugin } from "better-auth";
 import type { AtprotoLinkResult } from "~/lib/auth/atproto";
+import { enforceResolvedSignupPolicy } from "~/server/auth/policy";
 import { ATPROTO_LINK_RESULT_PARAM } from "~/lib/auth/atproto";
 import { logError } from "~/server/logger";
 
@@ -45,8 +48,12 @@ import { logError } from "~/server/logger";
  * encrypted stores.
  */
 
-const SIGN_IN_ERROR_REDIRECT = "/auth/sign-in?error=atproto";
+// `method` reopens the Atmosphere subscreen when atproto is a secondary
+// method on the page; the client ignores it when atproto renders inline.
+const SIGN_IN_ERROR_REDIRECT = "/auth/sign-in?error=atproto&method=atproto";
 const SIGN_IN_SUCCESS_REDIRECT = "/";
+const AUTHORIZE_FAILED_MESSAGE =
+  "Could not start Atmosphere sign in for that handle. Check the handle and try again.";
 
 /**
  * Link flows return into the signed-in app rather than the auth pages; the
@@ -102,7 +109,39 @@ export const atprotoPlugin = () => {
           }),
         },
         async (ctx) => {
+          let did: string;
           try {
+            did = await resolveAtprotoDid(ctx.body.did ?? ctx.body.identifier);
+          } catch (err) {
+            logError("[atproto] authorize failed:", err);
+            throw new APIError("BAD_REQUEST", {
+              message: AUTHORIZE_FAILED_MESSAGE,
+            });
+          }
+
+          // Pre-flight the sign-up gate before any redirect is issued: an
+          // unknown DID while atproto sign-up is unavailable gets immediate
+          // feedback on the auth page instead of create-then-roll-back at
+          // the callback. Sign-in only — the link flow starts through the
+          // oRPC link procedure, not this endpoint.
+          //
+          // Accepted trade-off: while sign-ups are unavailable, the
+          // distinct rejection lets a caller probe whether a DID has an
+          // account here (bounded by this path's rate limit). That
+          // membership oracle is inherent to giving real users immediate
+          // feedback and is the user-approved behavior — not a bug.
+          await enforceResolvedSignupPolicy({
+            provider: "atproto",
+            providerId: ATPROTO_PROVIDER_ID,
+            accountId: did,
+          });
+
+          try {
+            // The typed identifier (not the resolved DID) stays the
+            // authorize input: the SDK forwards it as the login_hint, and
+            // a handle reads better than a DID on the authorization
+            // server's sign-in form. Resolution is cached, so this costs
+            // no extra outbound call.
             const url = await startAtprotoAuth({
               identifier: ctx.body.did ?? ctx.body.identifier,
             });
@@ -110,8 +149,7 @@ export const atprotoPlugin = () => {
           } catch (err) {
             logError("[atproto] authorize failed:", err);
             throw new APIError("BAD_REQUEST", {
-              message:
-                "Could not start Atmosphere sign in for that handle. Check the handle and try again.",
+              message: AUTHORIZE_FAILED_MESSAGE,
             });
           }
         },
@@ -223,6 +261,9 @@ export const atprotoPlugin = () => {
           try {
             result = await finishAtprotoAuth(url.searchParams, {
               redirectUri: getAtprotoLinkRedirectUri(),
+              // Bind first, resolve the handle after: display data must not
+              // hold up the redirect or the connected state.
+              deferHandleResolution: true,
             });
           } catch (err) {
             logError("[atproto] link callback failed:", err);
@@ -257,6 +298,10 @@ export const atprotoPlugin = () => {
                 : "error";
             throw ctx.redirect(linkResultRedirect(linkResult));
           }
+
+          // Backfill the handle in the background (it reports its own
+          // failures); until it lands the connections UI shows the DID.
+          void resolveAndStoreAtprotoHandle(result.did);
 
           throw ctx.redirect(linkResultRedirect("success"));
         },

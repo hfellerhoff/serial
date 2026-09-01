@@ -149,6 +149,23 @@ export function ControlledResponsiveDialog({
             className,
           )}
           onOpenAutoFocus={onOpenAutoFocus}
+          onEscapeKeyDown={(event) => {
+            // A combobox popup (Base UI, e.g. the Atmosphere handle
+            // typeahead) is its own layer above this dialog, but Radix only
+            // tracks Radix layers: without this check the Escape that
+            // dismisses the suggestions would tear down the dialog too.
+            // `data-escape-dismisses` covers the popup-closed states the
+            // field still wants first claim on (a search pending in the
+            // debounce window, say) — aria-expanded alone can't see those.
+            const target = event.target as HTMLElement | null;
+            if (
+              target?.closest(
+                '[role="combobox"][aria-expanded="true"], [data-escape-dismisses="true"]',
+              )
+            ) {
+              event.preventDefault();
+            }
+          }}
         >
           <DialogHeader className={cn("shrink-0", headerClassName)}>
             {onBack && (

@@ -34,8 +34,11 @@ vi.mock("~/server/auth/atproto/client", () => ({
   getAtprotoClient: () => Promise.resolve(clientHolder.current),
 }));
 
-const { finishAtprotoAuth, revokeAtprotoConnection } =
-  await import("~/server/auth/atproto/service");
+const {
+  finishAtprotoAuth,
+  resolveAndStoreAtprotoHandle,
+  revokeAtprotoConnection,
+} = await import("~/server/auth/atproto/service");
 
 type Session = ReturnType<typeof openBenchmarkDatabase>;
 type Target = ReturnType<typeof createLocalBenchmarkTarget>;
@@ -112,6 +115,29 @@ describe("finishAtprotoAuth", () => {
     expect(result.handle).toBe("reader.bsky.social");
     expect(result.grantedScope).toBe("atproto");
     expect(result.linkUserId).toBeNull();
+    expect((await connectionRow())?.handle).toBe("reader.bsky.social");
+  });
+
+  it("defers handle resolution on request so binding never waits on it", async () => {
+    const oauth = oauthSession(DID);
+    const client = fakeClient({
+      callback: vi.fn().mockResolvedValue({ session: oauth, state: null }),
+      handle: "reader.bsky.social",
+    });
+    clientHolder.current = client;
+
+    const result = await finishAtprotoAuth(new URLSearchParams("code=abc"), {
+      deferHandleResolution: true,
+    });
+
+    expect(result.handle).toBeNull();
+    expect(client.oauthResolver.resolveIdentity).not.toHaveBeenCalled();
+    expect((await connectionRow())?.handle).toBeNull();
+
+    // The deferred backfill the link callback fires stores the handle.
+    await expect(resolveAndStoreAtprotoHandle(DID)).resolves.toBe(
+      "reader.bsky.social",
+    );
     expect((await connectionRow())?.handle).toBe("reader.bsky.social");
   });
 

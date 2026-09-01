@@ -6,7 +6,7 @@ import {
   redirect,
   useLocation,
 } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useIsRestoring, useQueryClient } from "@tanstack/react-query";
 import { CheckIcon } from "lucide-react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -188,13 +188,19 @@ const ATPROTO_LINK_ERROR_MESSAGES: Record<string, string> = {
 
 /**
  * Detect the ?atproto_link= result param the AT Protocol link callback
- * redirects back with, toast the outcome, and re-open the connections
+ * redirects back with, toast failures, and re-open the connections
  * dialog so the user sees the connection's state.
  */
 function useAtprotoLinkReturn() {
   const launchDialog = useDialogStore((s) => s.launchDialog);
+  const queryClient = useQueryClient();
+  const isRestoring = useIsRestoring();
 
   useEffect(() => {
+    // Wait for the persisted query cache to restore: dropping the status
+    // entry before restoration finishes would be undone by it.
+    if (isRestoring) return;
+
     const params = new URLSearchParams(window.location.search);
     const result = params.get(ATPROTO_LINK_RESULT_PARAM);
     if (!result) return;
@@ -206,16 +212,23 @@ function useAtprotoLinkReturn() {
       (params.size > 0 ? `?${params.toString()}` : "");
     window.history.replaceState({}, "", newUrl);
 
-    if (result === "success") {
-      toast.success("Atmosphere account connected");
-    } else {
+    // The persisted cache restores the pre-flight connection status as
+    // fresh (the OAuth round trip usually beats staleTime), so the reopened
+    // dialog would render "Not connected" and never refetch. Drop the entry
+    // outright: the row shows its loading state, then the live result.
+    queryClient.removeQueries({
+      queryKey: orpc.atproto.getConnectionStatus.queryKey(),
+    });
+
+    // Success needs no toast — the reopened dialog's connected row says it.
+    if (result !== "success") {
       toast.error(
         ATPROTO_LINK_ERROR_MESSAGES[result] ??
           "Couldn't connect your Atmosphere account. Please try again.",
       );
     }
     launchDialog("connections");
-  }, [launchDialog]);
+  }, [launchDialog, queryClient, isRestoring]);
 }
 
 /**

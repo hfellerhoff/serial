@@ -1,15 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRightIcon, Loader2Icon, UnplugIcon } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
+import { AtprotoHandleField } from "~/components/auth/AtprotoHandleField";
 import { orpc } from "~/lib/orpc";
 
 export function AtprotoConnectionForm() {
-  const [handle, setHandle] = useState("");
-
   const linkMutation = useMutation(
     orpc.atproto.linkAccount.mutationOptions({
       onSuccess: (data) => {
@@ -24,34 +20,14 @@ export function AtprotoConnectionForm() {
   );
 
   return (
-    <form
-      className="grid gap-4"
-      onSubmit={(e) => {
-        e.preventDefault();
-        linkMutation.mutate({ identifier: handle });
-      }}
-    >
-      <div className="grid gap-2">
-        <Label htmlFor="atproto-handle">Handle</Label>
-        <Input
-          id="atproto-handle"
-          type="text"
-          value={handle}
-          placeholder="name.bsky.social"
-          onChange={(e) => setHandle(e.target.value)}
-          autoComplete="off"
-          autoCapitalize="none"
-          spellCheck={false}
-        />
-      </div>
-      <Button type="submit" disabled={linkMutation.isPending || !handle}>
-        {linkMutation.isPending ? (
-          <Loader2Icon className="animate-spin" size={16} />
-        ) : (
-          "Connect"
-        )}
-      </Button>
-    </form>
+    <AtprotoHandleField
+      id="atproto-handle"
+      label="Handle"
+      submitLabel="Connect"
+      busy={linkMutation.isPending}
+      focusOnMount
+      onSubmit={(submission) => linkMutation.mutate(submission)}
+    />
   );
 }
 
@@ -62,9 +38,19 @@ export function AtprotoConnectionListItem({
 }) {
   const queryClient = useQueryClient();
 
-  const { data: status, isLoading } = useQuery(
-    orpc.atproto.getConnectionStatus.queryOptions(),
-  );
+  const { data: status, isLoading } = useQuery({
+    ...orpc.atproto.getConnectionStatus.queryOptions(),
+    // The link callback backfills the handle after redirecting, so a row
+    // read right after linking can carry the raw DID. Poll while the
+    // "handle" is still DID-shaped (real handles are domains); polling
+    // stops when the row unmounts with the dialog.
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      const awaitingHandleBackfill =
+        !!data?.isConnected && !!data.handle?.startsWith("did:");
+      return awaitingHandleBackfill ? 3000 : false;
+    },
+  });
 
   const computedStatus = status ?? {
     isConnected: false,

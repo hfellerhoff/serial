@@ -10,6 +10,7 @@ import {
   disconnectAtprotoConnection,
   sweepExpiredAtprotoState,
 } from "./stores";
+import type { AtprotoRedirectUri } from "./config";
 import type { OAuthSession } from "@atproto/oauth-client-node";
 import { db } from "~/server/db";
 import { account, atprotoConnections } from "~/server/db/schema";
@@ -55,6 +56,21 @@ export async function startAtprotoAuth(input: {
   return client.authorize(input.identifier, {
     scope: input.scope ?? ATPROTO_SCOPE,
   });
+}
+
+/**
+ * Resolve a typed identifier to its DID without starting a flow, so the
+ * authorize endpoint can pre-flight sign-up policy before issuing a
+ * redirect. A value that is already a DID is returned as-is: the SDK
+ * verifies the full identity chain during the callback regardless, and the
+ * pre-flight only needs the same value the flow itself will authorize
+ * with.
+ */
+export async function resolveAtprotoDid(identifier: string): Promise<string> {
+  if (identifier.startsWith("did:")) return identifier;
+  const client = await getAtprotoClient();
+  const info = await client.oauthResolver.resolveIdentity(identifier);
+  return info.did;
 }
 
 /** At most one revocation sweep per interval, instance-wide via KV. */
@@ -114,7 +130,17 @@ export async function finishAtprotoAuth(
      * the default sign-in callback (the SDK exchanges the code against the
      * first registered redirect URI unless told otherwise).
      */
-    redirectUri?: `https://${string}`;
+    redirectUri?: AtprotoRedirectUri;
+    /**
+     * Skip the handle resolution (the result's `handle` stays null) so the
+     * caller can run it after its own critical writes. Resolution verifies
+     * the handle bidirectionally over DNS/well-known and can stall for tens
+     * of seconds on a slow domain; the link callback must not let display
+     * data hold up the user bind and the redirect, or the connections UI
+     * reads "Not connected" long after consent was granted. Sign-in keeps
+     * the blocking default: the handle names the auto-created user.
+     */
+    deferHandleResolution?: boolean;
   },
 ): Promise<AtprotoCallbackResult> {
   const client = await getAtprotoClient();
@@ -139,18 +165,9 @@ export async function finishAtprotoAuth(
 
   const { scope: grantedScope } = await session.getTokenInfo(false);
 
-  let handle: string | null = null;
-  try {
-    const info = await client.oauthResolver.resolveIdentity(did);
-    if (info.handle !== "handle.invalid") handle = info.handle;
-    await db
-      .update(atprotoConnections)
-      .set({ handle, updatedAt: new Date() })
-      .where(eq(atprotoConnections.did, did));
-  } catch (err) {
-    // Display data only — the authenticated session is already durable.
-    captureException(err);
-  }
+  const handle = options?.deferHandleResolution
+    ? null
+    : await resolveAndStoreAtprotoHandle(did);
 
   return {
     session,
@@ -159,6 +176,31 @@ export async function finishAtprotoAuth(
     grantedScope,
     linkUserId: appState.linkUserId ?? null,
   };
+}
+
+/**
+ * Resolve a connection's current handle and store it — display data only,
+ * the authenticated session is already durable, so every failure degrades
+ * to null (the UI falls back to the DID). The link callback runs this
+ * fire-and-forget after binding the user, so slow DNS/well-known
+ * verification can never delay the redirect or the connected state.
+ */
+export async function resolveAndStoreAtprotoHandle(
+  did: string,
+): Promise<string | null> {
+  try {
+    const client = await getAtprotoClient();
+    const info = await client.oauthResolver.resolveIdentity(did);
+    const handle = info.handle !== "handle.invalid" ? info.handle : null;
+    await db
+      .update(atprotoConnections)
+      .set({ handle, updatedAt: new Date() })
+      .where(eq(atprotoConnections.did, did));
+    return handle;
+  } catch (err) {
+    captureException(err);
+    return null;
+  }
 }
 
 /**

@@ -36,7 +36,9 @@ function AlertPane({
               search={{ callbackURL }}
               className="w-full"
             >
-              <Button className="w-full">Back to Sign In</Button>
+              <Button size="lg" className="w-full">
+                Back to Sign In
+              </Button>
             </Link>
           </CardFooter>
         )}
@@ -102,6 +104,7 @@ export function AuthResetPageComponent() {
           <div className="grid gap-2">
             <Label htmlFor="password">Password</Label>
             <Input
+              className="h-10"
               id="password"
               type="password"
               placeholder="************"
@@ -112,6 +115,7 @@ export function AuthResetPageComponent() {
           </div>
           <Button
             type="submit"
+            size="lg"
             className="w-full"
             disabled={loading}
             onClick={async () => {
@@ -158,6 +162,7 @@ export function AuthResetPageComponent() {
         <div className="grid gap-2">
           <Label htmlFor="email">Email</Label>
           <Input
+            className="h-10"
             id="email"
             type="email"
             placeholder="email@example.com"
@@ -170,6 +175,7 @@ export function AuthResetPageComponent() {
         </div>
         <Button
           type="submit"
+          size="lg"
           className="w-full"
           disabled={loading}
           onClick={async () => {

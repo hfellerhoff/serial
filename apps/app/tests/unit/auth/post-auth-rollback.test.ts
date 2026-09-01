@@ -1,17 +1,26 @@
+import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   applyMigrations,
   createLocalBenchmarkTarget,
   openBenchmarkDatabase,
 } from "../../../scripts/performance/database";
-import { appConfig, session as sessionTable, user } from "~/server/db/schema";
+import {
+  account,
+  appConfig,
+  session as sessionTable,
+  user,
+} from "~/server/db/schema";
 
 /**
  * The auto-signup rollback in applyPostAuthPolicy must only ever delete a
  * user the callback itself just created. An established user signing in
  * through a linked provider can arrive with exactly one session (all
  * others expired), so session count alone must not trigger rollback —
- * creation recency is required too.
+ * creation recency is required too. And a just-created user reached by
+ * implicit account linking (another provider's row, or several rows) is
+ * not the callback's own auto-signup either, so the user's sole account
+ * row must belong to the callback's provider.
  */
 
 const dbHolder = vi.hoisted(() => {
@@ -27,6 +36,8 @@ vi.mock("~/server/db", () => ({
 
 vi.mock("~/server/auth/constants", () => ({
   getConfiguredAuthProviders: () => ["email", "atproto"],
+  getAccountProviderId: (provider: string) =>
+    provider === "email" ? "credential" : provider,
 }));
 
 const { applyPostAuthPolicy } = await import("~/server/auth/policy");
@@ -67,7 +78,11 @@ describe("post-auth callback rollback", () => {
     dbHolder.current = undefined;
   });
 
-  async function insertCallbackUser(id: string, createdAt: Date) {
+  async function insertCallbackUser(
+    id: string,
+    createdAt: Date,
+    accountProviderIds: string[] = ["atproto"],
+  ) {
     await session.database.insert(user).values({
       id,
       name: id,
@@ -76,6 +91,16 @@ describe("post-auth callback rollback", () => {
       createdAt,
       updatedAt: new Date(),
     });
+    for (const providerId of accountProviderIds) {
+      await session.database.insert(account).values({
+        id: `account-${id}-${providerId}`,
+        accountId: `${providerId}-${id}`,
+        providerId,
+        userId: id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
     await session.database.insert(sessionTable).values({
       id: `session-${id}`,
       userId: id,
@@ -115,5 +140,117 @@ describe("post-auth callback rollback", () => {
 
     await applyPostAuthPolicy(completedAuth("user-linked", rollback));
     expect(rollback).not.toHaveBeenCalled();
+  });
+
+  it("never rolls back a just-created user the callback linked to (multiple account rows)", async () => {
+    // Signed up with email moments ago, then the callback implicitly
+    // linked the atproto account — a real user, not an auto-signup.
+    await insertCallbackUser("user-just-linked", new Date(), [
+      "credential",
+      "atproto",
+    ]);
+    const rollback = vi.fn().mockResolvedValue(undefined);
+
+    await applyPostAuthPolicy(completedAuth("user-just-linked", rollback));
+    expect(rollback).not.toHaveBeenCalled();
+  });
+
+  it("never rolls back a just-created user whose sole account row belongs to another provider", async () => {
+    // e.g. an admin-seeded credential-only row reached by a callback that
+    // issued no account row of its own.
+    await insertCallbackUser("user-credential-only", new Date(), [
+      "credential",
+    ]);
+    const rollback = vi.fn().mockResolvedValue(undefined);
+
+    await applyPostAuthPolicy(completedAuth("user-credential-only", rollback));
+    expect(rollback).not.toHaveBeenCalled();
+  });
+
+  // The first-user branch is bootstrap-only: promotion and provider
+  // recording belong to the request that created the first user, never to
+  // their later sign-ins — and the config rows are written once, so an
+  // existing configuration always wins.
+
+  async function providerConfigs() {
+    const configs = await session.database.select().from(appConfig).all();
+    return {
+      signin: configs.find((c) => c.key === "enabled-signin-providers")?.value,
+      signup: configs.find((c) => c.key === "enabled-signup-providers")?.value,
+    };
+  }
+
+  it("leaves config and role alone when the established first user signs in via callback", async () => {
+    await session.database.insert(appConfig).values([
+      {
+        key: "enabled-signin-providers",
+        value: JSON.stringify(["email"]),
+        updatedAt: new Date(),
+      },
+      {
+        key: "enabled-signup-providers",
+        value: JSON.stringify(["email"]),
+        updatedAt: new Date(),
+      },
+    ]);
+    const rollback = vi.fn().mockResolvedValue(undefined);
+
+    await applyPostAuthPolicy(completedAuth("user-first", rollback));
+
+    expect(rollback).not.toHaveBeenCalled();
+    const configs = await providerConfigs();
+    expect(configs.signin).toBe(JSON.stringify(["email"]));
+    expect(configs.signup).toBe(JSON.stringify(["email"]));
+    const firstUser = await session.database
+      .select({ role: user.role })
+      .from(user)
+      .where(eq(user.id, "user-first"))
+      .get();
+    // A demoted first admin must stay demoted.
+    expect(firstUser?.role).not.toBe("admin");
+  });
+
+  it("bootstraps promotion and provider recording for a just-created first user", async () => {
+    await session.database.delete(user).where(eq(user.id, "user-first"));
+    await insertCallbackUser("user-boot", new Date());
+    const rollback = vi.fn().mockResolvedValue(undefined);
+
+    await applyPostAuthPolicy(completedAuth("user-boot", rollback));
+
+    expect(rollback).not.toHaveBeenCalled();
+    const configs = await providerConfigs();
+    expect(configs.signin).toBe(JSON.stringify(["atproto"]));
+    expect(configs.signup).toBe(JSON.stringify(["atproto"]));
+    const bootUser = await session.database
+      .select({ role: user.role })
+      .from(user)
+      .where(eq(user.id, "user-boot"))
+      .get();
+    expect(bootUser?.role).toBe("admin");
+  });
+
+  it("never clobbers provider config that already exists at bootstrap", async () => {
+    await session.database.delete(user).where(eq(user.id, "user-first"));
+    await session.database.insert(appConfig).values([
+      {
+        key: "enabled-signin-providers",
+        value: JSON.stringify(["email", "atproto"]),
+        updatedAt: new Date(),
+      },
+      {
+        key: "enabled-signup-providers",
+        value: JSON.stringify(["email"]),
+        updatedAt: new Date(),
+      },
+    ]);
+    await insertCallbackUser("user-boot", new Date());
+    const rollback = vi.fn().mockResolvedValue(undefined);
+
+    await applyPostAuthPolicy(completedAuth("user-boot", rollback));
+
+    expect(rollback).not.toHaveBeenCalled();
+    const configs = await providerConfigs();
+    expect(configs.signin).toBe(JSON.stringify(["email", "atproto"]));
+    expect(configs.signup).toBe(JSON.stringify(["email"]));
   });
 });

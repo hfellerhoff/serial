@@ -108,7 +108,7 @@ function VerifyEmail() {
       <CardContent>
         <div className="grid gap-4">
           {!codeSent ? (
-            <Button className="w-full" disabled>
+            <Button size="lg" className="w-full" disabled>
               Sending verification code...
             </Button>
           ) : (
@@ -116,6 +116,7 @@ function VerifyEmail() {
               <div className="flex gap-2">
                 <Input
                   ref={inputRef}
+                  className="h-10"
                   type="text"
                   inputMode="numeric"
                   placeholder="Enter code"
@@ -123,6 +124,7 @@ function VerifyEmail() {
                   onChange={(e) => setOtp(e.target.value)}
                 />
                 <Button
+                  size="lg"
                   disabled={verifying || otp.length === 0}
                   onClick={handleVerify}
                 >

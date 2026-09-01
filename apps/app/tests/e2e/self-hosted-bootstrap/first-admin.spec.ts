@@ -22,15 +22,19 @@ test("first-admin sign-up offers Atmosphere alongside email", async ({
     page.getByRole("button", { name: "Sign up with TestOAuth" }),
   ).toBeVisible();
 
+  // Display priority: oauth primary above the divider, then atmosphere
+  // and email as secondaries in that order.
   const providerButtons = await page
     .getByRole("button", { name: /sign up with/i })
     .allTextContents();
-  expect(providerButtons.indexOf("Sign up with Atmosphere")).toBeLessThan(
-    providerButtons.indexOf("Sign up with TestOAuth"),
-  );
+  expect(providerButtons).toEqual([
+    "Sign up with TestOAuth",
+    "Sign up with Atmosphere",
+    "Sign up with Email",
+  ]);
 
   const handleInput = page.getByLabel("Atmosphere handle");
-  // Retry the click until the handle step opens — the button renders
+  // Retry the click until the subscreen opens — the button renders
   // server-side but its onClick only attaches once React hydrates.
   await expect(async () => {
     if (await handleInput.isVisible()) return;

@@ -69,7 +69,10 @@ export async function signUp({ page, name, email, password }: SignUpOptions) {
   await page.setExtraHTTPHeaders({
     [TEST_CLIENT_IP_HEADER]: getTestClientIp(email),
   });
-  await page.goto("/auth/sign-up");
+  // ?method=email opens the email subscreen when email is a secondary
+  // method (atproto/oauth primary); with email primary it degrades to the
+  // inline form, so the same URL works across instance flavors.
+  await page.goto("/auth/sign-up?method=email");
 
   const authPage = await detectAuthPage(page);
 
@@ -186,7 +189,7 @@ export async function signIn({ page, email, password }: SignInOptions) {
   await page.setExtraHTTPHeaders({
     [TEST_CLIENT_IP_HEADER]: getTestClientIp(email),
   });
-  await page.goto("/auth/sign-in");
+  await page.goto("/auth/sign-in?method=email");
 
   const authPage = await detectAuthPage(page);
 

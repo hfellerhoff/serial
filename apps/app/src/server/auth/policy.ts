@@ -1,9 +1,9 @@
 import { render } from "react-email";
 import { APIError } from "better-auth/api";
-import { asc, count, eq } from "drizzle-orm";
+import { and, asc, count, eq } from "drizzle-orm";
 import { createElement } from "react";
 import { db } from "../db";
-import { appConfig, session, user } from "../db/schema";
+import { account, appConfig, session, user } from "../db/schema";
 import type { AuthProvider } from "~/lib/constants";
 import NewUserNotificationEmail from "~/emails/new-user-notification";
 import {
@@ -11,7 +11,10 @@ import {
   getEnabledAuthProviders,
   isPublicSignupEnabled,
 } from "~/lib/constants";
-import { getConfiguredAuthProviders } from "~/server/auth/constants";
+import {
+  getAccountProviderId,
+  getConfiguredAuthProviders,
+} from "~/server/auth/constants";
 import { IS_EMAIL_ENABLED, sendEmail } from "~/server/email";
 import {
   redeemInvitationToken,
@@ -40,7 +43,7 @@ const SIGN_UPS_DISABLED_MESSAGE = "Sign ups are currently disabled";
  * written milliseconds before the after-hook runs — while keeping any
  * established account safely out of rollback's reach.
  */
-const AUTO_SIGNUP_ROLLBACK_WINDOW_MS = 60 * 1000;
+export const AUTO_SIGNUP_ROLLBACK_WINDOW_MS = 60 * 1000;
 
 export interface AuthAttempt {
   provider: AuthProvider;
@@ -115,6 +118,42 @@ export async function enforceAuthAttemptPolicy(
   }
 }
 
+/**
+ * Pre-flight sign-up gate for OAuth-style providers that can resolve the
+ * provider-side account id before redirecting (atproto resolves the DID
+ * from the typed identifier; generic OAuth cannot pre-flight because its
+ * account id only arrives in the callback). An existing account row makes
+ * the attempt a plain sign-in; without one the callback would auto-create
+ * a user, so the attempt must clear sign-up policy now — immediate
+ * feedback on the auth page instead of create-then-roll-back. The
+ * post-auth rollback stays as defense-in-depth for the race where the
+ * account row disappears between this check and the callback.
+ */
+export async function enforceResolvedSignupPolicy(input: {
+  provider: AuthProvider;
+  /** The provider's Better Auth `account.providerId` value. */
+  providerId: string;
+  /** Provider-side account id (the DID for atproto). */
+  accountId: string;
+}): Promise<void> {
+  const existing = await db
+    .select({ id: account.id })
+    .from(account)
+    .where(
+      and(
+        eq(account.providerId, input.providerId),
+        eq(account.accountId, input.accountId),
+      ),
+    )
+    .get();
+  if (existing) return;
+
+  await enforceAuthAttemptPolicy({
+    provider: input.provider,
+    intent: "sign-up",
+  });
+}
+
 export interface CompletedAuth {
   provider: AuthProvider;
   /**
@@ -130,8 +169,11 @@ export interface CompletedAuth {
   invitationToken?: string;
   /**
    * Deletes the just-created user and all related records (accounts,
-   * sessions, plugin data). Supplied by the adapter because deletion goes
-   * through the Better Auth API with the new session's credentials.
+   * sessions, plugin data). Supplied by the adapter because deletion is a
+   * server-side mechanism the policy stays agnostic to — the after-hook's
+   * request carries no usable credentials (the new session only exists on
+   * the response), so the adapter deletes directly rather than through a
+   * credentialed Better Auth API call.
    */
   rollbackNewUser: () => Promise<void>;
 }
@@ -158,7 +200,12 @@ export async function applyPostAuthPolicy(
       );
       if (!redeemed) {
         // Another concurrent sign-up consumed the last use between the
-        // attempt gate and now. Roll back the newly created user.
+        // attempt gate and now. Roll back the newly created user. Note
+        // the rollback primitive only deletes rows created within
+        // AUTO_SIGNUP_ROLLBACK_WINDOW_MS; a sign-up request that somehow
+        // spent longer than that between user insert and this hook keeps
+        // its row (the session cookie is still stripped) rather than
+        // risking an established user's data.
         await completed.rollbackNewUser();
         throw new APIError("BAD_REQUEST", {
           message: SIGN_UPS_DISABLED_MESSAGE,
@@ -169,16 +216,33 @@ export async function applyPostAuthPolicy(
 
   // Check if this user is the first user by creation time
   const firstUser = await db
-    .select({ id: user.id })
+    .select({ id: user.id, createdAt: user.createdAt })
     .from(user)
     .orderBy(asc(user.createdAt))
     .limit(1)
     .get();
 
-  if (firstUser?.id === userId && !IS_DEMO_INSTANCE) {
+  // Promotion and provider recording belong to genuine bootstrap only: the
+  // request that created the first user. A "sign-up" flow always just
+  // created its user; a callback also completes plain sign-ins, so it must
+  // additionally pass the creation-recency signal the auto-signup rollback
+  // below uses. Without this gate, every later sign-in by the first user
+  // would re-promote them (resurrecting a deliberately demoted admin) and
+  // rewrite the provider configs to whichever method they happened to use.
+  const isFirstUserBootstrap =
+    firstUser?.id === userId &&
+    (completed.flow === "sign-up" ||
+      Date.now() - firstUser.createdAt.getTime() <=
+        AUTO_SIGNUP_ROLLBACK_WINDOW_MS);
+
+  if (isFirstUserBootstrap && !IS_DEMO_INSTANCE) {
     await db.update(user).set({ role: "admin" }).where(eq(user.id, userId));
 
-    // Set sign-in and sign-up methods to match how the first user signed up
+    // Record the sign-in and sign-up methods to match how the first user
+    // signed up — written once: existing rows always win, so bootstrap can
+    // never clobber a configuration that already exists (a seeded test
+    // database, or any regression that re-enters this branch). From here
+    // on, only the admin settings surface changes these values.
     const providers = JSON.stringify([completed.provider]);
     await db
       .insert(appConfig)
@@ -187,10 +251,7 @@ export async function applyPostAuthPolicy(
         value: providers,
         updatedAt: new Date(),
       })
-      .onConflictDoUpdate({
-        target: appConfig.key,
-        set: { value: providers, updatedAt: new Date() },
-      });
+      .onConflictDoNothing({ target: appConfig.key });
     await db
       .insert(appConfig)
       .values({
@@ -198,10 +259,7 @@ export async function applyPostAuthPolicy(
         value: providers,
         updatedAt: new Date(),
       })
-      .onConflictDoUpdate({
-        target: appConfig.key,
-        set: { value: providers, updatedAt: new Date() },
-      });
+      .onConflictDoNothing({ target: appConfig.key });
   } else if (completed.flow === "callback") {
     // Non-first user arriving via a callback — the provider may have
     // auto-created a user. Roll back only when this is genuinely that
@@ -226,7 +284,27 @@ export async function applyPostAuthPolicy(
       .where(eq(session.userId, userId))
       .get();
 
-    if (wasJustCreated && (sessionCount?.count ?? 0) <= 1) {
+    // A callback can also arrive for an established user who just linked
+    // this provider (implicit account linking), and such a user may pass
+    // both checks above (created moments earlier, no session issued by
+    // their own sign-up flow). Only a user whose sole account row belongs
+    // to this callback's provider can be its auto-created sign-up; anyone
+    // with another provider's row — or more than one row — got here by
+    // linking to an account that already existed.
+    const accountRows = await db
+      .select({ providerId: account.providerId })
+      .from(account)
+      .where(eq(account.userId, userId))
+      .all();
+    const isSoleProviderAccount =
+      accountRows.length === 1 &&
+      accountRows[0]!.providerId === getAccountProviderId(completed.provider);
+
+    if (
+      wasJustCreated &&
+      (sessionCount?.count ?? 0) <= 1 &&
+      isSoleProviderAccount
+    ) {
       const configs = await db.select().from(appConfig).all();
       const publicSignupConfig = configs.find(
         (c) => c.key === "public-signup-enabled",
