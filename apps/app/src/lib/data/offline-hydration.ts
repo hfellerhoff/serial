@@ -272,7 +272,9 @@ export function hydrateOfflineBodiesForPage(page: {
   const startEpoch = hydrationEpoch;
   activeHydration = (async () => {
     try {
-      while (pendingRun) {
+      // The epoch condition stops a severed run from resurrecting after
+      // invalidation and sweeping concurrently with the newly admitted run.
+      while (pendingRun && hydrationEpoch === startEpoch) {
         pendingRun = false;
         const feedItems = [...pendingFeedItems.values()];
         const bookmarks = [...pendingBookmarks.values()];

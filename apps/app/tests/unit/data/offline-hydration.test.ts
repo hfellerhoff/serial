@@ -299,6 +299,54 @@ describe("hydrateOfflineBodiesForPage", () => {
     expect(feedItemsStore.getState().feedItemsDict[item.id]?.content).toBe("");
   });
 
+  it("does not resurrect a severed run alongside the newly admitted one", async () => {
+    const gated = bookmark({ id: "bookmark-gated" });
+    const fresh = bookmark({ id: "bookmark-fresh" });
+    const queued = bookmark({ id: "bookmark-queued" });
+    bookmarksStore.getState().upsert(gated);
+    const deferred: Array<(captures: unknown[]) => void> = [];
+    mocks.getCaptures.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          deferred.push(resolve);
+        }),
+    );
+    const severedRun = hydrateOfflineBodiesForPage({
+      feedItems: [],
+      bookmarks: [gated],
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    invalidateOfflineHydration();
+
+    bookmarksStore.getState().upsert(fresh);
+    bookmarksStore.getState().upsert(queued);
+    const admittedRun = hydrateOfflineBodiesForPage({
+      feedItems: [],
+      bookmarks: [fresh],
+    });
+    expect(admittedRun).not.toBe(severedRun);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // A third application queues a sweep while the admitted run is gated;
+    // only the admitted run may pick it up once its fetch resolves.
+    void hydrateOfflineBodiesForPage({ feedItems: [], bookmarks: [queued] });
+    expect(deferred).toHaveLength(2);
+
+    // The severed run resolves first. It must terminate instead of
+    // draining the queued sweep out from under the admitted run.
+    deferred[0]?.([]);
+    await severedRun;
+    expect(mocks.getCaptures).toHaveBeenCalledTimes(2);
+
+    deferred[1]?.([]);
+    await vi.waitFor(() => expect(deferred).toHaveLength(3));
+    expect(mocks.getCaptures.mock.calls[2]?.[0]).toEqual({
+      bookmarkIds: [queued.id],
+    });
+    deferred[2]?.([]);
+    await admittedRun;
+    expect(mocks.getCaptures).toHaveBeenCalledTimes(3);
+  });
+
   it("discards an in-flight capture response after invalidation", async () => {
     const entity = bookmark();
     bookmarksStore.getState().upsert(entity);
