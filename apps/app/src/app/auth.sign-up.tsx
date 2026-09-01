@@ -6,15 +6,20 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { AtprotoAuthButton } from "~/components/auth/AtprotoAuthForm";
 import { AuthHeader } from "~/components/auth/AuthHeader";
+import {
+  AuthMethodList,
+  getAuthMethodLabel,
+  resolveAuthMethodView,
+} from "~/components/auth/AuthMethodList";
 import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { authClient, signUp } from "~/lib/auth-client";
+import { signUp } from "~/lib/auth-client";
 import { AUTH_SIGNED_IN_URL } from "~/lib/auth/constants";
 import { useRedirectErrorToast } from "~/lib/auth/redirect-error";
+import { authProviderSchema } from "~/lib/constants";
 import { extensionConnectCallbackSchema } from "~/lib/extension-auth";
 import { orpcRouterClient } from "~/lib/orpc";
 
@@ -22,6 +27,7 @@ const signUpSearchSchema = z.object({
   token: z.string().optional(),
   callbackURL: extensionConnectCallbackSchema.optional(),
   error: z.string().optional(),
+  method: authProviderSchema.optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/auth/sign-up")({
@@ -38,7 +44,12 @@ function SignUp() {
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [loading, setLoading] = useState(false);
-  const { token, callbackURL, error: redirectError } = Route.useSearch();
+  const {
+    token,
+    callbackURL,
+    error: redirectError,
+    method,
+  } = Route.useSearch();
   const signedInDestination = callbackURL ?? AUTH_SIGNED_IN_URL;
 
   const navigate = Route.useNavigate();
@@ -47,14 +58,26 @@ function SignUp() {
   const signupStatus = Route.useLoaderData();
   const signupsEnabled = signupStatus.enabled === true;
 
-  const showEmail = signupStatus.signupProviders.includes("email");
-  const showOAuth =
-    signupStatus.isOAuthConfigured &&
-    signupStatus.signupProviders.includes("oauth");
   // Configured-and-enabled: the loader already intersects enabled providers
   // with the instance's configured set, and invite-token sign-ups stay
   // email-only upstream.
-  const showAtproto = signupStatus.signupProviders.includes("atproto");
+  const view = resolveAuthMethodView({
+    providers: signupStatus.signupProviders,
+    isOAuthConfigured: signupStatus.isOAuthConfigured,
+    method,
+  });
+  const hasContextHeader =
+    signupStatus.isFirstUser || signupStatus.inviterName !== null;
+  // Bootstrap (and invite) copy outranks the subscreen title: the
+  // first-user context must survive drilling into a method.
+  const subscreenTitle =
+    view.openMethod && !hasContextHeader
+      ? getAuthMethodLabel(
+          "sign-up",
+          view.openMethod,
+          signupStatus.oauthProviderName,
+        )
+      : undefined;
 
   if (!signupsEnabled) {
     return (
@@ -65,7 +88,9 @@ function SignUp() {
           </p>
           {!signupStatus.isFirstUser && (
             <Link to="/auth/sign-in" search={{ callbackURL }}>
-              <Button variant="outline">Go to Sign In</Button>
+              <Button variant="outline" size="lg">
+                Go to Sign In
+              </Button>
             </Link>
           )}
         </div>
@@ -73,11 +98,100 @@ function SignUp() {
     );
   }
 
+  const emailForm = (
+    <>
+      <div className="grid gap-2">
+        <Label htmlFor="first-name">First name</Label>
+        <Input
+          className="h-10"
+          id="first-name"
+          placeholder="Max"
+          required
+          onChange={(e) => {
+            setFirstName(e.target.value);
+          }}
+          value={firstName}
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          className="h-10"
+          id="email"
+          type="email"
+          placeholder="email@example.com"
+          required
+          onChange={(e) => {
+            setEmail(e.target.value);
+          }}
+          value={email}
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="password">Password</Label>
+        <Input
+          className="h-10"
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
+          placeholder="Password"
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="password_confirmation">Confirm Password</Label>
+        <Input
+          className="h-10"
+          id="password_confirmation"
+          type="password"
+          value={passwordConfirmation}
+          onChange={(e) => setPasswordConfirmation(e.target.value)}
+          autoComplete="new-password"
+          placeholder="Confirm Password"
+        />
+      </div>
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full"
+        disabled={loading}
+        onClick={async () => {
+          await signUp.email({
+            email,
+            password,
+            name: firstName,
+            callbackURL: signedInDestination,
+            ...(token ? { invitationToken: token } : {}),
+            fetchOptions: {
+              onResponse: () => {
+                setLoading(false);
+              },
+              onRequest: () => {
+                setLoading(true);
+              },
+              onError: (ctx) => {
+                toast.error(ctx.error.message);
+              },
+              onSuccess: () => {
+                window.location.assign(signedInDestination);
+              },
+            },
+          });
+        }}
+      >
+        {loading ? (
+          <Loader2 size={16} className="animate-spin" />
+        ) : (
+          "Create an account"
+        )}
+      </Button>
+    </>
+  );
+
   return (
     <>
-      <AuthHeader
-        removePadding={!signupStatus.isFirstUser && !signupStatus.inviterName}
-      >
+      <AuthHeader removePadding={!hasContextHeader && !subscreenTitle}>
         {signupStatus.isFirstUser && (
           <div className="text-center">
             <div className="text-center font-semibold">
@@ -96,145 +210,41 @@ function SignUp() {
             </div>
           </div>
         )}
+        {subscreenTitle && (
+          <div className="text-center font-semibold">{subscreenTitle}</div>
+        )}
       </AuthHeader>
       <CardContent>
-        <div className="grid gap-4">
-          {showEmail && (
-            <>
-              <div className="grid gap-2">
-                <Label htmlFor="first-name">First name</Label>
-                <Input
-                  id="first-name"
-                  placeholder="Max"
-                  required
-                  onChange={(e) => {
-                    setFirstName(e.target.value);
-                  }}
-                  value={firstName}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="email@example.com"
-                  required
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                  }}
-                  value={email}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="new-password"
-                  placeholder="Password"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password_confirmation">Confirm Password</Label>
-                <Input
-                  id="password_confirmation"
-                  type="password"
-                  value={passwordConfirmation}
-                  onChange={(e) => setPasswordConfirmation(e.target.value)}
-                  autoComplete="new-password"
-                  placeholder="Confirm Password"
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loading}
-                onClick={async () => {
-                  await signUp.email({
-                    email,
-                    password,
-                    name: firstName,
-                    callbackURL: signedInDestination,
-                    ...(token ? { invitationToken: token } : {}),
-                    fetchOptions: {
-                      onResponse: () => {
-                        setLoading(false);
-                      },
-                      onRequest: () => {
-                        setLoading(true);
-                      },
-                      onError: (ctx) => {
-                        toast.error(ctx.error.message);
-                      },
-                      onSuccess: () => {
-                        window.location.assign(signedInDestination);
-                      },
-                    },
-                  });
-                }}
+        <AuthMethodList
+          intent="sign-up"
+          view={view}
+          oauthProviderId={signupStatus.oauthProviderId}
+          oauthProviderName={signupStatus.oauthProviderName}
+          signedInDestination={signedInDestination}
+          disabled={loading}
+          emailForm={emailForm}
+          footer={
+            !signupStatus.isFirstUser && (
+              <Link
+                className="block text-center text-sm underline"
+                to="/auth/sign-in"
+                search={{ callbackURL, method: view.openMethod }}
               >
-                {loading ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  "Create an account"
-                )}
-              </Button>
-            </>
-          )}
-
-          {showEmail && (showOAuth || showAtproto) && (
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card text-muted-foreground px-2">or</span>
-              </div>
-            </div>
-          )}
-
-          {showAtproto && (
-            <AtprotoAuthButton
-              intent="sign-up"
-              variant={showEmail ? "outline" : "default"}
-              disabled={loading}
-            />
-          )}
-
-          {showOAuth && (
-            <Button
-              variant={showEmail ? "outline" : "default"}
-              className="w-full"
-              disabled={loading}
-              onClick={async () => {
-                setLoading(true);
-                await authClient.signIn.oauth2({
-                  providerId: signupStatus.oauthProviderId,
-                  callbackURL: signedInDestination,
-                });
-              }}
-            >
-              {loading && !showEmail ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                `Sign up with ${signupStatus.oauthProviderName}`
-              )}
-            </Button>
-          )}
-
-          {!signupStatus.isFirstUser && (
-            <Link
-              className="block text-center text-sm underline"
-              to="/auth/sign-in"
-              search={{ callbackURL }}
-            >
-              Have an account? Sign in
-            </Link>
-          )}
-        </div>
+                Have an account? Sign in
+              </Link>
+            )
+          }
+          onOpenMethod={(openedMethod) =>
+            void navigate({
+              search: (prev) => ({ ...prev, method: openedMethod }),
+            })
+          }
+          onBack={() =>
+            void navigate({
+              search: (prev) => ({ ...prev, method: undefined }),
+            })
+          }
+        />
       </CardContent>
     </>
   );

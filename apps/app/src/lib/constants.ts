@@ -30,6 +30,25 @@ export function isPublicSignupEnabled(
 export const authProviderSchema = z.enum(["email", "oauth", "atproto"]);
 export type AuthProvider = z.infer<typeof authProviderSchema>;
 
+/**
+ * Auth-page display priority: the first available provider renders as the
+ * primary method; the rest become secondary entries under the divider.
+ * Presentation order only — the schema above stays the validation contract.
+ */
+export const AUTH_PROVIDER_DISPLAY_PRIORITY: AuthProvider[] = [
+  "oauth",
+  "atproto",
+  "email",
+];
+
+export function orderAuthProvidersForDisplay(
+  providers: AuthProvider[],
+): AuthProvider[] {
+  return AUTH_PROVIDER_DISPLAY_PRIORITY.filter((provider) =>
+    providers.includes(provider),
+  );
+}
+
 /** Better Auth provider ID stored in the `account` table for email/password users */
 export const CREDENTIAL_PROVIDER_ID = "credential";
 

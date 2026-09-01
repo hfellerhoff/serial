@@ -9,18 +9,23 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { AtprotoAuthButton } from "~/components/auth/AtprotoAuthForm";
 import { AuthHeader } from "~/components/auth/AuthHeader";
+import {
+  AuthMethodList,
+  getAuthMethodLabel,
+  resolveAuthMethodView,
+} from "~/components/auth/AuthMethodList";
 import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { authClient, signIn } from "~/lib/auth-client";
+import { signIn } from "~/lib/auth-client";
 import {
   AUTH_RESET_PASSWORD_URL,
   AUTH_SIGNED_IN_URL,
 } from "~/lib/auth/constants";
 import { useRedirectErrorToast } from "~/lib/auth/redirect-error";
+import { authProviderSchema } from "~/lib/constants";
 import { extensionConnectCallbackSchema } from "~/lib/extension-auth";
 import { orpc, orpcRouterClient } from "~/lib/orpc";
 import { fetchIsForgotPasswordEnabled } from "~/server/auth/endpoints";
@@ -32,6 +37,7 @@ const ERROR_MESSAGES = {
 const signInSearchSchema = z.object({
   callbackURL: extensionConnectCallbackSchema.optional(),
   error: z.string().optional(),
+  method: authProviderSchema.optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/auth/sign-in")({
@@ -40,6 +46,7 @@ export const Route = createFileRoute("/auth/sign-in")({
   loaderDeps: ({ search }) => ({
     callbackURL: search.callbackURL,
     error: search.error,
+    method: search.method,
   }),
   loader: async ({ deps }) => {
     const [isForgotPasswordEnabled, authConfig] = await Promise.all([
@@ -48,10 +55,15 @@ export const Route = createFileRoute("/auth/sign-in")({
     ]);
     if (authConfig.isFirstUser) {
       // Forward the callback error too: a failed atproto flow during
-      // first-user bootstrap lands here and must still surface its toast.
+      // first-user bootstrap lands here and must still surface its toast
+      // (and reopen its subscreen via `method`).
       throw redirect({
         to: "/auth/sign-up",
-        search: { callbackURL: deps.callbackURL, error: deps.error },
+        search: {
+          callbackURL: deps.callbackURL,
+          error: deps.error,
+          method: deps.method,
+        },
       });
     }
     return { isForgotPasswordEnabled, authConfig };
@@ -60,7 +72,7 @@ export const Route = createFileRoute("/auth/sign-in")({
 
 function SignIn() {
   const { isForgotPasswordEnabled, authConfig } = Route.useLoaderData();
-  const { callbackURL, error: redirectError } = Route.useSearch();
+  const { callbackURL, error: redirectError, method } = Route.useSearch();
   const signedInDestination = callbackURL ?? AUTH_SIGNED_IN_URL;
 
   const navigate = Route.useNavigate();
@@ -75,163 +87,152 @@ function SignIn() {
     orpc.user.checkIsLegacyUser.mutationOptions(),
   );
 
-  const showEmail = authConfig.signinProviders.includes("email");
-  const showOAuth =
-    authConfig.isOAuthConfigured &&
-    authConfig.signinProviders.includes("oauth");
   // Configured-and-enabled: the loader already intersects enabled providers
   // with the instance's configured set.
-  const showAtproto = authConfig.signinProviders.includes("atproto");
+  const view = resolveAuthMethodView({
+    providers: authConfig.signinProviders,
+    isOAuthConfigured: authConfig.isOAuthConfigured,
+    method,
+  });
+  const subscreenTitle = view.openMethod
+    ? getAuthMethodLabel(
+        "sign-in",
+        view.openMethod,
+        authConfig.oauthProviderName,
+      )
+    : undefined;
 
-  return (
+  const emailForm = (
     <>
-      <AuthHeader removePadding></AuthHeader>
-      <CardContent>
-        <div className="grid gap-4">
-          {showEmail && (
-            <>
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="email@example.com"
-                  required
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                  }}
-                  value={email}
-                />
-              </div>
+      <div className="grid gap-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          className="h-10"
+          id="email"
+          type="email"
+          placeholder="email@example.com"
+          required
+          onChange={(e) => {
+            setEmail(e.target.value);
+          }}
+          value={email}
+        />
+      </div>
 
-              <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                  {isForgotPasswordEnabled && (
-                    <Link
-                      to={AUTH_RESET_PASSWORD_URL}
-                      search={{
-                        email,
-                        callbackURL,
-                      }}
-                      className="ml-auto inline-block text-sm underline"
-                    >
-                      Forgot your password?
-                    </Link>
-                  )}
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="password"
-                  autoComplete="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <Button
-                className="w-full"
-                disabled={loading}
-                onClick={async () => {
-                  await signIn.email(
-                    {
-                      email,
-                      password,
-                      callbackURL: signedInDestination,
-                    },
-                    {
-                      onRequest: () => {
-                        setLoading(true);
-                      },
-                      onResponse: () => {
-                        setLoading(false);
-                      },
-                      onSuccess: (ctx) => {
-                        if (ctx.data?.redirect) return;
-                        window.location.assign(signedInDestination);
-                      },
-                      onError: async (ctx) => {
-                        const errorMessage = ctx.error.message;
-
-                        if (errorMessage === ERROR_MESSAGES.INVALID_LOGIN) {
-                          const isSuccessful = await getIsLegacyUser({
-                            email,
-                          });
-
-                          if (isSuccessful) {
-                            void router.navigate({
-                              to: AUTH_RESET_PASSWORD_URL,
-                              search: { email, callbackURL },
-                            });
-                          }
-                          return;
-                        }
-
-                        toast.error(errorMessage);
-                      },
-                    },
-                  );
-                }}
-              >
-                {loading ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  "Login"
-                )}
-              </Button>
-            </>
-          )}
-
-          {showEmail && (showOAuth || showAtproto) && (
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card text-muted-foreground px-2">or</span>
-              </div>
-            </div>
-          )}
-
-          {showAtproto && (
-            <AtprotoAuthButton
-              intent="sign-in"
-              variant={showEmail ? "outline" : "default"}
-              disabled={loading}
-            />
-          )}
-
-          {showOAuth && (
-            <Button
-              variant={showEmail ? "outline" : "default"}
-              className="w-full"
-              disabled={loading}
-              onClick={async () => {
-                setLoading(true);
-                await authClient.signIn.oauth2({
-                  providerId: authConfig.oauthProviderId,
-                  callbackURL: signedInDestination,
-                });
-              }}
-            >
-              {loading && !showEmail ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                `Sign in with ${authConfig.oauthProviderName}`
-              )}
-            </Button>
-          )}
-
-          {authConfig.signupEnabled && (
+      <div className="grid gap-2">
+        <div className="flex items-center">
+          <Label htmlFor="password">Password</Label>
+          {isForgotPasswordEnabled && (
             <Link
-              className="block text-center text-sm underline"
-              to="/auth/sign-up"
-              search={{ callbackURL }}
+              to={AUTH_RESET_PASSWORD_URL}
+              search={{
+                email,
+                callbackURL,
+              }}
+              className="ml-auto inline-block text-sm underline"
             >
-              Need an account? Sign up
+              Forgot your password?
             </Link>
           )}
         </div>
+        <Input
+          className="h-10"
+          id="password"
+          type="password"
+          placeholder="password"
+          autoComplete="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </div>
+      <Button
+        size="lg"
+        className="w-full"
+        disabled={loading}
+        onClick={async () => {
+          await signIn.email(
+            {
+              email,
+              password,
+              callbackURL: signedInDestination,
+            },
+            {
+              onRequest: () => {
+                setLoading(true);
+              },
+              onResponse: () => {
+                setLoading(false);
+              },
+              onSuccess: (ctx) => {
+                if (ctx.data?.redirect) return;
+                window.location.assign(signedInDestination);
+              },
+              onError: async (ctx) => {
+                const errorMessage = ctx.error.message;
+
+                if (errorMessage === ERROR_MESSAGES.INVALID_LOGIN) {
+                  const isSuccessful = await getIsLegacyUser({
+                    email,
+                  });
+
+                  if (isSuccessful) {
+                    void router.navigate({
+                      to: AUTH_RESET_PASSWORD_URL,
+                      search: { email, callbackURL },
+                    });
+                  }
+                  return;
+                }
+
+                toast.error(errorMessage);
+              },
+            },
+          );
+        }}
+      >
+        {loading ? <Loader2 size={16} className="animate-spin" /> : "Login"}
+      </Button>
+    </>
+  );
+
+  return (
+    <>
+      <AuthHeader removePadding={!subscreenTitle}>
+        {subscreenTitle && (
+          <div className="text-center font-semibold">{subscreenTitle}</div>
+        )}
+      </AuthHeader>
+      <CardContent>
+        <AuthMethodList
+          intent="sign-in"
+          view={view}
+          oauthProviderId={authConfig.oauthProviderId}
+          oauthProviderName={authConfig.oauthProviderName}
+          signedInDestination={signedInDestination}
+          disabled={loading}
+          emailForm={emailForm}
+          footer={
+            authConfig.signupEnabled && (
+              <Link
+                className="block text-center text-sm underline"
+                to="/auth/sign-up"
+                search={{ callbackURL, method: view.openMethod }}
+              >
+                Need an account? Sign up
+              </Link>
+            )
+          }
+          onOpenMethod={(openedMethod) =>
+            void navigate({
+              search: (prev) => ({ ...prev, method: openedMethod }),
+            })
+          }
+          onBack={() =>
+            void navigate({
+              search: (prev) => ({ ...prev, method: undefined }),
+            })
+          }
+        />
       </CardContent>
     </>
   );

@@ -47,7 +47,9 @@ import { logError } from "~/server/logger";
  * encrypted stores.
  */
 
-const SIGN_IN_ERROR_REDIRECT = "/auth/sign-in?error=atproto";
+// `method` reopens the Atmosphere subscreen when atproto is a secondary
+// method on the page; the client ignores it when atproto renders inline.
+const SIGN_IN_ERROR_REDIRECT = "/auth/sign-in?error=atproto&method=atproto";
 const SIGN_IN_SUCCESS_REDIRECT = "/";
 const AUTHORIZE_FAILED_MESSAGE =
   "Could not start Atmosphere sign in for that handle. Check the handle and try again.";
