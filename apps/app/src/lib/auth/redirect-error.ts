@@ -32,10 +32,13 @@ export function useRedirectErrorToast(
   useEffect(() => {
     if (!error || hasProcessed.current) return;
     hasProcessed.current = true;
-    toast.error(
-      REDIRECT_ERROR_MESSAGES[error] ??
-        "Authentication failed. Please try again.",
-    );
+    // Own-property lookup only: `error` is an unvalidated query param, so a
+    // plain `map[error]` would resolve inherited keys ("toString") to a
+    // function and defeat the `??` fallback.
+    const message = Object.hasOwn(REDIRECT_ERROR_MESSAGES, error)
+      ? REDIRECT_ERROR_MESSAGES[error]
+      : "Authentication failed. Please try again.";
+    toast.error(message);
     void navigate({
       search: (prev) => ({ ...prev, error: undefined }),
       replace: true,

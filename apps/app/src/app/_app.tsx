@@ -222,10 +222,13 @@ function useAtprotoLinkReturn() {
 
     // Success needs no toast — the reopened dialog's connected row says it.
     if (result !== "success") {
-      toast.error(
-        ATPROTO_LINK_ERROR_MESSAGES[result] ??
-          "Couldn't connect your Atmosphere account. Please try again.",
-      );
+      // Own-property lookup only: `result` is an unvalidated query param, so
+      // a plain `map[result]` would resolve inherited keys ("toString") to a
+      // function and defeat the `??` fallback.
+      const message = Object.hasOwn(ATPROTO_LINK_ERROR_MESSAGES, result)
+        ? ATPROTO_LINK_ERROR_MESSAGES[result]
+        : "Couldn't connect your Atmosphere account. Please try again.";
+      toast.error(message);
     }
     launchDialog("connections");
   }, [launchDialog, queryClient, isRestoring]);
