@@ -15,10 +15,11 @@ import {
 import { dataReconciliation } from "./reconciliation";
 import type { PublishedChunk } from "~/server/api/publisher";
 
-// Exponential backoff configuration
+// Retry quickly at first so a brief disconnect recovers within a second,
+// then back off so an extended offline session doesn't hot-spin on mobile.
 const INITIAL_RETRY_DELAY = 1000; // 1 second
-const MAX_RETRY_DELAY = 30000; // 30 seconds
-const BACKOFF_MULTIPLIER = 2;
+const EXTENDED_RETRY_DELAY = 5000; // 5 seconds
+const EXTENDED_RETRY_AFTER_MS = 60_000; // 1 minute of continuous failure
 
 function waitForAbortableDelay(delay: number, signal: AbortSignal) {
   return new Promise<void>((resolve) => {
@@ -50,7 +51,7 @@ function waitForVisibilityChange(signal: AbortSignal) {
  */
 export function useDataSubscription() {
   const abortControllerRef = useRef<AbortController | null>(null);
-  const retryDelayRef = useRef(INITIAL_RETRY_DELAY);
+  const failingSinceRef = useRef<number | null>(null);
 
   // Buffer chunks and flush via requestAnimationFrame for micro-batching
   const chunkBufferRef = useRef<PublishedChunk[]>([]);
@@ -96,14 +97,13 @@ export function useDataSubscription() {
           combineAbortSignals([signal, connSignal]);
 
         try {
-          retryDelayRef.current = INITIAL_RETRY_DELAY;
-
           // Each reconnect depends on the prior connection closing.
           // oxlint-disable-next-line react-doctor/async-await-in-loop
           const iterator = await orpcRouterClient.initial.subscribe(
             {},
             { signal: connectionSignal },
           );
+          failingSinceRef.current = null;
           markDataSubscriptionConnected();
           dataReconciliation.sseConnectionChanged(true);
 
@@ -141,14 +141,12 @@ export function useDataSubscription() {
 
           console.error("Subscription error, retrying...", error);
 
-          // Wait with exponential backoff before retrying
-          await waitForAbortableDelay(retryDelayRef.current, controller.signal);
-
-          // Increase retry delay for next attempt
-          retryDelayRef.current = Math.min(
-            retryDelayRef.current * BACKOFF_MULTIPLIER,
-            MAX_RETRY_DELAY,
-          );
+          failingSinceRef.current ??= Date.now();
+          const retryDelay =
+            Date.now() - failingSinceRef.current >= EXTENDED_RETRY_AFTER_MS
+              ? EXTENDED_RETRY_DELAY
+              : INITIAL_RETRY_DELAY;
+          await waitForAbortableDelay(retryDelay, controller.signal);
         } finally {
           markDataSubscriptionPaused();
           dataReconciliation.sseConnectionChanged(false);

@@ -17,6 +17,7 @@ const capture: DatabasePageCapture = {
 const bookmark = {
   id: "bookmark-1",
   contentType: "text",
+  isSaved: true,
   isRead: false,
 } as ApplicationBookmark;
 
@@ -34,6 +35,17 @@ describe("Bookmark Page-capture retention", () => {
     );
 
     bookmarksStore.getState().upsert({ ...bookmark, isRead: true });
+    expect(
+      bookmarkCapturesStore.getState().capturesDict[bookmark.id],
+    ).toBeUndefined();
+  });
+
+  it("removes the capture when the Bookmark is unsaved", () => {
+    bookmarksStore.getState().upsert(bookmark);
+    bookmarkCapturesStore.getState().upsert(capture);
+
+    bookmarksStore.getState().upsert({ ...bookmark, isSaved: false });
+
     expect(
       bookmarkCapturesStore.getState().capturesDict[bookmark.id],
     ).toBeUndefined();

@@ -15,6 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { barsHiddenAtom } from "~/lib/data/atoms";
 import { useBookmarkValue } from "~/lib/data/bookmarks";
+import { bookmarksStore } from "~/lib/data/bookmarks/store";
 import {
   bookmarkCapturesStore,
   useBookmarkCaptureValue,
@@ -39,9 +40,6 @@ export function BookmarkReader({ id }: { id: string }) {
   const bookmark = useBookmarkValue(id);
   const refreshedBookmark = useRefreshBookmark(id);
   const retainedCapture = useBookmarkCaptureValue(id);
-  const retainCapture = bookmark
-    ? shouldRetainBookmarkCapture(bookmark)
-    : false;
   const [captureResult, setCaptureResult] = useState<{
     bookmarkId: string;
     capture: DatabasePageCapture | null;
@@ -75,7 +73,10 @@ export function BookmarkReader({ id }: { id: string }) {
       .then((result) => {
         if (!active) return;
         if (result?.status === "capture") {
-          if (retainCapture) {
+          // Retention is judged when the response lands so an archive that
+          // happened mid-flight cannot re-persist the capture.
+          const latestBookmark = bookmarksStore.getState().getBookmark(id);
+          if (latestBookmark && shouldRetainBookmarkCapture(latestBookmark)) {
             bookmarkCapturesStore.getState().upsert(result.capture);
           }
           setCaptureResult({
@@ -113,7 +114,7 @@ export function BookmarkReader({ id }: { id: string }) {
     return () => {
       active = false;
     };
-  }, [id, bookmark?.captureHash, retainCapture]);
+  }, [id, bookmark?.captureHash]);
 
   useScrollDirection((direction) => setBarsHidden(direction === "down"));
   useEffect(() => () => setBarsHidden(false), [setBarsHidden]);

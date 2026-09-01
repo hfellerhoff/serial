@@ -66,9 +66,11 @@ export function stripIneligibleFeedBodyForPersistence(
 }
 
 export function shouldRetainBookmarkCapture(
-  bookmark: Pick<ApplicationBookmark, "contentType" | "isRead">,
+  bookmark: Pick<ApplicationBookmark, "contentType" | "isRead" | "isSaved">,
 ) {
-  return bookmark.contentType === "text" && !bookmark.isRead;
+  return (
+    bookmark.contentType === "text" && bookmark.isSaved && !bookmark.isRead
+  );
 }
 
 export function canOpenOfflineContent(input: {

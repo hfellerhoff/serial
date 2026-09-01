@@ -166,9 +166,11 @@ test("keeps only retained text interactive and read-only after an offline reload
     await retainedCard.getByRole("link").hover();
     await page.keyboard.press("s");
     await expect(retainedCard).toHaveCount(0);
-    await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
     await expect
-      .poll(() => getFeedBodyPersistence(page, retainedItemId))
+      .poll(async () => {
+        await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
+        return getFeedBodyPersistence(page, retainedItemId);
+      })
       .toEqual({
         hasBody: true,
         isWatchLater: true,
@@ -345,6 +347,7 @@ test("opens pre-saved content offline after passive hydration alone", async ({
     ).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole("tab", { name: "Saved" }).click();
+    const listUrl = page.url();
     const savedFeedCard = page.locator(`article[data-item-id="${feedItemId}"]`);
     await expect(savedFeedCard.getByRole("link")).toHaveAttribute(
       "aria-disabled",
@@ -355,6 +358,8 @@ test("opens pre-saved content offline after passive hydration alone", async ({
     await expect(page.getByText("Paragraph 1:")).toBeVisible();
 
     await page.goBack();
+    // The popstate must settle before the tab click, or the click races it.
+    await expect(page).toHaveURL(listUrl);
     await expect(
       page.getByText("Offline, some features may be disabled"),
     ).toBeVisible({ timeout: 15_000 });

@@ -10,6 +10,7 @@ import { bookmarksStore } from "./bookmarks/store";
 import { bookmarkCapturesStore } from "./bookmarks/capture-store";
 import { mixedContentStore } from "./mixed-content/store";
 import { navigationSnapshotStore } from "./navigation/store";
+import { invalidateOfflineHydration } from "./offline-hydration";
 import type { ApplicationView } from "~/server/db/schema";
 import type { ContentStatusFilter } from "~/lib/content-status";
 import { DEFAULT_CONTENT_STATUS_FILTER } from "~/lib/content-status";
@@ -47,6 +48,8 @@ export const useClearAllUserData = () => {
   const resetNavigationSnapshot = navigationSnapshotStore.useReset();
 
   return () => {
+    // In-flight hydration responses must not repopulate the cleared stores.
+    invalidateOfflineHydration();
     resetFeeds();
     resetFeedItems();
     resetContentCategories();
