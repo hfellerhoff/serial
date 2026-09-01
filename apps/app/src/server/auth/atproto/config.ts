@@ -29,6 +29,29 @@ export { ATPROTO_PROVIDER_ID } from "~/lib/constants";
 /** The identity-only v1 scope; broader grants arrive via upgrade(). */
 export const ATPROTO_SCOPE = "atproto";
 
+/**
+ * Scopes this instance is allowed to request. upgrade() validates against
+ * this so a future caller cannot request an arbitrary grant; broaden it
+ * deliberately (per space-delimited token) as capabilities are wired.
+ */
+export const ATPROTO_ALLOWED_SCOPES = new Set([ATPROTO_SCOPE]);
+
+/**
+ * Reject an authorization scope that is not on the allowlist. Scope is a
+ * space-delimited token list; every token must be allowed.
+ */
+export function assertAllowedAtprotoScope(scope: string): void {
+  const tokens = scope.trim().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) {
+    throw new Error("An AT Protocol scope is required");
+  }
+  for (const token of tokens) {
+    if (!ATPROTO_ALLOWED_SCOPES.has(token)) {
+      throw new Error(`Disallowed AT Protocol scope: ${token}`);
+    }
+  }
+}
+
 /** Upper bound on the life of an in-flight authorization attempt. */
 export const AUTH_STATE_TTL_MS = 60 * 60 * 1000;
 

@@ -1,6 +1,7 @@
 import { and, eq, isNotNull, isNull, lt, or } from "drizzle-orm";
 import { getAtprotoClient } from "./client";
 import {
+  assertAllowedAtprotoScope,
   ATPROTO_PROVIDER_ID,
   ATPROTO_SCOPE,
   AUTH_STATE_TTL_MS,
@@ -456,6 +457,9 @@ export async function upgradeAtprotoAuth(
   did: string,
   scope: string,
 ): Promise<URL> {
+  // Never hand an unbounded caller-supplied scope to the authorization
+  // server; a broader grant must be added to the allowlist deliberately.
+  assertAllowedAtprotoScope(scope);
   const client = await getAtprotoClient();
   return client.authorize(did, {
     scope,

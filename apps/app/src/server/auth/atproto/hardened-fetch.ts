@@ -1,16 +1,23 @@
 import { safeFetchWrap } from "@atproto-labs/fetch-node";
-import { env } from "~/env";
+import { getAtprotoClientMode } from "./mode";
 
 /**
  * SSRF-hardened outbound fetch shared by the AT Protocol OAuth client and
  * the typeahead proxy — standalone so consumers that only need a guarded
  * fetch don't pull in the OAuth client graph.
  *
- * Outside production (development and e2e) the guard loosens just enough
- * to reach a local dev PDS over plain HTTP.
+ * Only the loopback dev client loosens the guard to reach a local dev PDS
+ * over plain HTTP / on a private or IP host.
  */
 
-export const ALLOW_INSECURE_PDS = env.NODE_ENV !== "production";
+// Derived from the client mode (PUBLIC_BASE_URL), not NODE_ENV: any public
+// deployment necessarily has an https base URL and so runs the confidential
+// client, keeping http / private-IP / IP-host blocked regardless of how
+// NODE_ENV is set. Only a loopback base URL — reachable solely from the
+// machine serving the app — relaxes the transport guards. This closes the
+// SSRF window a public instance with NODE_ENV unset would otherwise open
+// through attacker-controlled did:web resolution.
+export const ALLOW_INSECURE_PDS = getAtprotoClientMode() === "loopback";
 
 const FETCH_TIMEOUT_MS = 15_000;
 
