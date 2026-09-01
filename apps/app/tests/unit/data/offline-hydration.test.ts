@@ -221,6 +221,84 @@ describe("hydrateOfflineBodiesForPage", () => {
     expect(mocks.requestFullTextForItems).toHaveBeenCalledTimes(1);
   });
 
+  it("re-requests an empty body once its content hash changes", async () => {
+    const item = feedItem();
+    feedItemsStore.getState().setFeedItems([item]);
+    mocks.requestFullTextForItems.mockResolvedValue([
+      { id: item.id, content: "", contentSnippet: "" },
+    ]);
+    await hydrateOfflineBodiesForPage({ feedItems: [item], bookmarks: [] });
+    await hydrateOfflineBodiesForPage({ feedItems: [item], bookmarks: [] });
+    expect(mocks.requestFullTextForItems).toHaveBeenCalledTimes(1);
+
+    const regenerated = feedItem({ contentHash: "regenerated-hash" });
+    feedItemsStore.getState().setFeedItems([regenerated]);
+    await hydrateOfflineBodiesForPage({
+      feedItems: [regenerated],
+      bookmarks: [],
+    });
+    expect(mocks.requestFullTextForItems).toHaveBeenCalledTimes(2);
+  });
+
+  it("coalesces concurrent page applications into one hydration run", async () => {
+    const first = bookmark({ id: "bookmark-a" });
+    const second = bookmark({ id: "bookmark-b" });
+    bookmarksStore.getState().upsert(first);
+    bookmarksStore.getState().upsert(second);
+    mocks.getCaptures.mockImplementation(
+      ({ bookmarkIds }: { bookmarkIds: string[] }) =>
+        Promise.resolve(
+          bookmarkIds.map((bookmarkId) => ({
+            bookmarkId,
+            contentHtml: "<p>Capture</p>",
+            contentHash: "capture-hash",
+            captureSource: "server-static-fetch",
+            extractorVersion: "test",
+            sanitizerPolicyVersion: 1,
+            capturedAt: now,
+          })),
+        ),
+    );
+    const firstRun = hydrateOfflineBodiesForPage({
+      feedItems: [],
+      bookmarks: [first],
+    });
+    const secondRun = hydrateOfflineBodiesForPage({
+      feedItems: [],
+      bookmarks: [second],
+    });
+    expect(secondRun).toBe(firstRun);
+    await firstRun;
+    expect(
+      bookmarkCapturesStore.getState().capturesDict[first.id],
+    ).toBeDefined();
+    expect(
+      bookmarkCapturesStore.getState().capturesDict[second.id],
+    ).toBeDefined();
+  });
+
+  it("discards an in-flight fulltext response after invalidation", async () => {
+    const item = feedItem();
+    feedItemsStore.getState().setFeedItems([item]);
+    let resolveFulltext: (items: unknown[]) => void = () => {};
+    mocks.requestFullTextForItems.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveFulltext = resolve;
+      }),
+    );
+    const hydration = hydrateOfflineBodiesForPage({
+      feedItems: [item],
+      bookmarks: [],
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    invalidateOfflineHydration();
+    resolveFulltext([
+      { id: item.id, content: "<p>Late body</p>", contentSnippet: "late" },
+    ]);
+    await hydration;
+    expect(feedItemsStore.getState().feedItemsDict[item.id]?.content).toBe("");
+  });
+
   it("discards an in-flight capture response after invalidation", async () => {
     const entity = bookmark();
     bookmarksStore.getState().upsert(entity);

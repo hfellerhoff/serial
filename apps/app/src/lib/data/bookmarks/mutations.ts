@@ -72,6 +72,27 @@ function removeProjectedBookmark(bookmark: ApplicationBookmark) {
   });
 }
 
+// Fetches the capture when a mutation leaves the Bookmark retain-eligible
+// without one (save, unarchive). Retention is re-judged against the live
+// store when the response lands, so a sign-out or opposing mutation that
+// happened mid-flight cannot re-persist the capture.
+async function reacquireRetainedCapture(bookmark: ApplicationBookmark) {
+  if (
+    !shouldRetainBookmarkCapture(bookmark) ||
+    !bookmark.captureHash ||
+    bookmarkCapturesStore.getState().capturesDict[bookmark.id] !== undefined
+  ) {
+    return;
+  }
+  const captureResult = await orpcRouterClient.bookmark
+    .getCapture({ bookmarkId: bookmark.id })
+    .catch(() => null);
+  if (captureResult?.status !== "capture") return;
+  const latestBookmark = bookmarksStore.getState().getBookmark(bookmark.id);
+  if (!latestBookmark || !shouldRetainBookmarkCapture(latestBookmark)) return;
+  bookmarkCapturesStore.getState().upsert(captureResult.capture);
+}
+
 export function useSaveBookmarkMutation() {
   return useMutation(
     orpc.bookmark.save.mutationOptions({
@@ -89,18 +110,7 @@ export function useSaveBookmarkMutation() {
           if (removedBookmark) removeProjectedBookmark(removedBookmark);
         }
         projectBookmark(bookmark, previousBookmark);
-        if (
-          shouldRetainBookmarkCapture(bookmark) &&
-          bookmark.captureHash &&
-          !bookmarkCapturesStore.getState().capturesDict[bookmark.id]
-        ) {
-          const captureResult = await orpcRouterClient.bookmark
-            .getCapture({ bookmarkId: bookmark.id })
-            .catch(() => null);
-          if (captureResult?.status === "capture") {
-            bookmarkCapturesStore.getState().upsert(captureResult.capture);
-          }
-        }
+        await reacquireRetainedCapture(bookmark);
       },
     }),
   );
@@ -202,6 +212,9 @@ export function useUpdateBookmarkStateMutation(bookmarkId: string) {
                 )
               : serverBookmark;
           projectBookmark(reconciled, currentBookmark);
+          // Unarchive and re-save evicted the capture on the way out; the
+          // return transition must bring it back for offline reading.
+          void reacquireRetainedCapture(reconciled);
         } finally {
           if (context?.token) releaseOptimisticBookmark(context.token);
         }

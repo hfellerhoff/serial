@@ -32,13 +32,19 @@ const orpcMocks = vi.hoisted(() => ({
   setBookmarkBulkReadValue: vi.fn(),
   setFeedBulkWatchedValue: vi.fn(),
   requestPage: vi.fn(),
+  getCaptures: vi.fn().mockResolvedValue([]),
+  requestFullTextForItems: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock("~/lib/orpc", () => ({
   orpc: {},
   orpcRouterClient: {
-    bookmark: { setBulkReadValue: orpcMocks.setBookmarkBulkReadValue },
+    bookmark: {
+      setBulkReadValue: orpcMocks.setBookmarkBulkReadValue,
+      getCaptures: orpcMocks.getCaptures,
+    },
     feedItem: { setBulkWatchedValue: orpcMocks.setFeedBulkWatchedValue },
+    initial: { requestFullTextForItems: orpcMocks.requestFullTextForItems },
     mixedContent: { requestPage: orpcMocks.requestPage },
   },
 }));

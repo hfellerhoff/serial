@@ -79,6 +79,15 @@ export function useDataSubscription() {
     let connectionController: AbortController | null = null;
     let paused = false;
 
+    async function delayBeforeRetry() {
+      failingSinceRef.current ??= Date.now();
+      const retryDelay =
+        Date.now() - failingSinceRef.current >= EXTENDED_RETRY_AFTER_MS
+          ? EXTENDED_RETRY_DELAY
+          : INITIAL_RETRY_DELAY;
+      await waitForAbortableDelay(retryDelay, controller.signal);
+    }
+
     async function runSubscriptionLoop() {
       while (!signal.aborted) {
         // Wait while the page is hidden — no point holding an SSE
@@ -103,12 +112,16 @@ export function useDataSubscription() {
             {},
             { signal: connectionSignal },
           );
-          failingSinceRef.current = null;
           markDataSubscriptionConnected();
           dataReconciliation.sseConnectionChanged(true);
 
           for await (const payload of iterator as AsyncIterable<PublishedChunk>) {
             if (connSignal.aborted) break;
+
+            // Only a connection that actually delivers data clears the
+            // failure clock; an accepted-then-dropped stream keeps it, so
+            // flapping still escalates to the extended delay.
+            failingSinceRef.current = null;
 
             // Buffer the chunk and schedule a flush via RAF
             chunkBufferRef.current.push(payload);
@@ -121,6 +134,9 @@ export function useDataSubscription() {
               isOnline: navigator.onLine !== false,
               isVisible: document.visibilityState === "visible",
             });
+            // A cleanly ended stream reconnects on the same pacing as an
+            // errored one instead of re-dialing in a tight loop.
+            await delayBeforeRetry();
           }
         } catch (error) {
           dataReconciliation.sseConnectionChanged(false);
@@ -141,12 +157,7 @@ export function useDataSubscription() {
 
           console.error("Subscription error, retrying...", error);
 
-          failingSinceRef.current ??= Date.now();
-          const retryDelay =
-            Date.now() - failingSinceRef.current >= EXTENDED_RETRY_AFTER_MS
-              ? EXTENDED_RETRY_DELAY
-              : INITIAL_RETRY_DELAY;
-          await waitForAbortableDelay(retryDelay, controller.signal);
+          await delayBeforeRetry();
         } finally {
           markDataSubscriptionPaused();
           dataReconciliation.sseConnectionChanged(false);
