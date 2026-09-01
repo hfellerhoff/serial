@@ -266,12 +266,14 @@ describe("direct request transport", () => {
     });
 
     await vi.waitFor(() => {
-      expect(mocks.requestFullTextForItems).toHaveBeenCalledWith({
-        itemIds: [savedFeedItem.id],
-      });
-      expect(mocks.getCaptures).toHaveBeenCalledWith({
-        bookmarkIds: [savedBookmark.id],
-      });
+      expect(mocks.requestFullTextForItems).toHaveBeenCalledWith(
+        { itemIds: [savedFeedItem.id] },
+        expect.anything(),
+      );
+      expect(mocks.getCaptures).toHaveBeenCalledWith(
+        { bookmarkIds: [savedBookmark.id] },
+        expect.anything(),
+      );
       expect(
         feedItemsStore.getState().feedItemsDict[savedFeedItem.id]?.content,
       ).toBe("Saved Feed body");

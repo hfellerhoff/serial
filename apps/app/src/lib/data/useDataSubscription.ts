@@ -130,6 +130,9 @@ export function useDataSubscription() {
             }
           }
           if (!connSignal.aborted && !signal.aborted) {
+            // Reconciliation must learn of the drop before the retry sleep,
+            // not after it when the finally runs.
+            dataReconciliation.sseConnectionChanged(false);
             markDataSubscriptionFailed({
               isOnline: navigator.onLine !== false,
               isVisible: document.visibilityState === "visible",

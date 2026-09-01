@@ -76,7 +76,7 @@ function removeProjectedBookmark(bookmark: ApplicationBookmark) {
 // without one (save, unarchive). Retention is re-judged against the live
 // store when the response lands, so a sign-out or opposing mutation that
 // happened mid-flight cannot re-persist the capture.
-async function reacquireRetainedCapture(bookmark: ApplicationBookmark) {
+export async function reacquireRetainedCapture(bookmark: ApplicationBookmark) {
   if (
     !shouldRetainBookmarkCapture(bookmark) ||
     !bookmark.captureHash ||
@@ -214,7 +214,7 @@ export function useUpdateBookmarkStateMutation(bookmarkId: string) {
           projectBookmark(reconciled, currentBookmark);
           // Unarchive and re-save evicted the capture on the way out; the
           // return transition must bring it back for offline reading.
-          void reacquireRetainedCapture(reconciled);
+          reacquireRetainedCapture(reconciled).catch(() => {});
         } finally {
           if (context?.token) releaseOptimisticBookmark(context.token);
         }

@@ -30,10 +30,17 @@ const unavailableCaptures = new Map<string, string | null>();
 // user's content.
 let hydrationEpoch = 0;
 
+// A hydration request that hangs rather than rejecting (dropped mobile
+// radio) must not gate the single-flight run for the browser's own
+// multi-minute fetch timeout.
+const HYDRATION_REQUEST_TIMEOUT_MS = 30_000;
+
 // Page applications coalesce into one hydration run: the retry sets are
 // session-scoped, so concurrent runs would each sweep the whole failed set.
-const pendingFeedItems: ApplicationFeedItem[] = [];
-const pendingBookmarks: ApplicationBookmark[] = [];
+// Pending entities are keyed by id so repeated applications of the same page
+// while a run is gated cannot grow the buffer.
+const pendingFeedItems = new Map<string, ApplicationFeedItem>();
+const pendingBookmarks = new Map<string, ApplicationBookmark>();
 let pendingRun = false;
 let activeHydration: Promise<void> | null = null;
 
@@ -43,9 +50,12 @@ export function invalidateOfflineHydration() {
   failedBookmarkIds.clear();
   unavailableFeedBodies.clear();
   unavailableCaptures.clear();
-  pendingFeedItems.length = 0;
-  pendingBookmarks.length = 0;
+  pendingFeedItems.clear();
+  pendingBookmarks.clear();
   pendingRun = false;
+  // Sever the previous session's run: it exits on its cleared pendingRun
+  // flag, and its own finally must not null out a newer session's run.
+  activeHydration = null;
 }
 
 // Macrotask yield through a MessageChannel rather than setTimeout: the
@@ -154,9 +164,10 @@ async function hydrateFeedItemBodies(itemIds: string[], epoch: number) {
   for (let index = 0; index < itemIds.length; index += FULLTEXT_BATCH_SIZE) {
     const batch = itemIds.slice(index, index + FULLTEXT_BATCH_SIZE);
     try {
-      const items = await orpcRouterClient.initial.requestFullTextForItems({
-        itemIds: batch,
-      });
+      const items = await orpcRouterClient.initial.requestFullTextForItems(
+        { itemIds: batch },
+        { signal: AbortSignal.timeout(HYDRATION_REQUEST_TIMEOUT_MS) },
+      );
       if (epoch !== hydrationEpoch) return;
       const returnedById = new Map(items.map((item) => [item.id, item]));
       for (const id of batch) {
@@ -180,9 +191,10 @@ async function hydrateBookmarkCaptures(bookmarkIds: string[], epoch: number) {
   for (let index = 0; index < bookmarkIds.length; index += CAPTURE_BATCH_SIZE) {
     const batch = bookmarkIds.slice(index, index + CAPTURE_BATCH_SIZE);
     try {
-      const captures = await orpcRouterClient.bookmark.getCaptures({
-        bookmarkIds: batch,
-      });
+      const captures = await orpcRouterClient.bookmark.getCaptures(
+        { bookmarkIds: batch },
+        { signal: AbortSignal.timeout(HYDRATION_REQUEST_TIMEOUT_MS) },
+      );
       if (epoch !== hydrationEpoch) return;
       const returnedIds = new Set(
         captures.map((capture) => capture.bookmarkId),
@@ -248,23 +260,31 @@ export function hydrateOfflineBodiesForPage(page: {
   if (typeof navigator !== "undefined" && navigator.onLine === false) {
     return Promise.resolve();
   }
-  pendingFeedItems.push(...page.feedItems);
-  pendingBookmarks.push(...page.bookmarks);
+  for (const item of page.feedItems) pendingFeedItems.set(item.id, item);
+  for (const bookmark of page.bookmarks) {
+    pendingBookmarks.set(bookmark.id, bookmark);
+  }
   // Even an entity-less page application sweeps once so failed fetches
   // retry; without this the active target's `unchanged` diffs would never
   // trigger a retry.
   pendingRun = true;
-  activeHydration ??= (async () => {
+  if (activeHydration) return activeHydration;
+  const startEpoch = hydrationEpoch;
+  activeHydration = (async () => {
     try {
       while (pendingRun) {
         pendingRun = false;
-        await hydratePendingEntities({
-          feedItems: pendingFeedItems.splice(0),
-          bookmarks: pendingBookmarks.splice(0),
-        });
+        const feedItems = [...pendingFeedItems.values()];
+        const bookmarks = [...pendingBookmarks.values()];
+        pendingFeedItems.clear();
+        pendingBookmarks.clear();
+        await hydratePendingEntities({ feedItems, bookmarks });
       }
     } finally {
-      activeHydration = null;
+      // An unchanged epoch proves this run is still the admitted one; a
+      // bumped epoch means invalidation severed it and may have admitted a
+      // newer run that must not be nulled out.
+      if (hydrationEpoch === startEpoch) activeHydration = null;
     }
   })();
   return activeHydration;
