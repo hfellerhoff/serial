@@ -3,7 +3,7 @@ import { betterAuth } from "better-auth";
 import { admin, emailOTP, genericOAuth } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
-import { createAuthMiddleware } from "better-auth/api";
+import { createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { createMiddleware } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { redirect } from "@tanstack/react-router";
@@ -29,6 +29,7 @@ import {
   isOAuthConfigured,
   TRUSTED_ORIGINS_SET,
 } from "~/server/auth/constants";
+import { ATPROTO_ROUTES } from "~/server/auth/atproto/config";
 import { atprotoPlugin } from "~/server/auth/atproto/plugin";
 import {
   classifyAuthRequest,
@@ -394,6 +395,19 @@ export const auth = betterAuth({
     before: createAuthMiddleware(async (ctx) => {
       const attempt = classifyAuthRequest(ctx.path);
       if (!attempt) return;
+
+      // The typeahead serves the anonymous auth pages and the signed-in
+      // connections link form alike. Its sign-in classification exists to
+      // deny anonymous relay into the AppView search index when Atmosphere
+      // sign-in is disabled — a session holder can already start a link
+      // (which the sign-in toggle does not govern), so handle search stays
+      // available to them.
+      if (
+        ctx.path === ATPROTO_ROUTES.typeahead &&
+        (await getSessionFromCtx(ctx))
+      ) {
+        return;
+      }
 
       await enforceAuthAttemptPolicy({
         ...attempt,

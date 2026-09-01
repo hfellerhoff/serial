@@ -117,6 +117,19 @@ test.describe("admin sign-in method settings", () => {
       "Atmosphere sign in is currently disabled",
     );
 
+    // The typeahead stays available to a signed-in caller (the connections
+    // link form searches handles regardless of the sign-in toggle) while
+    // the anonymous auth-page surface stays gated with the rest of atproto.
+    const typeahead = await page.evaluate(async () => {
+      const signedIn = await fetch("/api/auth/atproto/typeahead?q=alice");
+      const anonymous = await fetch("/api/auth/atproto/typeahead?q=alice", {
+        credentials: "omit",
+      });
+      return { signedIn: signedIn.status, anonymous: anonymous.status };
+    });
+    expect(typeahead.signedIn).toBe(200);
+    expect(typeahead.anonymous).toBe(400);
+
     // Re-enable it.
     await signinToggle.click();
     await expect(signinToggle).toBeChecked();

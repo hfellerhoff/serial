@@ -47,7 +47,12 @@ function ComboboxContent({
         align={align}
         alignOffset={alignOffset}
         anchor={anchor}
-        className="isolate z-50"
+        // pointer-events-auto: an open Radix modal dialog sets
+        // `pointer-events: none` on <body>, re-enabling it only inside its
+        // own content. This popup portals to <body>, so without an explicit
+        // reset it inherits `none` and every click falls through to the
+        // dialog beneath — visible suggestions, dead to the pointer.
+        className="isolate z-50 pointer-events-auto"
       >
         <ComboboxPrimitive.Popup
           data-slot="combobox-content"
