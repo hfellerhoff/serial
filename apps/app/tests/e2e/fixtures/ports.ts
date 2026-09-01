@@ -27,6 +27,32 @@ export const SELF_HOSTED_BOOTSTRAP_APP_PORT = getPort(
   3007,
 );
 
+/** Ports for the isolated serial provider-config self-hosted test environment */
+export const SELF_HOSTED_CONFIG_TURSO_PORT = getPort(
+  "SERIAL_TEST_SELF_HOSTED_CONFIG_TURSO_PORT",
+  8085,
+);
+export const SELF_HOSTED_CONFIG_APP_PORT = getPort(
+  "SERIAL_TEST_SELF_HOSTED_CONFIG_APP_PORT",
+  3010,
+);
+
+/** Ports for the atproto-unconfigured self-hosted test environment */
+export const SELF_HOSTED_UNCONFIGURED_TURSO_PORT = getPort(
+  "SERIAL_TEST_SELF_HOSTED_UNCONFIGURED_TURSO_PORT",
+  8086,
+);
+export const SELF_HOSTED_UNCONFIGURED_APP_PORT = getPort(
+  "SERIAL_TEST_SELF_HOSTED_UNCONFIGURED_APP_PORT",
+  3011,
+);
+
+/** Stub Resend API capturing emails for the config test environment */
+export const SELF_HOSTED_EMAIL_SERVER_PORT = getPort(
+  "SERIAL_TEST_SELF_HOSTED_EMAIL_PORT",
+  3012,
+);
+
 /** Ports for the "demo" test environment */
 export const DEMO_TURSO_PORT = getPort("SERIAL_TEST_DEMO_TURSO_PORT", 8083);
 export const DEMO_APP_PORT = getPort("SERIAL_TEST_DEMO_APP_PORT", 3005);

@@ -25,7 +25,7 @@ interface SeedAdminOptions {
   password: string;
 }
 
-async function waitForReactHydration(locator: Locator) {
+export async function waitForReactHydration(locator: Locator) {
   await expect
     .poll(
       () =>
@@ -161,6 +161,65 @@ export async function signUpAsAdmin({
 }: SeedAdminOptions & { page: Page }) {
   await seedAdmin({ tursoPort, name, email, password });
   await signIn({ page, email, password });
+}
+
+/**
+ * Matches the committed BETTER_AUTH_SECRET in .env.test.self-hosted; the
+ * signed-cookie shape mirrors better-call's format (see the unit-suite
+ * twin in tests/unit/auth/email-verification-session.test.ts).
+ */
+const TEST_BETTER_AUTH_SECRET = "test-secret-key-for-self-hosted-tests";
+
+async function signSessionCookie(token: string, secret: string) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(token),
+  );
+  const base64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
+  return encodeURIComponent(`${token}.${base64}`);
+}
+
+/**
+ * Seeds a session row for a user and hands its signed cookie to the page,
+ * signing the user in without any auth flow. This is how DID-only users
+ * get a browser session in e2e — their real sign-in needs an OAuth round
+ * trip against a live PDS, which stays out of this environment.
+ */
+export async function seedSession({
+  page,
+  tursoPort,
+  userId,
+  baseUrl,
+}: {
+  page: Page;
+  tursoPort: number;
+  userId: string;
+  baseUrl: string;
+}) {
+  const client = createClient({ url: `http://127.0.0.1:${tursoPort}` });
+  const now = Math.floor(Date.now() / 1000);
+  const token = createId();
+  await client.execute({
+    sql: `INSERT INTO serial_session (id, token, user_id, expires_at, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?)`,
+    args: [createId(), token, userId, now + 7 * 24 * 60 * 60, now, now],
+  });
+  client.close();
+  await page.context().addCookies([
+    {
+      name: "better-auth.session_token",
+      value: await signSessionCookie(token, TEST_BETTER_AUTH_SECRET),
+      url: baseUrl,
+    },
+  ]);
 }
 
 /**

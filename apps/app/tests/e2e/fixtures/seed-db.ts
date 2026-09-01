@@ -91,6 +91,55 @@ export async function seedAtprotoLink(
   client.close();
 }
 
+/**
+ * Seed a DID-only user: the rows an Atmosphere sign-up leaves behind — a
+ * user carrying the internal placeholder email, exempt from email
+ * verification, with an atproto account row and an active connection. The
+ * placeholder mirrors placeholderEmailForDid's shape (sanitized DID +
+ * hex suffix on the reserved domain); the exact suffix doesn't matter to
+ * the UI, which only checks the domain.
+ */
+export async function seedAtprotoOnlyUser(
+  tursoPort: number,
+  options: { did: string; handle: string; name: string },
+) {
+  const { db, client } = getDb(tursoPort);
+  const now = new Date();
+  const userId = createId();
+  const sanitized = options.did.toLowerCase().replace(/[^a-z0-9.-]+/g, "-");
+  const email = `${sanitized}.e2e0000deadbeef@atproto.invalid`;
+  await db.insert(schema.user).values({
+    id: userId,
+    name: options.name,
+    email,
+    emailVerified: false,
+    emailVerificationExempt: true,
+    createdAt: now,
+    updatedAt: now,
+  });
+  await db.insert(schema.account).values({
+    id: createId(),
+    accountId: options.did,
+    providerId: "atproto",
+    userId,
+    scope: "atproto",
+    createdAt: now,
+    updatedAt: now,
+  });
+  await db.insert(schema.atprotoConnections).values({
+    did: options.did,
+    userId,
+    session: "e2e-unreadable-ciphertext",
+    scopes: "atproto",
+    handle: options.handle,
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  });
+  client.close();
+  return { userId, email };
+}
+
 /** The database state the unlink assertions check. */
 export async function getAtprotoLinkState(tursoPort: number, did: string) {
   const { db, client } = getDb(tursoPort);

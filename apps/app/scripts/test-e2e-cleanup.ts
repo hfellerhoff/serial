@@ -11,6 +11,11 @@ const expectedPortVariables = [
   "SERIAL_TEST_SELF_HOSTED_RSS_PORT",
   "SERIAL_TEST_SELF_HOSTED_BOOTSTRAP_APP_PORT",
   "SERIAL_TEST_SELF_HOSTED_BOOTSTRAP_TURSO_PORT",
+  "SERIAL_TEST_SELF_HOSTED_CONFIG_APP_PORT",
+  "SERIAL_TEST_SELF_HOSTED_CONFIG_TURSO_PORT",
+  "SERIAL_TEST_SELF_HOSTED_UNCONFIGURED_APP_PORT",
+  "SERIAL_TEST_SELF_HOSTED_UNCONFIGURED_TURSO_PORT",
+  "SERIAL_TEST_SELF_HOSTED_EMAIL_PORT",
 ] as const;
 
 type ProcessRow = {
@@ -147,14 +152,29 @@ function assertExpectedServices(processes: ProcessRow[], ports: number[]) {
   const processCommands = processes
     .map((process) => process.command)
     .join("\n");
-  const [appPort, tursoPort, rssPort, bootstrapAppPort, bootstrapTursoPort] =
-    ports;
+  const [
+    appPort,
+    tursoPort,
+    rssPort,
+    bootstrapAppPort,
+    bootstrapTursoPort,
+    configAppPort,
+    configTursoPort,
+    unconfiguredAppPort,
+    unconfiguredTursoPort,
+    emailPort,
+  ] = ports;
   const expectedFragments = [
     `vite preview --port ${appPort}`,
     `turso dev --db-file serial-test-self-hosted.db --port ${tursoPort}`,
     `rss-server.ts ${rssPort}`,
     `vite preview --port ${bootstrapAppPort}`,
     `turso dev --db-file serial-test-self-hosted-bootstrap.db --port ${bootstrapTursoPort}`,
+    `vite preview --port ${configAppPort}`,
+    `turso dev --db-file serial-test-self-hosted-config.db --port ${configTursoPort}`,
+    `vite preview --port ${unconfiguredAppPort}`,
+    `turso dev --db-file serial-test-self-hosted-unconfigured.db --port ${unconfiguredTursoPort}`,
+    `email-server.ts ${emailPort}`,
   ];
   const missingFragments = expectedFragments.filter(
     (fragment) => !processCommands.includes(fragment),
