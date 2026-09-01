@@ -52,7 +52,7 @@ function ComboboxContent({
         // own content. This popup portals to <body>, so without an explicit
         // reset it inherits `none` and every click falls through to the
         // dialog beneath — visible suggestions, dead to the pointer.
-        className="isolate z-50 pointer-events-auto"
+        className="pointer-events-auto isolate z-50"
       >
         <ComboboxPrimitive.Popup
           data-slot="combobox-content"

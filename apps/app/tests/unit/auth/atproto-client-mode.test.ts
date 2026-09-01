@@ -39,9 +39,8 @@ vi.mock("~/env", () => ({
 }));
 
 const { getAtprotoClientMode } = await import("~/server/auth/atproto/mode");
-const { getAtprotoClientMetadata } = await import(
-  "~/server/auth/atproto/config"
-);
+const { getAtprotoClientMetadata } =
+  await import("~/server/auth/atproto/config");
 const { isAtprotoConfigured } = await import("~/server/auth/constants");
 
 function setEnv(overrides: Partial<MockEnv>) {
@@ -68,7 +67,10 @@ describe("getAtprotoClientMode", () => {
   it("selects loopback regardless of NODE_ENV — a loopback base URL is machine-local", () => {
     // The e2e production-preview servers run production builds on a
     // localhost base URL and must keep the loopback client.
-    setEnv({ PUBLIC_BASE_URL: "http://localhost:3000", NODE_ENV: "production" });
+    setEnv({
+      PUBLIC_BASE_URL: "http://localhost:3000",
+      NODE_ENV: "production",
+    });
     expect(getAtprotoClientMode()).toBe("loopback");
   });
 
@@ -89,7 +91,10 @@ describe("getAtprotoClientMode", () => {
 
 describe("getAtprotoClientMetadata in loopback mode", () => {
   it("builds the RFC 8252 loopback public client with 127.0.0.1 redirect URIs", () => {
-    setEnv({ PUBLIC_BASE_URL: "http://localhost:3000", NODE_ENV: "development" });
+    setEnv({
+      PUBLIC_BASE_URL: "http://localhost:3000",
+      NODE_ENV: "development",
+    });
     const metadata = getAtprotoClientMetadata();
 
     expect(metadata.client_id?.startsWith("http://localhost?")).toBe(true);

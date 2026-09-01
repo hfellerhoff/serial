@@ -2,10 +2,15 @@ import { ArrowLeftIcon, Loader2 } from "lucide-react";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import type { AuthProvider } from "~/lib/constants";
+import type {
+  AuthIntent,
+  AuthMethodView,
+  SubscreenAuthProvider,
+} from "~/lib/auth/method-view";
 import { AtprotoAuthForm } from "~/components/auth/AtprotoAuthForm";
 import { Button } from "~/components/ui/button";
 import { authClient } from "~/lib/auth-client";
-import { orderAuthProvidersForDisplay } from "~/lib/constants";
+import { getAuthMethodLabel } from "~/lib/auth/method-view";
 
 /**
  * The auth pages' shared method presentation: the highest-priority
@@ -15,64 +20,9 @@ import { orderAuthProvidersForDisplay } from "~/lib/constants";
  * open a subscreen (driven by the routes' ?method= param) with a back
  * affordance matching the settings dialogs; secondary OAuth redirects
  * immediately. Shared by sign-in, sign-up, and the first-admin bootstrap
- * variant of sign-up.
+ * variant of sign-up. The layout model itself (resolveAuthMethodView and
+ * friends) lives in ~/lib/auth/method-view.
  */
-
-export type AuthIntent = "sign-in" | "sign-up";
-
-/** A provider that opens as a subscreen rather than redirecting. */
-export type SubscreenAuthProvider = Exclude<AuthProvider, "oauth">;
-
-const INTENT_VERBS: Record<AuthIntent, string> = {
-  "sign-in": "Sign in",
-  "sign-up": "Sign up",
-};
-
-const SUBSCREEN_METHOD_NAMES: Record<SubscreenAuthProvider, string> = {
-  email: "Email",
-  atproto: "Atmosphere",
-};
-
-export function getAuthMethodLabel(
-  intent: AuthIntent,
-  provider: AuthProvider,
-  oauthProviderName: string,
-): string {
-  const methodName =
-    provider === "oauth" ? oauthProviderName : SUBSCREEN_METHOD_NAMES[provider];
-  return `${INTENT_VERBS[intent]} with ${methodName}`;
-}
-
-export interface AuthMethodView {
-  primary: AuthProvider | undefined;
-  secondary: AuthProvider[];
-  /** The subscreen the ?method= param opens, when it names a secondary. */
-  openMethod: SubscreenAuthProvider | undefined;
-}
-
-/**
- * Resolve the page's method layout from the loader config plus the
- * ?method= param. A method param that does not name a secondary provider
- * (primary already, OAuth, or unavailable on this flow) falls back to the
- * main screen, so stale deep links and cross-flow links degrade safely.
- */
-export function resolveAuthMethodView(options: {
-  providers: AuthProvider[];
-  isOAuthConfigured: boolean;
-  method: AuthProvider | undefined;
-}): AuthMethodView {
-  const available = options.providers.filter(
-    (provider) => provider !== "oauth" || options.isOAuthConfigured,
-  );
-  const [primary, ...secondary] = orderAuthProvidersForDisplay(available);
-  const openMethod =
-    options.method !== undefined &&
-    options.method !== "oauth" &&
-    secondary.includes(options.method)
-      ? options.method
-      : undefined;
-  return { primary, secondary, openMethod };
-}
 
 function AuthMethodDivider() {
   return (

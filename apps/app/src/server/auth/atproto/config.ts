@@ -68,8 +68,7 @@ export const ATPROTO_PATHS = {
 
 /** https everywhere except the dev loopback client's 127.0.0.1 URIs. */
 export type AtprotoRedirectUri =
-  | `https://${string}`
-  | `http://127.0.0.1:${string}`;
+  `https://${string}` | `http://127.0.0.1:${string}`;
 
 /**
  * Base URL the registered redirect URIs are built from. The dev loopback

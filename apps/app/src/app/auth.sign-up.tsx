@@ -7,11 +7,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AuthHeader } from "~/components/auth/AuthHeader";
+import { AuthMethodList } from "~/components/auth/AuthMethodList";
 import {
-  AuthMethodList,
   getAuthMethodLabel,
   resolveAuthMethodView,
-} from "~/components/auth/AuthMethodList";
+} from "~/lib/auth/method-view";
 import { Button } from "~/components/ui/button";
 import { CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";

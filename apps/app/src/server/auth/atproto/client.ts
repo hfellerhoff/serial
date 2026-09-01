@@ -35,7 +35,9 @@ async function buildClient(): Promise<NodeOAuthClient> {
   // The dev loopback client is public (auth method "none"): passing the
   // keyset would attach a JWKS to metadata that must not carry one.
   const keyset =
-    getAtprotoClientMode() === "loopback" ? undefined : await getAtprotoKeyset();
+    getAtprotoClientMode() === "loopback"
+      ? undefined
+      : await getAtprotoKeyset();
   const encryptionKey = getStoreEncryptionKey();
 
   const fetch = createHardenedFetch();
