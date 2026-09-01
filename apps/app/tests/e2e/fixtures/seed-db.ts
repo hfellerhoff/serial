@@ -175,6 +175,19 @@ export async function setFeedItemContent(
   client.close();
 }
 
+export async function setFeedItemWatchLater(
+  tursoPort: number,
+  id: string,
+  isWatchLater: boolean,
+) {
+  const { db, client } = getDb(tursoPort);
+  await db
+    .update(schema.feedItems)
+    .set({ isWatchLater, isWatchLaterUpdatedAt: new Date() })
+    .where(eq(schema.feedItems.id, id));
+  client.close();
+}
+
 export async function setFeedItemAsYouTubeVideo(
   tursoPort: number,
   id: string,

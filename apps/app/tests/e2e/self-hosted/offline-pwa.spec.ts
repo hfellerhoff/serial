@@ -10,6 +10,7 @@ import {
   seedBookmarkProjectionData,
   seedMultipleArticleData,
   setFeedItemAsVideo,
+  setFeedItemWatchLater,
 } from "../fixtures/seed-db";
 import type { Page } from "@playwright/test";
 
@@ -279,6 +280,97 @@ test("reloads a retained Bookmark capture through the production service worker"
       page.getByText("Offline, some features may be disabled"),
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "Archive" })).toBeDisabled();
+  } finally {
+    await context.setOffline(false);
+    await cleanupUser(SELF_HOSTED_TURSO_PORT, email);
+  }
+});
+
+test("opens pre-saved content offline after passive hydration alone", async ({
+  page,
+  context,
+}) => {
+  test.setTimeout(60_000);
+  const { feedItemId, email, password } = await seedArticleData(
+    SELF_HOSTED_TURSO_PORT,
+    SELF_HOSTED_APP_PORT,
+  );
+  // Saved before the session starts, so only page-scoped hydration after the
+  // view-matrix cells apply can retain the body and fetch the capture.
+  await setFeedItemWatchLater(SELF_HOSTED_TURSO_PORT, feedItemId, true);
+  const { bookmarkId } = await seedBookmarkProjectionData(
+    SELF_HOSTED_TURSO_PORT,
+    email,
+    feedItemId,
+  );
+
+  try {
+    await signIn({ page, email, password });
+    await prepareControlledShell(page);
+
+    // No interaction with either item: poll persistence until deferred
+    // hydration lands, flushing the throttled IDB writer each attempt.
+    await expect
+      .poll(
+        async () => {
+          await page.evaluate(() =>
+            window.dispatchEvent(new Event("pagehide")),
+          );
+          return getFeedBodyPersistence(page, feedItemId);
+        },
+        { timeout: 20_000 },
+      )
+      .toEqual({
+        hasBody: true,
+        isWatchLater: true,
+        isWatched: false,
+        retained: true,
+      });
+    await expect
+      .poll(
+        async () => {
+          await page.evaluate(() =>
+            window.dispatchEvent(new Event("pagehide")),
+          );
+          return hasBookmarkCapture(page, bookmarkId);
+        },
+        { timeout: 20_000 },
+      )
+      .toBe(true);
+
+    await context.setOffline(true);
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(
+      page.getByText("Offline, some features may be disabled"),
+    ).toBeVisible({ timeout: 15_000 });
+
+    await page.getByRole("tab", { name: "Saved" }).click();
+    const savedFeedCard = page.locator(`article[data-item-id="${feedItemId}"]`);
+    await expect(savedFeedCard.getByRole("link")).toHaveAttribute(
+      "aria-disabled",
+      "false",
+    );
+    await savedFeedCard.getByRole("link").click();
+    await expect(page).toHaveURL(new RegExp(`/read/${feedItemId}$`));
+    await expect(page.getByText("Paragraph 1:")).toBeVisible();
+
+    await page.goBack();
+    await expect(
+      page.getByText("Offline, some features may be disabled"),
+    ).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("tab", { name: "Saved" }).click();
+    const savedBookmarkCard = page.locator(
+      `article[data-item-id="${bookmarkId}"][data-entity-kind="bookmark"]`,
+    );
+    await expect(savedBookmarkCard.getByRole("link")).toHaveAttribute(
+      "aria-disabled",
+      "false",
+    );
+    await savedBookmarkCard.getByRole("link").click();
+    await expect(page).toHaveURL(new RegExp(`/read/${bookmarkId}$`));
+    await expect(page.getByText("Captured Bookmark body")).toBeVisible({
+      timeout: 15_000,
+    });
   } finally {
     await context.setOffline(false);
     await cleanupUser(SELF_HOSTED_TURSO_PORT, email);
