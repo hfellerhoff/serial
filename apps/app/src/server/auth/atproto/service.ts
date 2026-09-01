@@ -117,10 +117,13 @@ async function sweepStaleAtprotoConnections(): Promise<void> {
     // before hitting the PDS: if a sign-in or refresh bound or re-touched
     // it since the snapshot, skip it entirely rather than revoke a live
     // grant the user just minted.
+    // oxlint-disable-next-line react-doctor/async-await-in-loop
     const claimed = await claimStaleAtprotoOrphan(db, orphan.did, cutoff);
     if (!claimed) continue;
     // The row is already disconnected by the claim; only the PDS-side
-    // grant remains to revoke.
+    // grant remains to revoke. Serial and bounded by design: revocations
+    // are outbound calls that must not fan out under an auth-server outage.
+    // oxlint-disable-next-line react-doctor/async-await-in-loop
     await revokeAtprotoGrantAtPds(orphan.did);
   }
   await sweepExpiredAtprotoState(db);
