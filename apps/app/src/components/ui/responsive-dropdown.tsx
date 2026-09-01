@@ -149,6 +149,16 @@ export function ControlledResponsiveDialog({
             className,
           )}
           onOpenAutoFocus={onOpenAutoFocus}
+          onEscapeKeyDown={(event) => {
+            // A combobox popup (Base UI, e.g. the Atmosphere handle
+            // typeahead) is its own layer above this dialog, but Radix only
+            // tracks Radix layers: without this check the Escape that
+            // dismisses the suggestions would tear down the dialog too.
+            const target = event.target as HTMLElement | null;
+            if (target?.closest('[role="combobox"][aria-expanded="true"]')) {
+              event.preventDefault();
+            }
+          }}
         >
           <DialogHeader className={cn("shrink-0", headerClassName)}>
             {onBack && (

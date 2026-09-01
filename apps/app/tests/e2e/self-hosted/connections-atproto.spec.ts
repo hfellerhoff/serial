@@ -152,6 +152,19 @@ test.describe("atproto connection management", () => {
     await expect(suggestions.getByText("Alice Test")).toBeVisible();
     await expect(suggestions.getByText("alice.test")).toBeVisible();
 
+    // Escape dismisses only the suggestions; the dialog stays up (the
+    // popup is not a Radix layer, so the dialog is told to ignore that
+    // Escape explicitly).
+    await handleInput.press("Escape");
+    await expect(suggestions).not.toBeVisible();
+    await expect(
+      page.getByText("Connect your Atmosphere account"),
+    ).toBeVisible();
+
+    // Typing again reopens the suggestions.
+    await handleInput.fill("ali");
+    await expect(suggestions.getByText("Alice Test")).toBeVisible();
+
     // Selecting swaps the input for the chosen account's card and threads
     // the DID into the link start as a resolution shortcut.
     await suggestions.getByText("Alice Test").click();
