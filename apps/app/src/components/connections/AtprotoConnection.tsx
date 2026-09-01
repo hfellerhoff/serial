@@ -38,9 +38,19 @@ export function AtprotoConnectionListItem({
 }) {
   const queryClient = useQueryClient();
 
-  const { data: status, isLoading } = useQuery(
-    orpc.atproto.getConnectionStatus.queryOptions(),
-  );
+  const { data: status, isLoading } = useQuery({
+    ...orpc.atproto.getConnectionStatus.queryOptions(),
+    // The link callback backfills the handle after redirecting, so a row
+    // read right after linking can carry the raw DID. Poll while the
+    // "handle" is still DID-shaped (real handles are domains); polling
+    // stops when the row unmounts with the dialog.
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      const awaitingHandleBackfill =
+        !!data?.isConnected && !!data.handle?.startsWith("did:");
+      return awaitingHandleBackfill ? 3000 : false;
+    },
+  });
 
   const computedStatus = status ?? {
     isConnected: false,
