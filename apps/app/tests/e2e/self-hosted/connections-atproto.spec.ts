@@ -152,10 +152,12 @@ test.describe("atproto connection management", () => {
     await expect(suggestions.getByText("Alice Test")).toBeVisible();
     await expect(suggestions.getByText("alice.test")).toBeVisible();
 
-    // Selecting fills the input and threads the DID into the link start
-    // as a resolution shortcut.
+    // Selecting swaps the input for the chosen account's card and threads
+    // the DID into the link start as a resolution shortcut.
     await suggestions.getByText("Alice Test").click();
-    await expect(handleInput).toHaveValue("alice.test");
+    await expect(
+      page.getByRole("button", { name: "Choose a different account" }),
+    ).toBeVisible();
     await expect(suggestions).not.toBeVisible();
 
     const linkRequest = page.waitForRequest(

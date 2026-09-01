@@ -4,9 +4,10 @@ import type { Page } from "@playwright/test";
 /**
  * The Atmosphere (AT Protocol) entry points on the auth pages. This
  * instance has atproto configured (test keys) and every provider enabled,
- * so the full provider section renders: email form, then Atmosphere above
- * the generic OAuth button. The typeahead proxy points at the stub AppView
- * fixture, keeping suggestion specs hermetic.
+ * so the full method list renders in display priority: the generic OAuth
+ * button as the primary method, then Atmosphere and Email as secondary
+ * entries whose buttons open subscreens. The typeahead proxy points at the
+ * stub AppView fixture, keeping suggestion specs hermetic.
  *
  * No PDS is reachable from this environment, so specs cover the UI flow up
  * to the authorize call and its error surface; the full round trip is
@@ -47,22 +48,21 @@ async function openHandleStep(page: Page, buttonName: string) {
 }
 
 test.describe("atmosphere sign-in entry", () => {
-  test("renders above the generic OAuth button, below the email form", async ({
+  test("renders as a secondary method under the primary OAuth button", async ({
     page,
   }) => {
     await gotoWithAtmosphere(page, "/auth/sign-in", "Sign in with Atmosphere");
 
-    await expect(page.getByRole("button", { name: /login/i })).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Sign in with TestOAuth" }),
-    ).toBeVisible();
-
+    // Display priority: oauth primary above the divider, then atmosphere
+    // and email as secondaries in that order.
     const providerButtons = await page
       .getByRole("button", { name: /sign in with/i })
       .allTextContents();
-    expect(providerButtons.indexOf("Sign in with Atmosphere")).toBeLessThan(
-      providerButtons.indexOf("Sign in with TestOAuth"),
-    );
+    expect(providerButtons).toEqual([
+      "Sign in with TestOAuth",
+      "Sign in with Atmosphere",
+      "Sign in with Email",
+    ]);
   });
 
   test("opens the handle step and keeps typed input submittable", async ({
@@ -111,10 +111,13 @@ test.describe("atmosphere sign-in entry", () => {
     await expect(suggestions.getByText("alice.test")).toBeVisible();
     await expect(suggestions.getByText("Alina Test")).toBeVisible();
 
-    // Selecting fills the input and threads the DID into the authorize
-    // body as a resolution shortcut.
+    // Selecting swaps the input for the chosen account's card and threads
+    // the DID into the authorize body as a resolution shortcut.
     await suggestions.getByText("Alice Test").click();
-    await expect(handleInput).toHaveValue("alice.test");
+    await expect(
+      page.getByRole("button", { name: "Choose a different account" }),
+    ).toBeVisible();
+    await expect(page.getByText("alice.test")).toBeVisible();
     await expect(suggestions).not.toBeVisible();
 
     const authorizeRequest = page.waitForRequest(
@@ -140,24 +143,21 @@ test.describe("atmosphere sign-in entry", () => {
 });
 
 test.describe("atmosphere sign-up entry", () => {
-  test("renders above the generic OAuth button with its own handle step", async ({
+  test("renders as a secondary method with its own handle subscreen", async ({
     page,
   }) => {
     await gotoWithAtmosphere(page, "/auth/sign-up", "Sign up with Atmosphere");
 
-    await expect(
-      page.getByRole("button", { name: /create an account/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Sign up with TestOAuth" }),
-    ).toBeVisible();
-
+    // Same display priority as sign-in: oauth primary, then atmosphere
+    // and email secondaries.
     const providerButtons = await page
       .getByRole("button", { name: /sign up with/i })
       .allTextContents();
-    expect(providerButtons.indexOf("Sign up with Atmosphere")).toBeLessThan(
-      providerButtons.indexOf("Sign up with TestOAuth"),
-    );
+    expect(providerButtons).toEqual([
+      "Sign up with TestOAuth",
+      "Sign up with Atmosphere",
+      "Sign up with Email",
+    ]);
 
     await openHandleStep(page, "Sign up with Atmosphere");
   });
