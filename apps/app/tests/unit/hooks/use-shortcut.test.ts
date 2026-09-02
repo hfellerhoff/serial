@@ -229,6 +229,11 @@ describe("useShortcut", () => {
     setPlatform("MacIntel");
     pressKey({ key: "´", code: "KeyE", altKey: true });
     expect(onMac).toHaveBeenCalledTimes(1);
+
+    // An empty userAgentData platform falls back to navigator.platform.
+    setUserAgentDataPlatform("");
+    pressKey({ key: "´", code: "KeyE", altKey: true });
+    expect(onMac).toHaveBeenCalledTimes(2);
   });
 
   it("does not cancel named-key defaults while Alt is held", () => {
@@ -268,6 +273,16 @@ describe("useShortcut", () => {
 
     expect(plain.defaultPrevented).toBe(false);
     expect(withAlt.defaultPrevented).toBe(true);
+  });
+
+  it("leaves the default intact for an unbound printable key under Alt", () => {
+    const callback = vi.fn();
+    mountShortcut("e", callback);
+
+    const event = pressKey({ key: "ø", code: "KeyO", altKey: true });
+
+    expect(callback).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
   });
 
   it("still blocks single-key shortcuts behind Shift", () => {

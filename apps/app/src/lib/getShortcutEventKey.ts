@@ -38,8 +38,10 @@ type ShortcutKeyboardEvent = {
 const isMacLike = () =>
   typeof navigator !== "undefined" &&
   /mac|iphone|ipad/i.test(
+    // `||` rather than `??`: some privacy configurations expose
+    // `userAgentData` with an empty platform string
     (navigator as { userAgentData?: { platform?: string } }).userAgentData
-      ?.platform ?? navigator.platform,
+      ?.platform || navigator.platform,
   );
 
 /**
