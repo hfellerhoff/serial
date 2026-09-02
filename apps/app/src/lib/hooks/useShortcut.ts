@@ -21,6 +21,43 @@ type UseShortcutOptions = {
   allowRepeat?: boolean;
 };
 
+// Punctuation codes for keys used in shortcut bindings, as
+// [unshifted, shifted] pairs.
+const PUNCTUATION_CODE_KEYS: Record<string, [string, string]> = {
+  Backslash: ["\\", "|"],
+  BracketLeft: ["[", "{"],
+  BracketRight: ["]", "}"],
+  Minus: ["-", "_"],
+  Equal: ["=", "+"],
+  Space: [" ", " "],
+};
+
+/**
+ * Alt is the "peek at shortcuts" key, so shortcuts must still match while it
+ * is held. On macOS, Option composes `event.key` into a different character
+ * (Option+E → "´"), so recover the logical key from `event.code` instead.
+ */
+const getEventKey = (
+  event: Pick<KeyboardEvent<Element>, "altKey" | "shiftKey" | "code" | "key">,
+): string => {
+  if (!event.altKey) {
+    return event.key;
+  }
+  const { code } = event;
+  if (code.startsWith("Key") && code.length === 4) {
+    const letter = code.slice(3);
+    return event.shiftKey ? letter : letter.toLowerCase();
+  }
+  if (code.startsWith("Digit") && code.length === 6 && !event.shiftKey) {
+    return code.slice(5);
+  }
+  const punctuation = PUNCTUATION_CODE_KEYS[code];
+  if (punctuation) {
+    return event.shiftKey ? punctuation[1] : punctuation[0];
+  }
+  return event.key;
+};
+
 export const useShortcut = (
   shortcut: string | string[],
   callback: (event: KeyboardEvent<Element>) => void,
@@ -68,6 +105,8 @@ export const useShortcut = (
         Shift: event.shiftKey,
       };
 
+      const eventKey = getEventKey(event);
+
       for (const currentShortcut of shortcutsKey.split("\n")) {
         // Handle combined modifier key shortcuts (e.g. pressing Control + D)
         if (currentShortcut.includes("+")) {
@@ -89,19 +128,24 @@ export const useShortcut = (
               if (pressedModifierSet.has(key)) {
                 return modifierMap[key];
               }
+              // Alt only peeks at the shortcut hints, so an unbound Alt
+              // never disqualifies a match
+              if (key === "Alt") {
+                return true;
+              }
               // If modifier not provided, expect `false`
               return !modifierMap[key];
             });
 
-            if (doesEveryModifierMatch && finalKey === event.key) {
+            if (doesEveryModifierMatch && finalKey === eventKey) {
               return callbackRef.current(event);
             }
           } else {
             // If the shortcut doesn't begin with a modifier, it's a sequence
-            if (keyArray[keyCombo.length] === event.key) {
+            if (keyArray[keyCombo.length] === eventKey) {
               // Handle final key in the sequence
               if (
-                keyArray[keyArray.length - 1] === event.key &&
+                keyArray[keyArray.length - 1] === eventKey &&
                 keyCombo.length === keyArray.length - 1
               ) {
                 // Run handler if the sequence is complete, then reset it
@@ -110,7 +154,7 @@ export const useShortcut = (
               }
 
               // Add to the sequence
-              return setKeyCombo((prevCombo) => [...prevCombo, event.key]);
+              return setKeyCombo((prevCombo) => [...prevCombo, eventKey]);
             }
             if (keyCombo.length > 0) {
               // Reset key combo if it doesn't match the sequence
@@ -120,13 +164,9 @@ export const useShortcut = (
         }
 
         // Single key shortcuts (e.g. pressing D)
-        if (currentShortcut === event.key) {
-          // Expect all modifiers to be false
-          const isEveryModifierFalse = Object.values(modifierMap).every(
-            (value) => !value,
-          );
-
-          if (!isEveryModifierFalse) {
+        if (currentShortcut === eventKey) {
+          // Expect all modifiers except the shortcut-hint Alt key to be false
+          if (event.ctrlKey || event.metaKey || event.shiftKey) {
             return;
           }
 
