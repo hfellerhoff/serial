@@ -1,5 +1,8 @@
 import { fetch } from "undici";
-import { FEED_HTTP_REQUEST_TIMEOUT_MS } from "@serial/bookmark-capture";
+import {
+  FEED_HTTP_MAX_BODY_BYTES,
+  FEED_HTTP_REQUEST_TIMEOUT_MS,
+} from "@serial/bookmark-capture";
 import {
   authorizedTestRssOrigin,
   isAuthorizedTestRssUrl,
@@ -29,7 +32,6 @@ export type FeedHttpResponse = {
   url: string;
 };
 
-const DEFAULT_MAX_BODY_BYTES = 2 * 1024 * 1024;
 const DEFAULT_MAX_HEADER_BYTES = 32 * 1024;
 const DEFAULT_MAX_REDIRECTS = 5;
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
@@ -89,7 +91,7 @@ export async function readFeedHttp(
     ...DEFAULT_FEED_HTTP_DEPENDENCIES,
     ...dependencyOverrides,
   };
-  const maxBodyBytes = options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
+  const maxBodyBytes = options.maxBodyBytes ?? FEED_HTTP_MAX_BODY_BYTES;
   const maxHeaderBytes = options.maxHeaderBytes ?? DEFAULT_MAX_HEADER_BYTES;
   const maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
   const totalDurationMs =
