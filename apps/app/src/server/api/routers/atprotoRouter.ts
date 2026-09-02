@@ -194,7 +194,9 @@ export const unlinkAccount = protectedProcedure.handler(async ({ context }) => {
     .from(appConfig)
     .where(eq(appConfig.key, "enabled-signin-providers"))
     .get();
-  const enabledProviders = getEnabledAuthProviders(signinConfig?.value);
+  const enabledProviders = new Set(
+    getEnabledAuthProviders(signinConfig?.value),
+  );
   const [methods = []] = getAdminSigninMethods({
     adminUserIds: [context.user.id],
     accountRows,
@@ -202,7 +204,7 @@ export const unlinkAccount = protectedProcedure.handler(async ({ context }) => {
     atprotoConfigured: isAtprotoConfigured(),
   });
   const remainingMethods = methods.filter(
-    (method) => method !== "atproto" && enabledProviders.includes(method),
+    (method) => method !== "atproto" && enabledProviders.has(method),
   );
   if (atprotoRows.length > 0 && remainingMethods.length === 0) {
     throw new ORPCError("PRECONDITION_FAILED", {

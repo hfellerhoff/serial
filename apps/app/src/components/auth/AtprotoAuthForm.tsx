@@ -40,6 +40,7 @@ export function AtprotoAuthForm({
     // An HTTP error resolves to { error }; a transport failure (offline,
     // DNS) rejects. Both degrade to a toast, and busy stays set only when
     // the redirect is actually underway.
+    let redirectStarted = false;
     try {
       const { data, error } = await authClient.$fetch<{ url: string }>(
         AUTHORIZE_PATH,
@@ -54,13 +55,17 @@ export function AtprotoAuthForm({
 
       if (error || !data?.url) {
         toast.error(error?.message ?? GENERIC_ERROR_MESSAGE);
-        setBusy(false);
         return;
       }
+      redirectStarted = true;
       window.location.assign(data.url);
     } catch {
       toast.error(GENERIC_ERROR_MESSAGE);
-      setBusy(false);
+    } finally {
+      // Deliberately conditional: once the redirect is underway the form
+      // must stay busy until the page unloads.
+      // react-doctor-disable-next-line react-doctor/no-loading-flag-reset-outside-finally
+      if (!redirectStarted) setBusy(false);
     }
   };
 
