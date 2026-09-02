@@ -39,7 +39,6 @@ import { workerPool } from "~/lib/workerPool";
 /** How long to back off a feed after a fetch error, to avoid cascading retries. */
 const ERROR_BACKOFF_MS = 60 * 60 * 1000; // 1 hour
 export { FEED_INGESTION_CONCURRENCY } from "@serial/bookmark-capture";
-const MAX_CHANNEL_DISCOVERY_BYTES = 5 * 1024 * 1024;
 
 export type FetchFeedsStatus = "success" | "empty" | "error" | "skipped";
 
@@ -91,9 +90,7 @@ export async function fetchNewFeedDetails(
     isYouTubeHost &&
     (url.includes("youtube.com/@") || url.includes("youtube.com/channel/"))
   ) {
-    const feed = await readFeedHttp(url, {
-      maxBodyBytes: MAX_CHANNEL_DISCOVERY_BYTES,
-    });
+    const feed = await readFeedHttp(url);
     if (!feed.ok) {
       throw new Error(
         `Failed to fetch YouTube channel page: ${feed.status} ${feed.statusText}`,

@@ -69,6 +69,21 @@ beforeAll(async () => {
       return;
     }
 
+    if (request.url === "/three-megabytes") {
+      response.writeHead(200, { "Content-Type": "application/rss+xml" });
+      response.end(`<rss>${"x".repeat(3 * 1024 * 1024)}</rss>`);
+      return;
+    }
+
+    if (request.url === "/declared-eleven-megabytes") {
+      response.writeHead(200, {
+        "Content-Length": `${11 * 1024 * 1024}`,
+        "Content-Type": "application/rss+xml",
+      });
+      response.end();
+      return;
+    }
+
     if (request.url === "/oversized") {
       response.writeHead(200, { "Content-Type": "application/rss+xml" });
       response.end("x".repeat(65));
@@ -138,6 +153,20 @@ describe("readFeedHttp", () => {
     await expect(
       readLocalFeedHttp(`${baseUrl}/declared-oversized`, { maxBodyBytes: 64 }),
     ).rejects.toThrow("Feed response Content-Length exceeds 64 bytes");
+  });
+
+  it("accepts a body larger than 2 MiB under the default budget", async () => {
+    const response = await readLocalFeedHttp(`${baseUrl}/three-megabytes`);
+    expect(response.status).toBe(200);
+    expect(response.text.length).toBeGreaterThan(3 * 1024 * 1024);
+  });
+
+  it("rejects a declared body beyond the 10 MiB default budget", async () => {
+    await expect(
+      readLocalFeedHttp(`${baseUrl}/declared-eleven-megabytes`),
+    ).rejects.toThrow(
+      `Feed response Content-Length exceeds ${10 * 1024 * 1024} bytes`,
+    );
   });
 
   it("rejects redirect chains beyond the configured budget", async () => {
