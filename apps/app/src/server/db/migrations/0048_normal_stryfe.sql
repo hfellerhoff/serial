@@ -21,4 +21,5 @@ CREATE TABLE `serial_atproto_connections` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `serial_atproto_connections_user_id_unique` ON `serial_atproto_connections` (`user_id`);--> statement-breakpoint
-CREATE UNIQUE INDEX `serial_atproto_connections_did_unique` ON `serial_atproto_connections` (`did`);
+CREATE UNIQUE INDEX `serial_atproto_connections_did_unique` ON `serial_atproto_connections` (`did`);--> statement-breakpoint
+ALTER TABLE `serial_user` ADD `email_verification_exempt` integer DEFAULT false NOT NULL;
