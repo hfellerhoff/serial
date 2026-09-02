@@ -10,6 +10,8 @@ export type ViewsStore = {
   reset: () => void;
   views: ApplicationView[];
   viewsDict: Record<number, ApplicationView>;
+  /** Bumped on every write so an in-flight fetch can detect it went stale. */
+  revision: number;
   fetchStatus: "idle" | "fetching" | "success";
   fetch: () => Promise<void>;
   set: (views: ApplicationView[]) => void;
@@ -41,18 +43,29 @@ export const viewsStoreApi = createStore<ViewsStore>()(
         set({
           views: [],
           viewsDict: {},
+          revision: get().revision + 1,
           fetchStatus: "idle",
         }),
       views: [],
       viewsDict: {},
+      revision: 0,
       fetchStatus: "idle",
 
       fetch: async () => {
         if (get().fetchStatus === "fetching") return;
 
         set({ fetchStatus: "fetching" });
+        const startRevision = get().revision;
 
         const data = await orpcRouterClient.view.getAll();
+
+        if (get().revision !== startRevision) {
+          // A newer write (e.g. an import stream chunk) landed while this
+          // request was in flight; keep it instead of reverting to the older
+          // response.
+          set({ fetchStatus: "success" });
+          return;
+        }
 
         const dict: Record<number, ApplicationView> = {};
         data.forEach((view) => {
@@ -62,6 +75,7 @@ export const viewsStoreApi = createStore<ViewsStore>()(
         set({
           views: data,
           viewsDict: dict,
+          revision: get().revision + 1,
           fetchStatus: "success",
         });
       },
@@ -76,6 +90,7 @@ export const viewsStoreApi = createStore<ViewsStore>()(
         set({
           views: sortedViews,
           viewsDict: dict,
+          revision: get().revision + 1,
         });
       },
 
@@ -89,6 +104,7 @@ export const viewsStoreApi = createStore<ViewsStore>()(
         set({
           views: newViews,
           viewsDict: dict,
+          revision: get().revision + 1,
         });
       },
 
@@ -109,6 +125,7 @@ export const viewsStoreApi = createStore<ViewsStore>()(
         set({
           views: newViews,
           viewsDict: dict,
+          revision: get().revision + 1,
         });
       },
 
@@ -120,6 +137,7 @@ export const viewsStoreApi = createStore<ViewsStore>()(
         set({
           views: newViews,
           viewsDict: rest,
+          revision: get().revision + 1,
         });
       },
 
@@ -133,7 +151,11 @@ export const viewsStoreApi = createStore<ViewsStore>()(
           viewsDict[view.id] = view;
         });
 
-        set({ views: updatedViews, viewsDict });
+        set({
+          views: updatedViews,
+          viewsDict,
+          revision: get().revision + 1,
+        });
       },
     }),
     {

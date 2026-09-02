@@ -2,7 +2,11 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { publisher } from "../publisher";
 import { getUserChannel } from "../channels";
-import { insertFeedWithCategories } from "./feed-router/utils";
+import {
+  applyFeedCategories,
+  chunkRows,
+  insertFeedWithCategories,
+} from "./feed-router/utils";
 import type { PublishedChunk } from "../publisher";
 import type { ApplicationFeed, ApplicationView } from "~/server/db/schema";
 import type { FetchFeedsStatus } from "~/server/rss/fetchFeeds";
@@ -603,13 +607,19 @@ export const streamingImport = protectedProcedure
       const viewFeedRows: Array<{ viewId: number; feedId: number }> = [];
       const feedCategoryRows: Array<{ feedId: number; categoryId: number }> =
         [];
+      const ownedTagEntries: Array<{ feedId: number; categories: string[] }> =
+        [];
+      const unparseableOwnedFeedUrls: string[] = [];
       for (const feedInput of ownedImportFeeds) {
         if (!feedInput.ownedFeed) continue;
         const [applicationFeed] = parseArrayOfSchema(
           [feedInput.ownedFeed],
           feedsSchema,
         );
-        if (!applicationFeed) continue;
+        if (!applicationFeed) {
+          unparseableOwnedFeedUrls.push(feedInput.feedUrl);
+          continue;
+        }
         existingLinkedFeeds.push({
           inputFeedUrl: feedInput.feedUrl,
           feedId: applicationFeed.id,
@@ -622,21 +632,31 @@ export const streamingImport = protectedProcedure
         );
         viewFeedRows.push(...rows.viewFeedRows);
         feedCategoryRows.push(...rows.feedCategoryRows);
+        if (feedInput.categories.length > 0) {
+          ownedTagEntries.push({
+            feedId: applicationFeed.id,
+            categories: feedInput.categories,
+          });
+        }
       }
-      if (viewFeedRows.length > 0 || feedCategoryRows.length > 0) {
+      if (
+        viewFeedRows.length > 0 ||
+        feedCategoryRows.length > 0 ||
+        ownedTagEntries.length > 0
+      ) {
         await context.db.transaction(async (tx) => {
-          if (viewFeedRows.length > 0) {
-            await tx
-              .insert(viewFeeds)
-              .values(viewFeedRows)
-              .onConflictDoNothing();
+          for (const rowChunk of chunkRows(viewFeedRows)) {
+            await tx.insert(viewFeeds).values(rowChunk).onConflictDoNothing();
           }
-          if (feedCategoryRows.length > 0) {
+          for (const rowChunk of chunkRows(feedCategoryRows)) {
             await tx
               .insert(feedCategories)
-              .values(feedCategoryRows)
+              .values(rowChunk)
               .onConflictDoNothing();
           }
+          // Exported per-feed tags apply to already-subscribed feeds too, so
+          // a re-import restores the same organization a fresh import would.
+          await applyFeedCategories(tx, context.user.id, ownedTagEntries);
         });
       }
       for (const linkedFeed of existingLinkedFeeds) {
@@ -644,6 +664,13 @@ export const streamingImport = protectedProcedure
           type: "feed-status",
           feedId: linkedFeed.feedId,
           status: "skipped",
+        } satisfies ImportProgressChunk;
+      }
+      for (const feedUrl of unparseableOwnedFeedUrls) {
+        yield {
+          type: "import-feed-error",
+          feedUrl,
+          error: "Couldn't read the existing feed",
         } satisfies ImportProgressChunk;
       }
     }
@@ -696,6 +723,16 @@ export const streamingImport = protectedProcedure
                   .insert(feedCategories)
                   .values(feedCategoryRows)
                   .onConflictDoNothing();
+              }
+              // A duplicate resolved during insert skipped the tag block in
+              // insertFeedWithCategories; apply its exported tags here.
+              if (!result.success && feedInput.categories.length > 0) {
+                await applyFeedCategories(tx, context.user.id, [
+                  {
+                    feedId: linkableFeedId,
+                    categories: feedInput.categories,
+                  },
+                ]);
               }
             }
 
@@ -894,8 +931,8 @@ export const streamingImport = protectedProcedure
           }
         }
 
-        if (viewSectionRows.length > 0) {
-          await tx.insert(viewSections).values(viewSectionRows);
+        for (const rowChunk of chunkRows(viewSectionRows)) {
+          await tx.insert(viewSections).values(rowChunk);
         }
       });
 
