@@ -25,7 +25,7 @@ function mountShortcut(shortcut: string | string[], callback: () => void) {
   }
 
   const container = document.createElement("div");
-  document.body.appendChild(container);
+  document.body.append(container);
   const root = createRoot(container);
   roots.push(root);
   act(() => {
@@ -34,9 +34,11 @@ function mountShortcut(shortcut: string | string[], callback: () => void) {
 }
 
 function pressKey(init: KeyboardEventInit) {
+  const event = new KeyboardEvent("keydown", { cancelable: true, ...init });
   act(() => {
-    window.dispatchEvent(new KeyboardEvent("keydown", init));
+    window.dispatchEvent(event);
   });
+  return event;
 }
 
 afterEach(() => {
@@ -45,7 +47,7 @@ afterEach(() => {
       root.unmount();
     });
   }
-  document.body.innerHTML = "";
+  document.body.replaceChildren();
 });
 
 describe("useShortcut", () => {
@@ -86,22 +88,105 @@ describe("useShortcut", () => {
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
-  it("fires a punctuation shortcut while Alt is held", () => {
-    const callback = vi.fn();
-    mountShortcut("[", callback);
+  it("fires punctuation shortcuts while Alt is held", () => {
+    const openBracket = vi.fn();
+    const backslash = vi.fn();
+    mountShortcut("[", openBracket);
+    mountShortcut("\\", backslash);
 
     pressKey({ key: "“", code: "BracketLeft", altKey: true });
+    pressKey({ key: "«", code: "Backslash", altKey: true });
+
+    expect(openBracket).toHaveBeenCalledTimes(1);
+    expect(backslash).toHaveBeenCalledTimes(1);
+  });
+
+  it("fires the space shortcut when Option composes a non-breaking space", () => {
+    const callback = vi.fn();
+    mountShortcut(" ", callback);
+
+    pressKey({ key: " ", code: "Space", altKey: true });
 
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
-  it("fires a Shift combo shortcut while Alt is held", () => {
+  it("fires a Shift combo shortcut with and without Alt held", () => {
     const callback = vi.fn();
     mountShortcut("Shift+F", callback);
 
+    pressKey({ key: "F", code: "KeyF", shiftKey: true });
     pressKey({ key: "Ï", code: "KeyF", altKey: true, shiftKey: true });
 
+    expect(callback).toHaveBeenCalledTimes(2);
+  });
+
+  it("fires a shifted punctuation combo while Alt is held", () => {
+    const callback = vi.fn();
+    mountShortcut("Shift+|", callback);
+
+    pressKey({ key: "»", code: "Backslash", altKey: true, shiftKey: true });
+
     expect(callback).toHaveBeenCalledTimes(1);
+  });
+
+  it("fires a shortcut that explicitly binds Alt", () => {
+    const callback = vi.fn();
+    mountShortcut("Alt+e", callback);
+
+    pressKey({ key: "´", code: "KeyE", altKey: true });
+
+    expect(callback).toHaveBeenCalledTimes(1);
+  });
+
+  it("fires a key sequence, including while Alt composes the keys", () => {
+    const callback = vi.fn();
+    mountShortcut("g+i", callback);
+
+    pressKey({ key: "g", code: "KeyG" });
+    pressKey({ key: "i", code: "KeyI" });
+
+    // Option+G composes to "©" and Option+I is a dead key on macOS.
+    pressKey({ key: "©", code: "KeyG", altKey: true });
+    pressKey({ key: "Dead", code: "KeyI", altKey: true });
+
+    expect(callback).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps layout-aware keys when Alt does not compose them", () => {
+    // German QWERTZ: the key labeled Y reports code KeyZ but key "y".
+    const archive = vi.fn();
+    const undo = vi.fn();
+    mountShortcut("y", archive);
+    mountShortcut("z", undo);
+
+    pressKey({ key: "y", code: "KeyZ", altKey: true });
+
+    expect(archive).toHaveBeenCalledTimes(1);
+    expect(undo).not.toHaveBeenCalled();
+  });
+
+  it("leaves numpad and named keys untouched while Alt is held", () => {
+    const digit = vi.fn();
+    const arrow = vi.fn();
+    mountShortcut("1", digit);
+    mountShortcut("ArrowDown", arrow);
+
+    pressKey({ key: "1", code: "Numpad1", altKey: true });
+    pressKey({ key: "ArrowDown", code: "ArrowDown", altKey: true });
+
+    expect(digit).toHaveBeenCalledTimes(1);
+    expect(arrow).toHaveBeenCalledTimes(1);
+  });
+
+  it("prevents the browser default only when firing with Alt held", () => {
+    const callback = vi.fn();
+    mountShortcut("e", callback);
+
+    const plain = pressKey({ key: "e", code: "KeyE" });
+    const withAlt = pressKey({ key: "e", code: "KeyE", altKey: true });
+
+    expect(plain.defaultPrevented).toBe(false);
+    expect(withAlt.defaultPrevented).toBe(true);
   });
 
   it("still blocks single-key shortcuts behind Ctrl and Meta", () => {

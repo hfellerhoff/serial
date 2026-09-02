@@ -8,6 +8,7 @@ import {
 import type { KeyboardEvent } from "react";
 import { useDialogStore } from "~/components/feed/dialogStore";
 import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
+import { getShortcutEventKey } from "~/lib/getShortcutEventKey";
 
 /**
  * Borrowed from the ever-helpful Tania Rascia:
@@ -19,43 +20,6 @@ type UseShortcutOptions = {
   disableTextInputs?: boolean;
   disableDialogs?: boolean;
   allowRepeat?: boolean;
-};
-
-// Punctuation codes for keys used in shortcut bindings, as
-// [unshifted, shifted] pairs.
-const PUNCTUATION_CODE_KEYS: Record<string, [string, string]> = {
-  Backslash: ["\\", "|"],
-  BracketLeft: ["[", "{"],
-  BracketRight: ["]", "}"],
-  Minus: ["-", "_"],
-  Equal: ["=", "+"],
-  Space: [" ", " "],
-};
-
-/**
- * Alt is the "peek at shortcuts" key, so shortcuts must still match while it
- * is held. On macOS, Option composes `event.key` into a different character
- * (Option+E → "´"), so recover the logical key from `event.code` instead.
- */
-const getEventKey = (
-  event: Pick<KeyboardEvent<Element>, "altKey" | "shiftKey" | "code" | "key">,
-): string => {
-  if (!event.altKey) {
-    return event.key;
-  }
-  const { code } = event;
-  if (code.startsWith("Key") && code.length === 4) {
-    const letter = code.slice(3);
-    return event.shiftKey ? letter : letter.toLowerCase();
-  }
-  if (code.startsWith("Digit") && code.length === 6 && !event.shiftKey) {
-    return code.slice(5);
-  }
-  const punctuation = PUNCTUATION_CODE_KEYS[code];
-  if (punctuation) {
-    return event.shiftKey ? punctuation[1] : punctuation[0];
-  }
-  return event.key;
 };
 
 export const useShortcut = (
@@ -105,7 +69,22 @@ export const useShortcut = (
         Shift: event.shiftKey,
       };
 
-      const eventKey = getEventKey(event);
+      const eventKey = getShortcutEventKey(event);
+
+      // Alt only peeks at the shortcut hints, so an unbound Alt never
+      // disqualifies a match
+      const isEveryOtherModifierFalse = Object.entries(modifierMap).every(
+        ([name, pressed]) => name === "Alt" || !pressed,
+      );
+
+      const fireCallback = () => {
+        // Alt+key is a browser menu accelerator on Windows/Linux; suppress
+        // it when the shortcut fires while peeking at the hints
+        if (event.altKey) {
+          event.preventDefault();
+        }
+        return callbackRef.current(event);
+      };
 
       for (const currentShortcut of shortcutsKey.split("\n")) {
         // Handle combined modifier key shortcuts (e.g. pressing Control + D)
@@ -128,17 +107,13 @@ export const useShortcut = (
               if (pressedModifierSet.has(key)) {
                 return modifierMap[key];
               }
-              // Alt only peeks at the shortcut hints, so an unbound Alt
-              // never disqualifies a match
-              if (key === "Alt") {
-                return true;
-              }
-              // If modifier not provided, expect `false`
-              return !modifierMap[key];
+              // If modifier not provided, expect `false` (except Alt, which
+              // only peeks at the hints)
+              return key === "Alt" || !modifierMap[key];
             });
 
             if (doesEveryModifierMatch && finalKey === eventKey) {
-              return callbackRef.current(event);
+              return fireCallback();
             }
           } else {
             // If the shortcut doesn't begin with a modifier, it's a sequence
@@ -149,7 +124,7 @@ export const useShortcut = (
                 keyCombo.length === keyArray.length - 1
               ) {
                 // Run handler if the sequence is complete, then reset it
-                callbackRef.current(event);
+                fireCallback();
                 return setKeyCombo([]);
               }
 
@@ -165,12 +140,11 @@ export const useShortcut = (
 
         // Single key shortcuts (e.g. pressing D)
         if (currentShortcut === eventKey) {
-          // Expect all modifiers except the shortcut-hint Alt key to be false
-          if (event.ctrlKey || event.metaKey || event.shiftKey) {
+          if (!isEveryOtherModifierFalse) {
             return;
           }
 
-          return callbackRef.current(event);
+          return fireCallback();
         }
       }
     },
