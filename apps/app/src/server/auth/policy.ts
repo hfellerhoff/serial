@@ -6,6 +6,7 @@ import { db } from "../db";
 import { account, appConfig, session, user } from "../db/schema";
 import type { AuthProvider } from "~/lib/constants";
 import NewUserNotificationEmail from "~/emails/new-user-notification";
+import { isAtprotoPlaceholderEmail } from "~/lib/auth/atproto";
 import {
   getAvailableSignupProviders,
   getEnabledAuthProviders,
@@ -15,7 +16,6 @@ import {
   getAccountProviderId,
   getConfiguredAuthProviders,
 } from "~/server/auth/constants";
-import { isAtprotoPlaceholderEmail } from "~/lib/auth/atproto";
 import { IS_EMAIL_ENABLED, sendEmail } from "~/server/email";
 import {
   redeemInvitationToken,

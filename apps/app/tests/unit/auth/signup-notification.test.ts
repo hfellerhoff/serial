@@ -100,7 +100,7 @@ describe("admin signup notification", () => {
     dbHolder.current = undefined;
   });
 
-  async function insertCallbackUser(
+  async function insertUserWithAccounts(
     id: string,
     createdAt: Date,
     options: { email?: string; accountProviderIds?: string[] } = {},
@@ -136,7 +136,7 @@ describe("admin signup notification", () => {
   function completedAuth(
     id: string,
     flow: "sign-up" | "callback",
-    options: { provider?: "email" | "atproto"; email?: string } = {},
+    options: { provider?: "email" | "oauth" | "atproto"; email?: string } = {},
   ) {
     return {
       provider: options.provider ?? ("atproto" as const),
@@ -147,7 +147,7 @@ describe("admin signup notification", () => {
   }
 
   it("notifies when a callback auto-creates its user", async () => {
-    await insertCallbackUser("user-new", new Date());
+    await insertUserWithAccounts("user-new", new Date());
 
     await applyPostAuthPolicy(completedAuth("user-new", "callback"));
 
@@ -162,7 +162,7 @@ describe("admin signup notification", () => {
 
   it("does not notify when an established user signs back in via callback", async () => {
     // Linked yesterday; signing back in issues a fresh session either way.
-    await insertCallbackUser(
+    await insertUserWithAccounts(
       "user-linked",
       new Date(Date.now() - 24 * 60 * 60 * 1000),
     );
@@ -172,10 +172,24 @@ describe("admin signup notification", () => {
     expect(sendEmail).not.toHaveBeenCalled();
   });
 
+  it("does not notify when an established user signs back in via generic OAuth", async () => {
+    await insertUserWithAccounts(
+      "user-oauth",
+      new Date(Date.now() - 24 * 60 * 60 * 1000),
+      { accountProviderIds: ["oauth"] },
+    );
+
+    await applyPostAuthPolicy(
+      completedAuth("user-oauth", "callback", { provider: "oauth" }),
+    );
+
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
+
   it("does not notify when a callback implicitly links a just-created user", async () => {
     // Signed up with email moments ago (which notified), then the callback
     // linked the atproto account — not a second sign-up.
-    await insertCallbackUser("user-just-linked", new Date(), {
+    await insertUserWithAccounts("user-just-linked", new Date(), {
       accountProviderIds: ["credential", "atproto"],
     });
 
@@ -185,7 +199,7 @@ describe("admin signup notification", () => {
   });
 
   it("notifies on an email sign-up flow", async () => {
-    await insertCallbackUser("user-email", new Date(), {
+    await insertUserWithAccounts("user-email", new Date(), {
       accountProviderIds: ["credential"],
     });
 
@@ -209,7 +223,7 @@ describe("admin signup notification", () => {
 
   it("notifies for a DID-only sign-up without surfacing the placeholder email", async () => {
     const placeholder = "did-plc-abc123.deadbeef@atproto.invalid";
-    await insertCallbackUser("user-did-only", new Date(), {
+    await insertUserWithAccounts("user-did-only", new Date(), {
       email: placeholder,
     });
 
