@@ -1,7 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import net from "node:net";
 
-// Covers four production `vite preview` app servers plus the fixture
+// Covers four production `pnpm start` app servers plus the fixture
 // servers booting in parallel per probe run.
 const STARTUP_TIMEOUT_MS = 240_000;
 const CLEANUP_TIMEOUT_MS = 15_000;
@@ -177,9 +177,9 @@ function assertExpectedServices(processes: ProcessRow[], ports: number[]) {
     `rss-server.ts ${rssPort}`,
     `NODE_ENV=production PORT=${bootstrapAppPort} pnpm start`,
     `turso dev --db-file serial-test-self-hosted-bootstrap.db --port ${bootstrapTursoPort}`,
-    `vite preview --port ${configAppPort}`,
+    `NODE_ENV=production PORT=${configAppPort} pnpm start`,
     `turso dev --db-file serial-test-self-hosted-config.db --port ${configTursoPort}`,
-    `vite preview --port ${unconfiguredAppPort}`,
+    `NODE_ENV=production PORT=${unconfiguredAppPort} pnpm start`,
     `turso dev --db-file serial-test-self-hosted-unconfigured.db --port ${unconfiguredTursoPort}`,
     `email-server.ts ${emailPort}`,
     `appview-server.ts ${appviewPort}`,
