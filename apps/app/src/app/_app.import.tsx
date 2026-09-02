@@ -494,14 +494,12 @@ function EditFeedsPage() {
                                 )}
                               </Tooltip>
                             )}
-                            {isPostImportScreen &&
-                              wasImported &&
-                              (channel.shouldImport || isAlreadyAdded) && (
-                                <ImportedFeedStatus
-                                  feedUrl={channel.feedUrl}
-                                  feeds={feeds}
-                                />
-                              )}
+                            {isPostImportScreen && wasImported && (
+                              <ImportedFeedStatus
+                                feedUrl={channel.feedUrl}
+                                feeds={feeds}
+                              />
+                            )}
                             {isPostImportScreen &&
                               channel.shouldImport &&
                               failedImportUrls.has(channel.feedUrl) && (

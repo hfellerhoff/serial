@@ -9,6 +9,7 @@ import {
 import {
   cleanupUser,
   generateTestEmail,
+  getViewSectionsForUser,
   getViewsForUser,
 } from "../fixtures/seed-db";
 import { readOpmlFixture } from "../fixtures/opml";
@@ -23,6 +24,10 @@ const SECTIONED_OPML_PATH = path.join(
   "../fixtures/sectioned-subscriptions.opml",
 );
 const PLAIN_OPML_PATH = path.join(__dirname, "../fixtures/subscriptions.opml");
+const NESTED_OPML_PATH = path.join(
+  __dirname,
+  "../fixtures/nested-subscriptions.opml",
+);
 
 /** Drives the /import flow with the given OPML fixture. */
 async function importOpml(page: Page, fixturePath: string) {
@@ -152,6 +157,75 @@ test.describe("import sections as views", () => {
     await expect(viewsSection.getByText("Tech")).toBeVisible();
 
     await verifyViewBadgesOnFeedsPage(page);
+  });
+
+  test("nested folders become ordered view sections and are not duplicated on re-import", async ({
+    page,
+  }) => {
+    test.setTimeout(60000);
+    testEmail = generateTestEmail();
+
+    await signUp({
+      page,
+      name: "Nested Sections User",
+      email: testEmail,
+      password: "testpassword123",
+    });
+
+    await importOpml(page, NESTED_OPML_PATH);
+
+    // The "Jazz" tag folder and the "Fireship" feed subsection become ordered
+    // sections of the "Music" view, following their order in the file.
+    const expectedSections = [
+      { viewName: "Music", itemType: "tag", itemName: "Jazz", placement: 0 },
+      {
+        viewName: "Music",
+        itemType: "feed",
+        itemName: "Fireship",
+        placement: 1,
+      },
+    ];
+    await expect
+      .poll(() => getViewSectionsForUser(SELF_HOSTED_TURSO_PORT, testEmail), {
+        timeout: 10_000,
+      })
+      .toEqual(expectedSections);
+
+    // Re-importing the same export must reuse the view and its sections
+    // instead of duplicating them.
+    await page.getByRole("button", { name: "Import more" }).click();
+    await importOpml(page, NESTED_OPML_PATH);
+    expect(
+      await getViewSectionsForUser(SELF_HOSTED_TURSO_PORT, testEmail),
+    ).toEqual(expectedSections);
+
+    await page.goto("/");
+    await openSidebar(page);
+    const viewsSection = page
+      .locator('[data-sidebar="group"]')
+      .filter({ hasText: "Views" });
+    const tagsSection = page
+      .locator('[data-sidebar="group"]')
+      .filter({ hasText: "Tags" });
+    await expect(viewsSection.getByText("Music")).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(tagsSection.getByText("Jazz")).toBeVisible();
+
+    // The feed inside the tag folder carries both the view and the tag.
+    await page.goto("/feeds");
+    await expect(
+      page.getByRole("tab", { name: /feeds/i, selected: true }),
+    ).toBeVisible();
+    const main = page.locator("main");
+    const jazzCatsBadges = main
+      .getByRole("button", { name: /Jazz Cats/ })
+      .locator("..")
+      .locator('[data-slot="badge"]');
+    await expect(jazzCatsBadges.filter({ hasText: "Music" })).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(jazzCatsBadges.filter({ hasText: "Jazz" })).toBeVisible();
   });
 });
 

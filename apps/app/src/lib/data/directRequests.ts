@@ -40,7 +40,11 @@ export function applyImportProgressChunk(chunk: ImportProgressChunk) {
       break;
     case "import-views-updated":
       viewsStore.getState().set(chunk.views);
-      viewsStore.setState({ fetchStatus: "success" });
+      // Leave an in-flight fetch's status alone so its re-entry guard holds
+      // and its resolution path stays responsible for the final status.
+      if (viewsStore.getState().fetchStatus !== "fetching") {
+        viewsStore.setState({ fetchStatus: "success" });
+      }
       break;
     case "feed-status":
       feedItemsStore.setState({

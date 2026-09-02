@@ -25,10 +25,12 @@ import {
   feedCategories,
   feedItems,
   feeds,
+  feedsSchema,
   viewFeeds,
   views,
   viewSections,
 } from "~/server/db/schema";
+import { parseArrayOfSchema } from "~/lib/schemas/utils";
 import { protectedProcedure } from "~/server/orpc/base";
 import { fetchAndInsertFeedData } from "~/server/rss/fetchFeeds";
 import {
@@ -363,19 +365,36 @@ export const streamingImport = protectedProcedure
       return;
     }
 
+    // Resolve feeds the user already subscribes to by exact URL up front, so
+    // re-imports link them into views without re-running feed detection and
+    // the activation budget only counts feeds that will actually be inserted.
+    const ownedFeeds = await context.db
+      .select()
+      .from(feeds)
+      .where(eq(feeds.userId, context.user.id));
+    const ownedFeedByUrl = new Map(ownedFeeds.map((feed) => [feed.url, feed]));
+
+    // OPML sections always become views; only explicit Serial tag metadata
+    // becomes feed tags.
+    const feedsToImport = input.feeds.map((feed) => ({
+      feedUrl: feed.feedUrl,
+      categories: getUniqueNames(feed.tagNames ?? []),
+      categoryPaths: normalizeImportCategoryPaths(feed),
+      ownedFeed: ownedFeedByUrl.get(feed.feedUrl) ?? null,
+    }));
+    const feedsToInsert = feedsToImport.filter((feed) => !feed.ownedFeed);
+
     // Check activation budget upfront
     const { remainingSlots, maxActiveFeeds } = await getFeedsActivationBudget(
       context.db,
       context.user.id,
     );
-    const deactivatedCount = Math.max(0, input.feeds.length - remainingSlots);
+    const deactivatedCount = Math.max(0, feedsToInsert.length - remainingSlots);
 
-    // OPML sections always become views; only explicit Serial tag metadata
-    // becomes feed tags.
-    const feedsWithActivation = input.feeds.map((feed, index) => ({
+    const feedsWithActivation = feedsToInsert.map((feed, index) => ({
       feedUrl: feed.feedUrl,
-      categories: getUniqueNames(feed.tagNames ?? []),
-      categoryPaths: normalizeImportCategoryPaths(feed),
+      categories: feed.categories,
+      categoryPaths: feed.categoryPaths,
       shouldBeActive: index < remainingSlots,
     }));
 
@@ -411,7 +430,7 @@ export const streamingImport = protectedProcedure
       NormalizedImportCategoryPathItem[]
     >();
 
-    for (const feedInput of feedsWithActivation) {
+    for (const feedInput of feedsToImport) {
       for (const categoryPath of feedInput.categoryPaths) {
         const viewName = categoryPath[0]?.name;
         if (!viewName) continue;
@@ -542,17 +561,109 @@ export const streamingImport = protectedProcedure
     const insertedFeeds: LinkableFeed[] = [];
     const existingLinkedFeeds: LinkableFeed[] = [];
 
+    function collectViewLinkRows(
+      categoryPaths: NormalizedImportCategoryPathItem[][],
+      feedId: number,
+    ) {
+      const viewFeedRows: Array<{ viewId: number; feedId: number }> = [];
+      const feedCategoryRows: Array<{ feedId: number; categoryId: number }> =
+        [];
+      if (!viewLinking) return { viewFeedRows, feedCategoryRows };
+
+      for (const categoryPath of categoryPaths) {
+        const viewName = categoryPath[0]?.name;
+        const view = viewName
+          ? viewLinking.viewByName.get(viewName)
+          : undefined;
+        if (!view) continue;
+        viewFeedRows.push({ viewId: view.id, feedId });
+
+        if (categoryPath.length <= 1) continue;
+        const subsectionItem = getImportedSubsectionItem(categoryPath);
+        if (
+          !subsectionItem ||
+          subsectionItem.type === VIEW_LAYOUT_ITEM_TYPE.FEED
+        ) {
+          continue;
+        }
+        const category = viewLinking.categoryByName.get(subsectionItem.name);
+        if (category) {
+          feedCategoryRows.push({ feedId, categoryId: category.id });
+        }
+      }
+
+      return { viewFeedRows, feedCategoryRows };
+    }
+
+    // Already-subscribed feeds resolved by exact URL: link them into the
+    // imported views in one batch (no feed detection or fetch needed) and
+    // report them as skipped.
+    const ownedImportFeeds = feedsToImport.filter((feed) => feed.ownedFeed);
+    if (ownedImportFeeds.length > 0) {
+      const viewFeedRows: Array<{ viewId: number; feedId: number }> = [];
+      const feedCategoryRows: Array<{ feedId: number; categoryId: number }> =
+        [];
+      for (const feedInput of ownedImportFeeds) {
+        if (!feedInput.ownedFeed) continue;
+        const [applicationFeed] = parseArrayOfSchema(
+          [feedInput.ownedFeed],
+          feedsSchema,
+        );
+        if (!applicationFeed) continue;
+        existingLinkedFeeds.push({
+          inputFeedUrl: feedInput.feedUrl,
+          feedId: applicationFeed.id,
+          feed: applicationFeed,
+          categoryPaths: feedInput.categoryPaths,
+        });
+        const rows = collectViewLinkRows(
+          feedInput.categoryPaths,
+          applicationFeed.id,
+        );
+        viewFeedRows.push(...rows.viewFeedRows);
+        feedCategoryRows.push(...rows.feedCategoryRows);
+      }
+      if (viewFeedRows.length > 0 || feedCategoryRows.length > 0) {
+        await context.db.transaction(async (tx) => {
+          if (viewFeedRows.length > 0) {
+            await tx
+              .insert(viewFeeds)
+              .values(viewFeedRows)
+              .onConflictDoNothing();
+          }
+          if (feedCategoryRows.length > 0) {
+            await tx
+              .insert(feedCategories)
+              .values(feedCategoryRows)
+              .onConflictDoNothing();
+          }
+        });
+      }
+      for (const linkedFeed of existingLinkedFeeds) {
+        yield {
+          type: "feed-status",
+          feedId: linkedFeed.feedId,
+          status: "skipped",
+        } satisfies ImportProgressChunk;
+      }
+    }
+
     // Worker function: insert feed and link it into its imported views
     async function insertFeed(
       feedInput: (typeof feedsWithActivation)[0],
     ): Promise<ImportProgressChunk[]> {
       const chunks: ImportProgressChunk[] = [];
 
+      // Once the timeout fires the feed is reported as an error, so the
+      // abandoned insert must not register the feed for the fetch phase or
+      // emit a second terminal chunk.
+      let timedOut = false;
+      let timeoutTimer: ReturnType<typeof setTimeout> | undefined;
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(
-          () => reject(new Error("Import timed out")),
-          FEED_TIMEOUT_MS,
-        );
+        timeoutTimer = setTimeout(() => {
+          timedOut = true;
+          reject(new Error("Import timed out"));
+        }, FEED_TIMEOUT_MS);
       });
 
       const insertPromise = (async () => {
@@ -568,40 +679,11 @@ export const streamingImport = protectedProcedure
             const linkableFeedId = result.success
               ? result.feedId
               : result.existingFeed?.id;
-            if (viewLinking && linkableFeedId) {
-              const viewFeedRows: Array<{ viewId: number; feedId: number }> =
-                [];
-              const feedCategoryRows: Array<{
-                feedId: number;
-                categoryId: number;
-              }> = [];
-
-              for (const categoryPath of feedInput.categoryPaths) {
-                const viewName = categoryPath[0]?.name;
-                const view = viewName
-                  ? viewLinking.viewByName.get(viewName)
-                  : undefined;
-                if (!view) continue;
-                viewFeedRows.push({ viewId: view.id, feedId: linkableFeedId });
-
-                if (categoryPath.length <= 1) continue;
-                const subsectionItem = getImportedSubsectionItem(categoryPath);
-                if (
-                  !subsectionItem ||
-                  subsectionItem.type === VIEW_LAYOUT_ITEM_TYPE.FEED
-                ) {
-                  continue;
-                }
-                const category = viewLinking.categoryByName.get(
-                  subsectionItem.name,
-                );
-                if (category) {
-                  feedCategoryRows.push({
-                    feedId: linkableFeedId,
-                    categoryId: category.id,
-                  });
-                }
-              }
+            if (linkableFeedId) {
+              const { viewFeedRows, feedCategoryRows } = collectViewLinkRows(
+                feedInput.categoryPaths,
+                linkableFeedId,
+              );
 
               if (viewFeedRows.length > 0) {
                 await tx
@@ -620,6 +702,8 @@ export const streamingImport = protectedProcedure
             return result;
           }),
         );
+
+        if (timedOut) return chunks;
 
         if (!insertResult.success) {
           if (insertResult.existingFeed) {
@@ -675,6 +759,8 @@ export const streamingImport = protectedProcedure
             error: error instanceof Error ? error.message : "Import timed out",
           },
         ];
+      } finally {
+        clearTimeout(timeoutTimer);
       }
     }
 
@@ -827,8 +913,9 @@ export const streamingImport = protectedProcedure
     ): Promise<ImportProgressChunk[]> {
       const chunks: ImportProgressChunk[] = [];
 
+      let timeoutTimer: ReturnType<typeof setTimeout> | undefined;
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(
+        timeoutTimer = setTimeout(
           () => reject(new Error("Import timed out")),
           FEED_TIMEOUT_MS,
         );
@@ -858,6 +945,8 @@ export const streamingImport = protectedProcedure
             status: "error",
           },
         ];
+      } finally {
+        clearTimeout(timeoutTimer);
       }
     }
 
