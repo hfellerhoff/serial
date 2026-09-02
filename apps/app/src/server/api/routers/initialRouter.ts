@@ -372,11 +372,21 @@ export const streamingImport = protectedProcedure
     // Resolve feeds the user already subscribes to by exact URL up front, so
     // re-imports link them into views without re-running feed detection and
     // the activation budget only counts feeds that will actually be inserted.
-    const ownedFeeds = await context.db
-      .select()
-      .from(feeds)
-      .where(eq(feeds.userId, context.user.id));
-    const ownedFeedByUrl = new Map(ownedFeeds.map((feed) => [feed.url, feed]));
+    const inputFeedUrls = getUniqueNames(
+      input.feeds.map((feed) => feed.feedUrl),
+    );
+    const ownedFeedByUrl = new Map<string, typeof feeds.$inferSelect>();
+    for (const urlChunk of chunkRows(inputFeedUrls)) {
+      const ownedFeeds = await context.db
+        .select()
+        .from(feeds)
+        .where(
+          and(eq(feeds.userId, context.user.id), inArray(feeds.url, urlChunk)),
+        );
+      for (const feed of ownedFeeds) {
+        ownedFeedByUrl.set(feed.url, feed);
+      }
+    }
 
     // OPML sections always become views; only explicit Serial tag metadata
     // becomes feed tags.
@@ -505,30 +515,33 @@ export const streamingImport = protectedProcedure
             .filter((section) => section.type !== VIEW_LAYOUT_ITEM_TYPE.FEED)
             .map((section) => section.name),
         );
-        const existingCategories =
-          nestedTagSectionNames.length > 0
-            ? await tx
-                .select()
-                .from(contentCategories)
-                .where(
-                  and(
-                    eq(contentCategories.userId, context.user.id),
-                    inArray(contentCategories.name, nestedTagSectionNames),
-                  ),
-                )
-            : [];
-        const categoryByName = new Map(
-          existingCategories.map((category) => [category.name, category]),
-        );
+        const categoryByName = new Map<
+          string,
+          typeof contentCategories.$inferSelect
+        >();
+        for (const nameChunk of chunkRows(nestedTagSectionNames)) {
+          const existingCategories = await tx
+            .select()
+            .from(contentCategories)
+            .where(
+              and(
+                eq(contentCategories.userId, context.user.id),
+                inArray(contentCategories.name, nameChunk),
+              ),
+            );
+          for (const category of existingCategories) {
+            categoryByName.set(category.name, category);
+          }
+        }
         const categoryNamesToCreate = nestedTagSectionNames.filter(
           (name) => !categoryByName.has(name),
         );
 
-        if (categoryNamesToCreate.length > 0) {
+        for (const nameChunk of chunkRows(categoryNamesToCreate)) {
           const insertedCategories = await tx
             .insert(contentCategories)
             .values(
-              categoryNamesToCreate.map((name) => ({
+              nameChunk.map((name) => ({
                 userId: context.user.id,
                 name,
               })),
@@ -835,14 +848,17 @@ export const streamingImport = protectedProcedure
       const { viewByName, categoryByName } = viewLinking;
       await context.db.transaction(async (tx) => {
         const viewIds = [...viewByName.values()].map((view) => view.id);
-        const existingViewSections =
-          viewIds.length > 0
-            ? await tx
-                .select()
-                .from(viewSections)
-                .where(inArray(viewSections.viewId, viewIds))
-                .orderBy(asc(viewSections.placement))
-            : [];
+        const existingViewSections: Array<typeof viewSections.$inferSelect> =
+          [];
+        for (const viewIdChunk of chunkRows(viewIds)) {
+          existingViewSections.push(
+            ...(await tx
+              .select()
+              .from(viewSections)
+              .where(inArray(viewSections.viewId, viewIdChunk))
+              .orderBy(asc(viewSections.placement))),
+          );
+        }
         const existingSectionKeys = new Set(
           existingViewSections.map(
             (section) =>

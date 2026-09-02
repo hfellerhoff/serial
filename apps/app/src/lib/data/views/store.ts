@@ -36,6 +36,8 @@ export function removeFeedReferencesFromViews(
   }));
 }
 
+let inFlightFetch: Promise<void> | null = null;
+
 export const viewsStoreApi = createStore<ViewsStore>()(
   persist<ViewsStore, [], [], PersistedViewsState>(
     (set, get) => ({
@@ -51,40 +53,53 @@ export const viewsStoreApi = createStore<ViewsStore>()(
       revision: 0,
       fetchStatus: "idle",
 
-      fetch: async () => {
-        if (get().fetchStatus === "fetching") return;
+      fetch: () => {
+        // Callers awaiting a refetch must wait for the actual result, so a
+        // concurrent call joins the in-flight request instead of resolving
+        // against whatever is in the store.
+        if (inFlightFetch) return inFlightFetch;
 
         set({ fetchStatus: "fetching" });
 
-        try {
-          // A write landing while the request is in flight (an import stream
-          // chunk, another mutation's reset) makes the response stale, and
-          // callers empty the store before fetching — so a stale response
-          // must be replaced by a fresh one, never applied or dropped.
-          for (let attempt = 0; attempt < 5; attempt++) {
-            const startRevision = get().revision;
-            const data = await orpcRouterClient.view.getAll();
-            if (get().revision !== startRevision) continue;
+        inFlightFetch = (async () => {
+          try {
+            // A write landing while the request is in flight (an import
+            // stream chunk, another mutation's reset) makes the response
+            // stale, and callers empty the store before fetching — so a
+            // stale response must be replaced by a fresh one, never applied
+            // or dropped.
+            for (let attempt = 0; attempt < 5; attempt++) {
+              const startRevision = get().revision;
+              const data = await orpcRouterClient.view.getAll();
+              if (get().revision !== startRevision) continue;
 
-            const dict: Record<number, ApplicationView> = {};
-            data.forEach((view) => {
-              dict[view.id] = view;
-            });
+              const dict: Record<number, ApplicationView> = {};
+              data.forEach((view) => {
+                dict[view.id] = view;
+              });
 
+              set({
+                views: data,
+                viewsDict: dict,
+                revision: get().revision + 1,
+                fetchStatus: "success",
+              });
+              return;
+            }
+            // Writes kept racing the refetches; keep the latest written
+            // state, but an empty list is a cleared store awaiting data, not
+            // a result worth reporting as success.
             set({
-              views: data,
-              viewsDict: dict,
-              revision: get().revision + 1,
-              fetchStatus: "success",
+              fetchStatus: get().views.length > 0 ? "success" : "idle",
             });
-            return;
+          } catch (error) {
+            set({ fetchStatus: "idle" });
+            throw error;
+          } finally {
+            inFlightFetch = null;
           }
-          // Writes kept racing the refetches; keep the latest written state.
-          set({ fetchStatus: "success" });
-        } catch (error) {
-          set({ fetchStatus: "idle" });
-          throw error;
-        }
+        })();
+        return inFlightFetch;
       },
 
       set: (views) => {

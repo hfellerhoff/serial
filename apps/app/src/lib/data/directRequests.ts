@@ -39,12 +39,12 @@ export function applyImportProgressChunk(chunk: ImportProgressChunk) {
       loadingActor.send({ type: "IMPORT_FEED_ERROR", feedUrl: chunk.feedUrl });
       break;
     case "import-views-updated":
+      // Authoritative server state: mark it a success so it renders even if a
+      // concurrent fetch later fails. An in-flight fetch is unaffected — the
+      // revision bump from set() makes it refetch rather than apply a stale
+      // response.
       viewsStore.getState().set(chunk.views);
-      // Leave an in-flight fetch's status alone so its re-entry guard holds
-      // and its resolution path stays responsible for the final status.
-      if (viewsStore.getState().fetchStatus !== "fetching") {
-        viewsStore.setState({ fetchStatus: "success" });
-      }
+      viewsStore.setState({ fetchStatus: "success" });
       break;
     case "feed-status":
       feedItemsStore.setState({

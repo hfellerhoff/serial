@@ -129,19 +129,22 @@ export async function applyFeedCategories(
   ].filter((name) => !!name);
   if (names.length === 0) return;
 
-  const matchingCategories = await db
-    .select()
-    .from(schema.contentCategories)
-    .where(
-      and(
-        inArray(schema.contentCategories.name, names),
-        eq(schema.contentCategories.userId, userId),
-      ),
-    )
-    .all();
-  const categoryByName = new Map<string, { id: number }>(
-    matchingCategories.map((category) => [category.name, { id: category.id }]),
-  );
+  const categoryByName = new Map<string, { id: number }>();
+  for (const nameChunk of chunkRows(names)) {
+    const matchingCategories = await db
+      .select()
+      .from(schema.contentCategories)
+      .where(
+        and(
+          inArray(schema.contentCategories.name, nameChunk),
+          eq(schema.contentCategories.userId, userId),
+        ),
+      )
+      .all();
+    for (const category of matchingCategories) {
+      categoryByName.set(category.name, { id: category.id });
+    }
+  }
 
   const namesToCreate = names.filter((name) => !categoryByName.has(name));
   for (const nameChunk of chunkRows(namesToCreate)) {

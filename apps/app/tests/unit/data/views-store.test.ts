@@ -85,4 +85,50 @@ describe("views store fetch", () => {
 
     expect(viewsStoreApi.getState().fetchStatus).toBe("idle");
   });
+
+  it("keeps existing views when the request fails", async () => {
+    const view = makeView(1);
+    viewsStoreApi.getState().set([view]);
+    mocks.getAll.mockRejectedValue(new Error("network down"));
+
+    await expect(viewsStoreApi.getState().fetch()).rejects.toThrow();
+
+    expect(viewsStoreApi.getState().views).toEqual([view]);
+  });
+
+  it("joins an in-flight fetch instead of resolving against the current store", async () => {
+    const view = makeView(1);
+    let resolveRequest: ((views: ApplicationView[]) => void) | undefined;
+    mocks.getAll.mockImplementationOnce(
+      () =>
+        new Promise<ApplicationView[]>((resolve) => {
+          resolveRequest = resolve;
+        }),
+    );
+
+    const first = viewsStoreApi.getState().fetch();
+    const second = viewsStoreApi.getState().fetch();
+    expect(second).toBe(first);
+
+    resolveRequest?.([view]);
+    await Promise.all([first, second]);
+
+    expect(mocks.getAll).toHaveBeenCalledTimes(1);
+    expect(viewsStoreApi.getState().views).toEqual([view]);
+  });
+
+  it("gives up after repeated races without reporting an empty store as success", async () => {
+    const staleView = makeView(1, { name: "Stale" });
+    mocks.getAll.mockImplementation(() => {
+      // A write that leaves the store empty lands before every response.
+      viewsStoreApi.getState().removeFeedReferences([1]);
+      return Promise.resolve([staleView]);
+    });
+
+    await viewsStoreApi.getState().fetch();
+
+    expect(mocks.getAll).toHaveBeenCalledTimes(5);
+    expect(viewsStoreApi.getState().views).toEqual([]);
+    expect(viewsStoreApi.getState().fetchStatus).toBe("idle");
+  });
 });
