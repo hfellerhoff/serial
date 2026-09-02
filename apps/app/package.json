@@ -51,6 +51,8 @@
     "test:e2e:headed": "node --import=tsx scripts/run-e2e.ts main --headed",
     "test:e2e:self-hosted": "SERIAL_CLIENT_PERFORMANCE_PRODUCTION=1 node --import=tsx scripts/run-e2e.ts self-hosted",
     "test:e2e:self-hosted-bootstrap": "SERIAL_CLIENT_PERFORMANCE_PRODUCTION=1 node --import=tsx scripts/run-e2e.ts self-hosted --project self-hosted-bootstrap",
+    "test:e2e:self-hosted-config": "SERIAL_CLIENT_PERFORMANCE_PRODUCTION=1 node --import=tsx scripts/run-e2e.ts self-hosted --project self-hosted-config",
+    "test:e2e:self-hosted-unconfigured": "SERIAL_CLIENT_PERFORMANCE_PRODUCTION=1 node --import=tsx scripts/run-e2e.ts self-hosted --project self-hosted-unconfigured",
     "test:e2e:self-hosted:dev": "node --import=tsx scripts/run-e2e.ts self-hosted",
     "test:e2e:self-hosted:ui": "node --import=tsx scripts/run-e2e.ts self-hosted --ui",
     "test:e2e:cleanup": "node --import=tsx scripts/test-e2e-cleanup.ts",
@@ -70,6 +72,8 @@
     "benchmark:inventory:check": "node --import=tsx scripts/performance/inventory-app-queries.ts --check"
   },
   "dependencies": {
+    "@atproto-labs/fetch-node": "^0.3.7",
+    "@atproto/oauth-client-node": "^0.5.3",
     "@base-ui/react": "^1.6.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/modifiers": "^9.0.0",

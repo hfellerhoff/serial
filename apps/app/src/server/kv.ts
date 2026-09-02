@@ -2,7 +2,7 @@ import { env } from "~/env";
 import { logError } from "~/server/logger";
 
 /**
- * Minimal get/set/del KV interface that works with all three KV_STORE backends.
+ * Minimal KV interface that works with all three KV_STORE backends.
  * For "none" (no Redis), falls back to an in-memory Map with TTL.
  */
 
@@ -10,6 +10,13 @@ export interface KVStore {
   get: (key: string) => Promise<string | null>;
   set: (key: string, value: string, ttlSeconds?: number) => Promise<void>;
   setNX: (key: string, value: string, ttlSeconds?: number) => Promise<boolean>;
+  /**
+   * Delete the key only if it still holds the expected value (atomic on
+   * Redis backends). Returns whether a delete happened. Used for lock
+   * release so an expired-and-reacquired lock is never freed by the
+   * previous holder.
+   */
+  delIfEqual: (key: string, expected: string) => Promise<boolean>;
 }
 
 // ── In-memory fallback ──────────────────────────────────────────────────────
@@ -59,6 +66,15 @@ class MemoryKV implements KVStore {
     return true;
   }
 
+  async delIfEqual(key: string, expected: string): Promise<boolean> {
+    const entry = this.store.get(key);
+    if (!entry || Date.now() > entry.expiresAt || entry.value !== expected) {
+      return false;
+    }
+    this.store.delete(key);
+    return true;
+  }
+
   /** Periodically sweep expired entries so they don't accumulate. */
   private scheduleCleanup() {
     this.cleanupTimer = setInterval(() => {
@@ -80,6 +96,10 @@ class MemoryKV implements KVStore {
     this.cleanupTimer.unref();
   }
 }
+
+/** Compare-and-delete, atomic server-side on both Redis backends. */
+const DEL_IF_EQUAL_LUA =
+  'if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("del", KEYS[1]) else return 0 end';
 
 // ── Create store based on KV_STORE env ──────────────────────────────────────
 
@@ -111,6 +131,10 @@ async function createKVStore(): Promise<KVStore> {
             : await redis.set(key, value, { nx: true });
         return result !== null;
       },
+      async delIfEqual(key, expected) {
+        const result = await redis.eval(DEL_IF_EQUAL_LUA, [key], [expected]);
+        return result === 1;
+      },
     };
   }
 
@@ -141,6 +165,10 @@ async function createKVStore(): Promise<KVStore> {
         }
         const result = await client.set(key, value, "NX");
         return result === "OK";
+      },
+      async delIfEqual(key, expected) {
+        const result = await client.eval(DEL_IF_EQUAL_LUA, 1, key, expected);
+        return result === 1;
       },
     };
   }

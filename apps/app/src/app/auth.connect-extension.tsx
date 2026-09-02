@@ -95,6 +95,7 @@ function ConnectExtension() {
         ) : session ? (
           <div className="flex gap-2">
             <Button
+              size="lg"
               className="flex-1"
               variant="outline"
               disabled={action !== null}
@@ -107,6 +108,7 @@ function ConnectExtension() {
               )}
             </Button>
             <Button
+              size="lg"
               className="flex-1"
               disabled={action !== null}
               onClick={() => void respond("approve")}
@@ -119,7 +121,7 @@ function ConnectExtension() {
             </Button>
           </div>
         ) : (
-          <Button asChild>
+          <Button asChild size="lg">
             <a href={signInUrl}>Sign in to continue</a>
           </Button>
         )}

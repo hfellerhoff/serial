@@ -1,3 +1,11 @@
+import type { AuthProvider } from "~/lib/constants";
+import {
+  ATPROTO_PROVIDER_ID,
+  authProviderSchema,
+  CREDENTIAL_PROVIDER_ID,
+} from "~/lib/constants";
+import { getAtprotoClientMode } from "~/server/auth/atproto/mode";
+import { logWarning } from "~/server/logger";
 import { env } from "~/env";
 
 const BASE_ORIGIN = new URL(env.PUBLIC_BASE_URL).origin;
@@ -64,4 +72,66 @@ export function isOAuthConfigured(): boolean {
     !!clientSecret &&
     (hasDiscovery || hasManualUrls)
   );
+}
+
+// Compile-enforced to cover every provider: adding one to authProviderSchema
+// without an entry here is a type error.
+let warnedAtprotoUnavailable = false;
+
+/**
+ * Whether AT Protocol auth is configured. Both variables are required
+ * together — env validation fails startup on a partial pair — so either
+ * check alone would do; requiring both keeps this true only in states the
+ * atproto client can actually start from. The client mode check keeps it
+ * false when the SDK would reject the metadata built from PUBLIC_BASE_URL
+ * (an http non-loopback URL, say): atproto then soft-disables — no plugin,
+ * no buttons — instead of rendering flows that can only fail at authorize.
+ */
+export function isAtprotoConfigured(): boolean {
+  const hasKeys =
+    !!env.ATPROTO_CLIENT_PRIVATE_KEYS && !!env.ATPROTO_STORE_ENCRYPTION_KEY;
+  if (!hasKeys) return false;
+  if (getAtprotoClientMode() === "unavailable") {
+    if (!warnedAtprotoUnavailable) {
+      warnedAtprotoUnavailable = true;
+      logWarning(
+        `[atproto] ATPROTO_* keys are set but PUBLIC_BASE_URL (${env.PUBLIC_BASE_URL}) cannot serve an AT Protocol client: it must be https (production), or a plain-http loopback URL for the dev loopback client. Atmosphere auth is disabled.`,
+      );
+    }
+    return false;
+  }
+  return true;
+}
+
+const PROVIDER_CONFIGURED: Record<AuthProvider, () => boolean> = {
+  email: () => true,
+  oauth: isOAuthConfigured,
+  atproto: isAtprotoConfigured,
+};
+
+/**
+ * The auth providers this instance has configured (env-dependent), in
+ * schema order.
+ */
+export function getConfiguredAuthProviders(): AuthProvider[] {
+  return authProviderSchema.options.filter((p) => PROVIDER_CONFIGURED[p]());
+}
+
+/**
+ * The `account.providerId` value rows for a given auth provider carry —
+ * the env-dependent counterpart of the pure account-row accounting in
+ * ~/lib/constants. Undefined for oauth when the instance has no OAuth
+ * provider configured (no row can legitimately exist for it then).
+ */
+export function getAccountProviderId(
+  provider: AuthProvider,
+): string | undefined {
+  switch (provider) {
+    case "email":
+      return CREDENTIAL_PROVIDER_ID;
+    case "oauth":
+      return env.OAUTH_PROVIDER_ID;
+    case "atproto":
+      return ATPROTO_PROVIDER_ID;
+  }
 }

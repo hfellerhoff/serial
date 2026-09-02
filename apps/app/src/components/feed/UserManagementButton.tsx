@@ -23,6 +23,7 @@ import {
   SidebarMenuItem,
 } from "~/components/ui/sidebar";
 import { authClient, signOut } from "~/lib/auth-client";
+import { isAtprotoPlaceholderEmail } from "~/lib/auth/atproto";
 import { clearUserDataAfterSignOut } from "~/lib/auth/sign-out-cleanup";
 import { useClearAllUserData } from "~/lib/data/atoms";
 import { useSubscription } from "~/lib/data/subscription";
@@ -36,6 +37,12 @@ export function UserManagementNavItem() {
 
   const { launchDialog } = useDialogStore();
   const { billingEnabled, planName } = useSubscription();
+
+  // A DID-only user carries an internal placeholder address; treat it as
+  // having no email rather than surfacing the garbled value.
+  const email = data?.user.email;
+  const displayEmail =
+    email && !isAtprotoPlaceholderEmail(email) ? email : undefined;
 
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -59,9 +66,9 @@ export function UserManagementNavItem() {
                     {" "}
                     {data?.user.name || "Account"}
                   </span>
-                  {!IS_DEMO_INSTANCE && (
+                  {!IS_DEMO_INSTANCE && displayEmail && (
                     <span className="text-muted-foreground truncate text-xs">
-                      {data?.user.email}
+                      {displayEmail}
                     </span>
                   )}
                 </div>
@@ -75,10 +82,8 @@ export function UserManagementNavItem() {
               <h2 className="text-sm font-semibold">
                 {data?.user.name || "Serial User"}
               </h2>
-              {!IS_DEMO_INSTANCE && (
-                <p className="text-muted-foreground text-xs">
-                  {data?.user.email}
-                </p>
+              {!IS_DEMO_INSTANCE && displayEmail && (
+                <p className="text-muted-foreground text-xs">{displayEmail}</p>
               )}
               {billingEnabled && (
                 <p className="text-muted-foreground text-xs">{planName} plan</p>

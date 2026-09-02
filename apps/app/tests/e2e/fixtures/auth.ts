@@ -1,7 +1,8 @@
+import { readFileSync } from "node:fs";
 import { expect } from "@playwright/test";
 import { createClient } from "@libsql/client";
 import { createId } from "@paralleldrive/cuid2";
-import { hashPassword } from "better-auth/crypto";
+import { hashPassword, makeSignature } from "better-auth/crypto";
 import { getTestClientIp, TEST_CLIENT_IP_HEADER } from "./client-ip";
 import type { Locator, Page } from "@playwright/test";
 
@@ -25,7 +26,7 @@ interface SeedAdminOptions {
   password: string;
 }
 
-async function waitForReactHydration(locator: Locator) {
+export async function waitForReactHydration(locator: Locator) {
   await expect
     .poll(
       () =>
@@ -69,7 +70,10 @@ export async function signUp({ page, name, email, password }: SignUpOptions) {
   await page.setExtraHTTPHeaders({
     [TEST_CLIENT_IP_HEADER]: getTestClientIp(email),
   });
-  await page.goto("/auth/sign-up");
+  // ?method=email opens the email subscreen when email is a secondary
+  // method (atproto/oauth primary); with email primary it degrades to the
+  // inline form, so the same URL works across instance flavors.
+  await page.goto("/auth/sign-up?method=email");
 
   const authPage = await detectAuthPage(page);
 
@@ -127,15 +131,15 @@ export async function seedAdmin({
             VALUES (?, ?, 'credential', ?, ?, ?, ?)`,
       args: [accountId, userId, userId, hashed, now, now],
     },
-    // Set enabled-signin-providers to email
+    // Ensure the provider lists exist without clobbering them: specs call
+    // this mid-suite, and global setup owns the actual enabled set.
     {
-      sql: `INSERT OR REPLACE INTO serial_app_config (key, value, updated_at)
+      sql: `INSERT OR IGNORE INTO serial_app_config (key, value, updated_at)
             VALUES ('enabled-signin-providers', '["email"]', ?)`,
       args: [now],
     },
-    // Set enabled-signup-providers to email
     {
-      sql: `INSERT OR REPLACE INTO serial_app_config (key, value, updated_at)
+      sql: `INSERT OR IGNORE INTO serial_app_config (key, value, updated_at)
             VALUES ('enabled-signup-providers', '["email"]', ?)`,
       args: [now],
     },
@@ -158,6 +162,65 @@ export async function signUpAsAdmin({
 }: SeedAdminOptions & { page: Page }) {
   await seedAdmin({ tursoPort, name, email, password });
   await signIn({ page, email, password });
+}
+
+/**
+ * The committed test secret, read from the same env file the app servers
+ * load so a secret change cannot silently desynchronize the fixture.
+ */
+function readTestBetterAuthSecret() {
+  const envFile = readFileSync(
+    new URL("../../../.env.test.self-hosted", import.meta.url),
+    "utf8",
+  );
+  const secret = /^BETTER_AUTH_SECRET=(.+)$/m
+    .exec(envFile)?.[1]
+    ?.trim()
+    .replace(/^(["'])(.*)\1$/, "$2");
+  if (!secret) {
+    throw new Error("BETTER_AUTH_SECRET not found in .env.test.self-hosted");
+  }
+  return secret;
+}
+
+async function signSessionCookie(token: string) {
+  const signature = await makeSignature(token, readTestBetterAuthSecret());
+  return encodeURIComponent(`${token}.${signature}`);
+}
+
+/**
+ * Seeds a session row for a user and hands its signed cookie to the page,
+ * signing the user in without any auth flow. This is how DID-only users
+ * get a browser session in e2e — their real sign-in needs an OAuth round
+ * trip against a live PDS, which stays out of this environment.
+ */
+export async function seedSession({
+  page,
+  tursoPort,
+  userId,
+  baseUrl,
+}: {
+  page: Page;
+  tursoPort: number;
+  userId: string;
+  baseUrl: string;
+}) {
+  const client = createClient({ url: `http://127.0.0.1:${tursoPort}` });
+  const now = Math.floor(Date.now() / 1000);
+  const token = createId();
+  await client.execute({
+    sql: `INSERT INTO serial_session (id, token, user_id, expires_at, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?)`,
+    args: [createId(), token, userId, now + 7 * 24 * 60 * 60, now, now],
+  });
+  client.close();
+  await page.context().addCookies([
+    {
+      name: "better-auth.session_token",
+      value: await signSessionCookie(token),
+      url: baseUrl,
+    },
+  ]);
 }
 
 /**
@@ -186,7 +249,7 @@ export async function signIn({ page, email, password }: SignInOptions) {
   await page.setExtraHTTPHeaders({
     [TEST_CLIENT_IP_HEADER]: getTestClientIp(email),
   });
-  await page.goto("/auth/sign-in");
+  await page.goto("/auth/sign-in?method=email");
 
   const authPage = await detectAuthPage(page);
 

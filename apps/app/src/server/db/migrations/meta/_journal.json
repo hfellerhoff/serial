@@ -337,6 +337,13 @@
       "when": 1785811900564,
       "tag": "0047_violet_lady_ursula",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "6",
+      "when": 1788308557717,
+      "tag": "0048_normal_stryfe",
+      "breakpoints": true
     }
   ]
 }

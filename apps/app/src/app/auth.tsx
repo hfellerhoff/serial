@@ -28,13 +28,13 @@ function AuthPage() {
   return (
     <>
       {IS_MAIN_INSTANCE && (
-        <div className="p-4 md:p-8">
+        <div className="relative z-10 p-4 md:p-8">
           <Link to={BASE_SIGNED_OUT_URL} className="hover:bg-transparent">
             <Button variant="outline">⭠ Back to Home</Button>
           </Link>
         </div>
       )}
-      <div className="pointer-events-none fixed inset-0 grid h-screen w-screen place-items-center p-4">
+      <div className="bg-sidebar pointer-events-none fixed inset-0 grid h-screen w-screen place-items-center p-4">
         <Card className="pointer-events-auto w-full max-w-md">
           <Outlet />
         </Card>

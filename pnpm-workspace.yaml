@@ -15,6 +15,7 @@ trustPolicyExclude:
 allowBuilds:
   "@sentry/cli": false
   better-sqlite3: true
+  core-js: false
   esbuild: true
   simple-git-hooks: false
   spawn-sync: false
