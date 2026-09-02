@@ -6,12 +6,10 @@ import {
   verifyFeedsOwnedByUser,
 } from "./feed-router/utils";
 import type { ApplicationView } from "~/server/db/schema";
-import { sortViewsByPlacement } from "~/lib/data/views/utils";
-import { buildUncategorizedView } from "~/server/api/utils/buildUncategorizedView";
+import { loadApplicationViews } from "~/server/api/utils/loadApplicationViews";
 import { protectedProcedure } from "~/server/orpc/base";
 import { DEFAULT_VIEW_LAYOUT } from "~/server/db/constants";
 import {
-  contentCategories,
   createViewSchema,
   deleteViewSchema,
   updateViewSchema,
@@ -309,77 +307,6 @@ export const deleteView = protectedProcedure
     return result;
   });
 
-export const getAll = protectedProcedure.handler(async ({ context }) => {
-  const [viewsList, contentCategoriesList] = await Promise.all([
-    context.db
-      .select()
-      .from(views)
-      .where(eq(views.userId, context.user.id))
-      .orderBy(asc(views.placement)),
-    context.db
-      .select()
-      .from(contentCategories)
-      .where(eq(contentCategories.userId, context.user.id)),
-  ]);
-
-  // Fetch view categories, view feeds, and view sections filtered by user's views
-  const userViewIds = viewsList.map((v) => v.id);
-  const [viewCategoriesList, viewFeedsList, viewSectionsList] =
-    userViewIds.length > 0
-      ? await Promise.all([
-          context.db
-            .select()
-            .from(viewCategories)
-            .where(inArray(viewCategories.viewId, userViewIds)),
-          context.db
-            .select()
-            .from(viewFeeds)
-            .where(inArray(viewFeeds.viewId, userViewIds)),
-          context.db
-            .select()
-            .from(viewSections)
-            .where(inArray(viewSections.viewId, userViewIds))
-            .orderBy(asc(viewSections.placement)),
-        ])
-      : [[], [], []];
-
-  const categoryIdsByViewId = new Map<number, number[]>();
-  for (const association of viewCategoriesList) {
-    if (association.viewId === null || association.categoryId === null)
-      continue;
-    const categoryIds = categoryIdsByViewId.get(association.viewId) ?? [];
-    categoryIds.push(association.categoryId);
-    categoryIdsByViewId.set(association.viewId, categoryIds);
-  }
-  const feedIdsByViewId = new Map<number, number[]>();
-  for (const association of viewFeedsList) {
-    const feedIds = feedIdsByViewId.get(association.viewId) ?? [];
-    feedIds.push(association.feedId);
-    feedIdsByViewId.set(association.viewId, feedIds);
-  }
-  const sectionsByViewId = new Map<number, ApplicationView["viewSections"]>();
-  for (const section of viewSectionsList) {
-    const sections = sectionsByViewId.get(section.viewId) ?? [];
-    sections.push({
-      ...section,
-      itemType: section.itemType as "tag" | "feed",
-    });
-    sectionsByViewId.set(section.viewId, sections);
-  }
-
-  const customViews: ApplicationView[] = viewsList.map((view) => ({
-    ...view,
-    isDefault: false,
-    categoryIds: categoryIdsByViewId.get(view.id) ?? [],
-    feedIds: feedIdsByViewId.get(view.id) ?? [],
-    viewSections: sectionsByViewId.get(view.id) ?? [],
-  }));
-
-  const uncategorizedView = buildUncategorizedView(
-    context.user.id,
-    contentCategoriesList,
-    customViews,
-  );
-
-  return sortViewsByPlacement([...customViews, uncategorizedView]);
-});
+export const getAll = protectedProcedure.handler(({ context }) =>
+  loadApplicationViews(context.db, context.user.id),
+);

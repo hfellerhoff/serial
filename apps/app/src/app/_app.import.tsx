@@ -16,7 +16,6 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ImportDropzone } from "../components/feed/import/ImportDropzone";
 import { getInitialFeedDataFromFileInputElement } from "../components/feed/import/utils/getInitialFeedDataFromFileInputElement";
-import type { CardRadioOption } from "~/components/ui/card-radio-group";
 import type {
   ImportFeedDataFromFilesError,
   ImportFeedDataItem,
@@ -26,7 +25,6 @@ import { FeedAvatar, FeedListItem } from "~/components/feed/FeedListItem";
 import { ImportLoading } from "~/components/ImportLoading";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { CardRadioGroup } from "~/components/ui/card-radio-group";
 import {
   Tooltip,
   TooltipContent,
@@ -67,8 +65,6 @@ export const Route = createFileRoute("/_app/import")({
   component: EditFeedsPage,
 });
 
-type ImportMode = "tags" | "views" | "ignore";
-
 function getFeedWebsiteUrl(feed: ImportFeedDataItem) {
   if (feed.websiteUrl) return feed.websiteUrl;
 
@@ -78,27 +74,6 @@ function getFeedWebsiteUrl(feed: ImportFeedDataItem) {
     return feed.feedUrl;
   }
 }
-
-const IMPORT_MODE_OPTIONS: Array<CardRadioOption<ImportMode>> = [
-  {
-    value: "views",
-    title: "Import sections as Views",
-    description:
-      "Each section in the file becomes a view, and feeds are linked directly to it.",
-  },
-  {
-    value: "tags",
-    title: "Import sections as Tags",
-    description:
-      "Each section in the file becomes a tag, and feeds are tagged with it.",
-  },
-  {
-    value: "ignore",
-    title: "Ignore sections",
-    description:
-      "Import the feeds without preserving any of the section groupings.",
-  },
-];
 
 function EditFeedsPage() {
   const canMutate = useCanMutate();
@@ -112,7 +87,6 @@ function EditFeedsPage() {
   const [isImportComplete, setIsImportComplete] = useState(false);
   const [isImportPending, setIsImportPending] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(false);
-  const [importMode, setImportMode] = useState<ImportMode>("views");
 
   const [fileInputErrorList, setFileInputErrorList] =
     useState<ImportFeedDataFromFilesError | null>(null);
@@ -146,6 +120,14 @@ function EditFeedsPage() {
   ).length;
 
   const { feeds } = useFeeds();
+
+  // Already-added feeds are not selectable, but they are still sent with the
+  // import so their OPML sections populate the matching views on re-import.
+  const isFeedAlreadyAdded = (feedUrl: string) =>
+    feeds.some((feed) => feed.url === feedUrl);
+  const channelsToSubmit = (feedsFoundFromFile ?? []).filter(
+    (channel) => channel.shouldImport || isFeedAlreadyAdded(channel.feedUrl),
+  );
   const loading = useLoadingMode();
   const importResults = useImportResults();
   const isFetchingRss = loading.mode === "importing";
@@ -251,17 +233,15 @@ function EditFeedsPage() {
     setShouldAlwaysKeepSSEConnectionAlive(true);
     setIsImportPending(true);
 
-    const channelsToImport = feedsFoundFromFile
-      .filter((channel) => channel.shouldImport)
-      .map((feed) => ({
-        categories: feed.categories,
-        categoryPaths: feed.categoryPaths,
-        feedUrl: feed.feedUrl,
-        tagNames: feed.tagNames,
-      }));
+    const channelsToImport = channelsToSubmit.map((feed) => ({
+      categories: feed.categories,
+      categoryPaths: feed.categoryPaths,
+      feedUrl: feed.feedUrl,
+      tagNames: feed.tagNames,
+    }));
 
     try {
-      await dataRequestActions.streamingImport(channelsToImport, importMode);
+      await dataRequestActions.streamingImport(channelsToImport);
 
       setIsImportComplete(true);
     } finally {
@@ -350,18 +330,6 @@ function EditFeedsPage() {
         )}
         {!!feedsFoundFromFile && (
           <>
-            {!isPostImportScreen &&
-              feedsFoundFromFile.some((f) => f.categories.length > 0) && (
-                <div className="mt-12 grid gap-3">
-                  <h3 className="font-semibold">Sections</h3>
-                  <CardRadioGroup
-                    value={importMode}
-                    onValueChange={setImportMode}
-                    options={IMPORT_MODE_OPTIONS}
-                    orientation="vertical"
-                  />
-                </div>
-              )}
             <div className="mt-12">
               {!isPostImportScreen && (
                 <div className="flex items-center justify-between">
@@ -528,7 +496,7 @@ function EditFeedsPage() {
                             )}
                             {isPostImportScreen &&
                               wasImported &&
-                              channel.shouldImport && (
+                              (channel.shouldImport || isAlreadyAdded) && (
                                 <ImportedFeedStatus
                                   feedUrl={channel.feedUrl}
                                   feeds={feeds}
@@ -546,16 +514,18 @@ function EditFeedsPage() {
                                   </TooltipContent>
                                 </Tooltip>
                               )}
-                            {isPostImportScreen && !channel.shouldImport && (
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <MinusIcon size={20} />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  This feed was excluded from the import.
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
+                            {isPostImportScreen &&
+                              !channel.shouldImport &&
+                              !isAlreadyAdded && (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <MinusIcon size={20} />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    This feed was excluded from the import.
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
                           </>
                         }
                       />
@@ -579,7 +549,7 @@ function EditFeedsPage() {
               className="w-full gap-2"
               size="lg"
               onClick={onFeedImport}
-              disabled={channelImportCount === 0 || isImportPending}
+              disabled={channelsToSubmit.length === 0 || isImportPending}
             >
               {isImportPending && !hasStartedImport ? (
                 <>
@@ -587,7 +557,7 @@ function EditFeedsPage() {
                   <Loader2Icon size={16} className="animate-spin" />
                 </>
               ) : (
-                <>Import {channelImportCount} feeds</>
+                <>Import {channelsToSubmit.length} feeds</>
               )}
             </Button>
           </div>

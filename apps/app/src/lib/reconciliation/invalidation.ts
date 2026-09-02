@@ -184,6 +184,31 @@ export function buildBookmarkInvalidationSummary(input: {
   };
 }
 
+export function organizationInvalidationSummary(
+  input: {
+    scopes?: ReconciliationInvalidationSummary["scopeImpact"];
+  } = {},
+): ReconciliationInvalidationSummary {
+  return {
+    type: "reconciliation-invalidation",
+    domains: ["organization", "navigation"],
+    scopeImpact: input.scopes ?? {
+      type: "known",
+      selectors: [
+        {
+          type: "all-retained",
+          contentStatusKeys: [
+            "inbox:unread",
+            "inbox:archived",
+            "saved:unread",
+            "saved:archived",
+          ],
+        },
+      ],
+    },
+  };
+}
+
 export function buildFeedInvalidationSummary(input: {
   feedIds: number[];
   contentStatusKeys: ContentStatusKey[];

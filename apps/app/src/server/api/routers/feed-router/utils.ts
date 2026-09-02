@@ -113,6 +113,8 @@ export type InsertFeedWithCategoriesSuccess = {
 export type InsertFeedWithCategoriesError = {
   success: false;
   error: string;
+  /** Set when the failure is a duplicate, so callers can still link the feed. */
+  existingFeed?: ApplicationFeed;
 };
 
 export type InsertFeedWithCategoriesResult =
@@ -144,9 +146,14 @@ export async function insertFeedWithCategories(
   });
 
   if (existingFeed) {
+    const [existingApplicationFeed] = parseArrayOfSchema(
+      [existingFeed],
+      schema.feedsSchema,
+    );
     return {
       success: false,
       error: "Feed already exists",
+      existingFeed: existingApplicationFeed,
     };
   }
 
