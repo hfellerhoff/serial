@@ -173,7 +173,10 @@ function readTestBetterAuthSecret() {
     new URL("../../../.env.test.self-hosted", import.meta.url),
     "utf8",
   );
-  const secret = /^BETTER_AUTH_SECRET=(.+)$/m.exec(envFile)?.[1];
+  const secret = /^BETTER_AUTH_SECRET=(.+)$/m
+    .exec(envFile)?.[1]
+    ?.trim()
+    .replace(/^(["'])(.*)\1$/, "$2");
   if (!secret) {
     throw new Error("BETTER_AUTH_SECRET not found in .env.test.self-hosted");
   }

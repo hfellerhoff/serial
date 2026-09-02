@@ -69,6 +69,12 @@ test.describe("email verification scoping", () => {
       "oauth",
       "atproto",
     ]);
+    // Start from an empty stub inbox so fetchLatestOtp can only match a
+    // code sent by the current test.
+    await fetch(
+      `http://127.0.0.1:${SELF_HOSTED_EMAIL_SERVER_PORT}/e2e/emails`,
+      { method: "DELETE" },
+    );
   });
 
   test.afterEach(async () => {

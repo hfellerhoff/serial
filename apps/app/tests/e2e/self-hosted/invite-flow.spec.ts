@@ -5,15 +5,7 @@ import { SELF_HOSTED_TURSO_PORT } from "../fixtures/ports";
 import { cleanupUser, generateTestEmail } from "../fixtures/seed-db";
 import type { Page } from "@playwright/test";
 
-/**
- * Clear the React Query persisted cache from localStorage.
- *
- * The app uses PersistQueryClientProvider which caches query results in
- * localStorage. Combined with a 30-second staleTime, this means navigating
- * back to a page within 30 seconds serves the persisted (stale) data without
- * refetching. In tests where we sign out / sign in and expect fresh data, we
- * must clear this cache to force a server round-trip.
- */
+/** Wait until the signed-in home screen has rendered its first section. */
 async function waitForHomeData(page: Page) {
   await expect(page.getByRole("heading", { name: "Serial" })).toBeVisible({
     timeout: 30_000,

@@ -18,6 +18,7 @@ const expectedPortVariables = [
   "SERIAL_TEST_SELF_HOSTED_UNCONFIGURED_APP_PORT",
   "SERIAL_TEST_SELF_HOSTED_UNCONFIGURED_TURSO_PORT",
   "SERIAL_TEST_SELF_HOSTED_EMAIL_PORT",
+  "SERIAL_TEST_SELF_HOSTED_APPVIEW_PORT",
 ] as const;
 
 type ProcessRow = {
@@ -135,10 +136,10 @@ async function waitForReady(
     const processGroupIds = parseProcessGroupIds(currentOutput);
     if (
       ports &&
-      // Seven webServer entries (4 app + rss + appview + email) each report
-      // a process group; require most of them before treating the run as
-      // started, leaving slack for reporting races.
-      processGroupIds.length >= 6 &&
+      // Seven webServer entries (4 app + rss + appview + email) plus the
+      // supervisor's own group make eight; require most of them before
+      // treating the run as started, leaving slack for reporting races.
+      processGroupIds.length >= 7 &&
       currentOutput.includes("SERIAL_E2E_CLEANUP_READY")
     ) {
       return { ports, processGroupIds };
@@ -168,6 +169,7 @@ function assertExpectedServices(processes: ProcessRow[], ports: number[]) {
     unconfiguredAppPort,
     unconfiguredTursoPort,
     emailPort,
+    appviewPort,
   ] = ports;
   const expectedFragments = [
     `vite preview --port ${appPort}`,
@@ -180,6 +182,7 @@ function assertExpectedServices(processes: ProcessRow[], ports: number[]) {
     `vite preview --port ${unconfiguredAppPort}`,
     `turso dev --db-file serial-test-self-hosted-unconfigured.db --port ${unconfiguredTursoPort}`,
     `email-server.ts ${emailPort}`,
+    `appview-server.ts ${appviewPort}`,
   ];
   const missingFragments = expectedFragments.filter(
     (fragment) => !processCommands.includes(fragment),
