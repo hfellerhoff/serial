@@ -82,6 +82,11 @@ export default defineConfig(({ mode }) => {
     envDir: process.env.VITE_ENV_DIR ?? undefined,
     server: {
       port: 3000,
+      // Bind the IPv4 loopback explicitly: Node resolves "localhost" to ::1
+      // on some machines, and the atproto dev loopback client registers its
+      // redirect URIs on 127.0.0.1 — browser, cookie host, and redirect
+      // host must be the same origin. (A CLI --host still overrides this.)
+      host: "127.0.0.1",
     },
     resolve: {
       alias: isClientPerformanceBuild

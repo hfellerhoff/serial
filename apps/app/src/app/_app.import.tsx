@@ -39,6 +39,7 @@ import { useImportDropStore } from "~/lib/data/import-drop";
 import { useImportResults, useLoadingMode } from "~/lib/data/loading-machine";
 import { dataRequestActions } from "~/lib/data/directRequests";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 
 function ImportedFeedStatus({
   feedUrl,
@@ -100,6 +101,7 @@ const IMPORT_MODE_OPTIONS: Array<CardRadioOption<ImportMode>> = [
 ];
 
 function EditFeedsPage() {
+  const canMutate = useCanMutate();
   const inputElementRef = useRef<HTMLInputElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -280,7 +282,7 @@ function EditFeedsPage() {
   }
 
   return (
-    <div>
+    <fieldset className="contents" disabled={!canMutate}>
       <div className="mx-auto max-w-2xl p-6">
         <h2 className="font-sans text-lg">Import Feeds</h2>
         {!isPostImportScreen && (
@@ -591,6 +593,6 @@ function EditFeedsPage() {
           </div>
         </div>
       )}
-    </div>
+    </fieldset>
   );
 }

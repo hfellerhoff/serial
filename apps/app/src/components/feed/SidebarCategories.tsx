@@ -29,8 +29,10 @@ import {
 } from "~/lib/data/navigation/store";
 import { isContentStatusAvailable } from "~/lib/content-status";
 import { Skeleton } from "~/components/ui/skeleton";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 
 export function SidebarCategories() {
+  const canMutate = useCanMutate();
   const [
     selectedContentCategoryForEditing,
     setSelectedContentCategoryForEditing,
@@ -84,6 +86,7 @@ export function SidebarCategories() {
               </Link>
             </SidebarMenuButton>
             <SidebarMenuButton
+              disabled={!canMutate}
               onClick={() => launchDialog("add-content-category")}
             >
               <PlusIcon />

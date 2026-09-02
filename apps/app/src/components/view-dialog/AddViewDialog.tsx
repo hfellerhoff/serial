@@ -8,6 +8,7 @@ import type { ViewLayout } from "~/server/db/constants";
 import type { ContentFilter } from "~/lib/views/contentFilter";
 import type { ViewSection } from "./ViewSectionList";
 import { Button } from "~/components/ui/button";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useDialogStore } from "~/components/feed/dialogStore";
@@ -16,6 +17,7 @@ import { DEFAULT_VIEW_LAYOUT, VIEW_READ_STATUS } from "~/server/db/constants";
 import { DEFAULT_CONTENT_FILTER } from "~/lib/views/contentFilter";
 
 export function AddViewDialog() {
+  const canMutate = useCanMutate();
   const [isAddingView, setIsAddingView] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
@@ -51,6 +53,7 @@ export function AddViewDialog() {
   };
 
   const handleSave = async () => {
+    if (!canMutate) return;
     setIsAddingView(true);
 
     try {
@@ -140,7 +143,7 @@ export function AddViewDialog() {
       </Tabs>
       <div className="mt-6">
         <Button
-          disabled={isDisabled || isAddingView}
+          disabled={!canMutate || isDisabled || isAddingView}
           onClick={handleSave}
           className="w-full"
         >

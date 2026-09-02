@@ -47,6 +47,122 @@ export async function cleanupUser(tursoPort: number, email: string) {
   client.close();
 }
 
+/**
+ * The account row plus an active connection row, the state the link
+ * callback leaves behind. The stored session blob is deliberately
+ * unreadable ciphertext — unlink must still disconnect (mirroring a
+ * rotated store key).
+ */
+async function insertAtprotoLinkRows(
+  db: ReturnType<typeof getDb>["db"],
+  options: { userId: string; did: string; handle: string },
+) {
+  const now = new Date();
+  await db.insert(schema.account).values({
+    id: createId(),
+    accountId: options.did,
+    providerId: "atproto",
+    userId: options.userId,
+    scope: "atproto",
+    createdAt: now,
+    updatedAt: now,
+  });
+  await db.insert(schema.atprotoConnections).values({
+    did: options.did,
+    userId: options.userId,
+    session: "e2e-unreadable-ciphertext",
+    scopes: "atproto",
+    handle: options.handle,
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
+/** Seed a linked AT Protocol connection for an existing user by email. */
+export async function seedAtprotoLink(
+  tursoPort: number,
+  email: string,
+  options: { did: string; handle: string },
+) {
+  const { db, client } = getDb(tursoPort);
+  const testUser = await db
+    .select({ id: schema.user.id })
+    .from(schema.user)
+    .where(eq(schema.user.email, email))
+    .get();
+  if (!testUser) {
+    client.close();
+    throw new Error("Atproto link seed user was not found");
+  }
+  await insertAtprotoLinkRows(db, { userId: testUser.id, ...options });
+  client.close();
+}
+
+/**
+ * Seed a DID-only user: the rows an Atmosphere sign-up leaves behind — a
+ * user carrying the internal placeholder email, exempt from email
+ * verification, with an atproto account row and an active connection. The
+ * placeholder mirrors placeholderEmailForDid's shape (sanitized DID +
+ * hex suffix on the reserved domain); the exact suffix doesn't matter to
+ * the UI, which only checks the domain.
+ */
+export async function seedAtprotoOnlyUser(
+  tursoPort: number,
+  options: { did: string; handle: string; name: string },
+) {
+  const { db, client } = getDb(tursoPort);
+  const now = new Date();
+  const userId = createId();
+  const sanitized = options.did.toLowerCase().replace(/[^a-z0-9.-]+/g, "-");
+  const email = `${sanitized}.e2e0000deadbeef@atproto.invalid`;
+  await db.insert(schema.user).values({
+    id: userId,
+    name: options.name,
+    email,
+    emailVerified: false,
+    emailVerificationExempt: true,
+    createdAt: now,
+    updatedAt: now,
+  });
+  await insertAtprotoLinkRows(db, { userId, ...options });
+  client.close();
+  return { userId, email };
+}
+
+/** The database state the unlink assertions check. */
+export async function getAtprotoLinkState(tursoPort: number, did: string) {
+  const { db, client } = getDb(tursoPort);
+  const accountRows = await db
+    .select({ id: schema.account.id })
+    .from(schema.account)
+    .where(eq(schema.account.accountId, did))
+    .all();
+  const connection = await db
+    .select({
+      userId: schema.atprotoConnections.userId,
+      status: schema.atprotoConnections.status,
+      session: schema.atprotoConnections.session,
+    })
+    .from(schema.atprotoConnections)
+    .where(eq(schema.atprotoConnections.did, did))
+    .get();
+  client.close();
+  return {
+    accountRowCount: accountRows.length,
+    connection: connection ?? null,
+  };
+}
+
+/** Remove a seeded connection row (unlink leaves it unbound, not deleted). */
+export async function cleanupAtprotoConnection(tursoPort: number, did: string) {
+  const { db, client } = getDb(tursoPort);
+  await db
+    .delete(schema.atprotoConnections)
+    .where(eq(schema.atprotoConnections.did, did));
+  client.close();
+}
+
 export async function seedExtensionSession(tursoPort: number, email: string) {
   const { db, client } = getDb(tursoPort);
   const testUser = await db
@@ -175,6 +291,19 @@ export async function setFeedItemContent(
   client.close();
 }
 
+export async function setFeedItemWatchLater(
+  tursoPort: number,
+  id: string,
+  isWatchLater: boolean,
+) {
+  const { db, client } = getDb(tursoPort);
+  await db
+    .update(schema.feedItems)
+    .set({ isWatchLater, isWatchLaterUpdatedAt: new Date() })
+    .where(eq(schema.feedItems.id, id));
+  client.close();
+}
+
 export async function setFeedItemAsYouTubeVideo(
   tursoPort: number,
   id: string,
@@ -196,6 +325,19 @@ export async function setFeedItemAsYouTubeVideo(
     .update(schema.feeds)
     .set({ platform: "youtube" })
     .where(eq(schema.feeds.id, feedItem.feedId));
+  await db
+    .update(schema.feedItems)
+    .set({ contentId: videoId, contentType: "video" })
+    .where(eq(schema.feedItems.id, id));
+  client.close();
+}
+
+export async function setFeedItemAsVideo(
+  tursoPort: number,
+  id: string,
+  videoId: string,
+) {
+  const { db, client } = getDb(tursoPort);
   await db
     .update(schema.feedItems)
     .set({ contentId: videoId, contentType: "video" })

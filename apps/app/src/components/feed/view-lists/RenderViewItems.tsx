@@ -35,6 +35,7 @@ import { useFeedCategories } from "~/lib/data/feed-categories";
 import { useFilteredContentOrder } from "~/lib/data/feed-items";
 import { useFeeds } from "~/lib/data/feeds";
 import { setMixedReadValue } from "~/lib/data/mixed-content/mutations";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 import { useHasInitialData } from "~/lib/data/store";
 import { useFeedItemNavigation } from "~/lib/hooks/useFeedItemNavigation";
 import { useShortcut } from "~/lib/hooks/useShortcut";
@@ -98,6 +99,7 @@ function SectionHeading({
   sectionIndex: number;
   onMarkAsRead?: (sectionIndex: number) => void;
 }) {
+  const canMutate = useCanMutate();
   const contentStatusFilter = useAtomValue(contentStatusFilterAtom);
   const selectedItemId = useAtomValue(selectedItemIdAtom);
   const [isLoading, setIsLoading] = useState(false);
@@ -115,6 +117,7 @@ function SectionHeading({
   }, []);
 
   const handleMarkSectionAsRead = async () => {
+    if (!canMutate) return;
     if (!isInboxUnread(contentStatusFilter) || sectionItems.length === 0)
       return;
 
@@ -175,7 +178,7 @@ function SectionHeading({
               variant="outline"
               size="sm"
               onClick={handleMarkSectionAsRead}
-              disabled={isLoading}
+              disabled={!canMutate || isLoading}
               className="gap-1.5 text-xs"
               shortcut={SHORTCUT_KEYS.MARK_SECTION_READ}
             >

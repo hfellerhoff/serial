@@ -2,10 +2,16 @@ import { defineConfig, devices } from "@playwright/test";
 import { baseConfig } from "./playwright.config";
 import {
   SELF_HOSTED_APP_PORT,
+  SELF_HOSTED_APPVIEW_SERVER_PORT,
   SELF_HOSTED_BOOTSTRAP_APP_PORT,
   SELF_HOSTED_BOOTSTRAP_TURSO_PORT,
+  SELF_HOSTED_CONFIG_APP_PORT,
+  SELF_HOSTED_CONFIG_TURSO_PORT,
+  SELF_HOSTED_EMAIL_SERVER_PORT,
   SELF_HOSTED_RSS_SERVER_PORT,
   SELF_HOSTED_TURSO_PORT,
+  SELF_HOSTED_UNCONFIGURED_APP_PORT,
+  SELF_HOSTED_UNCONFIGURED_TURSO_PORT,
 } from "./tests/e2e/fixtures/ports";
 import { supervisedWebServerCommand } from "./tests/e2e/fixtures/web-server-command";
 
@@ -13,27 +19,72 @@ const productionTestServer =
   `./node_modules/.bin/concurrently --kill-others ` +
   `"turso dev --db-file serial-test-self-hosted.db --port ${SELF_HOSTED_TURSO_PORT}" ` +
   `"./node_modules/.bin/dotenv -e .env.test.self-hosted -- node --import tsx src/server/db/migrate.ts && ` +
-  `./node_modules/.bin/dotenv -e .env.test.self-hosted -- env CI=1 ./node_modules/.bin/vite preview --port ${SELF_HOSTED_APP_PORT} --strictPort"`;
+  `./node_modules/.bin/dotenv -e .env.test.self-hosted -- env CI=1 NODE_ENV=production PORT=${SELF_HOSTED_APP_PORT} pnpm start"`;
 
-const bootstrapProductionTestServer =
-  `./node_modules/.bin/concurrently --kill-others ` +
-  `"turso dev --db-file serial-test-self-hosted-bootstrap.db --port ${SELF_HOSTED_BOOTSTRAP_TURSO_PORT}" ` +
-  `"./node_modules/.bin/dotenv -e .env.test.self-hosted -- node --import tsx src/server/db/migrate.ts && ` +
-  `./node_modules/.bin/dotenv -e .env.test.self-hosted -- env CI=1 ./node_modules/.bin/vite preview --port ${SELF_HOSTED_BOOTSTRAP_APP_PORT} --strictPort"`;
+/**
+ * An isolated app server + database cloned from the proven bootstrap
+ * template: own DB file, own ports, own webServer entry, serially-run
+ * project. `extraEnvironment` lets an instance diverge from the shared
+ * flavor (blanked ATPROTO_* keys, the stub email provider); the overrides
+ * land in the server's process env, where they beat both run-e2e.ts's
+ * injected values and the env file (dotenv leaves set variables alone).
+ */
+function isolatedInstanceServer({
+  dbFile,
+  tursoPort,
+  appPort,
+  extraEnvironment = {},
+}: {
+  dbFile: string;
+  tursoPort: number;
+  appPort: number;
+  extraEnvironment?: Record<string, string>;
+}) {
+  const baseUrl = `http://localhost:${appPort}`;
+  const productionServer =
+    `./node_modules/.bin/concurrently --kill-others ` +
+    `"turso dev --db-file ${dbFile} --port ${tursoPort}" ` +
+    `"./node_modules/.bin/dotenv -e .env.test.self-hosted -- node --import tsx src/server/db/migrate.ts && ` +
+    `./node_modules/.bin/dotenv -e .env.test.self-hosted -- env CI=1 NODE_ENV=production PORT=${appPort} pnpm start"`;
+  const developmentServer =
+    `./node_modules/.bin/concurrently --kill-others ` +
+    `"turso dev --db-file ${dbFile} --port ${tursoPort}" ` +
+    `"./node_modules/.bin/dotenv -e .env.test.self-hosted -- node --import tsx src/server/db/migrate.ts && ` +
+    `./node_modules/.bin/dotenv -e .env.test.self-hosted -- ./node_modules/.bin/vite dev --port ${appPort} --strictPort"`;
 
-const bootstrapDevelopmentTestServer =
-  `./node_modules/.bin/concurrently --kill-others ` +
-  `"turso dev --db-file serial-test-self-hosted-bootstrap.db --port ${SELF_HOSTED_BOOTSTRAP_TURSO_PORT}" ` +
-  `"./node_modules/.bin/dotenv -e .env.test.self-hosted -- node --import tsx src/server/db/migrate.ts && ` +
-  `./node_modules/.bin/dotenv -e .env.test.self-hosted -- ./node_modules/.bin/vite dev --port ${SELF_HOSTED_BOOTSTRAP_APP_PORT} --strictPort"`;
+  return {
+    command: supervisedWebServerCommand(
+      process.env.SERIAL_CLIENT_PERFORMANCE_PRODUCTION === "1"
+        ? productionServer
+        : developmentServer,
+    ),
+    env: {
+      DATABASE_URL: `http://127.0.0.1:${tursoPort}`,
+      PORT: String(appPort),
+      PUBLIC_BASE_URL: baseUrl,
+      VITE_PUBLIC_BASE_URL: baseUrl,
+      ...extraEnvironment,
+    },
+    url: `${baseUrl}/api/health`,
+    stdout: "pipe" as const,
+    timeout: 120_000,
+    reuseExistingServer: false,
+  };
+}
 
-const bootstrapBaseUrl = `http://localhost:${SELF_HOSTED_BOOTSTRAP_APP_PORT}`;
-const bootstrapEnvironment = {
-  DATABASE_URL: `http://127.0.0.1:${SELF_HOSTED_BOOTSTRAP_TURSO_PORT}`,
-  PORT: String(SELF_HOSTED_BOOTSTRAP_APP_PORT),
-  PUBLIC_BASE_URL: bootstrapBaseUrl,
-  VITE_PUBLIC_BASE_URL: bootstrapBaseUrl,
-};
+function isolatedProject(name: string, appPort: number) {
+  return {
+    name,
+    fullyParallel: false,
+    testDir: `./tests/e2e/${name}`,
+    workers: 1,
+    use: {
+      ...baseConfig.use,
+      ...devices["Desktop Chrome"],
+      baseURL: `http://localhost:${appPort}`,
+    },
+  };
+}
 
 export default defineConfig({
   ...baseConfig,
@@ -54,17 +105,17 @@ export default defineConfig({
         baseURL: `http://localhost:${SELF_HOSTED_APP_PORT}`,
       },
     },
-    {
-      name: "self-hosted-bootstrap",
-      fullyParallel: false,
-      testDir: "./tests/e2e/self-hosted-bootstrap",
-      workers: 1,
-      use: {
-        ...baseConfig.use,
-        ...devices["Desktop Chrome"],
-        baseURL: bootstrapBaseUrl,
-      },
-    },
+    isolatedProject("self-hosted-bootstrap", SELF_HOSTED_BOOTSTRAP_APP_PORT),
+    // Serially-run instance for every spec that sets and asserts a
+    // specific enabled-provider set: nothing else mutates its database,
+    // so a beforeEach-configured state holds for the whole test.
+    isolatedProject("self-hosted-config", SELF_HOSTED_CONFIG_APP_PORT),
+    // App server started without the ATPROTO_* keys: configured-ness is
+    // env-level, so the soft-disable path needs its own server.
+    isolatedProject(
+      "self-hosted-unconfigured",
+      SELF_HOSTED_UNCONFIGURED_APP_PORT,
+    ),
   ],
   webServer: [
     {
@@ -73,6 +124,8 @@ export default defineConfig({
           ? productionTestServer
           : "pnpm dev:test:self-hosted",
       ),
+      // run-e2e.ts points ATPROTO_APPVIEW_URL at the stub AppView for all
+      // app servers; dotenv leaves already-set variables alone.
       url: `http://localhost:${SELF_HOSTED_APP_PORT}`,
       stdout: "pipe",
       timeout: 120_000,
@@ -80,23 +133,55 @@ export default defineConfig({
         process.env.SERIAL_CLIENT_PERFORMANCE_PRODUCTION !== "1" &&
         !process.env.CI,
     },
-    {
-      command: supervisedWebServerCommand(
-        process.env.SERIAL_CLIENT_PERFORMANCE_PRODUCTION === "1"
-          ? bootstrapProductionTestServer
-          : bootstrapDevelopmentTestServer,
-      ),
-      env: bootstrapEnvironment,
-      url: `${bootstrapBaseUrl}/api/health`,
-      stdout: "pipe",
-      timeout: 120_000,
-      reuseExistingServer: false,
-    },
+    isolatedInstanceServer({
+      dbFile: "serial-test-self-hosted-bootstrap.db",
+      tursoPort: SELF_HOSTED_BOOTSTRAP_TURSO_PORT,
+      appPort: SELF_HOSTED_BOOTSTRAP_APP_PORT,
+    }),
+    isolatedInstanceServer({
+      dbFile: "serial-test-self-hosted-config.db",
+      tursoPort: SELF_HOSTED_CONFIG_TURSO_PORT,
+      appPort: SELF_HOSTED_CONFIG_APP_PORT,
+      // Email enabled through the stub Resend server (the SDK honors
+      // RESEND_BASE_URL), so verification flows run hermetically here.
+      extraEnvironment: {
+        RESEND_API_KEY: "e2e-stub-resend-key",
+        RESEND_BASE_URL: `http://127.0.0.1:${SELF_HOSTED_EMAIL_SERVER_PORT}`,
+        FROM_EMAIL_ADDRESS: "e2e@serial.test",
+      },
+    }),
+    isolatedInstanceServer({
+      dbFile: "serial-test-self-hosted-unconfigured.db",
+      tursoPort: SELF_HOSTED_UNCONFIGURED_TURSO_PORT,
+      appPort: SELF_HOSTED_UNCONFIGURED_APP_PORT,
+      // Blank the atproto key pair that run-e2e.ts injects into every
+      // server's process env (the env file has no ATPROTO_* lines):
+      // emptyStringAsUndefined in src/env.js turns the blanks into unset,
+      // and isAtprotoConfigured() gates on exactly this pair.
+      extraEnvironment: {
+        ATPROTO_CLIENT_PRIVATE_KEYS: "",
+        ATPROTO_STORE_ENCRYPTION_KEY: "",
+      },
+    }),
     {
       command: supervisedWebServerCommand(
         `node --import=tsx tests/e2e/fixtures/rss-server.ts ${SELF_HOSTED_RSS_SERVER_PORT}`,
       ),
       url: `http://127.0.0.1:${SELF_HOSTED_RSS_SERVER_PORT}`,
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      command: supervisedWebServerCommand(
+        `node --import=tsx tests/e2e/fixtures/appview-server.ts ${SELF_HOSTED_APPVIEW_SERVER_PORT}`,
+      ),
+      url: `http://127.0.0.1:${SELF_HOSTED_APPVIEW_SERVER_PORT}`,
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      command: supervisedWebServerCommand(
+        `node --import=tsx tests/e2e/fixtures/email-server.ts ${SELF_HOSTED_EMAIL_SERVER_PORT}`,
+      ),
+      url: `http://127.0.0.1:${SELF_HOSTED_EMAIL_SERVER_PORT}`,
       reuseExistingServer: !process.env.CI,
     },
   ],

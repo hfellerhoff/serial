@@ -9,7 +9,7 @@ import {
   rollbackOptimisticWatchedValues,
   settleOptimisticWatchedValues,
 } from "~/lib/data/feed-items/mutations";
-import { feedItemsStore } from "~/lib/data/store";
+import { feedItemsStore, retainLoadedFeedItemBody } from "~/lib/data/store";
 import {
   getMixedScopeKey,
   mixedContentStore,
@@ -143,6 +143,32 @@ describe("optimistic feed item mutations", () => {
       feedItemsStore.getState().feedItemsDict[previousFeedItem.id];
     expect(rolledBackItem?.isWatched).toBe(false);
     expect(rolledBackItem?.updatedAt).toBe(previousFeedItem.updatedAt);
+  });
+
+  it("restores a retained article body after a failed Archive", () => {
+    const previousFeedItem = makeItem();
+    feedItemsStore
+      .getState()
+      .setFeedItem(previousFeedItem.id, previousFeedItem);
+    expect(retainLoadedFeedItemBody(previousFeedItem.id)).toBe(true);
+
+    const context = applyOptimisticWatchedValue(previousFeedItem.id, true);
+    // The live body survives the optimistic Archive; only retention drops.
+    expect(
+      feedItemsStore.getState().feedItemsDict[previousFeedItem.id]?.content,
+    ).toBe(previousFeedItem.content);
+    expect(
+      feedItemsStore.getState().retainedFeedItemBodyIds[previousFeedItem.id],
+    ).toBeUndefined();
+
+    rollbackOptimisticWatchedValue(context);
+
+    expect(
+      feedItemsStore.getState().feedItemsDict[previousFeedItem.id]?.content,
+    ).toBe(previousFeedItem.content);
+    expect(
+      feedItemsStore.getState().retainedFeedItemBodyIds[previousFeedItem.id],
+    ).toBe(true);
   });
 
   it("does not roll an older failure over a newer optimistic update", () => {

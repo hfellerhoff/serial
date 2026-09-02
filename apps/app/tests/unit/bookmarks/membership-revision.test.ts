@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ApplicationBookmark } from "~/server/mixed-content/projection";
+import type { DatabasePageCapture } from "~/server/db/schema";
+import { bookmarkCapturesStore } from "~/lib/data/bookmarks/capture-store";
 import { bookmarksStore } from "~/lib/data/bookmarks/store";
 import { mixedContentStore } from "~/lib/data/mixed-content/store";
 import { getMixedContentMembershipRevision } from "~/lib/data/mixed-content/membershipRevision";
@@ -23,6 +25,11 @@ vi.mock("@tanstack/react-query", () => ({
 vi.mock("~/lib/orpc", () => {
   const mutationOptions = (options: unknown) => options;
   return {
+    orpcRouterClient: {
+      bookmark: {
+        getCapture: vi.fn().mockResolvedValue(null),
+      },
+    },
     orpc: {
       bookmark: {
         remove: { mutationOptions },
@@ -36,6 +43,16 @@ vi.mock("~/lib/orpc", () => {
 });
 
 const NOW = new Date("2026-08-19T12:00:00.000Z");
+
+const CAPTURE: DatabasePageCapture = {
+  bookmarkId: "bookmark-one",
+  contentHtml: "<p>Retained capture</p>",
+  contentHash: "capture-hash",
+  captureSource: "server-static-fetch",
+  extractorVersion: "test",
+  sanitizerPolicyVersion: 1,
+  capturedAt: NOW,
+};
 
 function bookmark(
   overrides: Partial<ApplicationBookmark> = {},
@@ -202,6 +219,41 @@ describe("Bookmark mixed-content membership revision", () => {
     );
 
     expect(revision()).toBe(initialRevision);
+  });
+
+  it("restores a retained capture after a failed Archive", () => {
+    const original = bookmark();
+    bookmarksStore.getState().upsert(original);
+    bookmarkCapturesStore.getState().upsert(CAPTURE);
+    setRetainedEntityPins("membership-revision:test", {
+      bookmarkIds: [original.id],
+    });
+    const mutation = useUpdateBookmarkStateMutation(
+      original.id,
+    ) as unknown as MutationCallbacks<
+      { bookmarkId: string; isRead: boolean },
+      ApplicationBookmark,
+      {
+        previousBookmark?: ApplicationBookmark;
+        previousCapture?: DatabasePageCapture;
+        token?: object;
+      }
+    >;
+    const input = { bookmarkId: original.id, isRead: true };
+
+    const context = mutation.onMutate(input);
+    expect(
+      bookmarkCapturesStore.getState().capturesDict[original.id],
+    ).toBeUndefined();
+
+    mutation.onError(new Error("failed"), input, context);
+
+    expect(bookmarksStore.getState().getBookmark(original.id)?.isRead).toBe(
+      false,
+    );
+    expect(bookmarkCapturesStore.getState().capturesDict[original.id]).toEqual(
+      CAPTURE,
+    );
   });
 
   it("drops a delayed progress response after the final body owner is released", () => {

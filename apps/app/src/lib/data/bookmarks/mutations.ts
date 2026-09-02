@@ -17,9 +17,11 @@ import {
   setRetainedEntityPins,
 } from "../page-retention";
 import { viewsStore } from "../views/store";
+import { shouldRetainBookmarkCapture } from "../offline-content";
 import { bookmarksStore } from "./store";
+import { bookmarkCapturesStore } from "./capture-store";
 import type { ApplicationBookmark } from "~/server/mixed-content/projection";
-import { orpc } from "~/lib/orpc";
+import { orpc, orpcRouterClient } from "~/lib/orpc";
 
 const mutationCoordinator =
   new BookmarkMutationCoordinator<ApplicationBookmark>();
@@ -70,22 +72,45 @@ function removeProjectedBookmark(bookmark: ApplicationBookmark) {
   });
 }
 
+// Fetches the capture when a mutation leaves the Bookmark retain-eligible
+// without one (save, unarchive). Retention is re-judged against the live
+// store when the response lands, so a sign-out or opposing mutation that
+// happened mid-flight cannot re-persist the capture.
+export async function reacquireRetainedCapture(bookmark: ApplicationBookmark) {
+  if (
+    !shouldRetainBookmarkCapture(bookmark) ||
+    !bookmark.captureHash ||
+    bookmarkCapturesStore.getState().capturesDict[bookmark.id] !== undefined
+  ) {
+    return;
+  }
+  const captureResult = await orpcRouterClient.bookmark
+    .getCapture({ bookmarkId: bookmark.id })
+    .catch(() => null);
+  if (captureResult?.status !== "capture") return;
+  const latestBookmark = bookmarksStore.getState().getBookmark(bookmark.id);
+  if (!latestBookmark || !shouldRetainBookmarkCapture(latestBookmark)) return;
+  bookmarkCapturesStore.getState().upsert(captureResult.capture);
+}
+
 export function useSaveBookmarkMutation() {
   return useMutation(
     orpc.bookmark.save.mutationOptions({
-      onSuccess: (result) => {
+      onSuccess: async (result) => {
         const bookmark = result.bookmark as ApplicationBookmark;
         const previousBookmark = bookmarksStore
           .getState()
           .getBookmark(bookmark.id);
         for (const removedBookmarkId of result.removedBookmarkIds ??
           (result.removedBookmarkId ? [result.removedBookmarkId] : [])) {
+          bookmarkCapturesStore.getState().remove(removedBookmarkId);
           const removedBookmark = bookmarksStore
             .getState()
             .getBookmark(removedBookmarkId);
           if (removedBookmark) removeProjectedBookmark(removedBookmark);
         }
         projectBookmark(bookmark, previousBookmark);
+        await reacquireRetainedCapture(bookmark);
       },
     }),
   );
@@ -100,8 +125,10 @@ export function useUpdateBookmarkStateMutation(bookmarkId: string) {
         const previousBookmark = bookmarksStore
           .getState()
           .getBookmark(bookmarkId);
+        const previousCapture =
+          bookmarkCapturesStore.getState().capturesDict[bookmarkId];
         if (!previousBookmark) {
-          return { previousBookmark, changesMixedProjection };
+          return { previousBookmark, previousCapture, changesMixedProjection };
         }
         const now = new Date();
         const changes = [
@@ -157,7 +184,12 @@ export function useUpdateBookmarkStateMutation(bookmarkId: string) {
           releaseOptimisticBookmark(token);
           throw error;
         }
-        return { previousBookmark, token, changesMixedProjection };
+        return {
+          previousBookmark,
+          previousCapture,
+          token,
+          changesMixedProjection,
+        };
       },
       onSuccess: (bookmark, _input, context) => {
         try {
@@ -180,6 +212,9 @@ export function useUpdateBookmarkStateMutation(bookmarkId: string) {
                 )
               : serverBookmark;
           projectBookmark(reconciled, currentBookmark);
+          // Unarchive and re-save evicted the capture on the way out; the
+          // return transition must bring it back for offline reading.
+          reacquireRetainedCapture(reconciled).catch(() => {});
         } finally {
           if (context?.token) releaseOptimisticBookmark(context.token);
         }
@@ -194,14 +229,18 @@ export function useUpdateBookmarkStateMutation(bookmarkId: string) {
             context.token &&
             optimisticBookmark
           ) {
-            projectBookmark(
-              mutationCoordinator.rollback(
-                optimisticBookmark,
-                context.previousBookmark,
-                context.token,
-              ),
+            const rolledBackBookmark = mutationCoordinator.rollback(
               optimisticBookmark,
+              context.previousBookmark,
+              context.token,
             );
+            projectBookmark(rolledBackBookmark, optimisticBookmark);
+            if (
+              context.previousCapture &&
+              shouldRetainBookmarkCapture(rolledBackBookmark)
+            ) {
+              bookmarkCapturesStore.getState().upsert(context.previousCapture);
+            }
           }
         } finally {
           if (context?.token) releaseOptimisticBookmark(context.token);

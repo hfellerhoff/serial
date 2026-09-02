@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { canMutateNow } from "~/lib/data/offline-mutations";
 
 export type DialogType =
   | "add-feed"
@@ -39,14 +40,16 @@ export const useDialogStore = create<DialogStore>((set) => ({
   selectedBookmarkId: null,
   subscriptionView: "overview",
   settingsPane: "main",
-  launchDialog: (dialog, options) =>
+  launchDialog: (dialog, options) => {
+    if (!canMutateNow()) return;
     set({
       dialog,
       subscriptionView: options?.subscriptionView ?? "overview",
       settingsPane: options?.settingsPane ?? "main",
       selectedFeedId: options?.selectedFeedId ?? null,
       selectedBookmarkId: options?.selectedBookmarkId ?? null,
-    }),
+    });
+  },
   closeDialog: () =>
     set({
       dialog: null,

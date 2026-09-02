@@ -60,6 +60,14 @@ export const user = sqliteTable(
     name: text("name").notNull(),
     email: text("email").notNull().unique(),
     emailVerified: integer("email_verified", { mode: "boolean" }).notNull(),
+    // Policy bit, not proof of address ownership: true means this user is not
+    // required to verify their email (identity-provider-provisioned accounts).
+    // Maintained by the account-creation hook in src/server/auth/index.tsx.
+    emailVerificationExempt: integer("email_verification_exempt", {
+      mode: "boolean",
+    })
+      .notNull()
+      .default(false),
     image: text("image"),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
@@ -842,6 +850,61 @@ export const instapaperConnections = sqliteTable("instapaper_connections", {
 });
 export type DatabaseInstapaperConnection =
   typeof instapaperConnections.$inferSelect;
+
+// === AT Protocol OAuth ===
+
+/**
+ * In-flight AT Protocol authorization attempts, keyed by the OAuth `state`
+ * parameter. The payload is an encrypted envelope (see server/auth/atproto)
+ * holding the SDK's saved state: PKCE verifier, DPoP private key, issuer.
+ * Rows are single-use — consumed at callback — and expire within the hour.
+ */
+export const atprotoAuthState = sqliteTable(
+  "atproto_auth_state",
+  {
+    key: text("key").primaryKey(),
+    payload: text("payload").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .$default(() => new Date())
+      .notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("atproto_auth_state_expires_at_idx").on(table.expiresAt)],
+);
+
+/**
+ * Durable AT Protocol connections, keyed by DID. The `session` column is an
+ * encrypted envelope holding the SDK's saved OAuth session (access + refresh
+ * tokens and the DPoP private key); everything else is plaintext display and
+ * bookkeeping data so no read path needs to decrypt. `userId` is null between
+ * the OAuth callback persisting the session and the sign-in flow binding the
+ * DID to a Serial user; unbound rows are swept with expired auth state.
+ */
+export const atprotoConnections = sqliteTable("atproto_connections", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  userId: text("user_id")
+    .unique()
+    .references(() => user.id, { onDelete: "cascade" }),
+  did: text("did").notNull().unique(),
+  session: text("session"),
+  /** Scope actually granted; null when the server omitted it. */
+  scopes: text("scopes"),
+  handle: text("handle"),
+  pdsUrl: text("pds_url"),
+  status: text("status")
+    .$type<"active" | "disconnected">()
+    .notNull()
+    .default("active"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .$default(() => new Date())
+    .notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .$default(() => new Date())
+    .notNull(),
+});
+export type DatabaseAtprotoConnection = typeof atprotoConnections.$inferSelect;
 
 // === App Config (app-wide settings) ===
 

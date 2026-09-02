@@ -15,6 +15,12 @@ import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { barsHiddenAtom } from "~/lib/data/atoms";
 import { useBookmarkValue } from "~/lib/data/bookmarks";
+import { bookmarksStore } from "~/lib/data/bookmarks/store";
+import {
+  bookmarkCapturesStore,
+  useBookmarkCaptureValue,
+} from "~/lib/data/bookmarks/capture-store";
+import { shouldRetainBookmarkCapture } from "~/lib/data/offline-content";
 import {
   getClosestVisibleElement,
   getElements,
@@ -30,14 +36,21 @@ import { orpcRouterClient } from "~/lib/orpc";
 import { getOriginActionLabel } from "~/lib/content/capabilities";
 import { REMOTE_IMAGE_PROPS } from "~/lib/remoteMedia";
 
-const captureCache = new Map<string, DatabasePageCapture>();
-
 export function BookmarkReader({ id }: { id: string }) {
   const bookmark = useBookmarkValue(id);
   const refreshedBookmark = useRefreshBookmark(id);
-  const [capture, setCapture] = useState<
-    DatabasePageCapture | null | undefined
-  >(() => captureCache.get(id));
+  const retainedCapture = useBookmarkCaptureValue(id);
+  const [captureResult, setCaptureResult] = useState<{
+    bookmarkId: string;
+    capture: DatabasePageCapture | null;
+    source: "authoritative" | "failure";
+  }>();
+  const capture =
+    captureResult?.bookmarkId === id
+      ? captureResult.source === "failure"
+        ? (retainedCapture ?? captureResult.capture)
+        : captureResult.capture
+      : retainedCapture;
   const articleRef = useRef<HTMLDivElement>(null);
   const [articleElement, setArticleElement] = useState<HTMLDivElement | null>(
     null,
@@ -51,7 +64,7 @@ export function BookmarkReader({ id }: { id: string }) {
 
   useEffect(() => {
     let active = true;
-    const cachedCapture = captureCache.get(id);
+    const cachedCapture = bookmarkCapturesStore.getState().capturesDict[id];
     void orpcRouterClient.bookmark
       .getCapture({
         bookmarkId: id,
@@ -60,16 +73,43 @@ export function BookmarkReader({ id }: { id: string }) {
       .then((result) => {
         if (!active) return;
         if (result?.status === "capture") {
-          captureCache.set(id, result.capture);
-          setCapture(result.capture);
+          // Retention is judged when the response lands so an archive that
+          // happened mid-flight cannot re-persist the capture.
+          const latestBookmark = bookmarksStore.getState().getBookmark(id);
+          if (latestBookmark && shouldRetainBookmarkCapture(latestBookmark)) {
+            bookmarkCapturesStore.getState().upsert(result.capture);
+          }
+          setCaptureResult({
+            bookmarkId: id,
+            capture: result.capture,
+            source: "authoritative",
+          });
         } else if (result?.status === "not-modified" && cachedCapture) {
-          setCapture(cachedCapture);
+          setCaptureResult({
+            bookmarkId: id,
+            capture: cachedCapture,
+            source: "authoritative",
+          });
         } else {
-          setCapture(null);
+          bookmarkCapturesStore.getState().remove(id);
+          setCaptureResult({
+            bookmarkId: id,
+            capture: null,
+            source: "authoritative",
+          });
         }
       })
       .catch(() => {
-        if (active) setCapture(null);
+        if (active) {
+          setCaptureResult((current) => ({
+            bookmarkId: id,
+            source: "failure",
+            capture:
+              current?.bookmarkId === id
+                ? current.capture
+                : (cachedCapture ?? null),
+          }));
+        }
       });
     return () => {
       active = false;

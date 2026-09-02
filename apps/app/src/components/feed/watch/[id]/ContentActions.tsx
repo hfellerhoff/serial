@@ -21,11 +21,13 @@ import { useFeedItemValue } from "~/lib/data/store";
 import { useMediaQuery } from "~/lib/hooks/use-media-query";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 
 export function ContentActions({ contentID }: { contentID: string }) {
   const { view } = useView();
 
   const video = useFeedItemValue(contentID);
+  const canMutate = useCanMutate();
 
   const { mutateAsync: setWatchedValue } =
     useFeedItemsSetWatchedValueMutation(contentID);
@@ -42,7 +44,7 @@ export function ContentActions({ contentID }: { contentID: string }) {
   const shouldHideFullscreenActions = useMediaQuery("(min-aspect-ratio: 4/3)");
 
   const toggleWatchLater = async () => {
-    if (!video) return;
+    if (!video || !canMutate) return;
     await setWatchLaterValue({
       id: video.id,
       feedId: video.feedId,
@@ -55,7 +57,7 @@ export function ContentActions({ contentID }: { contentID: string }) {
   });
 
   const toggleWatched = async () => {
-    if (!video) return;
+    if (!video || !canMutate) return;
     await setWatchedValue({
       id: video.id,
       feedId: video.feedId,
@@ -68,7 +70,7 @@ export function ContentActions({ contentID }: { contentID: string }) {
   });
 
   const handleSaveToInstapaper = async () => {
-    if (!video || !showInstapaperAction) return;
+    if (!video || !showInstapaperAction || !canMutate) return;
     await saveToInstapaper({ feedItemId: video.id });
   };
 
@@ -88,7 +90,7 @@ export function ContentActions({ contentID }: { contentID: string }) {
             variant="outline"
             onClick={handleSaveToInstapaper}
             size="icon"
-            disabled={isSavingToInstapaper}
+            disabled={!canMutate || isSavingToInstapaper}
           >
             <SendIcon size={16} />
           </Button>
@@ -97,6 +99,7 @@ export function ContentActions({ contentID }: { contentID: string }) {
           variant={isWatchLater ? "secondary" : "outline"}
           onClick={toggleWatchLater}
           size="icon"
+          disabled={!canMutate}
         >
           {isWatchLater ? (
             <CheckIcon size={16} />
@@ -108,6 +111,7 @@ export function ContentActions({ contentID }: { contentID: string }) {
           variant={isWatched ? "secondary" : "outline"}
           onClick={toggleWatched}
           size="icon"
+          disabled={!canMutate}
         >
           {isWatched ? (
             <ArchiveRestoreIcon size={16} />
@@ -126,7 +130,7 @@ export function ContentActions({ contentID }: { contentID: string }) {
           shortcut={SHORTCUT_KEYS.SEND_TO_INSTAPAPER}
           variant="outline"
           onClick={handleSaveToInstapaper}
-          disabled={isSavingToInstapaper}
+          disabled={!canMutate || isSavingToInstapaper}
           size="icon md:default"
         >
           <SendIcon size={16} />
@@ -137,6 +141,7 @@ export function ContentActions({ contentID }: { contentID: string }) {
         shortcut={SHORTCUT_KEYS.TOGGLE_SAVED}
         variant={isWatchLater ? "secondary" : "outline"}
         onClick={toggleWatchLater}
+        disabled={!canMutate}
         size="icon md:default"
       >
         {isWatchLater ? (
@@ -152,6 +157,7 @@ export function ContentActions({ contentID }: { contentID: string }) {
         shortcut={SHORTCUT_KEYS.TOGGLE_READ}
         variant={isWatched ? "secondary" : "outline"}
         onClick={toggleWatched}
+        disabled={!canMutate}
         size="icon md:default"
       >
         {isWatched ? (

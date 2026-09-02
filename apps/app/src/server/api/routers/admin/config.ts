@@ -6,12 +6,17 @@ import { adminProcedure } from "./base";
 import type { AuthProvider } from "~/lib/constants";
 import {
   authProviderSchema,
-  CREDENTIAL_PROVIDER_ID,
+  getAdminSigninMethods,
   getAvailableSignupProviders,
   getEnabledAuthProviders,
   isPublicSignupEnabled,
+  wouldDisableSoleAdminSigninMethod,
 } from "~/lib/constants";
-import { isOAuthConfigured } from "~/server/auth/constants";
+import {
+  getConfiguredAuthProviders,
+  isAtprotoConfigured,
+  isOAuthConfigured,
+} from "~/server/auth/constants";
 import { validateInvitationToken } from "~/server/invitations";
 import { env } from "~/env";
 import { publicProcedure } from "~/server/orpc/base";
@@ -51,21 +56,14 @@ export const getPublicSignupSetting = adminProcedure.handler(async () => {
       )
       .all();
 
-    const oauthProviderId = env.OAUTH_PROVIDER_ID;
-
     // A method is "required" if any admin has it as their only sign-in method
-    for (const admin of adminUsers) {
-      const rows = adminAccountRows.filter((r) => r.userId === admin.id);
-      const methods: AuthProvider[] = [];
-      if (rows.some((a) => a.providerId === CREDENTIAL_PROVIDER_ID)) {
-        methods.push("email");
-      }
-      if (
-        oauthProviderId &&
-        rows.some((a) => a.providerId === oauthProviderId)
-      ) {
-        methods.push("oauth");
-      }
+    const perAdminMethods = getAdminSigninMethods({
+      adminUserIds: adminUsers.map((u) => u.id),
+      accountRows: adminAccountRows,
+      oauthProviderId: isOAuthConfigured() ? env.OAUTH_PROVIDER_ID : undefined,
+      atprotoConfigured: isAtprotoConfigured(),
+    });
+    for (const methods of perAdminMethods) {
       if (methods.length === 1) {
         requiredMethods.add(methods[0]!);
       }
@@ -77,6 +75,7 @@ export const getPublicSignupSetting = adminProcedure.handler(async () => {
     signinProviders: getEnabledAuthProviders(signinProvidersConfig?.value),
     signupProviders: getEnabledAuthProviders(signupProvidersConfig?.value),
     isOAuthConfigured: isOAuthConfigured(),
+    isAtprotoConfigured: isAtprotoConfigured(),
     oauthProviderName: env.OAUTH_PROVIDER_NAME ?? "OAuth",
     adminSigninMethods: [...requiredMethods],
   };
@@ -191,29 +190,19 @@ export const setEnabledSigninProviders = adminProcedure
         )
         .all();
 
-      const oauthProviderId = env.OAUTH_PROVIDER_ID;
-      const enabledProviderSet = new Set(input.providers);
-      for (const admin of adminUsers) {
-        const methods: AuthProvider[] = [];
-        const rows = adminAccountRows.filter((r) => r.userId === admin.id);
-        if (rows.some((a) => a.providerId === CREDENTIAL_PROVIDER_ID)) {
-          methods.push("email");
-        }
-        if (
-          oauthProviderId &&
-          rows.some((a) => a.providerId === oauthProviderId)
-        ) {
-          methods.push("oauth");
-        }
-        const hasRemaining = methods.some((method) =>
-          enabledProviderSet.has(method),
-        );
-        if (!hasRemaining) {
-          throw new ORPCError("BAD_REQUEST", {
-            message:
-              "Cannot disable sign-in methods — this would lock out an admin user",
-          });
-        }
+      const perAdminMethods = getAdminSigninMethods({
+        adminUserIds: adminUsers.map((u) => u.id),
+        accountRows: adminAccountRows,
+        oauthProviderId: isOAuthConfigured()
+          ? env.OAUTH_PROVIDER_ID
+          : undefined,
+        atprotoConfigured: isAtprotoConfigured(),
+      });
+      if (wouldDisableSoleAdminSigninMethod(perAdminMethods, input.providers)) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "Cannot disable sign-in methods — this would lock out an admin user",
+        });
       }
     }
 
@@ -277,19 +266,18 @@ export const getSigninConfig = publicProcedure.handler(async () => {
   const userCount = await db.select({ count: count() }).from(user).get();
   const isFirstUser = (userCount?.count ?? 0) === 0;
   const oauthConfigured = isOAuthConfigured();
+  const configuredProviders = getConfiguredAuthProviders();
+  const configuredProviderSet = new Set(configuredProviders);
 
-  const filterOAuth = (providers: AuthProvider[]) =>
-    oauthConfigured ? providers : providers.filter((p) => p !== "oauth");
-
-  const signinProviders = filterOAuth(
-    getEnabledAuthProviders(signinConfig?.value),
+  const signinProviders = getEnabledAuthProviders(signinConfig?.value).filter(
+    (p) => configuredProviderSet.has(p),
   );
 
   const signupProviders = getAvailableSignupProviders({
     isFirstUser,
     publicSignupEnabled: isPublicSignupEnabled(publicSignup?.value),
     signupProvidersConfig: signupConfig?.value,
-    oauthConfigured,
+    configuredProviders,
   });
 
   return {
@@ -337,7 +325,7 @@ export const getSignupConfig = publicProcedure
       isFirstUser,
       publicSignupEnabled: isPublicSignupEnabled(publicSignup?.value),
       signupProvidersConfig: signupConfig?.value,
-      oauthConfigured,
+      configuredProviders: getConfiguredAuthProviders(),
     });
 
     return {

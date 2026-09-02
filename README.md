@@ -69,3 +69,28 @@ Serial supports [Resend](https://resend.com) and [SendGrid](https://sendgrid.com
 - Register a new Instapaper OAuth application using [their form](https://www.instapaper.com/main/request_oauth_consumer_token).
 - Wait to receive your OAuth credentials
 - Add your `INSTAPAPER_OAUTH_ID` and `INSTAPAPER_OAUTH_SECRET` to `.env` or your host's environment variables UI.
+
+### AT Protocol integration
+
+Serial supports allowing users to sign in with their AT Protocol handle. To enable this on your instance, do the following:
+
+Run the following command in a terminal, and use the output as the value of the `ATPROTO_STORE_ENCRYPTION_KEY` environment variable:
+
+```sh
+openssl rand -base64 32
+```
+
+Run the following command in a terminal, and use the output as the value of the `ATPROTO_CLIENT_PRIVATE_KEYS` environment variable:
+
+```sh
+node -e "crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign']).then(async k=>console.log(JSON.stringify({kid:crypto.randomUUID(),...await crypto.subtle.exportKey('jwk',k.privateKey)})))"
+```
+
+Keep in mind that you may need to put those variables in quotes or mark them as "literal", as they will have special characters as part of their output.
+
+That's it! You should be up and running with the AT Protocol. Keep in mind that you can set the displayed authentication methods in your Admin settings, which may be useful if you'd like to configure the allowed sign-in methods.
+
+The following are very optional, but advanced users should know that they can also set:
+
+- `ATPROTO_PLC_DIRECTORY_URL`: This defaults to `https://plc.directory`, but you can use an alternate source if you'd like to depend less on Bluesky's infrastructure.
+- `ATPROTO_APPVIEW_URL`: This defaults to `https://public.api.bsky.app` for use in generating handle autocomplete suggestions, but you can use an alternate source if you'd like to depend less on Bluesky's infrastructure.

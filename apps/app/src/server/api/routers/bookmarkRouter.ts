@@ -3,6 +3,7 @@ import { protectedProcedure } from "~/server/orpc/base";
 import {
   deleteBookmark,
   getBookmarkCapture,
+  getBookmarkCaptures,
   saveBookmarkFromApp,
   setBookmarkTag,
   setBookmarkView,
@@ -98,6 +99,20 @@ export const getCapture = protectedProcedure
       database: context.db,
       userId: context.user.id,
       ...input,
+    }),
+  );
+
+export const getCaptures = protectedProcedure
+  .input(
+    z.object({
+      bookmarkIds: z.array(bookmarkIdSchema).min(1).max(100),
+    }),
+  )
+  .handler(({ context, input }) =>
+    getBookmarkCaptures({
+      database: context.db,
+      userId: context.user.id,
+      bookmarkIds: input.bookmarkIds,
     }),
   );
 

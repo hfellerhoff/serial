@@ -7,6 +7,19 @@ vi.mock("~/server/email", () => ({
   sendEmail: vi.fn(),
 }));
 
+// The redirect under test only applies to credential users; the mocked session
+// has no backing database, so answer the verification-policy check directly.
+vi.mock("~/server/auth/email-verification-policy", () => ({
+  requiresEmailVerification: vi.fn().mockReturnValue(true),
+  refreshEmailVerificationExempt: vi.fn(),
+}));
+
+async function getVerificationPolicyMock() {
+  const { requiresEmailVerification } =
+    await import("~/server/auth/email-verification-policy");
+  return vi.mocked(requiresEmailVerification);
+}
+
 const VALID_CONNECT_CALLBACK = `/auth/connect-extension?${new URLSearchParams({
   redirect_uri:
     "https://olpaonddchkbjpmjjfamplfaibopllam.chromiumapp.org/serial-auth",
@@ -67,5 +80,33 @@ describe("extension authentication handoff", () => {
       VALID_CONNECT_CALLBACK,
     );
     expect(next).not.toHaveBeenCalled();
+    expect(await getVerificationPolicyMock()).toHaveBeenCalledWith({
+      emailVerified: false,
+    });
+  });
+
+  it("lets an exempt unverified user through without redirecting", async () => {
+    const { auth, authMiddleware } = await import("~/server/auth");
+    const requiresEmailVerification = await getVerificationPolicyMock();
+    requiresEmailVerification.mockReturnValue(false);
+    vi.spyOn(auth.api, "getSession").mockResolvedValue({
+      user: { emailVerified: false },
+    } as never);
+    const next = vi.fn();
+    const serverMiddleware = authMiddleware.options.server;
+    if (!serverMiddleware) throw new Error("Auth middleware is not configured");
+
+    await serverMiddleware({
+      context: undefined,
+      handlerType: "router",
+      next,
+      pathname: "/bookmarks",
+      request: new Request("https://serial.example.com/bookmarks"),
+    });
+
+    expect(requiresEmailVerification).toHaveBeenCalledWith({
+      emailVerified: false,
+    });
+    expect(next).toHaveBeenCalledTimes(1);
   });
 });

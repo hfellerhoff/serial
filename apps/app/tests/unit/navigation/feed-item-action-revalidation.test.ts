@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type * as Jotai from "jotai";
 import { useFeedItemActions } from "~/lib/hooks/useFeedItemActions";
 
 const mocks = vi.hoisted(() => ({
@@ -12,6 +13,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock("react", () => ({
   useCallback: <T extends (...args: never[]) => unknown>(callback: T) =>
     callback,
+}));
+vi.mock("jotai", async (importOriginal) => ({
+  ...(await importOriginal<typeof Jotai>()),
+  useAtomValue: () => "connected",
 }));
 vi.mock("@tanstack/react-router", () => ({
   useRouter: () => ({ navigate: vi.fn() }),
@@ -44,6 +49,7 @@ vi.mock("~/lib/data/store", () => ({
     isWatched: false,
     isWatchLater: true,
   }),
+  useHasRetainedFeedItemBody: () => false,
 }));
 vi.mock("~/lib/data/navigation/refreshOnLocalTransition", () => ({
   refreshNavigationAfterFeedItemChangeIfNeeded:

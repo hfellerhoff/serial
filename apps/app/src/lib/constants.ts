@@ -27,11 +27,88 @@ export function isPublicSignupEnabled(
   return configValue === "true";
 }
 
-export const authProviderSchema = z.enum(["email", "oauth"]);
+export const authProviderSchema = z.enum(["email", "oauth", "atproto"]);
 export type AuthProvider = z.infer<typeof authProviderSchema>;
+
+/**
+ * Auth-page display priority: the first available provider renders as the
+ * primary method; the rest become secondary entries under the divider.
+ * Presentation order only — the schema above stays the validation contract.
+ */
+export const AUTH_PROVIDER_DISPLAY_PRIORITY: AuthProvider[] = [
+  "oauth",
+  "atproto",
+  "email",
+];
+
+export function orderAuthProvidersForDisplay(
+  providers: AuthProvider[],
+): AuthProvider[] {
+  return AUTH_PROVIDER_DISPLAY_PRIORITY.filter((provider) =>
+    providers.includes(provider),
+  );
+}
 
 /** Better Auth provider ID stored in the `account` table for email/password users */
 export const CREDENTIAL_PROVIDER_ID = "credential";
+
+/** Better Auth provider ID stored in the `account` table for AT Protocol users */
+export const ATPROTO_PROVIDER_ID = "atproto";
+
+/**
+ * Per-user sign-in methods derived from account rows, counting only
+ * providers this instance has configured (env-dependent, so supplied by
+ * the caller). Named for its original caller, admin lockout accounting (a
+ * sign-in method may not be disabled while it is some admin's only way
+ * in); the connection unlink guard shares it for the same question about
+ * any user. Pure so every guard shares one accounting of which account
+ * rows count as which method.
+ */
+export function getAdminSigninMethods(options: {
+  adminUserIds: string[];
+  accountRows: Array<{ userId: string; providerId: string }>;
+  /** The instance's OAuth provider id, or undefined when OAuth is not fully configured. */
+  oauthProviderId: string | undefined;
+  atprotoConfigured: boolean;
+}): AuthProvider[][] {
+  return options.adminUserIds.map((adminId) => {
+    const rows = options.accountRows.filter((r) => r.userId === adminId);
+    const methods: AuthProvider[] = [];
+    if (rows.some((r) => r.providerId === CREDENTIAL_PROVIDER_ID)) {
+      methods.push("email");
+    }
+    if (
+      options.oauthProviderId &&
+      rows.some((r) => r.providerId === options.oauthProviderId)
+    ) {
+      methods.push("oauth");
+    }
+    if (
+      options.atprotoConfigured &&
+      rows.some((r) => r.providerId === ATPROTO_PROVIDER_ID)
+    ) {
+      methods.push("atproto");
+    }
+    return methods;
+  });
+}
+
+/**
+ * Whether restricting the enabled set to `enabledProviders` would take away
+ * some admin's only working sign-in method. Admins with no working method at all are
+ * skipped: the setting can't lock them out further, and refusing on their
+ * behalf would reject every change, including widening ones.
+ */
+export function wouldDisableSoleAdminSigninMethod(
+  perAdminMethods: AuthProvider[][],
+  enabledProviders: AuthProvider[],
+): boolean {
+  const enabled = new Set(enabledProviders);
+  return perAdminMethods.some(
+    (methods) =>
+      methods.length > 0 && !methods.some((method) => enabled.has(method)),
+  );
+}
 
 const DEFAULT_AUTH_PROVIDERS: AuthProvider[] = ["email"];
 
@@ -48,7 +125,8 @@ export function getEnabledAuthProviders(
     const parsed = JSON.parse(configValue);
     if (!Array.isArray(parsed)) return DEFAULT_AUTH_PROVIDERS;
     return parsed.filter(
-      (p: unknown): p is AuthProvider => p === "email" || p === "oauth",
+      (p: unknown): p is AuthProvider =>
+        authProviderSchema.safeParse(p).success,
     );
   } catch {
     return DEFAULT_AUTH_PROVIDERS;
@@ -58,22 +136,21 @@ export function getEnabledAuthProviders(
 /**
  * Single source of truth for computing which sign-up providers are currently
  * available, factoring in the public-signup toggle, the configured provider
- * list, whether OAuth env vars are present, and the first-user special case.
+ * list, which providers this instance has configured (env-dependent, so
+ * supplied by the caller), and the first-user special case.
  */
 export function getAvailableSignupProviders(opts: {
   isFirstUser: boolean;
   publicSignupEnabled: boolean;
   signupProvidersConfig: string | undefined | null;
-  oauthConfigured: boolean;
+  configuredProviders: AuthProvider[];
 }): AuthProvider[] {
+  const configured = new Set(opts.configuredProviders);
   if (opts.isFirstUser) {
-    const providers: AuthProvider[] = ["email"];
-    if (opts.oauthConfigured) providers.push("oauth");
-    return providers;
+    return authProviderSchema.options.filter((p) => configured.has(p));
   }
   if (!opts.publicSignupEnabled) return [];
-  const providers = getEnabledAuthProviders(opts.signupProvidersConfig);
-  return opts.oauthConfigured
-    ? providers
-    : providers.filter((p) => p !== "oauth");
+  return getEnabledAuthProviders(opts.signupProvidersConfig).filter((p) =>
+    configured.has(p),
+  );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { CategoryFeedsInput } from "./CategoryFeedsInput";
 import { Button } from "~/components/ui/button";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 import { useContentCategories } from "~/lib/data/content-categories";
 import { useUpdateContentCategoryMutation } from "~/lib/data/content-categories/mutations";
 
@@ -14,6 +15,7 @@ export function BulkAssignFeedsToTagsContent({
   selectedTagIds: number[];
   onClose: () => void;
 }) {
+  const canMutate = useCanMutate();
   const [isAssigning, setIsAssigning] = useState(false);
   const [selectedFeedIds, setSelectedFeedIds] = useState<number[]>([]);
   const { mutateAsync: updateContentCategory } =
@@ -21,6 +23,7 @@ export function BulkAssignFeedsToTagsContent({
   const { contentCategories } = useContentCategories();
 
   const handleSave = () => {
+    if (!canMutate) return;
     if (selectedTagIds.length === 0 || selectedFeedIds.length === 0) {
       onClose();
       return;
@@ -65,7 +68,7 @@ export function BulkAssignFeedsToTagsContent({
         <Button
           className="flex-1"
           onClick={handleSave}
-          disabled={isAssigning || selectedFeedIds.length === 0}
+          disabled={!canMutate || isAssigning || selectedFeedIds.length === 0}
         >
           {isAssigning ? "Saving..." : "Assign"}
         </Button>

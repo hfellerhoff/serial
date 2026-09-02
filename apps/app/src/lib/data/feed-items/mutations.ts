@@ -1,9 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
-import { feedItemsStore, useFeedItemState } from "../store";
+import { feedItemsStore, retainFeedItemBody, useFeedItemState } from "../store";
 import { feedCategoriesStore } from "../feed-categories/store";
 import { mixedContentStore } from "../mixed-content/store";
 import { advanceMixedContentMembershipRevision } from "../mixed-content/membershipRevision";
 import { viewsStore } from "../views/store";
+import { canMutateNow } from "../offline-mutations";
 import {
   clearPendingFeedItemOverride,
   setPendingWatchedOverride,
@@ -23,6 +24,10 @@ export type OptimisticWatchedContext = {
   token: object;
   previousIsWatched: boolean;
   previousIsWatchedUpdatedAt: Date | null;
+  previousRetainedBody?: Pick<
+    ApplicationFeedItem,
+    "content" | "contentHash" | "contentSnippet"
+  >;
 };
 
 export type OptimisticWatchLaterContext = {
@@ -39,7 +44,10 @@ type WatchedServerValue = {
   updatedAt: Date;
 };
 
-function setFeedItemsWithMixedProjection(items: ApplicationFeedItem[]) {
+function setFeedItemsWithMixedProjection(
+  items: ApplicationFeedItem[],
+  retainedBodyItemIds?: ReadonlySet<string>,
+) {
   if (items.length === 0) return;
   const store = feedItemsStore.getState();
   const previousFeedItems = Object.fromEntries(
@@ -52,7 +60,7 @@ function setFeedItemsWithMixedProjection(items: ApplicationFeedItem[]) {
   ) {
     advanceMixedContentMembershipRevision();
   }
-  store.setFeedItems(items);
+  store.setFeedItems(items, undefined, retainedBodyItemIds);
   mixedContentStore.getState().reprojectFeedItems({
     itemIds: items.map((item) => item.id),
     previousFeedItems,
@@ -79,6 +87,14 @@ export function applyOptimisticWatchedValues(
       token,
       previousIsWatched: feedItem.isWatched,
       previousIsWatchedUpdatedAt: feedItem.isWatchedUpdatedAt,
+      previousRetainedBody:
+        store.retainedFeedItemBodyIds[id] === true
+          ? {
+              content: feedItem.content,
+              contentHash: feedItem.contentHash,
+              contentSnippet: feedItem.contentSnippet,
+            }
+          : undefined,
     });
     return [{ ...feedItem, isWatched, isWatchedUpdatedAt }];
   });
@@ -175,6 +191,7 @@ export function settleOptimisticWatchedValues(
     contexts.length === 1 && serverItems.length === 1
       ? serverItems[0]
       : undefined;
+  const restoredBodyItemIds = new Set<string>();
   const updatedItems = contexts.flatMap((context) => {
     if (
       !clearPendingFeedItemOverride(context.itemId, "isWatched", context.token)
@@ -184,17 +201,24 @@ export function settleOptimisticWatchedValues(
     const currentItem = store.feedItemsDict[context.itemId];
     if (!currentItem) return [];
     const serverItem = serverItemsById.get(context.itemId) ?? singleServerItem;
+    if (serverItem) return [{ ...currentItem, ...serverItem }];
+
+    const previousRetainedBody = context.previousRetainedBody;
+    const canRestoreBody =
+      !context.previousIsWatched &&
+      previousRetainedBody !== undefined &&
+      currentItem.contentHash === previousRetainedBody.contentHash;
+    if (canRestoreBody) restoredBodyItemIds.add(context.itemId);
     return [
-      serverItem
-        ? { ...currentItem, ...serverItem }
-        : {
-            ...currentItem,
-            isWatched: context.previousIsWatched,
-            isWatchedUpdatedAt: context.previousIsWatchedUpdatedAt,
-          },
+      {
+        ...currentItem,
+        ...(canRestoreBody ? previousRetainedBody : undefined),
+        isWatched: context.previousIsWatched,
+        isWatchedUpdatedAt: context.previousIsWatchedUpdatedAt,
+      },
     ];
   });
-  setFeedItemsWithMixedProjection(updatedItems);
+  setFeedItemsWithMixedProjection(updatedItems, restoredBodyItemIds);
 }
 
 export function resolveOptimisticWatchLaterValue(
@@ -226,6 +250,7 @@ export async function setBulkWatchedValue({
   items: BulkWatchedItem[];
   isWatched: boolean;
 }) {
+  if (!canMutateNow()) return;
   const contexts = applyOptimisticWatchedValues(items, isWatched);
 
   try {
@@ -264,6 +289,9 @@ export function useFeedItemsSetWatchLaterValueMutation(contentId: string) {
       },
       onSuccess: (serverValue, _variables, context) => {
         resolveOptimisticWatchLaterValue(context, serverValue);
+        if (serverValue.isWatchLater) {
+          void retainFeedItemBody(contentId);
+        }
       },
       onError: (_error, _variables, context) => {
         rollbackOptimisticWatchLaterValue(context);

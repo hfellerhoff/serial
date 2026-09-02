@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useSetProgressMutation } from "~/lib/data/feed-items/mutations";
 import { getShortcutKeys, SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { useFeedItemValue } from "~/lib/data/store";
+import { canMutateNow } from "~/lib/data/offline-mutations";
 
 const NAV_KEYS = new Set([
   ...getShortcutKeys(SHORTCUT_KEYS.ARROW_UP),
@@ -36,6 +37,7 @@ export function useDebouncedSaveProgress({
   const save = useCallback(() => {
     const item = feedItemRef.current;
     if (!item) return;
+    if (!canMutateNow()) return;
     const { progress, duration } = getProgressRef.current();
     if (progress >= 0 && duration > 0) {
       mutateRef.current({

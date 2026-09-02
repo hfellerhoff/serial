@@ -49,12 +49,23 @@ import { UNCATEGORIZED_VIEW_ID } from "~/lib/data/views/constants";
 import { useQuickCreateViewMutation } from "~/lib/data/views/mutations";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
 import { useShiftSelect } from "~/lib/hooks/useShiftSelect";
+import { OfflineMutationBoundary } from "~/components/OfflineMutationBoundary";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 
 export const Route = createFileRoute("/_app/feeds")({
   component: ManageFeedsPage,
 });
 
 function ManageFeedsPage() {
+  return (
+    <OfflineMutationBoundary>
+      <ManageFeedsPageContent />
+    </OfflineMutationBoundary>
+  );
+}
+
+function ManageFeedsPageContent() {
+  const canMutate = useCanMutate();
   const { feeds } = useFeeds();
   const { feedCategories } = useFeedCategories();
   const { contentCategories } = useContentCategories();
@@ -224,6 +235,7 @@ function ManageFeedsPage() {
   };
 
   const handleDelete = () => {
+    if (!canMutate) return;
     const feedIds = Array.from(selectedFeedIds);
     const count = feedIds.length;
     setShowDeleteDialog(false);
@@ -320,6 +332,7 @@ function ManageFeedsPage() {
   });
 
   const handleEditSave = () => {
+    if (!canMutate) return;
     const feedIds = Array.from(selectedFeedIds);
     const count = feedIds.length;
     const sharedCategories = getSharedCategories();
@@ -696,7 +709,7 @@ function ManageFeedsPage() {
             variant="destructive"
             className="flex-1"
             onClick={handleDelete}
-            disabled={isDeletingFeeds}
+            disabled={!canMutate || isDeletingFeeds}
           >
             {isDeletingFeeds ? "Deleting..." : "Delete"}
           </Button>
@@ -736,6 +749,7 @@ function ManageFeedsPage() {
               className="flex-1"
               onClick={handleEditSave}
               disabled={
+                !canMutate ||
                 isAssigningCategory ||
                 isRemovingCategory ||
                 isAssigningView ||

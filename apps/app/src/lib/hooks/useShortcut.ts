@@ -8,6 +8,7 @@ import {
 import type { KeyboardEvent } from "react";
 import { useDialogStore } from "~/components/feed/dialogStore";
 import { doesAnyFormElementHaveFocus } from "~/lib/doesAnyFormElementHaveFocus";
+import { getShortcutEventKey } from "~/lib/getShortcutEventKey";
 
 /**
  * Borrowed from the ever-helpful Tania Rascia:
@@ -68,6 +69,25 @@ export const useShortcut = (
         Shift: event.shiftKey,
       };
 
+      const eventKey = getShortcutEventKey(event);
+
+      // Alt only peeks at the shortcut hints, so an unbound Alt never
+      // disqualifies a match
+      const isEveryOtherModifierFalse = Object.entries(modifierMap).every(
+        ([name, pressed]) => name === "Alt" || !pressed,
+      );
+
+      const fireCallback = () => {
+        // Alt+letter is a browser menu accelerator on Windows/Linux;
+        // suppress it when the shortcut fires while peeking at the hints.
+        // Named keys keep their default (Alt+Arrow is the browser history
+        // gesture there).
+        if (event.altKey && eventKey.length === 1) {
+          event.preventDefault();
+        }
+        return callbackRef.current(event);
+      };
+
       for (const currentShortcut of shortcutsKey.split("\n")) {
         // Handle combined modifier key shortcuts (e.g. pressing Control + D)
         if (currentShortcut.includes("+")) {
@@ -89,28 +109,37 @@ export const useShortcut = (
               if (pressedModifierSet.has(key)) {
                 return modifierMap[key];
               }
-              // If modifier not provided, expect `false`
-              return !modifierMap[key];
+              // If modifier not provided, expect `false` (except Alt, which
+              // only peeks at the hints)
+              return key === "Alt" || !modifierMap[key];
             });
 
-            if (doesEveryModifierMatch && finalKey === event.key) {
-              return callbackRef.current(event);
+            if (doesEveryModifierMatch && finalKey === eventKey) {
+              return fireCallback();
             }
           } else {
-            // If the shortcut doesn't begin with a modifier, it's a sequence
-            if (keyArray[keyCombo.length] === event.key) {
+            // If the shortcut doesn't begin with a modifier, it's a sequence,
+            // which requires the same bare-key modifier state as single keys
+            if (
+              isEveryOtherModifierFalse &&
+              keyArray[keyCombo.length] === eventKey
+            ) {
               // Handle final key in the sequence
               if (
-                keyArray[keyArray.length - 1] === event.key &&
+                keyArray[keyArray.length - 1] === eventKey &&
                 keyCombo.length === keyArray.length - 1
               ) {
                 // Run handler if the sequence is complete, then reset it
-                callbackRef.current(event);
+                fireCallback();
                 return setKeyCombo([]);
               }
 
-              // Add to the sequence
-              return setKeyCombo((prevCombo) => [...prevCombo, event.key]);
+              // Add to the sequence; keep intermediate Alt-held keys away
+              // from browser menu accelerators too
+              if (event.altKey && eventKey.length === 1) {
+                event.preventDefault();
+              }
+              return setKeyCombo((prevCombo) => [...prevCombo, eventKey]);
             }
             if (keyCombo.length > 0) {
               // Reset key combo if it doesn't match the sequence
@@ -120,17 +149,12 @@ export const useShortcut = (
         }
 
         // Single key shortcuts (e.g. pressing D)
-        if (currentShortcut === event.key) {
-          // Expect all modifiers to be false
-          const isEveryModifierFalse = Object.values(modifierMap).every(
-            (value) => !value,
-          );
-
-          if (!isEveryModifierFalse) {
+        if (currentShortcut === eventKey) {
+          if (!isEveryOtherModifierFalse) {
             return;
           }
 
-          return callbackRef.current(event);
+          return fireCallback();
         }
       }
     },

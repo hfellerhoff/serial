@@ -1,7 +1,9 @@
 import { spawn, spawnSync } from "node:child_process";
 import net from "node:net";
 
-const STARTUP_TIMEOUT_MS = 150_000;
+// Covers four production `pnpm start` app servers plus the fixture
+// servers booting in parallel per probe run.
+const STARTUP_TIMEOUT_MS = 240_000;
 const CLEANUP_TIMEOUT_MS = 15_000;
 const POLL_INTERVAL_MS = 100;
 const REPETITIONS_PER_SIGNAL = 2;
@@ -11,6 +13,12 @@ const expectedPortVariables = [
   "SERIAL_TEST_SELF_HOSTED_RSS_PORT",
   "SERIAL_TEST_SELF_HOSTED_BOOTSTRAP_APP_PORT",
   "SERIAL_TEST_SELF_HOSTED_BOOTSTRAP_TURSO_PORT",
+  "SERIAL_TEST_SELF_HOSTED_CONFIG_APP_PORT",
+  "SERIAL_TEST_SELF_HOSTED_CONFIG_TURSO_PORT",
+  "SERIAL_TEST_SELF_HOSTED_UNCONFIGURED_APP_PORT",
+  "SERIAL_TEST_SELF_HOSTED_UNCONFIGURED_TURSO_PORT",
+  "SERIAL_TEST_SELF_HOSTED_EMAIL_PORT",
+  "SERIAL_TEST_SELF_HOSTED_APPVIEW_PORT",
 ] as const;
 
 type ProcessRow = {
@@ -128,7 +136,10 @@ async function waitForReady(
     const processGroupIds = parseProcessGroupIds(currentOutput);
     if (
       ports &&
-      processGroupIds.length >= 4 &&
+      // Seven webServer entries (4 app + rss + appview + email) plus the
+      // supervisor's own group make eight; require most of them before
+      // treating the run as started, leaving slack for reporting races.
+      processGroupIds.length >= 7 &&
       currentOutput.includes("SERIAL_E2E_CLEANUP_READY")
     ) {
       return { ports, processGroupIds };
@@ -147,14 +158,31 @@ function assertExpectedServices(processes: ProcessRow[], ports: number[]) {
   const processCommands = processes
     .map((process) => process.command)
     .join("\n");
-  const [appPort, tursoPort, rssPort, bootstrapAppPort, bootstrapTursoPort] =
-    ports;
+  const [
+    appPort,
+    tursoPort,
+    rssPort,
+    bootstrapAppPort,
+    bootstrapTursoPort,
+    configAppPort,
+    configTursoPort,
+    unconfiguredAppPort,
+    unconfiguredTursoPort,
+    emailPort,
+    appviewPort,
+  ] = ports;
   const expectedFragments = [
-    `vite preview --port ${appPort}`,
+    `NODE_ENV=production PORT=${appPort} pnpm start`,
     `turso dev --db-file serial-test-self-hosted.db --port ${tursoPort}`,
     `rss-server.ts ${rssPort}`,
-    `vite preview --port ${bootstrapAppPort}`,
+    `NODE_ENV=production PORT=${bootstrapAppPort} pnpm start`,
     `turso dev --db-file serial-test-self-hosted-bootstrap.db --port ${bootstrapTursoPort}`,
+    `NODE_ENV=production PORT=${configAppPort} pnpm start`,
+    `turso dev --db-file serial-test-self-hosted-config.db --port ${configTursoPort}`,
+    `NODE_ENV=production PORT=${unconfiguredAppPort} pnpm start`,
+    `turso dev --db-file serial-test-self-hosted-unconfigured.db --port ${unconfiguredTursoPort}`,
+    `email-server.ts ${emailPort}`,
+    `appview-server.ts ${appviewPort}`,
   ];
   const missingFragments = expectedFragments.filter(
     (fragment) => !processCommands.includes(fragment),

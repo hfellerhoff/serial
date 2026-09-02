@@ -44,6 +44,7 @@ import { useBookmarkValue } from "~/lib/data/bookmarks";
 import { BookmarkReader } from "~/components/content-reader/BookmarkReader";
 import { ContentRendererFallback } from "~/components/content-renderer/ContentRendererFallback";
 import { getArticleWidthLayout } from "~/components/content-reader/articleWidth";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 import {
   contentDestination,
   resolveContentItem,
@@ -91,6 +92,7 @@ function FeedReader({
   id: string;
   hasRefreshedFeedItem: boolean;
 }) {
+  const canMutate = useCanMutate();
   useRetentionPin("feed-item", id);
 
   const [articleStyle] = useFlagState("ARTICLE_STYLE");
@@ -187,7 +189,7 @@ function FeedReader({
     detectTruncatedContent(feedItem.content, feedItem.contentSnippet);
 
   const handleAlertResponse = (openLocation: "serial" | "origin") => {
-    if (!feedId) return;
+    if (!feedId || !canMutate) return;
 
     const categoryIds = feedCategories
       .filter((fc) => fc.feedId === feedId)
@@ -270,11 +272,15 @@ function FeedReader({
             <div className="mt-4 flex gap-2">
               <Button
                 variant="outline"
+                disabled={!canMutate}
                 onClick={() => handleAlertResponse("serial")}
               >
                 No, view in reader
               </Button>
-              <Button onClick={() => handleAlertResponse("origin")}>
+              <Button
+                disabled={!canMutate}
+                onClick={() => handleAlertResponse("origin")}
+              >
                 Yes, open in website
               </Button>
             </div>

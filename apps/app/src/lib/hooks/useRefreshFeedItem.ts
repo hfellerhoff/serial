@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { mergeFeedItem } from "~/lib/data/feed-items/mergeFeedItem";
-import { feedItemsStore } from "~/lib/data/store";
+import { feedItemsStore, retainLoadedFeedItemBody } from "~/lib/data/store";
 import { orpcRouterClient } from "~/lib/orpc";
 
 export function useRefreshFeedItem(id: string | undefined) {
@@ -30,6 +30,7 @@ export function useRefreshFeedItem(id: string | undefined) {
         feedItemsStore
           .getState()
           .setFeedItem(id, mergeFeedItem(currentItem, item));
+        retainLoadedFeedItemBody(id);
       })
       .catch((error) => {
         console.error("Error refreshing feed item:", error);
