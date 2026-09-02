@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { createClient } from "@libsql/client";
 import { createId } from "@paralleldrive/cuid2";
+import { clearQueryCache } from "../fixtures/query-cache";
 import { signUpAsAdmin } from "../fixtures/auth";
-import { SELF_HOSTED_TURSO_PORT } from "../fixtures/ports";
+import { SELF_HOSTED_CONFIG_TURSO_PORT } from "../fixtures/ports";
 import { cleanupUser, generateTestEmail } from "../fixtures/seed-db";
 import { setEnabledAuthProviders } from "../fixtures/set-enabled-auth-providers";
 import type { Page } from "@playwright/test";
@@ -12,14 +13,10 @@ import type { Page } from "@playwright/test";
  * renders alongside email/OAuth, disabling it gates the authorize endpoint
  * server-side, and lockout accounting locks the row while an admin's only
  * sign-in method is an atproto DID. The authorize sign-up pre-flight lives
- * here too — this file owns provider-config mutation, so every mutator of
- * that shared instance state shares one worker.
+ * here too. This project owns its database and runs serially, so every
+ * spec that sets and asserts a provider configuration can hold it stable
+ * for the whole test.
  */
-
-// Both describes mutate global provider config and restore it in
-// afterEach; run this file's tests in order in one worker (without serial
-// mode's skip-on-failure coupling) so they cannot interleave.
-test.describe.configure({ mode: "default" });
 
 /** Seed an admin whose only account row is an atproto DID. */
 async function seedAtprotoOnlyAdmin(tursoPort: number, email: string) {
@@ -43,32 +40,22 @@ async function seedAtprotoOnlyAdmin(tursoPort: number, email: string) {
   client.close();
 }
 
-async function clearQueryCache(page: Page) {
-  await page.evaluate(() => {
-    try {
-      localStorage.removeItem("REACT_QUERY_OFFLINE_CACHE");
-    } catch {
-      // localStorage may not be available in some contexts
-    }
-  });
-}
-
 test.describe("admin sign-in method settings", () => {
   let adminEmail: string;
   let atprotoAdminEmail: string;
 
   test.afterEach(async () => {
-    // Restore the global-setup provider state for other specs.
-    await setEnabledAuthProviders(SELF_HOSTED_TURSO_PORT, [
+    // Restore the global-setup provider state for the other config specs.
+    await setEnabledAuthProviders(SELF_HOSTED_CONFIG_TURSO_PORT, [
       "email",
       "oauth",
       "atproto",
     ]);
     if (atprotoAdminEmail) {
-      await cleanupUser(SELF_HOSTED_TURSO_PORT, atprotoAdminEmail);
+      await cleanupUser(SELF_HOSTED_CONFIG_TURSO_PORT, atprotoAdminEmail);
     }
     if (adminEmail) {
-      await cleanupUser(SELF_HOSTED_TURSO_PORT, adminEmail);
+      await cleanupUser(SELF_HOSTED_CONFIG_TURSO_PORT, adminEmail);
     }
   });
 
@@ -80,7 +67,7 @@ test.describe("admin sign-in method settings", () => {
 
     await signUpAsAdmin({
       page,
-      tursoPort: SELF_HOSTED_TURSO_PORT,
+      tursoPort: SELF_HOSTED_CONFIG_TURSO_PORT,
       name: "Settings Admin",
       email: adminEmail,
       password: "testpassword123",
@@ -137,7 +124,10 @@ test.describe("admin sign-in method settings", () => {
     // With an admin whose only method is an atproto DID, the row locks:
     // the switch is replaced by the locked indicator.
     atprotoAdminEmail = generateTestEmail();
-    await seedAtprotoOnlyAdmin(SELF_HOSTED_TURSO_PORT, atprotoAdminEmail);
+    await seedAtprotoOnlyAdmin(
+      SELF_HOSTED_CONFIG_TURSO_PORT,
+      atprotoAdminEmail,
+    );
     await clearQueryCache(page);
     await page.reload();
 
@@ -147,8 +137,7 @@ test.describe("admin sign-in method settings", () => {
       page.locator('label[for="signin-atproto-toggle"]'),
     ).toBeVisible({ timeout: 30000 });
     // Same budget as the label assertion above: the locked indicator only
-    // appears once the settings refetch lands, which can straggle under
-    // parallel-suite load.
+    // appears once the settings refetch lands.
     await expect(page.locator("#signin-atproto-toggle")).toHaveCount(0, {
       timeout: 30000,
     });
@@ -167,7 +156,7 @@ test.describe("atmosphere authorize sign-up pre-flight", () => {
   /** Exclude atproto from sign-up only; sign-in stays fully enabled. */
   async function excludeAtprotoFromSignup() {
     const client = createClient({
-      url: `http://127.0.0.1:${SELF_HOSTED_TURSO_PORT}`,
+      url: `http://127.0.0.1:${SELF_HOSTED_CONFIG_TURSO_PORT}`,
     });
     try {
       await client.execute({
@@ -183,7 +172,7 @@ test.describe("atmosphere authorize sign-up pre-flight", () => {
 
   async function seedAtprotoAccount(did: string) {
     const client = createClient({
-      url: `http://127.0.0.1:${SELF_HOSTED_TURSO_PORT}`,
+      url: `http://127.0.0.1:${SELF_HOSTED_CONFIG_TURSO_PORT}`,
     });
     const userId = createId();
     const now = Math.floor(Date.now() / 1000);
@@ -208,13 +197,27 @@ test.describe("atmosphere authorize sign-up pre-flight", () => {
 
   async function cleanupSeededUser(userId: string) {
     const client = createClient({
-      url: `http://127.0.0.1:${SELF_HOSTED_TURSO_PORT}`,
+      url: `http://127.0.0.1:${SELF_HOSTED_CONFIG_TURSO_PORT}`,
     });
     try {
       await client.execute({
         sql: "DELETE FROM serial_user WHERE id = ?",
         args: [userId],
       });
+    } finally {
+      client.close();
+    }
+  }
+
+  async function countUserRows() {
+    const client = createClient({
+      url: `http://127.0.0.1:${SELF_HOSTED_CONFIG_TURSO_PORT}`,
+    });
+    try {
+      const result = await client.execute(
+        "SELECT COUNT(*) AS n FROM serial_user",
+      );
+      return Number(result.rows[0]?.n ?? 0);
     } finally {
       client.close();
     }
@@ -238,8 +241,8 @@ test.describe("atmosphere authorize sign-up pre-flight", () => {
   }
 
   test.afterEach(async () => {
-    // Restore the global-setup provider state for other specs.
-    await setEnabledAuthProviders(SELF_HOSTED_TURSO_PORT, [
+    // Restore the global-setup provider state for the other config specs.
+    await setEnabledAuthProviders(SELF_HOSTED_CONFIG_TURSO_PORT, [
       "email",
       "oauth",
       "atproto",
@@ -253,6 +256,7 @@ test.describe("atmosphere authorize sign-up pre-flight", () => {
     await excludeAtprotoFromSignup();
     await page.goto("/auth/sign-in");
 
+    const before = await countUserRows();
     const rejected = await postAuthorize(
       page,
       "stranger.test",
@@ -260,6 +264,9 @@ test.describe("atmosphere authorize sign-up pre-flight", () => {
     );
     expect(rejected.status).toBe(400);
     expect(rejected.body.message).toContain("Sign ups are currently disabled");
+    // Rejected pre-flight, so no user row was ever created (account rows
+    // hang off users, so the user count is the sharper proxy).
+    expect(await countUserRows()).toBe(before);
   });
 
   test("lets a known DID past the sign-up gate while sign-ups are unavailable", async ({

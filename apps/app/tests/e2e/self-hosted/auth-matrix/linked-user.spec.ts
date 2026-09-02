@@ -1,22 +1,29 @@
 import { randomBytes } from "node:crypto";
 import { expect, test } from "@playwright/test";
-import { SELF_HOSTED_TURSO_PORT } from "../fixtures/ports";
+import { clearQueryCache } from "../../fixtures/query-cache";
+import {
+  SELF_HOSTED_APP_PORT,
+  SELF_HOSTED_TURSO_PORT,
+} from "../../fixtures/ports";
 import {
   cleanupAtprotoConnection,
   cleanupUser,
   generateTestEmail,
   getAtprotoLinkState,
   seedAtprotoLink,
-} from "../fixtures/seed-db";
-import { signUp } from "../fixtures/auth";
+  seedAtprotoOnlyUser,
+} from "../../fixtures/seed-db";
+import { seedSession, signIn, signOut, signUp } from "../../fixtures/auth";
 import type { Page } from "@playwright/test";
 
 /**
- * The ConnectionsDialog surface for the AT Protocol connection. The full
- * authorize round trip needs a real authorization server, so the link
- * state is seeded directly (the rows the link callback leaves behind) and
- * the dialog + unlink flow run end to end against the real app server;
- * the handle typeahead runs against the stub AppView.
+ * Matrix cells for the linked-either-method user shape, on the
+ * ConnectionsDialog surface: link entry, seeded link status, credential
+ * sign-in alongside the link, unlink, and the sole-enabled-method unlink
+ * guard. The full authorize round trip needs a real authorization server,
+ * so the link state is seeded directly (the rows the link callback leaves
+ * behind) and the dialog + unlink flow run end to end against the real app
+ * server; the handle typeahead runs against the stub AppView.
  */
 
 async function openConnections(page: Page, userName: string) {
@@ -56,19 +63,20 @@ test.describe("atproto connection management", () => {
     }
   });
 
-  test("connection row, seeded link status, and disconnect", async ({
+  test("connection row, seeded link status, credential sign-in, and disconnect", async ({
     page,
   }) => {
-    test.setTimeout(60000);
+    test.setTimeout(90000);
     testEmail = generateTestEmail();
     did = `did:plc:e2e${randomBytes(6).toString("hex")}`;
     const handle = "linked.example.com";
+    const password = "password123";
 
     await signUp({
       page,
       name: "Atmosphere Tester",
       email: testEmail,
-      password: "password123",
+      password,
     });
 
     // Not yet linked: the Atmosphere row is configured and clickable, and
@@ -88,14 +96,13 @@ test.describe("atproto connection management", () => {
     // Linked (seeded): the row shows the current handle with a disconnect
     // affordance.
     await seedAtprotoLink(SELF_HOSTED_TURSO_PORT, testEmail, { did, handle });
-    // Drop the persisted query cache so the seeded state is refetched.
-    await page.evaluate(() => {
-      try {
-        localStorage.removeItem("REACT_QUERY_OFFLINE_CACHE");
-      } catch {
-        // localStorage may not be available in some contexts
-      }
-    });
+
+    // Linked-either-method: the credential half keeps working alongside
+    // the link — a fresh password sign-in lands in the app and sees the
+    // linked state.
+    await signOut(page);
+    await signIn({ page, email: testEmail, password });
+    await clearQueryCache(page);
     await page.reload();
     await openConnections(page, "Atmosphere Tester");
     // The persisted-cache restore can serve the stale "not connected"
@@ -105,6 +112,7 @@ test.describe("atproto connection management", () => {
 
     // Disconnect: removes the sign-in method and destroys the credential
     // material even though the seeded blob is unreadable ciphertext.
+    // Allowed here because the credential method remains.
     await page
       .getByRole("button", { name: /disconnect/i })
       .first()
@@ -194,5 +202,52 @@ test.describe("atproto connection management", () => {
     const request = await linkRequest;
     expect(request.postData()).toContain("alice.test");
     expect(request.postData()).toContain("did:plc:e2e-alice");
+  });
+
+  test("the sole-enabled-method guard blocks a DID-only user's disconnect", async ({
+    page,
+  }) => {
+    test.setTimeout(60000);
+    testEmail = "";
+    did = `did:plc:e2e${randomBytes(6).toString("hex")}`;
+
+    const seeded = await seedAtprotoOnlyUser(SELF_HOSTED_TURSO_PORT, {
+      did,
+      handle: "solemethod.test",
+      name: "Sole Method User",
+    });
+    testEmail = seeded.email;
+
+    await seedSession({
+      page,
+      tursoPort: SELF_HOSTED_TURSO_PORT,
+      userId: seeded.userId,
+      baseUrl: `http://localhost:${SELF_HOSTED_APP_PORT}`,
+    });
+    await page.goto("/");
+
+    await openConnections(page, "Sole Method User");
+    await expect(page.getByText("solemethod.test")).toBeVisible({
+      timeout: 15000,
+    });
+
+    // Atmosphere is this account's only enabled sign-in method, so the
+    // disconnect is refused server-side and the link survives.
+    await page
+      .getByRole("button", { name: /disconnect/i })
+      .first()
+      .click();
+    await expect(
+      page.getByText(
+        "Atmosphere is your only way to sign in. Add a password before disconnecting it.",
+      ),
+    ).toBeVisible({ timeout: 10000 });
+
+    await expect
+      .poll(async () => getAtprotoLinkState(SELF_HOSTED_TURSO_PORT, did))
+      .toMatchObject({
+        accountRowCount: 1,
+        connection: { status: "active" },
+      });
   });
 });

@@ -51,6 +51,8 @@
     "test:e2e:headed": "node --import=tsx scripts/run-e2e.ts main --headed",
     "test:e2e:self-hosted": "SERIAL_CLIENT_PERFORMANCE_PRODUCTION=1 node --import=tsx scripts/run-e2e.ts self-hosted",
     "test:e2e:self-hosted-bootstrap": "SERIAL_CLIENT_PERFORMANCE_PRODUCTION=1 node --import=tsx scripts/run-e2e.ts self-hosted --project self-hosted-bootstrap",
+    "test:e2e:self-hosted-config": "SERIAL_CLIENT_PERFORMANCE_PRODUCTION=1 node --import=tsx scripts/run-e2e.ts self-hosted --project self-hosted-config",
+    "test:e2e:self-hosted-unconfigured": "SERIAL_CLIENT_PERFORMANCE_PRODUCTION=1 node --import=tsx scripts/run-e2e.ts self-hosted --project self-hosted-unconfigured",
     "test:e2e:self-hosted:dev": "node --import=tsx scripts/run-e2e.ts self-hosted",
     "test:e2e:self-hosted:ui": "node --import=tsx scripts/run-e2e.ts self-hosted --ui",
     "test:e2e:cleanup": "node --import=tsx scripts/test-e2e-cleanup.ts",

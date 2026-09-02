@@ -1,36 +1,35 @@
+import { randomBytes } from "node:crypto";
 import { expect, test } from "@playwright/test";
+import { seedSession, waitForReactHydration } from "../../fixtures/auth";
+import { openSidebar } from "../../fixtures/sidebar";
+import {
+  SELF_HOSTED_APP_PORT,
+  SELF_HOSTED_TURSO_PORT,
+} from "../../fixtures/ports";
+import { cleanupUser, seedAtprotoOnlyUser } from "../../fixtures/seed-db";
 import type { Page } from "@playwright/test";
 
 /**
- * The Atmosphere (AT Protocol) entry points on the auth pages. This
- * instance has atproto configured (test keys) and every provider enabled,
- * so the full method list renders in display priority: the generic OAuth
- * button as the primary method, then Atmosphere and Email as secondary
- * entries whose buttons open subscreens. The typeahead proxy points at the
- * stub AppView fixture, keeping suggestion specs hermetic.
- *
- * No PDS is reachable from this environment, so specs cover the UI flow up
- * to the authorize call and its error surface; the full round trip is
- * covered by the release-gate matrix.
+ * Matrix cells for the Atmosphere-first user shape: the auth-page entry
+ * points, the handle step, and a DID-only account's session. This shared
+ * instance has atproto configured (test keys) and every provider enabled —
+ * user-shape specs vary the account, never the instance config, so they
+ * run in parallel with the rest of the suite. The typeahead proxy points
+ * at the stub AppView fixture; no PDS is reachable, so flows are covered
+ * up to the authorize call and DID-only sessions are seeded directly (the
+ * rows plus a signed session cookie).
  */
 
-/**
- * Load an auth page until the Atmosphere button renders. Ordinarily one
- * load suffices; the retry rides out the brief window in which
- * admin-signin-methods.spec.ts (same parallel project, shared database)
- * has Atmosphere sign-in toggled off.
- */
+/** Load an auth page until the Atmosphere button renders. */
 async function gotoWithAtmosphere(
   page: Page,
   path: string,
   buttonName: string,
 ) {
-  await expect(async () => {
-    await page.goto(path);
-    await expect(page.getByRole("button", { name: buttonName })).toBeVisible({
-      timeout: 3000,
-    });
-  }).toPass({ timeout: 45000 });
+  await page.goto(path);
+  await expect(page.getByRole("button", { name: buttonName })).toBeVisible({
+    timeout: 30000,
+  });
 }
 
 /**
@@ -160,5 +159,59 @@ test.describe("atmosphere sign-up entry", () => {
     ]);
 
     await openHandleStep(page, "Sign up with Atmosphere");
+  });
+});
+
+test.describe("DID-only session", () => {
+  test.use({ viewport: { width: 1920, height: 1080 } });
+
+  let placeholderEmail: string | undefined;
+
+  test.afterEach(async () => {
+    if (placeholderEmail) {
+      await cleanupUser(SELF_HOSTED_TURSO_PORT, placeholderEmail);
+    }
+  });
+
+  test("a DID-only user's session reaches the app with the placeholder email suppressed", async ({
+    page,
+  }) => {
+    test.setTimeout(120000);
+    const seeded = await seedAtprotoOnlyUser(SELF_HOSTED_TURSO_PORT, {
+      did: `did:plc:e2e${randomBytes(6).toString("hex")}`,
+      handle: "didonly.test",
+      name: "DID Only User",
+    });
+    placeholderEmail = seeded.email;
+
+    await seedSession({
+      page,
+      tursoPort: SELF_HOSTED_TURSO_PORT,
+      userId: seeded.userId,
+      baseUrl: `http://localhost:${SELF_HOSTED_APP_PORT}`,
+    });
+
+    await page.goto("/");
+    await expect(page).toHaveURL("/", { timeout: 30000 });
+
+    // The user menu shows the account; the internal placeholder address is
+    // treated as "no email" and never rendered. The sidebar is offcanvas
+    // (outside the viewport) until opened, and the toggle only works once
+    // React hydrates.
+    await waitForReactHydration(
+      page.getByRole("button", { name: "Menu", exact: true }),
+    );
+    await openSidebar(page);
+    const userButton = page
+      .getByRole("button", { name: /DID Only User/ })
+      .first();
+    await expect(userButton).toBeInViewport({ timeout: 15000 });
+    await userButton.click();
+    // The open menu anchors the absence check — without it the count-0
+    // assertion would pass vacuously before the dropdown rendered.
+    await expect(
+      page.getByRole("menuitem", { name: "Connections" }),
+    ).toBeVisible();
+    await expect(page.getByText("atproto.invalid")).toHaveCount(0);
   });
 });
