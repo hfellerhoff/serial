@@ -31,30 +31,40 @@ export function useFeedManagementShortcuts({
     const target = event.target as HTMLElement;
     const isInDialog = target.closest('[role="dialog"]') !== null;
 
-    switch (getShortcutEventKey(event)) {
+    const key = getShortcutEventKey(event);
+    // Alt+letter is a browser menu accelerator on Windows/Linux; suppress
+    // it when a shortcut fires while peeking at the hints
+    const fire = (action: () => void) => {
+      if (event.altKey && key.length === 1) {
+        event.preventDefault();
+      }
+      action();
+    };
+
+    switch (key) {
       case "Escape":
         if (!isDialogOpen && !isInDialog) {
-          onEscape();
+          fire(onEscape);
         }
         break;
       case "s":
         if (!isDialogOpen) {
-          onSelectAll();
+          fire(onSelectAll);
         }
         break;
       case "e":
         if (canMutate && !isDialogOpen && hasSelection) {
-          onEdit();
+          fire(onEdit);
         }
         break;
       case "c":
         if (canMutate && !isDialogOpen && hasSelection) {
-          onClear();
+          fire(onClear);
         }
         break;
       case "d":
         if (canMutate && !isDialogOpen && hasSelection) {
-          onDelete();
+          fire(onDelete);
         }
         break;
     }

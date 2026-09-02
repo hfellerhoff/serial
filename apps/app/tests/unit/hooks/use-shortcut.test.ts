@@ -25,6 +25,13 @@ function setPlatform(platform: string) {
   });
 }
 
+function setUserAgentDataPlatform(platform: string | undefined) {
+  Object.defineProperty(navigator, "userAgentData", {
+    value: platform === undefined ? undefined : { platform },
+    configurable: true,
+  });
+}
+
 function mountShortcut(shortcut: string | string[], callback: () => void) {
   function ShortcutHarness() {
     useShortcut(shortcut, callback);
@@ -55,6 +62,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  setUserAgentDataPlatform(undefined);
   for (const root of roots.splice(0)) {
     act(() => {
       root.unmount();
@@ -208,6 +216,36 @@ describe("useShortcut", () => {
     expect(undo).not.toHaveBeenCalled();
   });
 
+  it("prefers userAgentData.platform over navigator.platform", () => {
+    const onMac = vi.fn();
+    mountShortcut("e", onMac);
+
+    setUserAgentDataPlatform("macOS");
+    setPlatform("Win32");
+    pressKey({ key: "´", code: "KeyE", altKey: true });
+    expect(onMac).toHaveBeenCalledTimes(1);
+
+    setUserAgentDataPlatform("Windows");
+    setPlatform("MacIntel");
+    pressKey({ key: "´", code: "KeyE", altKey: true });
+    expect(onMac).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not cancel named-key defaults while Alt is held", () => {
+    // Alt+Arrow is the browser history gesture on Windows/Linux.
+    const callback = vi.fn();
+    mountShortcut("ArrowLeft", callback);
+
+    const event = pressKey({
+      key: "ArrowLeft",
+      code: "ArrowLeft",
+      altKey: true,
+    });
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(false);
+  });
+
   it("leaves numpad and named keys untouched while Alt is held", () => {
     const digit = vi.fn();
     const arrow = vi.fn();
@@ -234,8 +272,9 @@ describe("useShortcut", () => {
 
   it("still blocks single-key shortcuts behind Shift", () => {
     const callback = vi.fn();
-    // "[" reports the same key with Shift held, so this exercises the
-    // modifier gate rather than a key mismatch.
+    // The first press reports "[" unchanged under Shift, so it exercises
+    // the modifier gate; the second recovers the shifted "{" and pins that
+    // Alt+Shift cannot reach a bare binding either way.
     mountShortcut("[", callback);
 
     pressKey({ key: "[", code: "BracketLeft", shiftKey: true });

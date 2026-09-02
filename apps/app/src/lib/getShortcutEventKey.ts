@@ -52,9 +52,13 @@ const isMacLike = () =>
  * named keys (arrows, Enter) always fall through to `event.key` because
  * Option does not compose them.
  *
- * Known limitation: the recovery table is US-QWERTY, so on a macOS
+ * Known limitations: the recovery table is US-QWERTY, so on a macOS
  * non-QWERTY layout an Option-held key recovers the QWERTY key for that
- * physical position.
+ * physical position, and codes outside the table (ISO-only keys such as
+ * IntlBackslash) fall through to the composed `event.key`, so their
+ * bindings do not match while Option is held. Chromium's
+ * `navigator.keyboard.getLayoutMap()` could lift both, at the cost of an
+ * async layout lookup.
  */
 export const getShortcutEventKey = (event: ShortcutKeyboardEvent): string => {
   if (!event.altKey || !isMacLike()) {
@@ -66,6 +70,8 @@ export const getShortcutEventKey = (event: ShortcutKeyboardEvent): string => {
   const { code } = event;
   if (code.startsWith("Key") && code.length === 4) {
     const letter = code.slice(3);
+    // Case follows Shift alone; Caps Lock is ignored, matching how bare
+    // shortcut bindings are declared
     return event.shiftKey ? letter : letter.toLowerCase();
   }
   const mapped = CODE_KEYS[code];

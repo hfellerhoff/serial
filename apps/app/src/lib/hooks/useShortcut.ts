@@ -78,9 +78,11 @@ export const useShortcut = (
       );
 
       const fireCallback = () => {
-        // Alt+key is a browser menu accelerator on Windows/Linux; suppress
-        // it when the shortcut fires while peeking at the hints
-        if (event.altKey) {
+        // Alt+letter is a browser menu accelerator on Windows/Linux;
+        // suppress it when the shortcut fires while peeking at the hints.
+        // Named keys keep their default (Alt+Arrow is the browser history
+        // gesture there).
+        if (event.altKey && eventKey.length === 1) {
           event.preventDefault();
         }
         return callbackRef.current(event);
@@ -134,7 +136,7 @@ export const useShortcut = (
 
               // Add to the sequence; keep intermediate Alt-held keys away
               // from browser menu accelerators too
-              if (event.altKey) {
+              if (event.altKey && eventKey.length === 1) {
                 event.preventDefault();
               }
               return setKeyCombo((prevCombo) => [...prevCombo, eventKey]);
