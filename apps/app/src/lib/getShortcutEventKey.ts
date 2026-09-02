@@ -33,25 +33,34 @@ type ShortcutKeyboardEvent = {
   key: string;
 };
 
-// A key the OS composed under Option: either a dead key or a character
-// outside printable ASCII (Option+E → "´", Option+Space → nbsp).
-const isComposedKey = (key: string) =>
-  key === "Dead" || (key.length === 1 && key.charCodeAt(0) > 127);
+// Only macOS composes `event.key` under Option; everywhere else the
+// layout-aware `event.key` already is the logical key.
+const isMacLike = () =>
+  typeof navigator !== "undefined" &&
+  /mac|iphone|ipad/i.test(
+    (navigator as { userAgentData?: { platform?: string } }).userAgentData
+      ?.platform ?? navigator.platform,
+  );
 
 /**
  * Alt is the "peek at shortcuts" key, so shortcuts must still match while it
- * is held. When Alt composes `event.key` (macOS Option), recover the logical
- * key from the physical `event.code`; otherwise `event.key` is layout-aware
- * and stays the source of truth. Numpad and named keys (arrows, Enter)
- * intentionally fall through to `event.key` because Option does not compose
- * them.
+ * is held. On macOS, Option composes printable `event.key` values into
+ * different characters (Option+E → "´", German Option+5 → "["), so recover
+ * the logical key from the physical `event.code` for every printable or
+ * dead key while Option is down. On other platforms Alt does not compose,
+ * so `event.key` is layout-aware and stays the source of truth. Numpad and
+ * named keys (arrows, Enter) always fall through to `event.key` because
+ * Option does not compose them.
  *
- * Known limitation: the recovery table is US-QWERTY, so a composed key on a
- * macOS non-QWERTY layout recovers the QWERTY key for that physical
- * position.
+ * Known limitation: the recovery table is US-QWERTY, so on a macOS
+ * non-QWERTY layout an Option-held key recovers the QWERTY key for that
+ * physical position.
  */
 export const getShortcutEventKey = (event: ShortcutKeyboardEvent): string => {
-  if (!event.altKey || !isComposedKey(event.key)) {
+  if (!event.altKey || !isMacLike()) {
+    return event.key;
+  }
+  if (event.key.length > 1 && event.key !== "Dead") {
     return event.key;
   }
   const { code } = event;

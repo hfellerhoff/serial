@@ -116,8 +116,12 @@ export const useShortcut = (
               return fireCallback();
             }
           } else {
-            // If the shortcut doesn't begin with a modifier, it's a sequence
-            if (keyArray[keyCombo.length] === eventKey) {
+            // If the shortcut doesn't begin with a modifier, it's a sequence,
+            // which requires the same bare-key modifier state as single keys
+            if (
+              isEveryOtherModifierFalse &&
+              keyArray[keyCombo.length] === eventKey
+            ) {
               // Handle final key in the sequence
               if (
                 keyArray[keyArray.length - 1] === eventKey &&
@@ -128,7 +132,11 @@ export const useShortcut = (
                 return setKeyCombo([]);
               }
 
-              // Add to the sequence
+              // Add to the sequence; keep intermediate Alt-held keys away
+              // from browser menu accelerators too
+              if (event.altKey) {
+                event.preventDefault();
+              }
               return setKeyCombo((prevCombo) => [...prevCombo, eventKey]);
             }
             if (keyCombo.length > 0) {

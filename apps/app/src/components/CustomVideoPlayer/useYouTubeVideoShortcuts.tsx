@@ -32,11 +32,14 @@ export function useVideoShortcuts({ disabled = false } = {}) {
     if (disabled) return;
 
     const processKeyDown = (event: KeyboardEvent) => {
-      if (typeof keypressTimeRef.current[event.key] === "number") {
+      // Track by the normalized key so pressing Option mid-hold cannot
+      // strand an entry under the composed character
+      const key = getShortcutEventKey(event);
+      if (typeof keypressTimeRef.current[key] === "number") {
         return;
       }
 
-      keypressTimeRef.current[event.key] = Date.now();
+      keypressTimeRef.current[key] = Date.now();
     };
 
     const processKeyUp = (event: KeyboardEvent) => {
@@ -47,9 +50,9 @@ export function useVideoShortcuts({ disabled = false } = {}) {
       }
       if (doesAnyFormElementHaveFocus()) return;
 
-      keypressTimeRef.current[event.key] = null;
-
       const key = getShortcutEventKey(event);
+
+      keypressTimeRef.current[key] = null;
 
       if (key === " ") {
         event.preventDefault();

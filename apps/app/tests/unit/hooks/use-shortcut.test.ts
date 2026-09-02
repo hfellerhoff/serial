@@ -2,7 +2,7 @@
 
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useShortcut } from "~/lib/hooks/useShortcut";
 
 vi.mock("~/components/feed/dialogStore", () => ({
@@ -17,6 +17,13 @@ vi.mock("~/lib/doesAnyFormElementHaveFocus", () => ({
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 const roots: Array<ReturnType<typeof createRoot>> = [];
+
+function setPlatform(platform: string) {
+  Object.defineProperty(navigator, "platform", {
+    value: platform,
+    configurable: true,
+  });
+}
 
 function mountShortcut(shortcut: string | string[], callback: () => void) {
   function ShortcutHarness() {
@@ -40,6 +47,12 @@ function pressKey(init: KeyboardEventInit) {
   });
   return event;
 }
+
+beforeEach(() => {
+  // Key recovery from `event.code` only happens on macOS, where Option
+  // composes `event.key`.
+  setPlatform("MacIntel");
+});
 
 afterEach(() => {
   for (const root of roots.splice(0)) {
@@ -77,6 +90,19 @@ describe("useShortcut", () => {
     pressKey({ key: "´", code: "KeyE", altKey: true });
 
     expect(callback).toHaveBeenCalledTimes(1);
+  });
+
+  it("recovers keys that Option composes into plain ASCII", () => {
+    // German macOS layout: Option+5 reports "[", a live binding of its own.
+    const viewFive = vi.fn();
+    const prevView = vi.fn();
+    mountShortcut("5", viewFive);
+    mountShortcut("[", prevView);
+
+    pressKey({ key: "[", code: "Digit5", altKey: true });
+
+    expect(viewFive).toHaveBeenCalledTimes(1);
+    expect(prevView).not.toHaveBeenCalled();
   });
 
   it("fires a digit shortcut while Alt is held", () => {
@@ -129,12 +155,15 @@ describe("useShortcut", () => {
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
-  it("fires a shortcut that explicitly binds Alt", () => {
+  it("fires a shortcut that explicitly binds Alt, and only with Alt", () => {
     const callback = vi.fn();
     mountShortcut("Alt+e", callback);
 
-    pressKey({ key: "´", code: "KeyE", altKey: true });
+    pressKey({ key: "e", code: "KeyE" });
+    pressKey({ key: "´", code: "KeyE", altKey: true, ctrlKey: true });
+    expect(callback).not.toHaveBeenCalled();
 
+    pressKey({ key: "´", code: "KeyE", altKey: true });
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
@@ -152,8 +181,22 @@ describe("useShortcut", () => {
     expect(callback).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps layout-aware keys when Alt does not compose them", () => {
-    // German QWERTZ: the key labeled Y reports code KeyZ but key "y".
+  it("does not advance a key sequence while Ctrl or Meta is held", () => {
+    const callback = vi.fn();
+    mountShortcut("g+i", callback);
+
+    pressKey({ key: "g", code: "KeyG", ctrlKey: true });
+    pressKey({ key: "i", code: "KeyI", ctrlKey: true });
+    pressKey({ key: "g", code: "KeyG", metaKey: true });
+    pressKey({ key: "i", code: "KeyI", metaKey: true });
+
+    expect(callback).not.toHaveBeenCalled();
+  });
+
+  it("keeps layout-aware keys where Alt does not compose them", () => {
+    // Windows QWERTZ: the key labeled Y reports code KeyZ but key "y", and
+    // Alt does not compose, so `event.key` stays authoritative.
+    setPlatform("Win32");
     const archive = vi.fn();
     const undo = vi.fn();
     mountShortcut("y", archive);
@@ -187,6 +230,18 @@ describe("useShortcut", () => {
 
     expect(plain.defaultPrevented).toBe(false);
     expect(withAlt.defaultPrevented).toBe(true);
+  });
+
+  it("still blocks single-key shortcuts behind Shift", () => {
+    const callback = vi.fn();
+    // "[" reports the same key with Shift held, so this exercises the
+    // modifier gate rather than a key mismatch.
+    mountShortcut("[", callback);
+
+    pressKey({ key: "[", code: "BracketLeft", shiftKey: true });
+    pressKey({ key: "“", code: "BracketLeft", altKey: true, shiftKey: true });
+
+    expect(callback).not.toHaveBeenCalled();
   });
 
   it("still blocks single-key shortcuts behind Ctrl and Meta", () => {
