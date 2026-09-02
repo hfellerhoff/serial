@@ -55,29 +55,36 @@ export const viewsStoreApi = createStore<ViewsStore>()(
         if (get().fetchStatus === "fetching") return;
 
         set({ fetchStatus: "fetching" });
-        const startRevision = get().revision;
 
-        const data = await orpcRouterClient.view.getAll();
+        try {
+          // A write landing while the request is in flight (an import stream
+          // chunk, another mutation's reset) makes the response stale, and
+          // callers empty the store before fetching — so a stale response
+          // must be replaced by a fresh one, never applied or dropped.
+          for (let attempt = 0; attempt < 5; attempt++) {
+            const startRevision = get().revision;
+            const data = await orpcRouterClient.view.getAll();
+            if (get().revision !== startRevision) continue;
 
-        if (get().revision !== startRevision) {
-          // A newer write (e.g. an import stream chunk) landed while this
-          // request was in flight; keep it instead of reverting to the older
-          // response.
+            const dict: Record<number, ApplicationView> = {};
+            data.forEach((view) => {
+              dict[view.id] = view;
+            });
+
+            set({
+              views: data,
+              viewsDict: dict,
+              revision: get().revision + 1,
+              fetchStatus: "success",
+            });
+            return;
+          }
+          // Writes kept racing the refetches; keep the latest written state.
           set({ fetchStatus: "success" });
-          return;
+        } catch (error) {
+          set({ fetchStatus: "idle" });
+          throw error;
         }
-
-        const dict: Record<number, ApplicationView> = {};
-        data.forEach((view) => {
-          dict[view.id] = view;
-        });
-
-        set({
-          views: data,
-          viewsDict: dict,
-          revision: get().revision + 1,
-          fetchStatus: "success",
-        });
       },
 
       set: (views) => {

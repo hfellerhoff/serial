@@ -712,16 +712,16 @@ export const streamingImport = protectedProcedure
                 linkableFeedId,
               );
 
-              if (viewFeedRows.length > 0) {
+              for (const rowChunk of chunkRows(viewFeedRows)) {
                 await tx
                   .insert(viewFeeds)
-                  .values(viewFeedRows)
+                  .values(rowChunk)
                   .onConflictDoNothing();
               }
-              if (feedCategoryRows.length > 0) {
+              for (const rowChunk of chunkRows(feedCategoryRows)) {
                 await tx
                   .insert(feedCategories)
-                  .values(feedCategoryRows)
+                  .values(rowChunk)
                   .onConflictDoNothing();
               }
               // A duplicate resolved during insert skipped the tag block in

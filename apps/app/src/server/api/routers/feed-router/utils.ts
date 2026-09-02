@@ -219,6 +219,12 @@ export async function insertFeedWithCategories(
       [existingFeed],
       schema.feedsSchema,
     );
+    if (!existingApplicationFeed) {
+      return {
+        success: false,
+        error: "Couldn't read the existing feed",
+      };
+    }
     return {
       success: false,
       error: "Feed already exists",

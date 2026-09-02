@@ -156,7 +156,23 @@ test.describe("import sections as views", () => {
     });
     await expect(viewsSection.getByText("Tech")).toBeVisible();
 
+    // The exported serial:tags apply to the already-subscribed feed too.
+    const tagsSection = page
+      .locator('[data-sidebar="group"]')
+      .filter({ hasText: "Tags" });
+    await expect(tagsSection.getByText("Funk")).toBeVisible({
+      timeout: 10000,
+    });
+
     await verifyViewBadgesOnFeedsPage(page);
+    await expect(
+      page
+        .locator("main")
+        .getByRole("button", { name: /Scary Pockets/ })
+        .locator("..")
+        .locator('[data-slot="badge"]')
+        .filter({ hasText: "Funk" }),
+    ).toBeVisible();
   });
 
   test("nested folders become ordered view sections and are not duplicated on re-import", async ({
