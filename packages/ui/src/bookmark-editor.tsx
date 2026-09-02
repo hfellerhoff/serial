@@ -47,6 +47,7 @@ export function BookmarkEditor({
   isDeleting,
   onDelete,
   onDone,
+  disabled = false,
 }: {
   bookmark: {
     title: string;
@@ -69,6 +70,7 @@ export function BookmarkEditor({
   isDeleting: boolean;
   onDelete: () => void | Promise<void>;
   onDone: () => void;
+  disabled?: boolean;
 }) {
   const showFeedback = shouldShowBookmarkEditorFeedback(feedback, bookmark);
   const feedbackPresentation =
@@ -135,6 +137,7 @@ export function BookmarkEditor({
           onCreate={onCreateView}
           createLabel="Create view"
           createPlaceholder="New view name..."
+          disabled={disabled}
         />
         <SelectableChipList
           label="Tags"
@@ -145,6 +148,7 @@ export function BookmarkEditor({
           onCreate={onCreateTag}
           createLabel="Create tag"
           createPlaceholder="New tag name..."
+          disabled={disabled}
         />
         {afterOrganization}
       </div>
@@ -153,7 +157,7 @@ export function BookmarkEditor({
         <Button
           variant="destructive"
           className="flex-1"
-          disabled={isDeleting}
+          disabled={disabled || isDeleting}
           aria-label="Delete Bookmark"
           onClick={() => void onDelete()}
         >

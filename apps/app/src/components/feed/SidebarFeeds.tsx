@@ -43,6 +43,7 @@ import {
   useNavigationSnapshotStatus,
 } from "~/lib/data/navigation/store";
 import { isContentStatusAvailable } from "~/lib/content-status";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 
 function useDebouncedState(defaultValue: string, delay: number) {
   const [searchQuery, setSearchQuery] = useState(defaultValue);
@@ -141,6 +142,7 @@ function ActiveFeedSidebarItem({
 }
 
 export function SidebarFeeds() {
+  const canMutate = useCanMutate();
   const [searchQuery, setSearchQuery] = useDebouncedState("", 300);
 
   const [selectedFeedForEditing, setSelectedFeedForEditing] = useState<
@@ -179,6 +181,7 @@ export function SidebarFeeds() {
                 onClick={() => launchDialog("add-feed")}
               >
                 <ButtonWithShortcut
+                  disabled={!canMutate}
                   shortcut="a"
                   variant="ghost"
                   aria-label="Add Feed or Bookmark"
@@ -293,6 +296,7 @@ export function SidebarFeeds() {
             <SidebarMenuButton
               size="default-icon"
               aria-label="Add Feed or Bookmark"
+              disabled={!canMutate}
               onClick={() => launchDialog("add-feed")}
             >
               <PlusIcon />

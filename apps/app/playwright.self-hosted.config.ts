@@ -19,7 +19,7 @@ const productionTestServer =
   `./node_modules/.bin/concurrently --kill-others ` +
   `"turso dev --db-file serial-test-self-hosted.db --port ${SELF_HOSTED_TURSO_PORT}" ` +
   `"./node_modules/.bin/dotenv -e .env.test.self-hosted -- node --import tsx src/server/db/migrate.ts && ` +
-  `./node_modules/.bin/dotenv -e .env.test.self-hosted -- env CI=1 ./node_modules/.bin/vite preview --port ${SELF_HOSTED_APP_PORT} --strictPort"`;
+  `./node_modules/.bin/dotenv -e .env.test.self-hosted -- env CI=1 NODE_ENV=production PORT=${SELF_HOSTED_APP_PORT} pnpm start"`;
 
 /**
  * An isolated app server + database cloned from the proven bootstrap
@@ -45,7 +45,7 @@ function isolatedInstanceServer({
     `./node_modules/.bin/concurrently --kill-others ` +
     `"turso dev --db-file ${dbFile} --port ${tursoPort}" ` +
     `"./node_modules/.bin/dotenv -e .env.test.self-hosted -- node --import tsx src/server/db/migrate.ts && ` +
-    `./node_modules/.bin/dotenv -e .env.test.self-hosted -- env CI=1 ./node_modules/.bin/vite preview --port ${appPort} --strictPort"`;
+    `./node_modules/.bin/dotenv -e .env.test.self-hosted -- env CI=1 NODE_ENV=production PORT=${appPort} pnpm start"`;
   const developmentServer =
     `./node_modules/.bin/concurrently --kill-others ` +
     `"turso dev --db-file ${dbFile} --port ${tursoPort}" ` +

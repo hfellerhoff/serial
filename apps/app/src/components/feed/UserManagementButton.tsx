@@ -24,6 +24,7 @@ import {
 } from "~/components/ui/sidebar";
 import { authClient, signOut } from "~/lib/auth-client";
 import { isAtprotoPlaceholderEmail } from "~/lib/auth/atproto";
+import { clearUserDataAfterSignOut } from "~/lib/auth/sign-out-cleanup";
 import { useClearAllUserData } from "~/lib/data/atoms";
 import { useSubscription } from "~/lib/data/subscription";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
@@ -147,8 +148,11 @@ export function UserManagementNavItem() {
                       setIsSigningOut(true);
                     },
                     onSuccess: () => {
-                      queryClient.clear();
-                      clearAllUserData();
+                      clearUserDataAfterSignOut({
+                        clearQueryCache: () => queryClient.clear(),
+                        clearPersistedUserData: clearAllUserData,
+                        localStorage: window.localStorage,
+                      });
                       void router.navigate({ to: "/auth/sign-in" });
                     },
                   },

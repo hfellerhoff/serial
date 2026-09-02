@@ -27,6 +27,8 @@ type NormalizedRoot = {
   arrayLengths: Record<string, number>;
 };
 
+type NormalizedRecordSnapshots = Map<string, Map<string, unknown>>;
+
 function normalizedPrefix(name: string) {
   return `${name}::normalized:v1`;
 }
@@ -92,6 +94,30 @@ export function planNormalizedRecordChanges(
   );
   const deleteIds = Object.keys(previous).filter((id) => !(id in next));
   return { upsertIds, deleteIds };
+}
+
+function planNormalizedRecordSnapshotChanges(
+  previous: ReadonlyMap<string, unknown>,
+  next: Record<string, unknown>,
+) {
+  const upsertIds = Object.entries(next).flatMap(([id, value]) =>
+    Object.is(previous.get(id), value) ? [] : [id],
+  );
+  const deleteIds = [...previous.keys()].filter((id) => !(id in next));
+  return { upsertIds, deleteIds };
+}
+
+function snapshotNormalizedRecords<T>(
+  value: StorageValue<T> | null,
+  recordFields: readonly string[],
+) {
+  const state = stateRecord(value);
+  return new Map(
+    recordFields.map((field) => {
+      const record = isRecord(state[field]) ? state[field] : {};
+      return [field, new Map(Object.entries(record))] as const;
+    }),
+  );
 }
 
 export function planNormalizedArrayChunkChanges(
@@ -202,19 +228,21 @@ async function writeNormalized<T>(input: {
   previous: StorageValue<T> | null;
   next: StorageValue<T>;
   options: NormalizedStorageOptions;
+  recordSnapshots: NormalizedRecordSnapshots;
 }) {
-  const { name, previous, next, options } = input;
+  const { name, previous, next, options, recordSnapshots } = input;
   const previousState = stateRecord(previous);
   const nextState = stateRecord(next);
   const recordFields = new Set(options.recordFields ?? []);
   const arrayFields = new Set(options.arrayFields ?? []);
 
   for (const field of recordFields) {
-    const previousRecord = isRecord(previousState[field])
-      ? previousState[field]
-      : {};
+    const previousRecord = recordSnapshots.get(field) ?? new Map();
     const nextRecord = isRecord(nextState[field]) ? nextState[field] : {};
-    const changes = planNormalizedRecordChanges(previousRecord, nextRecord);
+    const changes = planNormalizedRecordSnapshotChanges(
+      previousRecord,
+      nextRecord,
+    );
     const upserts: Array<[IDBValidKey, unknown]> = changes.upsertIds.map(
       (id) => [recordKey(name, field, id), nextRecord[id]],
     );
@@ -224,6 +252,11 @@ async function writeNormalized<T>(input: {
     // react-doctor-disable-next-line react-doctor/async-await-in-loop
     await writeInBatches(upserts);
     await deleteInBatches(deletions);
+    for (const [index, id] of changes.upsertIds.entries()) {
+      previousRecord.set(id, upserts[index]![1]);
+    }
+    for (const id of changes.deleteIds) previousRecord.delete(id);
+    recordSnapshots.set(field, previousRecord);
   }
 
   const arrayLengths: Record<string, number> = {};
@@ -293,6 +326,9 @@ export function createNormalizedIDBStorage<T>(
   }
 
   let lastValue: StorageValue<T> | null = null;
+  // Stores may replace entities while retaining the dictionary object. Keep
+  // per-entity references outside that mutable state so persistence sees them.
+  let recordSnapshots: NormalizedRecordSnapshots = new Map();
   // Set when a read failed: IDB may still hold records that the diffing
   // write (which believes `previous` is empty) would never delete, and the
   // prefix-scan reader would resurrect them on the next load. The next flush
@@ -343,12 +379,14 @@ export function createNormalizedIDBStorage<T>(
               (key) => typeof key === "string" && key.startsWith(prefix),
             );
             await deleteInBatches(matchingKeys);
+            recordSnapshots = new Map();
           }
           await writeNormalized({
             name: current.name,
             previous: staleKeysPossible ? null : lastValue,
             next: current.value,
             options,
+            recordSnapshots,
           });
           // Cleared only after the rewrite succeeds: a partially-failed
           // rewrite can itself orphan records, so the next flush must sweep
@@ -381,6 +419,10 @@ export function createNormalizedIDBStorage<T>(
         const normalized = await readNormalized<T>(name, options);
         if (normalized) {
           lastValue = normalized;
+          recordSnapshots = snapshotNormalizedRecords(
+            normalized,
+            options.recordFields ?? [],
+          );
           return normalized;
         }
 
@@ -397,6 +439,7 @@ export function createNormalizedIDBStorage<T>(
             previous: null,
             next: legacy,
             options,
+            recordSnapshots,
           });
           // The migrated snapshot is already in hand and fully written; a
           // failure deleting the legacy key must not discard it. The stale
@@ -429,6 +472,7 @@ export function createNormalizedIDBStorage<T>(
       writeTimeout = null;
       pending = null;
       lastValue = null;
+      recordSnapshots = new Map();
       // zustand calls removeItem without awaiting, so a rejection here would
       // surface as an unhandled rejection instead of a recoverable state.
       await withCurrentIndexedDbSchema(async () => {

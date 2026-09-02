@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useBookmarkValue } from "~/lib/data/bookmarks";
 import { useUpdateBookmarkStateMutation } from "~/lib/data/bookmarks/mutations";
+import { canMutateNow } from "~/lib/data/offline-mutations";
 
 const SAVE_INTERVAL_MS = 30_000;
 
@@ -25,6 +26,7 @@ export function useSaveBookmarkVideoProgress(input: {
 
   const save = useCallback(() => {
     if (!bookmarkRef.current) return;
+    if (!canMutateNow()) return;
     const progress = getProgressRef.current();
     if (progress.progress < 0 || progress.duration <= 0) return;
     mutateRef.current({

@@ -2,6 +2,7 @@
 
 import { Link } from "@tanstack/react-router";
 import clsx from "clsx";
+import { useAtomValue } from "jotai";
 import {
   ArchiveIcon,
   BookmarkCheckIcon,
@@ -20,7 +21,7 @@ import {
   useSaveToInstapaperMutation,
   useShowInstapaperAction,
 } from "~/lib/data/instapaper";
-import { useFeedItemValue } from "~/lib/data/store";
+import { useFeedItemValue, useHasRetainedFeedItemBody } from "~/lib/data/store";
 import { timeAgo } from "~/lib/utils";
 import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { useFeedItemActions } from "~/lib/hooks/useFeedItemActions";
@@ -34,6 +35,13 @@ import {
 import { useDialogStore } from "~/components/feed/dialogStore";
 import { contentDestination } from "~/lib/data/content-items/resolver";
 import { REMOTE_IMAGE_PROPS } from "~/lib/remoteMedia";
+import { connectionStateAtom } from "~/lib/data/atoms";
+import {
+  canOpenContent,
+  hasRetainedFeedBody,
+} from "~/lib/data/offline-content";
+import { useCanMutate } from "~/lib/data/offline-mutations";
+import { useBookmarkCaptureValue } from "~/lib/data/bookmarks/capture-store";
 
 export type ItemSize = "standard" | "large";
 
@@ -316,6 +324,7 @@ function ItemActions({
     useSaveToInstapaperMutation(contentId);
 
   const showShortcuts = useShowShortcuts();
+  const canMutate = useCanMutate();
 
   const isStandardList = layout === "list";
   const isLargeList = layout === "large-list";
@@ -355,7 +364,7 @@ function ItemActions({
         <Button
           size={isGrid ? "icon" : "icon"}
           variant="ghost"
-          disabled={isSavingToInstapaper}
+          disabled={!canMutate || isSavingToInstapaper}
           onClick={handleSaveToInstapaper}
           className={clsx("relative overflow-visible", {
             "h-8 w-8 p-0": isGrid,
@@ -370,6 +379,7 @@ function ItemActions({
       <Button
         size="icon"
         variant="ghost"
+        disabled={!canMutate}
         onClick={handleToggleWatchLater}
         className={clsx("relative overflow-visible", {
           "h-8 w-8 p-0": isGrid,
@@ -385,6 +395,7 @@ function ItemActions({
       <Button
         size="icon"
         variant="ghost"
+        disabled={!canMutate}
         onClick={handleToggleWatched}
         className={clsx("relative overflow-visible", {
           "h-8 w-8 p-0": isGrid,
@@ -505,6 +516,7 @@ function BookmarkActions({
   const { mutate: deleteBookmark } = useDeleteBookmarkMutation();
   const launchDialog = useDialogStore((store) => store.launchDialog);
   const showShortcuts = useShowShortcuts();
+  const canMutate = useCanMutate();
   const isGrid = layout === "grid";
   const isStandardList = layout === "list";
 
@@ -524,6 +536,7 @@ function BookmarkActions({
         size="icon"
         variant="ghost"
         aria-label="Edit Bookmark"
+        disabled={!canMutate}
         className={clsx({ "h-8 w-8 p-0": isGrid })}
         onClick={() =>
           launchDialog("edit-bookmark", { selectedBookmarkId: bookmark.id })
@@ -535,6 +548,7 @@ function BookmarkActions({
         size="icon"
         variant="ghost"
         aria-label={bookmark.isSaved ? "Unsave" : "Save"}
+        disabled={!canMutate}
         className={clsx({ "h-8 w-8 p-0": isGrid })}
         onClick={() =>
           updateState({
@@ -553,6 +567,7 @@ function BookmarkActions({
         size="icon"
         variant="ghost"
         aria-label={bookmark.isRead ? "Unarchive" : "Archive"}
+        disabled={!canMutate}
         className={clsx({ "h-8 w-8 p-0": isGrid })}
         onClick={() =>
           updateState({
@@ -567,6 +582,7 @@ function BookmarkActions({
         size="icon"
         variant="ghost"
         aria-label="Delete Bookmark"
+        disabled={!canMutate}
         className={clsx({ "h-8 w-8 p-0": isGrid })}
         onClick={() => deleteBookmark({ bookmarkId: bookmark.id })}
       >
@@ -593,7 +609,21 @@ function BookmarkItemDisplay({
     entityKind: "bookmark",
     entity: bookmark,
   });
-  const href = destination.href;
+  const connectionState = useAtomValue(connectionStateAtom);
+  const capture = useBookmarkCaptureValue(bookmark.id);
+  const canOpen = canOpenContent({
+    connectionState,
+    contentType: bookmark.contentType,
+    hasBody: capture !== undefined,
+  });
+  const isOffline = connectionState === "disconnected";
+  const href = isOffline ? `/read/${bookmark.id}` : destination.href;
+  const target = isOffline
+    ? undefined
+    : destination.external
+      ? "_blank"
+      : undefined;
+  const rel = target ? "noopener noreferrer" : undefined;
   const isLarge = size === "large";
   const postedAt = getBookmarkAddedAt(bookmark);
 
@@ -603,20 +633,28 @@ function BookmarkItemDisplay({
         data-item-id={bookmark.id}
         data-entity-kind="bookmark"
         onMouseEnter={onSelect}
-        className="group relative flex h-full w-full flex-col"
+        className={clsx(
+          "group relative flex h-full w-full flex-col",
+          !canOpen && "opacity-50",
+        )}
       >
         <Link
           to={href}
-          target={destination.external ? "_blank" : undefined}
-          rel={destination.external ? "noopener noreferrer" : undefined}
-          onClick={
-            destination.external
-              ? undefined
-              : () => captureRootScrollRestoration(bookmark.id)
-          }
+          target={target}
+          rel={rel}
+          aria-disabled={!canOpen}
+          tabIndex={canOpen ? undefined : -1}
+          onClick={(event) => {
+            if (!canOpen) {
+              event.preventDefault();
+              return;
+            }
+            if (!target) captureRootScrollRestoration(bookmark.id);
+          }}
           className={clsx(
             "flex h-full flex-1 flex-col rounded p-2 text-left",
             isSelected && "md:bg-muted",
+            !canOpen && "cursor-not-allowed",
           )}
         >
           <BookmarkThumbnail
@@ -654,21 +692,27 @@ function BookmarkItemDisplay({
         isLarge
           ? "flex-col md:flex-row md:items-center"
           : "items-center md:h-20",
+        !canOpen && "opacity-50",
       )}
     >
       <Link
         to={href}
-        target={destination.external ? "_blank" : undefined}
-        rel={destination.external ? "noopener noreferrer" : undefined}
-        onClick={
-          destination.external
-            ? undefined
-            : () => captureRootScrollRestoration(bookmark.id)
-        }
+        target={target}
+        rel={rel}
+        aria-disabled={!canOpen}
+        tabIndex={canOpen ? undefined : -1}
+        onClick={(event) => {
+          if (!canOpen) {
+            event.preventDefault();
+            return;
+          }
+          if (!target) captureRootScrollRestoration(bookmark.id);
+        }}
         className={clsx(
           "flex w-full flex-1 flex-col gap-4 px-6 pt-4 text-left md:flex-row md:items-center md:rounded md:px-2 md:py-2",
           isLarge ? "pb-1 md:pb-2" : "pb-4 md:h-20 md:py-0",
           isSelected && "md:bg-muted",
+          !canOpen && "cursor-not-allowed",
         )}
       >
         <div
@@ -717,6 +761,8 @@ function FeedItemDisplay({
 }: ItemDisplayProps) {
   const feeds = useFeedsArray();
   const item = useFeedItemValue(contentId);
+  const hasRetainedBody = useHasRetainedFeedItemBody(contentId);
+  const connectionState = useAtomValue(connectionStateAtom);
 
   if (!item) return null;
 
@@ -730,9 +776,19 @@ function FeedItemDisplay({
     destination.renderer !== "origin" &&
     (feed?.openLocation === "serial" || !feed?.openLocation);
 
-  const href = shouldOpenInSerial ? destination.href : item.url;
+  const canOpen = canOpenContent({
+    connectionState,
+    contentType: item.contentType,
+    hasBody: hasRetainedFeedBody(item, hasRetainedBody),
+  });
+  const isOffline = connectionState === "disconnected";
+  const href = isOffline
+    ? `/read/${item.id}`
+    : shouldOpenInSerial
+      ? destination.href
+      : item.url;
 
-  const target = shouldOpenInSerial ? undefined : "_blank";
+  const target = isOffline || shouldOpenInSerial ? undefined : "_blank";
   const rel = shouldOpenInSerial ? undefined : "noopener noreferrer";
 
   const isLarge = size === "large";
@@ -746,22 +802,28 @@ function FeedItemDisplay({
         isLarge
           ? "flex-col md:flex-row md:items-center"
           : "items-center md:h-20",
+        !canOpen && "opacity-50",
       )}
     >
       <Link
         to={href}
         target={target}
         rel={rel}
-        preload={shouldOpenInSerial ? "intent" : undefined}
-        onClick={
-          shouldOpenInSerial
-            ? () => captureRootScrollRestoration(contentId)
-            : undefined
-        }
+        preload={canOpen && !target && !isOffline ? "intent" : undefined}
+        aria-disabled={!canOpen}
+        tabIndex={canOpen ? undefined : -1}
+        onClick={(event) => {
+          if (!canOpen) {
+            event.preventDefault();
+            return;
+          }
+          if (!target) captureRootScrollRestoration(contentId);
+        }}
         className={clsx(
           "flex w-full flex-1 flex-col gap-4 px-6 pt-4 text-left md:flex-row md:items-center md:rounded md:px-2 md:py-2",
           isLarge ? "pb-1 md:pb-2" : "pb-4 md:h-20 md:py-0",
           isSelected && "md:bg-muted",
+          !canOpen && "cursor-not-allowed",
         )}
       >
         {isLarge ? (
@@ -830,6 +892,8 @@ function FeedGridItemDisplay({
 }: GridItemDisplayProps) {
   const feeds = useFeedsArray();
   const item = useFeedItemValue(contentId);
+  const hasRetainedBody = useHasRetainedFeedItemBody(contentId);
+  const connectionState = useAtomValue(connectionStateAtom);
 
   if (!item) return null;
 
@@ -840,9 +904,19 @@ function FeedGridItemDisplay({
   const shouldOpenInSerial =
     feed?.openLocation === "serial" || !feed?.openLocation;
 
-  const href = shouldOpenInSerial ? `/${itemDestination}/${item.id}` : item.url;
+  const canOpen = canOpenContent({
+    connectionState,
+    contentType: item.contentType,
+    hasBody: hasRetainedFeedBody(item, hasRetainedBody),
+  });
+  const isOffline = connectionState === "disconnected";
+  const href = isOffline
+    ? `/read/${item.id}`
+    : shouldOpenInSerial
+      ? `/${itemDestination}/${item.id}`
+      : item.url;
 
-  const target = shouldOpenInSerial ? undefined : "_blank";
+  const target = isOffline || shouldOpenInSerial ? undefined : "_blank";
   const rel = shouldOpenInSerial ? undefined : "noopener noreferrer";
 
   const isLarge = size === "large";
@@ -851,21 +925,29 @@ function FeedGridItemDisplay({
     <article
       data-item-id={contentId}
       onMouseEnter={onSelect}
-      className="group relative flex h-full w-full flex-col"
+      className={clsx(
+        "group relative flex h-full w-full flex-col",
+        !canOpen && "opacity-50",
+      )}
     >
       <Link
         to={href}
         target={target}
         rel={rel}
-        preload={shouldOpenInSerial ? "intent" : undefined}
-        onClick={
-          shouldOpenInSerial
-            ? () => captureRootScrollRestoration(contentId)
-            : undefined
-        }
+        preload={canOpen && !target && !isOffline ? "intent" : undefined}
+        aria-disabled={!canOpen}
+        tabIndex={canOpen ? undefined : -1}
+        onClick={(event) => {
+          if (!canOpen) {
+            event.preventDefault();
+            return;
+          }
+          if (!target) captureRootScrollRestoration(contentId);
+        }}
         className={clsx(
           "flex h-full flex-1 flex-col rounded p-2 text-left",
           isSelected && "md:bg-muted",
+          !canOpen && "cursor-not-allowed",
         )}
       >
         <ItemThumbnail

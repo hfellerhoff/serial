@@ -3,6 +3,8 @@ import { persist } from "zustand/middleware";
 import { createNormalizedIDBStorage } from "../normalized-idb-storage";
 import { createSelectorHooks } from "../createSelectorHooks";
 import { e2eBookmarkHydrationBeforeRead } from "../e2eFaultControls";
+import { shouldRetainBookmarkCapture } from "../offline-content";
+import { bookmarkCapturesStore } from "./capture-store";
 import type { ApplicationBookmark } from "~/server/mixed-content/projection";
 
 type PersistedBookmarkStore = {
@@ -39,7 +41,9 @@ function replaceBookmarkEntities(
 }
 
 function removeBookmarkEntities(ids: Iterable<string>) {
-  const removedIds = [...ids].filter((id) => id in bookmarkEntities);
+  const candidateIds = [...ids];
+  bookmarkCapturesStore.getState().removeMany(candidateIds);
+  const removedIds = candidateIds.filter((id) => id in bookmarkEntities);
   if (removedIds.length === 0) return false;
 
   const nextEntities = { ...bookmarkEntities };
@@ -53,6 +57,7 @@ const vanillaBookmarkStore = createStore<BookmarkStore>()(
     (set, get) => ({
       revision: 0,
       reset: () => {
+        bookmarkCapturesStore.getState().reset();
         replaceBookmarkEntities({});
         set({ revision: get().revision + 1 });
       },
@@ -63,6 +68,9 @@ const vanillaBookmarkStore = createStore<BookmarkStore>()(
       getBookmark: (id) => bookmarkEntities[id],
       snapshot: () => bookmarkEntities,
       upsert: (bookmark) => {
+        if (!shouldRetainBookmarkCapture(bookmark)) {
+          bookmarkCapturesStore.getState().remove(bookmark.id);
+        }
         bookmarkEntities = {
           ...bookmarkEntities,
           [bookmark.id]: bookmark,
@@ -73,6 +81,9 @@ const vanillaBookmarkStore = createStore<BookmarkStore>()(
         if (bookmarks.length === 0) return;
         const nextEntities = { ...bookmarkEntities };
         for (const bookmark of bookmarks) {
+          if (!shouldRetainBookmarkCapture(bookmark)) {
+            bookmarkCapturesStore.getState().remove(bookmark.id);
+          }
           nextEntities[bookmark.id] = bookmark;
         }
         bookmarkEntities = nextEntities;

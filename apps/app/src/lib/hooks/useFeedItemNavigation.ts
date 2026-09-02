@@ -32,6 +32,7 @@ import {
   useShowInstapaperAction,
 } from "~/lib/data/instapaper";
 import { getNextRootItemId } from "~/lib/root-scroll-restoration";
+import { canMutateNow } from "~/lib/data/offline-mutations";
 
 interface SectionInfo {
   size: number;
@@ -588,7 +589,7 @@ export function useFeedItemNavigation(
   useShortcut(getShortcutKey(SHORTCUT_KEYS.TOGGLE_SAVED), () => {
     if (pathname !== "/" || !selectedItemId) return;
 
-    selectedItemActions.toggleWatchLater();
+    if (!selectedItemActions.toggleWatchLater()) return;
     const idx = items.indexOf(selectedItemId);
     selectItemAfterCurrentItemLeavesView(idx);
   });
@@ -607,7 +608,14 @@ export function useFeedItemNavigation(
   });
 
   useShortcut(getShortcutKey(SHORTCUT_KEYS.SEND_TO_INSTAPAPER), () => {
-    if (pathname !== "/" || !selectedItemId || !showInstapaperAction) return;
+    if (
+      pathname !== "/" ||
+      !selectedItemId ||
+      !showInstapaperAction ||
+      !canMutateNow()
+    ) {
+      return;
+    }
 
     void saveToInstapaper({ feedItemId: selectedItemId });
     const idx = items.indexOf(selectedItemId);

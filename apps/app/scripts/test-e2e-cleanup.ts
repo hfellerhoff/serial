@@ -172,10 +172,10 @@ function assertExpectedServices(processes: ProcessRow[], ports: number[]) {
     appviewPort,
   ] = ports;
   const expectedFragments = [
-    `vite preview --port ${appPort}`,
+    `NODE_ENV=production PORT=${appPort} pnpm start`,
     `turso dev --db-file serial-test-self-hosted.db --port ${tursoPort}`,
     `rss-server.ts ${rssPort}`,
-    `vite preview --port ${bootstrapAppPort}`,
+    `NODE_ENV=production PORT=${bootstrapAppPort} pnpm start`,
     `turso dev --db-file serial-test-self-hosted-bootstrap.db --port ${bootstrapTursoPort}`,
     `vite preview --port ${configAppPort}`,
     `turso dev --db-file serial-test-self-hosted-config.db --port ${configTursoPort}`,

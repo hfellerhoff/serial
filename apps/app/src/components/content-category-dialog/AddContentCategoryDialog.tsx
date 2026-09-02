@@ -5,11 +5,13 @@ import { toast } from "sonner";
 import { CategoryFeedsInput } from "./CategoryFeedsInput";
 import { CategoryNameInput } from "./CategoryNameInput";
 import { Button } from "~/components/ui/button";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
 import { useDialogStore } from "~/components/feed/dialogStore";
 import { useCreateContentCategoryMutation } from "~/lib/data/content-categories/mutations";
 
 export function AddContentCategoryDialog() {
+  const canMutate = useCanMutate();
   const [isAddingContentCategory, setIsAddingContentCategory] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const { mutateAsync: createContentCategory } =
@@ -50,8 +52,9 @@ export function AddContentCategoryDialog() {
           setSelectedFeedIds={setSelectedFeedIds}
         />
         <Button
-          disabled={isDisabled}
+          disabled={!canMutate || isDisabled}
           onClick={() => {
+            if (!canMutate) return;
             setIsAddingContentCategory(true);
 
             try {

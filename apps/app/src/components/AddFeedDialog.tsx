@@ -45,6 +45,7 @@ import { VIEW_LAYOUT_ITEM_TYPE } from "~/server/db/constants";
 import { getAssumedFeedPlatform } from "~/server/rss/validateFeedUrl";
 import { useSaveBookmarkMutation } from "~/lib/data/bookmarks/mutations";
 import { BookmarkOrganizationEditor } from "~/components/bookmarks/BookmarkOrganizationEditor";
+import { useCanMutate } from "~/lib/data/offline-mutations";
 
 function useViewOptions() {
   const { views } = useViews();
@@ -66,6 +67,7 @@ function toggleSelectedId(
 }
 
 export function AddFeedDialog() {
+  const canMutate = useCanMutate();
   const [pendingAction, setPendingAction] = useState<
     "feed" | "bookmark" | null
   >(null);
@@ -89,6 +91,7 @@ export function AddFeedDialog() {
   const launchDialog = useDialogStore((store) => store.launchDialog);
   const location = useLocation();
   useShortcut("a", (event) => {
+    if (!canMutate) return;
     if (
       location.pathname.startsWith("/views") ||
       location.pathname.startsWith("/tags")
@@ -110,7 +113,7 @@ export function AddFeedDialog() {
   };
 
   const handleSelectFeed = async (feed: { url: string }) => {
-    if (pendingAction) return;
+    if (pendingAction || !canMutate) return;
     setPendingAction("feed");
 
     const createFeedPromise = createFeed({
@@ -139,7 +142,7 @@ export function AddFeedDialog() {
   };
 
   const handleSelectBookmark = async (sourceUrl: string) => {
-    if (pendingAction) return;
+    if (pendingAction || !canMutate) return;
     setPendingAction("bookmark");
     try {
       const result = await saveBookmark({ sourceUrl });
@@ -194,7 +197,7 @@ export function AddFeedDialog() {
   }, [isOpen]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen && canMutate} onOpenChange={onOpenChange}>
       <DialogContent
         ref={dialogContentRef}
         hideClose
@@ -290,6 +293,7 @@ export function EditFeedDialog({
   selectedFeedId: null | number;
   onClose: () => void;
 }) {
+  const canMutate = useCanMutate();
   const [isUpdatingFeed, setIsUpdatingFeed] = useState(false);
   const [isDeletingFeed, setIsDeletingFeed] = useState(false);
   const [hasCopied, setHasCopied] = useState(false);
@@ -387,6 +391,7 @@ export function EditFeedDialog({
           <TooltipTrigger asChild>
             <div className="flex items-center">
               <Switch
+                disabled={!canMutate}
                 checked={feed?.isActive ?? true}
                 onCheckedChange={(checked) => {
                   if (selectedFeedId !== null) {
@@ -407,11 +412,11 @@ export function EditFeedDialog({
       footer={
         <div className="flex gap-2">
           <Button
-            disabled={isDeletingFeed}
+            disabled={!canMutate || isDeletingFeed}
             className="flex-1"
             variant="destructive"
             onClick={async () => {
-              if (selectedFeedId === null) return;
+              if (selectedFeedId === null || !canMutate) return;
 
               setIsDeletingFeed(true);
               try {
@@ -436,9 +441,9 @@ export function EditFeedDialog({
             {isDeletingFeed ? "Deleting..." : "Delete"}
           </Button>
           <Button
-            disabled={isFormDisabled || isUpdatingFeed}
+            disabled={!canMutate || isFormDisabled || isUpdatingFeed}
             onClick={async () => {
-              if (selectedFeedId === null) return;
+              if (selectedFeedId === null || !canMutate) return;
 
               setIsUpdatingFeed(true);
               try {
@@ -524,6 +529,7 @@ export function EditFeedDialog({
             toggleSelectedId(selectedViewIds, setSelectedViewIds, id)
           }
           onCreate={async (viewName) => {
+            if (!canMutate) return;
             try {
               const createdView = await quickCreateView({ name: viewName });
               if (createdView) {
@@ -548,6 +554,7 @@ export function EditFeedDialog({
             toggleSelectedId(selectedCategories, setSelectedCategories, id)
           }
           onCreate={async (tagName) => {
+            if (!canMutate) return;
             try {
               const createdTag = await createContentCategory({
                 name: tagName,

@@ -266,7 +266,7 @@ test.describe("article progress tracking", () => {
     await setFeedItemContent(
       SELF_HOSTED_TURSO_PORT,
       feedItemId,
-      `<a href="https://example.com/image-target"><img src="/icon-192x192.png" alt="Keyboard preview"></a>
+      `<a href="https://example.com/image-target"><img src="/icon-192.png" alt="Keyboard preview"></a>
        <a href="https://example.com/article">Ordinary reader link</a>`,
     );
 
