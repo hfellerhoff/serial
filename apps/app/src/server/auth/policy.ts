@@ -15,6 +15,7 @@ import {
   getAccountProviderId,
   getConfiguredAuthProviders,
 } from "~/server/auth/constants";
+import { isAtprotoPlaceholderEmail } from "~/lib/auth/atproto";
 import { IS_EMAIL_ENABLED, sendEmail } from "~/server/email";
 import {
   redeemInvitationToken,
@@ -235,6 +236,12 @@ export async function applyPostAuthPolicy(
       Date.now() - firstUser.createdAt.getTime() <=
         AUTO_SIGNUP_ROLLBACK_WINDOW_MS);
 
+  // Whether this callback auto-created its user within this request. A
+  // callback completes plain sign-ins as well as auto-signups, so both the
+  // rollback below and the admin notification at the end consume this one
+  // determination rather than forking parallel recency checks.
+  let callbackAutoCreatedUser = false;
+
   if (isFirstUserBootstrap && !IS_DEMO_INSTANCE) {
     await db.update(user).set({ role: "admin" }).where(eq(user.id, userId));
 
@@ -309,11 +316,12 @@ export async function applyPostAuthPolicy(
       accountRows.length === 1 &&
       accountRows[0]!.providerId === getAccountProviderId(completed.provider);
 
-    if (
+    callbackAutoCreatedUser =
       wasJustCreated &&
       (sessionCount?.count ?? 0) <= 1 &&
-      isSoleProviderAccount
-    ) {
+      isSoleProviderAccount;
+
+    if (callbackAutoCreatedUser) {
       const configs = await db.select().from(appConfig).all();
       const publicSignupConfig = configs.find(
         (c) => c.key === "public-signup-enabled",
@@ -338,8 +346,15 @@ export async function applyPostAuthPolicy(
     }
   }
 
-  // Send admin notification email for non-first user sign-ups
-  if (firstUser?.id !== userId && IS_EMAIL_ENABLED) {
+  // Send admin notification email for non-first user sign-ups. An email
+  // sign-up flow always just created its user; a callback also completes
+  // plain sign-ins by established users, so only its genuine auto-signup
+  // notifies.
+  if (
+    firstUser?.id !== userId &&
+    IS_EMAIL_ENABLED &&
+    (completed.flow === "sign-up" || callbackAutoCreatedUser)
+  ) {
     try {
       const notifyConfig = await db
         .select()
@@ -353,10 +368,15 @@ export async function applyPostAuthPolicy(
         .get();
 
       if (notifyConfig?.value === "true" && emailConfig?.value) {
+        // A DID-only Atmosphere sign-up carries the internal placeholder
+        // address; the notification omits it (the name is already the
+        // handle) rather than surfacing a synthetic email to the admin.
         const html = await render(
           createElement(NewUserNotificationEmail, {
             userName: completed.user.name,
-            userEmail: completed.user.email,
+            userEmail: isAtprotoPlaceholderEmail(completed.user.email)
+              ? undefined
+              : completed.user.email,
           }),
         );
 
