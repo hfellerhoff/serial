@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { getBookmarkAddedAt } from "./itemDate";
 import type { ApplicationBookmark } from "~/server/mixed-content/projection";
+import type { ConnectionState } from "~/lib/data/atoms";
 import { KeyboardShortcutDisplay } from "~/components/ButtonWithShortcut";
 import { Button } from "~/components/ui/button";
 import { useFeedItemsSetWatchLaterValueMutation } from "~/lib/data/feed-items/mutations";
@@ -592,6 +593,66 @@ function BookmarkActions({
   );
 }
 
+// Shared offline/open-location link derivation for feed and bookmark rows.
+
+function feedOpensInSerial(feed: { openLocation?: string | null } | undefined) {
+  return feed?.openLocation === "serial" || !feed?.openLocation;
+}
+
+/**
+ * Derives the row link for feed and bookmark items. Offline rows always route
+ * to the local reader; online rows open externally in a new tab when the
+ * content is not rendered in Serial. `relRequiresTarget` preserves the
+ * bookmark behavior of only emitting `rel` alongside an actual `target`,
+ * whereas feed rows keep `rel` for external content even while offline.
+ */
+function deriveItemLink({
+  connectionState,
+  offlineHref,
+  serialHref,
+  externalHref,
+  opensExternally,
+  relRequiresTarget,
+}: {
+  connectionState: ConnectionState;
+  offlineHref: string;
+  serialHref: string;
+  externalHref: string;
+  opensExternally: boolean;
+  relRequiresTarget?: boolean;
+}) {
+  const isOffline = connectionState === "disconnected";
+  const opensInNewTab = !isOffline && opensExternally;
+  const target = opensInNewTab ? ("_blank" as const) : undefined;
+  const rel = (relRequiresTarget ? opensInNewTab : opensExternally)
+    ? ("noopener noreferrer" as const)
+    : undefined;
+  const href = isOffline
+    ? offlineHref
+    : opensExternally
+      ? externalHref
+      : serialHref;
+  return { isOffline, href, target, rel };
+}
+
+function createItemLinkClickHandler({
+  canOpen,
+  target,
+  restorationId,
+}: {
+  canOpen: boolean;
+  target: "_blank" | undefined;
+  restorationId: string;
+}) {
+  return (event: { preventDefault: () => void }) => {
+    if (!canOpen) {
+      event.preventDefault();
+      return;
+    }
+    if (!target) captureRootScrollRestoration(restorationId);
+  };
+}
+
 function BookmarkItemDisplay({
   bookmark,
   size,
@@ -616,72 +677,123 @@ function BookmarkItemDisplay({
     contentType: bookmark.contentType,
     hasBody: capture !== undefined,
   });
-  const isOffline = connectionState === "disconnected";
-  const href = isOffline ? `/read/${bookmark.id}` : destination.href;
-  const target = isOffline
-    ? undefined
-    : destination.external
-      ? "_blank"
-      : undefined;
-  const rel = target ? "noopener noreferrer" : undefined;
-  const isLarge = size === "large";
-  const postedAt = getBookmarkAddedAt(bookmark);
+  const { href, target, rel } = deriveItemLink({
+    connectionState,
+    offlineHref: `/read/${bookmark.id}`,
+    serialHref: destination.href,
+    externalHref: destination.href,
+    opensExternally: destination.external,
+    relRequiresTarget: true,
+  });
+  const handleLinkClick = createItemLinkClickHandler({
+    canOpen,
+    target,
+    restorationId: bookmark.id,
+  });
+  const layoutProps: BookmarkLayoutProps = {
+    bookmark,
+    isLarge: size === "large",
+    isSelected,
+    onSelect,
+    canOpen,
+    href,
+    target,
+    rel,
+    onLinkClick: handleLinkClick,
+    feedName: bookmark.siteName ?? new URL(bookmark.sourceUrl).hostname,
+    postedAt: getBookmarkAddedAt(bookmark),
+  };
 
-  if (grid) {
-    return (
-      <article
-        data-item-id={bookmark.id}
-        data-entity-kind="bookmark"
-        onMouseEnter={onSelect}
+  if (grid) return <BookmarkGridItem {...layoutProps} />;
+  return <BookmarkListItem {...layoutProps} />;
+}
+
+interface BookmarkLayoutProps {
+  bookmark: ApplicationBookmark;
+  isLarge: boolean;
+  isSelected: boolean | undefined;
+  onSelect: (() => void) | undefined;
+  canOpen: boolean;
+  href: string;
+  target: "_blank" | undefined;
+  rel: "noopener noreferrer" | undefined;
+  onLinkClick: (event: { preventDefault: () => void }) => void;
+  feedName: string;
+  postedAt: Date;
+}
+
+function BookmarkGridItem({
+  bookmark,
+  isLarge,
+  isSelected,
+  onSelect,
+  canOpen,
+  href,
+  target,
+  rel,
+  onLinkClick,
+  feedName,
+  postedAt,
+}: BookmarkLayoutProps) {
+  return (
+    <article
+      data-item-id={bookmark.id}
+      data-entity-kind="bookmark"
+      onMouseEnter={onSelect}
+      className={clsx(
+        "group relative flex h-full w-full flex-col",
+        !canOpen && "opacity-50",
+      )}
+    >
+      <Link
+        to={href}
+        target={target}
+        rel={rel}
+        aria-disabled={!canOpen}
+        tabIndex={canOpen ? undefined : -1}
+        onClick={onLinkClick}
         className={clsx(
-          "group relative flex h-full w-full flex-col",
-          !canOpen && "opacity-50",
+          "flex h-full flex-1 flex-col rounded p-2 text-left",
+          isSelected && "md:bg-muted",
+          !canOpen && "cursor-not-allowed",
         )}
       >
-        <Link
-          to={href}
-          target={target}
-          rel={rel}
-          aria-disabled={!canOpen}
-          tabIndex={canOpen ? undefined : -1}
-          onClick={(event) => {
-            if (!canOpen) {
-              event.preventDefault();
-              return;
-            }
-            if (!target) captureRootScrollRestoration(bookmark.id);
-          }}
-          className={clsx(
-            "flex h-full flex-1 flex-col rounded p-2 text-left",
-            isSelected && "md:bg-muted",
-            !canOpen && "cursor-not-allowed",
-          )}
-        >
-          <BookmarkThumbnail
-            bookmark={bookmark}
-            layout={isLarge ? "large-grid" : "grid"}
-          />
-          <div className="flex flex-1 flex-col justify-center pt-2">
-            <ItemTitle title={bookmark.title} lineClamp={isLarge ? 1 : 2} />
-            <ItemMeta
-              author={bookmark.author ?? undefined}
-              feedName={
-                bookmark.siteName ?? new URL(bookmark.sourceUrl).hostname
-              }
-              postedAt={postedAt}
-              className="pt-0.5"
-            />
-          </div>
-        </Link>
-        <BookmarkActions
+        <BookmarkThumbnail
           bookmark={bookmark}
-          layout="grid"
-          isSelected={isSelected}
+          layout={isLarge ? "large-grid" : "grid"}
         />
-      </article>
-    );
-  }
+        <div className="flex flex-1 flex-col justify-center pt-2">
+          <ItemTitle title={bookmark.title} lineClamp={isLarge ? 1 : 2} />
+          <ItemMeta
+            author={bookmark.author ?? undefined}
+            feedName={feedName}
+            postedAt={postedAt}
+            className="pt-0.5"
+          />
+        </div>
+      </Link>
+      <BookmarkActions
+        bookmark={bookmark}
+        layout="grid"
+        isSelected={isSelected}
+      />
+    </article>
+  );
+}
 
+function BookmarkListItem({
+  bookmark,
+  isLarge,
+  isSelected,
+  onSelect,
+  canOpen,
+  href,
+  target,
+  rel,
+  onLinkClick,
+  feedName,
+  postedAt,
+}: BookmarkLayoutProps) {
   return (
     <article
       data-item-id={bookmark.id}
@@ -701,13 +813,7 @@ function BookmarkItemDisplay({
         rel={rel}
         aria-disabled={!canOpen}
         tabIndex={canOpen ? undefined : -1}
-        onClick={(event) => {
-          if (!canOpen) {
-            event.preventDefault();
-            return;
-          }
-          if (!target) captureRootScrollRestoration(bookmark.id);
-        }}
+        onClick={onLinkClick}
         className={clsx(
           "flex w-full flex-1 flex-col gap-4 px-6 pt-4 text-left md:flex-row md:items-center md:rounded md:px-2 md:py-2",
           isLarge ? "pb-1 md:pb-2" : "pb-4 md:h-20 md:py-0",
@@ -730,7 +836,7 @@ function BookmarkItemDisplay({
           )}
           <ItemMeta
             author={bookmark.author ?? undefined}
-            feedName={bookmark.siteName ?? new URL(bookmark.sourceUrl).hostname}
+            feedName={feedName}
             postedAt={postedAt}
           />
         </div>
@@ -773,23 +879,27 @@ function FeedItemDisplay({
     entity: item,
   });
   const shouldOpenInSerial =
-    destination.renderer !== "origin" &&
-    (feed?.openLocation === "serial" || !feed?.openLocation);
+    destination.renderer !== "origin" && feedOpensInSerial(feed);
 
   const canOpen = canOpenContent({
     connectionState,
     contentType: item.contentType,
     hasBody: hasRetainedFeedBody(item, hasRetainedBody),
   });
-  const isOffline = connectionState === "disconnected";
-  const href = isOffline
-    ? `/read/${item.id}`
-    : shouldOpenInSerial
-      ? destination.href
-      : item.url;
-
-  const target = isOffline || shouldOpenInSerial ? undefined : "_blank";
-  const rel = shouldOpenInSerial ? undefined : "noopener noreferrer";
+  const { isOffline, href, target, rel } = deriveItemLink({
+    connectionState,
+    offlineHref: `/read/${item.id}`,
+    serialHref: destination.href,
+    externalHref: item.url,
+    opensExternally: !shouldOpenInSerial,
+  });
+  const preload =
+    canOpen && !target && !isOffline ? ("intent" as const) : undefined;
+  const handleLinkClick = createItemLinkClickHandler({
+    canOpen,
+    target,
+    restorationId: contentId,
+  });
 
   const isLarge = size === "large";
 
@@ -809,16 +919,10 @@ function FeedItemDisplay({
         to={href}
         target={target}
         rel={rel}
-        preload={canOpen && !target && !isOffline ? "intent" : undefined}
+        preload={preload}
         aria-disabled={!canOpen}
         tabIndex={canOpen ? undefined : -1}
-        onClick={(event) => {
-          if (!canOpen) {
-            event.preventDefault();
-            return;
-          }
-          if (!target) captureRootScrollRestoration(contentId);
-        }}
+        onClick={handleLinkClick}
         className={clsx(
           "flex w-full flex-1 flex-col gap-4 px-6 pt-4 text-left md:flex-row md:items-center md:rounded md:px-2 md:py-2",
           isLarge ? "pb-1 md:pb-2" : "pb-4 md:h-20 md:py-0",
@@ -901,23 +1005,27 @@ function FeedGridItemDisplay({
 
   const itemDestination = item.platform === "website" ? "read" : "watch";
 
-  const shouldOpenInSerial =
-    feed?.openLocation === "serial" || !feed?.openLocation;
+  const shouldOpenInSerial = feedOpensInSerial(feed);
 
   const canOpen = canOpenContent({
     connectionState,
     contentType: item.contentType,
     hasBody: hasRetainedFeedBody(item, hasRetainedBody),
   });
-  const isOffline = connectionState === "disconnected";
-  const href = isOffline
-    ? `/read/${item.id}`
-    : shouldOpenInSerial
-      ? `/${itemDestination}/${item.id}`
-      : item.url;
-
-  const target = isOffline || shouldOpenInSerial ? undefined : "_blank";
-  const rel = shouldOpenInSerial ? undefined : "noopener noreferrer";
+  const { isOffline, href, target, rel } = deriveItemLink({
+    connectionState,
+    offlineHref: `/read/${item.id}`,
+    serialHref: `/${itemDestination}/${item.id}`,
+    externalHref: item.url,
+    opensExternally: !shouldOpenInSerial,
+  });
+  const preload =
+    canOpen && !target && !isOffline ? ("intent" as const) : undefined;
+  const handleLinkClick = createItemLinkClickHandler({
+    canOpen,
+    target,
+    restorationId: contentId,
+  });
 
   const isLarge = size === "large";
 
@@ -934,16 +1042,10 @@ function FeedGridItemDisplay({
         to={href}
         target={target}
         rel={rel}
-        preload={canOpen && !target && !isOffline ? "intent" : undefined}
+        preload={preload}
         aria-disabled={!canOpen}
         tabIndex={canOpen ? undefined : -1}
-        onClick={(event) => {
-          if (!canOpen) {
-            event.preventDefault();
-            return;
-          }
-          if (!target) captureRootScrollRestoration(contentId);
-        }}
+        onClick={handleLinkClick}
         className={clsx(
           "flex h-full flex-1 flex-col rounded p-2 text-left",
           isSelected && "md:bg-muted",

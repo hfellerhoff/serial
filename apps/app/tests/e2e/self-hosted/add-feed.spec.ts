@@ -265,6 +265,46 @@ test.describe("add feed manually", () => {
     await dialog.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("Feed updated!")).toBeVisible();
 
+    const feedSidebarItem = page
+      .locator('[data-sidebar="menu-item"]')
+      .filter({ has: page.getByText("CGP Grey", { exact: true }) });
+
+    // Keep a subsequent mutation pending while the sidebar-owned dialog's
+    // portal closes and reopens. Its always-mounted owner must retain the
+    // pending state and prevent a duplicate update until the request settles.
+    let releaseFeedUpdate!: () => void;
+    const feedUpdateCanFinish = new Promise<void>((resolve) => {
+      releaseFeedUpdate = resolve;
+    });
+    let feedUpdateRequests = 0;
+    await page.route("**/api/rpc/feed/update", async (route) => {
+      feedUpdateRequests += 1;
+      await feedUpdateCanFinish;
+      await route.continue();
+    });
+
+    await feedSidebarItem.getByRole("button").nth(1).click();
+    const saveButton = dialog.getByRole("button", { name: /^Sav/ });
+    await saveButton.click();
+    await expect(saveButton).toBeDisabled();
+    await expect(saveButton).toHaveText("Saving...");
+    await dialog.getByRole("button", { name: "Close" }).click();
+    await expect(
+      dialog.getByRole("heading", { name: "Edit Feed" }),
+    ).toHaveCount(0);
+    await feedSidebarItem.getByRole("button").nth(1).click();
+    const reopenedSaveButton = dialog.getByRole("button", {
+      name: "Saving...",
+    });
+    await expect(reopenedSaveButton).toBeDisabled();
+    expect(feedUpdateRequests).toBe(1);
+
+    releaseFeedUpdate();
+    await expect(
+      dialog.getByRole("heading", { name: "Edit Feed" }),
+    ).toHaveCount(0);
+    await page.unroute("**/api/rpc/feed/update");
+
     // Verify the feed appears in the sidebar
     const feedsSection = page.locator('[data-sidebar="group"]').filter({
       has: page.locator('[data-sidebar="group-label"]', { hasText: "Feeds" }),

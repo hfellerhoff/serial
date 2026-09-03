@@ -3,51 +3,35 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ItemGroup } from "@serial/ui";
 import { ImportIcon, PlusIcon, Trash2Icon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
-import { ViewCategoriesInput } from "~/components/view-dialog";
+import { useMemo, useState } from "react";
 import { ButtonWithShortcut } from "~/components/ButtonWithShortcut";
 import { useDialogStore } from "~/components/feed/dialogStore";
 import { FeedListItem } from "~/components/feed/FeedListItem";
 import { FeedManagementTabs } from "~/components/feed/FeedManagementTabs";
 import { useFeedManagementShortcuts } from "~/components/feed/useManagementShortcuts";
 import { FeedEmptyState } from "~/components/feed/view-lists/EmptyStates";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
-import { Badge } from "~/components/ui/badge";
+import { ActiveFeedLimitStatus } from "~/components/feed/manage/ActiveFeedLimitStatus";
+import {
+  FeedActiveSwitch,
+  FeedRowBadges,
+} from "~/components/feed/manage/FeedRowControls";
+import {
+  DeleteFeedsDialog,
+  EditFeedsDialog,
+} from "~/components/feed/manage/ManageFeedsDialogs";
+import { useBulkFeedEditing } from "~/components/feed/manage/useBulkFeedEditing";
+import {
+  filterFeeds,
+  sortIdsByName,
+  useFeedMaps,
+} from "~/components/feed/manage/useFeedMaps";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
-import { ChipCombobox } from "~/components/ui/chip-combobox";
 import { Input } from "~/components/ui/input";
-import { Progress } from "~/components/ui/progress";
-import { ControlledResponsiveDialog } from "~/components/ui/responsive-dropdown";
-import { Switch } from "~/components/ui/switch";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
-import { useContentCategories } from "~/lib/data/content-categories";
-import { useFeedCategories } from "~/lib/data/feed-categories";
-import {
-  useBulkAssignFeedCategoryMutation,
-  useBulkRemoveFeedCategoryMutation,
-} from "~/lib/data/feed-categories/mutations";
 import { useFeeds } from "~/lib/data/feeds";
-import {
-  useBulkDeleteFeedsMutation,
-  useBulkSetActiveMutation,
-  useSetFeedActiveMutation,
-} from "~/lib/data/feeds/mutations";
+import { useSetFeedActiveMutation } from "~/lib/data/feeds/mutations";
 import { useSubscription } from "~/lib/data/subscription";
-import { useViewFeeds } from "~/lib/data/view-feeds";
-import {
-  useBulkAssignViewFeedMutation,
-  useBulkRemoveViewFeedMutation,
-} from "~/lib/data/view-feeds/mutations";
-import { useViews } from "~/lib/data/views";
-import { UNCATEGORIZED_VIEW_ID } from "~/lib/data/views/constants";
-import { useQuickCreateViewMutation } from "~/lib/data/views/mutations";
-import { IS_DEMO_INSTANCE } from "~/lib/demo";
+import { useScrollEdgeState } from "~/lib/hooks/useScrollEdgeState";
 import { useShiftSelect } from "~/lib/hooks/useShiftSelect";
 import { OfflineMutationBoundary } from "~/components/OfflineMutationBoundary";
 import { useCanMutate } from "~/lib/data/offline-mutations";
@@ -67,146 +51,43 @@ function ManageFeedsPage() {
 function ManageFeedsPageContent() {
   const canMutate = useCanMutate();
   const { feeds } = useFeeds();
-  const { feedCategories } = useFeedCategories();
-  const { contentCategories } = useContentCategories();
-  const { views } = useViews();
-  const { viewFeeds } = useViewFeeds();
   const { launchDialog } = useDialogStore();
   const { billingEnabled, activeFeeds, maxActiveFeeds, planName } =
     useSubscription();
   const { mutate: setFeedActive, isPending: isTogglingActive } =
     useSetFeedActiveMutation();
-  const { mutateAsync: bulkSetActive } = useBulkSetActiveMutation();
 
   const [selectedFeedIds, setSelectedFeedIds] = useState<Set<number>>(
     new Set(),
   );
   const [searchQuery, setSearchQuery] = useState("");
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isAtBottom, setIsAtBottom] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const headerRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const { headerRef, bottomRef, isScrolled, isAtBottom } = useScrollEdgeState();
 
-  useEffect(() => {
-    if (!headerRef.current) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsScrolled(!entry?.isIntersecting);
-      },
-      { threshold: 0 },
-    );
-
-    observer.observe(headerRef.current);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!bottomRef.current) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsAtBottom(entry?.isIntersecting ?? false);
-      },
-      { threshold: 0 },
-    );
-
-    observer.observe(bottomRef.current);
-    return () => observer.disconnect();
-  }, []);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
-  const [selectedViewIds, setSelectedViewIds] = useState<number[]>([]);
-  const [bulkActiveState, setBulkActiveState] = useState(false);
-
-  const { mutateAsync: bulkDeleteFeeds, isPending: isDeletingFeeds } =
-    useBulkDeleteFeedsMutation();
-  const { mutateAsync: bulkAssignCategory, isPending: isAssigningCategory } =
-    useBulkAssignFeedCategoryMutation();
-  const { mutateAsync: bulkRemoveCategory, isPending: isRemovingCategory } =
-    useBulkRemoveFeedCategoryMutation();
-  const { mutateAsync: bulkAssignView, isPending: isAssigningView } =
-    useBulkAssignViewFeedMutation();
-  const { mutateAsync: bulkRemoveView, isPending: isRemovingView } =
-    useBulkRemoveViewFeedMutation();
-  const { mutateAsync: quickCreateView } = useQuickCreateViewMutation();
-
-  const feedCategoriesMap = useMemo(() => {
-    const map = new Map<number, number[]>();
-    feedCategories.forEach((fc) => {
-      const existing = map.get(fc.feedId) ?? [];
-      existing.push(fc.categoryId);
-      map.set(fc.feedId, existing);
-    });
-    return map;
-  }, [feedCategories]);
-
-  const feedViewsMap = useMemo(() => {
-    const map = new Map<number, number[]>();
-    viewFeeds.forEach((vf) => {
-      const existing = map.get(vf.feedId) ?? [];
-      existing.push(vf.viewId);
-      map.set(vf.feedId, existing);
-    });
-    return map;
-  }, [viewFeeds]);
-
-  const categoryNamesMap = useMemo(() => {
-    const map = new Map<number, string>();
-    contentCategories.forEach((c) => {
-      map.set(c.id, c.name);
-    });
-    return map;
-  }, [contentCategories]);
-
-  const viewNamesMap = useMemo(() => {
-    const map = new Map<number, string>();
-    views
-      .filter((v) => v.id !== UNCATEGORIZED_VIEW_ID)
-      .forEach((v) => {
-        map.set(v.id, v.name);
-      });
-    return map;
-  }, [views]);
-
-  const customViewOptions = useMemo(() => {
-    return views
-      .filter((v) => v.id !== UNCATEGORIZED_VIEW_ID)
-      .map((v) => ({ id: v.id, label: v.name }));
-  }, [views]);
-
-  const filteredFeeds = useMemo(() => {
-    const sorted = [...feeds].sort((a, b) => a.name.localeCompare(b.name));
-    if (!searchQuery.trim()) return sorted;
-
-    const lowercaseQuery = searchQuery.toLowerCase();
-    const matches = (name: string | undefined) =>
-      !!name && name.toLowerCase().includes(lowercaseQuery);
-
-    return sorted.filter((feed) => {
-      if (matches(feed.name)) return true;
-
-      const categoryIds = feedCategoriesMap.get(feed.id);
-      if (categoryIds?.some((id) => matches(categoryNamesMap.get(id)))) {
-        return true;
-      }
-
-      const viewIds = feedViewsMap.get(feed.id);
-      if (viewIds?.some((id) => matches(viewNamesMap.get(id)))) {
-        return true;
-      }
-
-      return false;
-    });
-  }, [
-    feeds,
-    searchQuery,
+  const {
     feedCategoriesMap,
     feedViewsMap,
     categoryNamesMap,
     viewNamesMap,
-  ]);
+    customViewOptions,
+  } = useFeedMaps();
+
+  const filteredFeeds = useMemo(
+    () =>
+      filterFeeds(feeds, searchQuery, {
+        feedCategoriesMap,
+        feedViewsMap,
+        categoryNamesMap,
+        viewNamesMap,
+      }),
+    [
+      feeds,
+      searchQuery,
+      feedCategoriesMap,
+      feedViewsMap,
+      categoryNamesMap,
+      viewNamesMap,
+    ],
+  );
 
   const filteredFeedIds = useMemo(
     () => filteredFeeds.map((f) => f.id),
@@ -234,92 +115,35 @@ function ManageFeedsPageContent() {
     }
   };
 
-  const handleDelete = () => {
-    if (!canMutate) return;
-    const feedIds = Array.from(selectedFeedIds);
-    const count = feedIds.length;
-    setShowDeleteDialog(false);
-    setSelectedFeedIds(new Set());
-
-    toast.promise(bulkDeleteFeeds({ feedIds }), {
-      loading: `Deleting ${count} feed${count > 1 ? "s" : ""}...`,
-      success: `Deleted ${count} feed${count > 1 ? "s" : ""}!`,
-      error: "Failed to delete feeds",
-    });
-  };
-
-  const getSharedCategories = () => {
-    const feedIds = Array.from(selectedFeedIds);
-    if (feedIds.length === 0) return [];
-
-    const firstFeedCategories = feedCategoriesMap.get(feedIds[0]!) ?? [];
-    const categorySets = feedIds.map(
-      (feedId) => new Set(feedCategoriesMap.get(feedId) ?? []),
-    );
-    return firstFeedCategories.filter((categoryId) =>
-      categorySets.every((categorySet) => categorySet.has(categoryId)),
-    );
-  };
-
-  const getSharedViews = () => {
-    const feedIds = Array.from(selectedFeedIds);
-    if (feedIds.length === 0) return [];
-
-    const firstFeedViews = feedViewsMap.get(feedIds[0]!) ?? [];
-    const viewSets = feedIds.map(
-      (feedId) => new Set(feedViewsMap.get(feedId) ?? []),
-    );
-    return firstFeedViews.filter((viewId) =>
-      viewSets.every((viewSet) => viewSet.has(viewId)),
-    );
-  };
-
-  const openEditDialog = () => {
-    setSelectedCategoryIds(getSharedCategories());
-    setSelectedViewIds(getSharedViews());
-    // If all selected feeds are active, show active; otherwise show deactivated
-    const allActive = Array.from(selectedFeedIds).every(
-      (id) => feeds.find((f) => f.id === id)?.isActive,
-    );
-    setBulkActiveState(allActive);
-    setShowEditDialog(true);
-  };
-
-  const handleClear = () => {
-    const feedIds = Array.from(selectedFeedIds);
-    const count = feedIds.length;
-
-    // Get all categories any selected feed currently has
-    const allCurrentCategories = new Set<number>();
-    feedIds.forEach((feedId) => {
-      const categories = feedCategoriesMap.get(feedId) ?? [];
-      categories.forEach((c) => allCurrentCategories.add(c));
-    });
-
-    // Get all views any selected feed currently has
-    const allCurrentViews = new Set<number>();
-    feedIds.forEach((feedId) => {
-      const views = feedViewsMap.get(feedId) ?? [];
-      views.forEach((v) => allCurrentViews.add(v));
-    });
-
-    if (allCurrentCategories.size === 0 && allCurrentViews.size === 0) return;
-
-    const promises: Array<Promise<void>> = [
-      ...Array.from(allCurrentCategories).map((categoryId) =>
-        bulkRemoveCategory({ feedIds, categoryId }),
-      ),
-      ...Array.from(allCurrentViews).map((viewId) =>
-        bulkRemoveView({ feedIds, viewId }),
-      ),
-    ];
-
-    toast.promise(Promise.all(promises), {
-      loading: `Clearing ${count} feed${count > 1 ? "s" : ""}...`,
-      success: `Cleared ${count} feed${count > 1 ? "s" : ""}!`,
-      error: "Failed to clear feeds",
-    });
-  };
+  const {
+    showDeleteDialog,
+    setShowDeleteDialog,
+    showEditDialog,
+    setShowEditDialog,
+    selectedCategoryIds,
+    setSelectedCategoryIds,
+    selectedViewIds,
+    setSelectedViewIds,
+    bulkActiveState,
+    setBulkActiveState,
+    isDeletingFeeds,
+    isSavingEdit,
+    isClearing,
+    handleDelete,
+    openEditDialog,
+    handleClear,
+    handleEditSave,
+  } = useBulkFeedEditing({
+    canMutate,
+    feeds,
+    selectedFeedIds,
+    setSelectedFeedIds,
+    feedCategoriesMap,
+    feedViewsMap,
+    activeFeeds,
+    maxActiveFeeds,
+    launchDialog,
+  });
 
   useFeedManagementShortcuts({
     onEscape: deselectAll,
@@ -330,96 +154,6 @@ function ManageFeedsPageContent() {
     isDialogOpen: showDeleteDialog || showEditDialog,
     hasSelection: selectedCount > 0,
   });
-
-  const handleEditSave = () => {
-    if (!canMutate) return;
-    const feedIds = Array.from(selectedFeedIds);
-    const count = feedIds.length;
-    const sharedCategories = getSharedCategories();
-    const sharedViews = getSharedViews();
-
-    // Active state
-    const feedsToToggle = feedIds.filter((id) => {
-      const feed = feeds.find((f) => f.id === id);
-      return feed && feed.isActive !== bulkActiveState;
-    });
-
-    if (bulkActiveState && feedsToToggle.length > 0 && maxActiveFeeds >= 0) {
-      const wouldBeActive = activeFeeds + feedsToToggle.length;
-
-      if (wouldBeActive > maxActiveFeeds) {
-        const overLimit = wouldBeActive - maxActiveFeeds;
-
-        if (IS_DEMO_INSTANCE) {
-          toast.warning(
-            `${overLimit} feed${overLimit > 1 ? "s would" : " would"} exceed the limit of active feeds you can have on the demo instance.`,
-          );
-        } else {
-          toast.warning(
-            `${overLimit} feed${overLimit > 1 ? "s would" : " would"} exceed your plan limit. To unlock more active feeds, you can switch to a higher plan.`,
-            {
-              action: {
-                label: "Upgrade",
-                onClick: () =>
-                  launchDialog("subscription", { subscriptionView: "picker" }),
-              },
-            },
-          );
-        }
-
-        return;
-      }
-    }
-
-    const promises: Array<Promise<void>> = [];
-
-    // Bulk active state toggle
-    if (feedsToToggle.length > 0) {
-      promises.push(
-        bulkSetActive({ feedIds: feedsToToggle, isActive: bulkActiveState }),
-      );
-    }
-
-    // Categories
-    const categoriesToAdd = selectedCategoryIds;
-    const selectedCategoryIdSet = new Set(selectedCategoryIds);
-    const categoriesToRemove = sharedCategories.filter(
-      (id) => !selectedCategoryIdSet.has(id),
-    );
-    categoriesToAdd.forEach((categoryId) => {
-      promises.push(bulkAssignCategory({ feedIds, categoryId }));
-    });
-    categoriesToRemove.forEach((categoryId) => {
-      promises.push(bulkRemoveCategory({ feedIds, categoryId }));
-    });
-
-    // Views
-    const viewsToAdd = selectedViewIds;
-    const selectedViewIdSet = new Set(selectedViewIds);
-    const viewsToRemove = sharedViews.filter(
-      (id) => !selectedViewIdSet.has(id),
-    );
-    viewsToAdd.forEach((viewId) => {
-      promises.push(bulkAssignView({ feedIds, viewId }));
-    });
-    viewsToRemove.forEach((viewId) => {
-      promises.push(bulkRemoveView({ feedIds, viewId }));
-    });
-
-    setSelectedCategoryIds([]);
-    setSelectedViewIds([]);
-    setShowEditDialog(false);
-
-    if (promises.length === 0) {
-      return;
-    }
-
-    toast.promise(Promise.all(promises), {
-      loading: `Updating ${count} feed${count > 1 ? "s" : ""}...`,
-      success: `Updated ${count} feed${count > 1 ? "s" : ""}!`,
-      error: "Failed to update feeds",
-    });
-  };
 
   if (!feeds.length) {
     return (
@@ -471,43 +205,13 @@ function ManageFeedsPageContent() {
             </ButtonWithShortcut>
           </div>
         </div>
-        {(billingEnabled || IS_DEMO_INSTANCE) &&
-          maxActiveFeeds > 0 &&
-          (IS_DEMO_INSTANCE
-            ? activeFeeds <= maxActiveFeeds
-            : activeFeeds < maxActiveFeeds) && (
-            <div className="mt-3 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <p className="text-muted-foreground text-sm">
-                  {activeFeeds} / {maxActiveFeeds} feeds active
-                </p>
-              </div>
-              <Progress
-                value={Math.min(100, (activeFeeds / maxActiveFeeds) * 100)}
-              />
-            </div>
-          )}
-        {billingEnabled &&
-          maxActiveFeeds > 0 &&
-          activeFeeds >= maxActiveFeeds && (
-            <Alert className="mt-4">
-              <AlertTitle>Max active feeds reached</AlertTitle>
-              <AlertDescription>
-                The {planName} plan supports a maximum of {maxActiveFeeds}{" "}
-                feeds. You can add more than this, but only your active feeds
-                will receive new content.
-                <Button
-                  type="button"
-                  onClick={() =>
-                    launchDialog("subscription", { subscriptionView: "picker" })
-                  }
-                  className="mt-4"
-                >
-                  Upgrade your plan
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
+        <ActiveFeedLimitStatus
+          billingEnabled={billingEnabled}
+          activeFeeds={activeFeeds}
+          maxActiveFeeds={maxActiveFeeds}
+          planName={planName}
+          launchDialog={launchDialog}
+        />
       </div>
 
       <div
@@ -547,20 +251,14 @@ function ManageFeedsPageContent() {
         <ItemGroup className="-mx-3 gap-0">
           {filteredFeeds.map((feed) => {
             const isSelected = selectedFeedIds.has(feed.id);
-            const feedCategoryIds = (feedCategoriesMap.get(feed.id) ?? [])
-              .slice()
-              .sort((a, b) =>
-                (categoryNamesMap.get(a) ?? "").localeCompare(
-                  categoryNamesMap.get(b) ?? "",
-                ),
-              );
-            const feedViewIds = (feedViewsMap.get(feed.id) ?? [])
-              .slice()
-              .sort((a, b) =>
-                (viewNamesMap.get(a) ?? "").localeCompare(
-                  viewNamesMap.get(b) ?? "",
-                ),
-              );
+            const feedCategoryIds = sortIdsByName(
+              feedCategoriesMap.get(feed.id) ?? [],
+              categoryNamesMap,
+            );
+            const feedViewIds = sortIdsByName(
+              feedViewsMap.get(feed.id) ?? [],
+              viewNamesMap,
+            );
 
             return (
               <FeedListItem
@@ -581,58 +279,27 @@ function ManageFeedsPageContent() {
                 }
                 details={
                   <>
-                    {feedCategoryIds.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {feedCategoryIds.map((categoryId) => {
-                          const categoryName = categoryNamesMap.get(categoryId);
-                          if (!categoryName) return null;
-                          return (
-                            <Badge key={`cat-${categoryId}`} variant="outline">
-                              {categoryName}
-                            </Badge>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {feedViewIds.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {feedViewIds.map((viewId) => {
-                          const viewName = viewNamesMap.get(viewId);
-                          if (!viewName) return null;
-                          return (
-                            <Badge key={`view-${viewId}`} variant="secondary">
-                              {viewName}
-                            </Badge>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <FeedRowBadges
+                      ids={feedCategoryIds}
+                      namesMap={categoryNamesMap}
+                      variant="outline"
+                      keyPrefix="cat"
+                    />
+                    <FeedRowBadges
+                      ids={feedViewIds}
+                      namesMap={viewNamesMap}
+                      variant="secondary"
+                      keyPrefix="view"
+                    />
                   </>
                 }
                 actions={
-                  <Switch
-                    checked={feed.isActive}
-                    disabled={isTogglingActive}
-                    onCheckedChange={(checked) => {
-                      if (
-                        !checked ||
-                        activeFeeds < maxActiveFeeds ||
-                        maxActiveFeeds < 0
-                      ) {
-                        setFeedActive({ feedId: feed.id, isActive: checked });
-                      } else {
-                        if (IS_DEMO_INSTANCE) {
-                          toast.error(
-                            "Feed limit reached. This is the limit for the demo instance.",
-                          );
-                        } else {
-                          toast.error(
-                            "Feed limit reached. Upgrade your plan to activate more feeds.",
-                          );
-                        }
-                      }
-                    }}
-                    onClick={(e) => e.stopPropagation()}
+                  <FeedActiveSwitch
+                    feed={feed}
+                    isTogglingActive={isTogglingActive}
+                    setFeedActive={setFeedActive}
+                    activeFeeds={activeFeeds}
+                    maxActiveFeeds={maxActiveFeeds}
                   />
                 }
               />
@@ -659,12 +326,7 @@ function ManageFeedsPageContent() {
               <ButtonWithShortcut
                 variant="outline"
                 onClick={openEditDialog}
-                disabled={
-                  isAssigningCategory ||
-                  isRemovingCategory ||
-                  isAssigningView ||
-                  isRemovingView
-                }
+                disabled={isSavingEdit}
                 shortcut="e"
               >
                 Edit
@@ -672,7 +334,7 @@ function ManageFeedsPageContent() {
               <ButtonWithShortcut
                 variant="outline"
                 onClick={handleClear}
-                disabled={isRemovingCategory || isRemovingView}
+                disabled={isClearing}
                 shortcut="c"
               >
                 Clear
@@ -691,109 +353,30 @@ function ManageFeedsPageContent() {
         </div>
       )}
 
-      <ControlledResponsiveDialog
+      <DeleteFeedsDialog
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
-        title="Delete Feeds"
-        description={`Are you sure you want to delete ${selectedCount} feed${selectedCount > 1 ? "s" : ""}? This action cannot be undone.`}
-      >
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => setShowDeleteDialog(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            className="flex-1"
-            onClick={handleDelete}
-            disabled={!canMutate || isDeletingFeeds}
-          >
-            {isDeletingFeeds ? "Deleting..." : "Delete"}
-          </Button>
-        </div>
-      </ControlledResponsiveDialog>
+        selectedCount={selectedCount}
+        canMutate={canMutate}
+        isDeletingFeeds={isDeletingFeeds}
+        onDelete={handleDelete}
+      />
 
-      <ControlledResponsiveDialog
+      <EditFeedsDialog
         open={showEditDialog}
         onOpenChange={setShowEditDialog}
-        title="Edit Feeds"
-        description={`Edit ${selectedCount} feed${selectedCount > 1 ? "s" : ""}.`}
-        headerRight={
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center">
-                <Switch
-                  checked={bulkActiveState}
-                  onCheckedChange={setBulkActiveState}
-                />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              {bulkActiveState ? "Feeds active" : "Feeds inactive"}
-            </TooltipContent>
-          </Tooltip>
-        }
-        footer={
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => setShowEditDialog(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="flex-1"
-              onClick={handleEditSave}
-              disabled={
-                !canMutate ||
-                isAssigningCategory ||
-                isRemovingCategory ||
-                isAssigningView ||
-                isRemovingView
-              }
-            >
-              {isAssigningCategory ||
-              isRemovingCategory ||
-              isAssigningView ||
-              isRemovingView
-                ? "Saving..."
-                : "Save"}
-            </Button>
-          </div>
-        }
-      >
-        <div className="grid gap-4">
-          <ChipCombobox
-            label="Views"
-            placeholder="Search views..."
-            options={customViewOptions}
-            selectedIds={selectedViewIds}
-            onAdd={(id) => setSelectedViewIds([...selectedViewIds, id])}
-            onRemove={(id) =>
-              setSelectedViewIds(selectedViewIds.filter((v) => v !== id))
-            }
-            onCreate={async (name) => {
-              try {
-                const created = await quickCreateView({ name });
-                if (created) {
-                  setSelectedViewIds([...selectedViewIds, created.id]);
-                }
-              } catch {
-                toast.error("Failed to create view.");
-              }
-            }}
-            createLabel="Create view"
-          />
-          <ViewCategoriesInput
-            selectedCategories={selectedCategoryIds}
-            setSelectedCategories={setSelectedCategoryIds}
-          />
-        </div>
-      </ControlledResponsiveDialog>
+        selectedCount={selectedCount}
+        bulkActiveState={bulkActiveState}
+        setBulkActiveState={setBulkActiveState}
+        canMutate={canMutate}
+        isSaving={isSavingEdit}
+        onSave={handleEditSave}
+        customViewOptions={customViewOptions}
+        selectedViewIds={selectedViewIds}
+        setSelectedViewIds={setSelectedViewIds}
+        selectedCategoryIds={selectedCategoryIds}
+        setSelectedCategoryIds={setSelectedCategoryIds}
+      />
     </div>
   );
 }

@@ -200,6 +200,7 @@ async function waitForCleanup(
   ports: number[],
 ) {
   const deadline = Date.now() + CLEANUP_TIMEOUT_MS;
+  const processGroupIdSet = new Set(processGroupIds);
   let remainingObserved: ProcessRow[] = [];
   let remainingGroup: ProcessRow[] = [];
   let portsAvailable = false;
@@ -214,7 +215,7 @@ async function waitForCleanup(
       return current?.command === observed.command;
     });
     remainingGroup = processes.filter((process) =>
-      processGroupIds.includes(process.processGroupId),
+      processGroupIdSet.has(process.processGroupId),
     );
     portsAvailable = await arePortsAvailable(ports);
 

@@ -23,9 +23,7 @@ import { useShortcut } from "~/lib/hooks/useShortcut";
 import { SHORTCUT_KEYS } from "~/lib/constants/shortcuts";
 import { useCanMutate } from "~/lib/data/offline-mutations";
 
-export function ContentActions({ contentID }: { contentID: string }) {
-  const { view } = useView();
-
+function useContentActions(contentID: string) {
   const video = useFeedItemValue(contentID);
   const canMutate = useCanMutate();
 
@@ -37,11 +35,6 @@ export function ContentActions({ contentID }: { contentID: string }) {
   const showInstapaperAction = useShowInstapaperAction(contentID);
   const { mutateAsync: saveToInstapaper, isPending: isSavingToInstapaper } =
     useSaveToInstapaperMutation(contentID);
-
-  const isWatched = video?.isWatched;
-  const isWatchLater = video?.isWatchLater;
-
-  const shouldHideFullscreenActions = useMediaQuery("(min-aspect-ratio: 4/3)");
 
   const toggleWatchLater = async () => {
     if (!video || !canMutate) return;
@@ -78,51 +71,87 @@ export function ContentActions({ contentID }: { contentID: string }) {
     void handleSaveToInstapaper();
   });
 
-  if (!video) return null;
+  return {
+    video,
+    canMutate,
+    isWatched: video?.isWatched,
+    isWatchLater: video?.isWatchLater,
+    showInstapaperAction,
+    isSavingToInstapaper,
+    toggleWatchLater,
+    toggleWatched,
+    handleSaveToInstapaper,
+  };
+}
 
-  if (view === "fullscreen") {
-    if (shouldHideFullscreenActions) return null;
+type ContentActionsState = ReturnType<typeof useContentActions>;
 
-    return (
-      <div className="absolute inset-x-0 bottom-0 z-0 flex w-full items-center justify-center gap-2 p-6">
-        {showInstapaperAction && (
-          <Button
-            variant="outline"
-            onClick={handleSaveToInstapaper}
-            size="icon"
-            disabled={!canMutate || isSavingToInstapaper}
-          >
-            <SendIcon size={16} />
-          </Button>
+function FullscreenContentActions({
+  actions,
+}: {
+  actions: ContentActionsState;
+}) {
+  const {
+    canMutate,
+    isWatched,
+    isWatchLater,
+    showInstapaperAction,
+    isSavingToInstapaper,
+    toggleWatchLater,
+    toggleWatched,
+    handleSaveToInstapaper,
+  } = actions;
+  return (
+    <div className="absolute inset-x-0 bottom-0 z-0 flex w-full items-center justify-center gap-2 p-6">
+      {showInstapaperAction && (
+        <Button
+          variant="outline"
+          onClick={handleSaveToInstapaper}
+          size="icon"
+          disabled={!canMutate || isSavingToInstapaper}
+        >
+          <SendIcon size={16} />
+        </Button>
+      )}
+      <Button
+        variant={isWatchLater ? "secondary" : "outline"}
+        onClick={toggleWatchLater}
+        size="icon"
+        disabled={!canMutate}
+      >
+        {isWatchLater ? (
+          <CheckIcon size={16} />
+        ) : (
+          <BookmarkCheckIcon size={16} />
         )}
-        <Button
-          variant={isWatchLater ? "secondary" : "outline"}
-          onClick={toggleWatchLater}
-          size="icon"
-          disabled={!canMutate}
-        >
-          {isWatchLater ? (
-            <CheckIcon size={16} />
-          ) : (
-            <BookmarkCheckIcon size={16} />
-          )}
-        </Button>
-        <Button
-          variant={isWatched ? "secondary" : "outline"}
-          onClick={toggleWatched}
-          size="icon"
-          disabled={!canMutate}
-        >
-          {isWatched ? (
-            <ArchiveRestoreIcon size={16} />
-          ) : (
-            <ArchiveIcon size={16} />
-          )}
-        </Button>
-      </div>
-    );
-  }
+      </Button>
+      <Button
+        variant={isWatched ? "secondary" : "outline"}
+        onClick={toggleWatched}
+        size="icon"
+        disabled={!canMutate}
+      >
+        {isWatched ? (
+          <ArchiveRestoreIcon size={16} />
+        ) : (
+          <ArchiveIcon size={16} />
+        )}
+      </Button>
+    </div>
+  );
+}
 
+function DefaultContentActions({ actions }: { actions: ContentActionsState }) {
+  const {
+    canMutate,
+    isWatched,
+    isWatchLater,
+    showInstapaperAction,
+    isSavingToInstapaper,
+    toggleWatchLater,
+    toggleWatched,
+    handleSaveToInstapaper,
+  } = actions;
   return (
     <div className="flex w-full items-center justify-center gap-2 p-6">
       {showInstapaperAction && (
@@ -171,4 +200,21 @@ export function ContentActions({ contentID }: { contentID: string }) {
       </ButtonWithShortcut>
     </div>
   );
+}
+
+export function ContentActions({ contentID }: { contentID: string }) {
+  const { view } = useView();
+  const actions = useContentActions(contentID);
+
+  const shouldHideFullscreenActions = useMediaQuery("(min-aspect-ratio: 4/3)");
+
+  if (!actions.video) return null;
+
+  if (view === "fullscreen") {
+    if (shouldHideFullscreenActions) return null;
+
+    return <FullscreenContentActions actions={actions} />;
+  }
+
+  return <DefaultContentActions actions={actions} />;
 }
