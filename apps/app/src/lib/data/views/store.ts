@@ -38,6 +38,11 @@ export function removeFeedReferencesFromViews(
 
 let inFlightFetch: Promise<void> | null = null;
 
+// Bumped by reset() so a severed run stops after its current request: it must
+// not write a later response into the cleared store or downgrade a newer
+// fetch's status.
+let fetchEpoch = 0;
+
 // A request that hangs rather than rejecting (dropped mobile radio) must not
 // gate every later view fetch for the browser's own multi-minute timeout.
 const VIEW_FETCH_TIMEOUT_MS = 30_000;
@@ -48,8 +53,9 @@ export const viewsStoreApi = createStore<ViewsStore>()(
       reset: () => {
         // Sever the in-flight fetch (sign-out clears the store for the next
         // session): its eventual settle must not gate or short-circuit that
-        // session's first fetch.
+        // session's first fetch, and its run must not keep writing.
         inFlightFetch = null;
+        fetchEpoch += 1;
         set({
           views: [],
           viewsDict: {},
@@ -70,6 +76,7 @@ export const viewsStoreApi = createStore<ViewsStore>()(
 
         set({ fetchStatus: "fetching" });
 
+        const epoch = fetchEpoch;
         let thisFetch: Promise<void> | null = null;
         thisFetch = (async () => {
           try {
@@ -84,6 +91,7 @@ export const viewsStoreApi = createStore<ViewsStore>()(
               const data = await orpcRouterClient.view.getAll(undefined, {
                 signal: AbortSignal.timeout(VIEW_FETCH_TIMEOUT_MS),
               });
+              if (epoch !== fetchEpoch) return;
               lastResponse = data;
               if (get().revision !== startRevision) continue;
 
@@ -121,7 +129,13 @@ export const viewsStoreApi = createStore<ViewsStore>()(
               fetchStatus: get().views.length > 0 ? "success" : "idle",
             });
           } catch (error) {
-            set({ fetchStatus: "idle" });
+            // A failed refresh must not hide a populated store behind
+            // skeletons; only an empty store is genuinely unfetched.
+            if (epoch === fetchEpoch) {
+              set({
+                fetchStatus: get().views.length > 0 ? "success" : "idle",
+              });
+            }
             throw error;
           } finally {
             // A reset may have severed this run and a newer fetch may

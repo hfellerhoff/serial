@@ -149,6 +149,7 @@ describe("views store fetch", () => {
 
   it("lets a fresh fetch start after reset severs a hung request", async () => {
     const view = makeView(1);
+    const staleView = makeView(2, { name: "Stale" });
     let resolveHung: ((views: ApplicationView[]) => void) | undefined;
     mocks.getAll
       .mockImplementationOnce(
@@ -157,7 +158,8 @@ describe("views store fetch", () => {
             resolveHung = resolve;
           }),
       )
-      .mockResolvedValue([view]);
+      .mockResolvedValueOnce([view])
+      .mockResolvedValue([staleView]);
 
     const hung = viewsStoreApi.getState().fetch();
     viewsStoreApi.getState().reset();
@@ -169,10 +171,46 @@ describe("views store fetch", () => {
     expect(viewsStoreApi.getState().views).toEqual([view]);
     expect(viewsStoreApi.getState().fetchStatus).toBe("success");
 
-    // The severed run settles late: it retries against fresh data and must
-    // not clear the newer registration or clobber state.
-    resolveHung?.([makeView(2, { name: "Stale" })]);
+    // The severed run settles late: it must neither retry nor write into
+    // the store it was cut off from.
+    resolveHung?.([staleView]);
     await hung;
+
+    expect(mocks.getAll).toHaveBeenCalledTimes(2);
+    expect(viewsStoreApi.getState().views).toEqual([view]);
+    expect(viewsStoreApi.getState().fetchStatus).toBe("success");
+  });
+
+  it("does not let a severed run's failure downgrade a newer fetch", async () => {
+    const view = makeView(1);
+    let rejectHung: ((error: Error) => void) | undefined;
+    mocks.getAll
+      .mockImplementationOnce(
+        () =>
+          new Promise<ApplicationView[]>((_resolve, reject) => {
+            rejectHung = reject;
+          }),
+      )
+      .mockResolvedValueOnce([view]);
+
+    const hung = viewsStoreApi.getState().fetch();
+    viewsStoreApi.getState().reset();
+    await viewsStoreApi.getState().fetch();
+
+    rejectHung?.(new Error("timed out"));
+    await expect(hung).rejects.toThrow("timed out");
+
+    expect(viewsStoreApi.getState().views).toEqual([view]);
+    expect(viewsStoreApi.getState().fetchStatus).toBe("success");
+  });
+
+  it("keeps a populated store visible when a refresh fails", async () => {
+    const view = makeView(1);
+    mocks.getAll.mockResolvedValueOnce([view]);
+    await viewsStoreApi.getState().fetch();
+
+    mocks.getAll.mockRejectedValueOnce(new Error("network down"));
+    await expect(viewsStoreApi.getState().fetch()).rejects.toThrow();
 
     expect(viewsStoreApi.getState().views).toEqual([view]);
     expect(viewsStoreApi.getState().fetchStatus).toBe("success");

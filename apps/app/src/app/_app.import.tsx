@@ -88,6 +88,9 @@ function EditFeedsPage() {
   const [isImportComplete, setIsImportComplete] = useState(false);
   const [isImportPending, setIsImportPending] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(false);
+  const [leftOutByLimitUrls, setLeftOutByLimitUrls] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const [fileInputErrorList, setFileInputErrorList] =
     useState<ImportFeedDataFromFilesError | null>(null);
@@ -122,23 +125,27 @@ function EditFeedsPage() {
 
   const { feeds } = useFeeds();
 
-  // Already-added feeds are not selectable, but they are still sent with the
-  // import so their OPML sections populate the matching views on re-import.
-  // The request schema caps items at MAX_BULK_MUTATION_ITEMS; selected feeds
-  // take priority and already-added ones fill the remainder, both keeping
-  // file order (section placement follows submission order).
-  const isFeedAlreadyAdded = (feedUrl: string) =>
-    feeds.some((feed) => feed.url === feedUrl);
-  const selectedChannelCount = (feedsFoundFromFile ?? []).filter(
+  // Already-added feeds are not selectable, but the ones carrying OPML
+  // sections or tags are still sent so a re-import links them into the
+  // matching views. The request schema caps items at MAX_BULK_MUTATION_ITEMS;
+  // selected feeds take priority and organized already-added ones fill the
+  // remainder, both keeping file order (section placement follows submission
+  // order). Anything beyond the cap is left for a follow-up import.
+  const existingFeedUrls = new Set(feeds.map((feed) => feed.url));
+  const selectedChannels = (feedsFoundFromFile ?? []).filter(
     (channel) => channel.shouldImport,
-  ).length;
+  );
+  const organizedAlreadyAddedChannels = (feedsFoundFromFile ?? []).filter(
+    (channel) =>
+      !channel.shouldImport &&
+      existingFeedUrls.has(channel.feedUrl) &&
+      (channel.categoryPaths?.length ||
+        channel.tagNames?.length ||
+        channel.categories.length),
+  );
   const alreadyAddedUrlsToSubmit = new Set(
-    (feedsFoundFromFile ?? [])
-      .filter(
-        (channel) =>
-          !channel.shouldImport && isFeedAlreadyAdded(channel.feedUrl),
-      )
-      .slice(0, Math.max(0, MAX_BULK_MUTATION_ITEMS - selectedChannelCount))
+    organizedAlreadyAddedChannels
+      .slice(0, Math.max(0, MAX_BULK_MUTATION_ITEMS - selectedChannels.length))
       .map((channel) => channel.feedUrl),
   );
   const channelsToSubmit = (feedsFoundFromFile ?? [])
@@ -147,6 +154,10 @@ function EditFeedsPage() {
         channel.shouldImport || alreadyAddedUrlsToSubmit.has(channel.feedUrl),
     )
     .slice(0, MAX_BULK_MUTATION_ITEMS);
+  const leftOutByLimitCount =
+    selectedChannels.length +
+    organizedAlreadyAddedChannels.length -
+    channelsToSubmit.length;
   const loading = useLoadingMode();
   const importResults = useImportResults();
   const isFetchingRss = loading.mode === "importing";
@@ -252,6 +263,22 @@ function EditFeedsPage() {
     setShouldAlwaysKeepSSEConnectionAlive(true);
     setIsImportPending(true);
 
+    const submittedUrls = new Set(
+      channelsToSubmit.map((channel) => channel.feedUrl),
+    );
+    setLeftOutByLimitUrls(
+      new Set(
+        selectedChannels
+          .filter((channel) => !submittedUrls.has(channel.feedUrl))
+          .map((channel) => channel.feedUrl),
+      ),
+    );
+    if (leftOutByLimitCount > 0) {
+      toast.warning(
+        `${leftOutByLimitCount} feed${leftOutByLimitCount > 1 ? "s were" : " was"} left out: an import is limited to ${MAX_BULK_MUTATION_ITEMS} feeds. Import the file again to add the rest.`,
+      );
+    }
+
     const channelsToImport = channelsToSubmit.map((feed) => ({
       categories: feed.categories,
       categoryPaths: feed.categoryPaths,
@@ -275,6 +302,7 @@ function EditFeedsPage() {
     setHasStartedImport(false);
     setIsImportComplete(false);
     setIsImportPending(false);
+    setLeftOutByLimitUrls(new Set());
     setShouldAlwaysKeepSSEConnectionAlive(false);
   };
 
@@ -534,14 +562,17 @@ function EditFeedsPage() {
                                 </Tooltip>
                               )}
                             {isPostImportScreen &&
-                              !channel.shouldImport &&
+                              (!channel.shouldImport ||
+                                leftOutByLimitUrls.has(channel.feedUrl)) &&
                               !isAlreadyAdded && (
                                 <Tooltip>
                                   <TooltipTrigger>
                                     <MinusIcon size={20} />
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    This feed was excluded from the import.
+                                    {leftOutByLimitUrls.has(channel.feedUrl)
+                                      ? "This feed was left out: the import limit was reached."
+                                      : "This feed was excluded from the import."}
                                   </TooltipContent>
                                 </Tooltip>
                               )}
