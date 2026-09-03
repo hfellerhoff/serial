@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0" xmlns:serial="https://serial.tube/opml">
+  <head>
+    <title>Test Nested Subscriptions</title>
+  </head>
+  <body>
+    <outline text="Music" title="Music" serial:outlineType="view">
+      <outline text="Scary Pockets" title="Scary Pockets" type="rss" xmlUrl="http://127.0.0.1:3003/feed/scary-pockets" htmlUrl="http://127.0.0.1:3003/scary-pockets"/>
+      <outline text="Jazz" title="Jazz" serial:outlineType="tag">
+        <outline text="Jazz Cats" title="Jazz Cats" type="rss" xmlUrl="http://127.0.0.1:3003/feed/jazz-cats" htmlUrl="http://127.0.0.1:3003/jazz-cats"/>
+      </outline>
+      <outline text="Fireship" title="Fireship" serial:outlineType="feed" serial:feedXmlUrl="http://127.0.0.1:3003/feed/fireship">
+        <outline text="Fireship" title="Fireship" type="rss" xmlUrl="http://127.0.0.1:3003/feed/fireship" htmlUrl="http://127.0.0.1:3003/fireship"/>
+      </outline>
+    </outline>
+  </body>
+</opml>

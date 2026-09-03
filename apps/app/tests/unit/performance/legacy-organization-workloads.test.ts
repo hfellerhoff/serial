@@ -18,6 +18,7 @@ import {
   viewSections,
 } from "~/server/db/schema";
 import { orpcRouter } from "~/server/orpc/router";
+import { MAX_BULK_MUTATION_ITEMS } from "~/lib/schemas/bulk";
 
 const testState = vi.hoisted((): { database: unknown } => ({
   database: undefined,
@@ -236,7 +237,10 @@ describe("legacy server workload contracts", () => {
         db: testState.database,
       } as ORPCContext,
     });
-    const oversizedIds = Array.from({ length: 501 }, (_, index) => index + 1);
+    const oversizedIds = Array.from(
+      { length: MAX_BULK_MUTATION_ITEMS + 1 },
+      (_, index) => index + 1,
+    );
     const operations = [
       () => api.feed.bulkDelete({ feedIds: oversizedIds }),
       () =>
@@ -280,7 +284,7 @@ describe("legacy server workload contracts", () => {
         updatedAt: now,
       });
       const maximumUniqueIds = Array.from(
-        { length: 500 },
+        { length: MAX_BULK_MUTATION_ITEMS },
         (_, index) => index + 1,
       );
       await session.database.insert(feeds).values(
@@ -321,7 +325,7 @@ describe("legacy server workload contracts", () => {
         } as ORPCContext,
       });
       const repeatedFeedIds = Array.from(
-        { length: 500 },
+        { length: MAX_BULK_MUTATION_ITEMS },
         (_, index) => (index % 3) + 1,
       );
 
@@ -332,7 +336,7 @@ describe("legacy server workload contracts", () => {
       });
       expect(session.instrumentation.snapshot()).toMatchObject({
         statementCount: 2,
-        materializedRows: 500,
+        materializedRows: MAX_BULK_MUTATION_ITEMS,
       });
 
       session.instrumentation.reset();

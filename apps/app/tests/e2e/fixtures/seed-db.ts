@@ -828,6 +828,52 @@ export async function getViewsForUser(tursoPort: number, email: string) {
   return userViews;
 }
 
+export async function getViewSectionsForUser(tursoPort: number, email: string) {
+  const { db, client } = getDb(tursoPort);
+  const sections = await db
+    .select({
+      viewName: schema.views.name,
+      itemType: schema.viewSections.itemType,
+      itemId: schema.viewSections.itemId,
+      placement: schema.viewSections.placement,
+    })
+    .from(schema.viewSections)
+    .innerJoin(schema.views, eq(schema.viewSections.viewId, schema.views.id))
+    .innerJoin(schema.user, eq(schema.views.userId, schema.user.id))
+    .where(eq(schema.user.email, email));
+  const tags = await db
+    .select({
+      id: schema.contentCategories.id,
+      name: schema.contentCategories.name,
+    })
+    .from(schema.contentCategories)
+    .innerJoin(schema.user, eq(schema.contentCategories.userId, schema.user.id))
+    .where(eq(schema.user.email, email));
+  const userFeeds = await db
+    .select({ id: schema.feeds.id, name: schema.feeds.name })
+    .from(schema.feeds)
+    .innerJoin(schema.user, eq(schema.feeds.userId, schema.user.id))
+    .where(eq(schema.user.email, email));
+  client.close();
+
+  const tagNameById = new Map(tags.map((tag) => [tag.id, tag.name]));
+  const feedNameById = new Map(userFeeds.map((feed) => [feed.id, feed.name]));
+  return sections
+    .sort(
+      (a, b) =>
+        a.viewName.localeCompare(b.viewName) || a.placement - b.placement,
+    )
+    .map((section) => ({
+      viewName: section.viewName,
+      itemType: section.itemType,
+      placement: section.placement,
+      itemName:
+        section.itemType === "tag"
+          ? (tagNameById.get(section.itemId) ?? null)
+          : (feedNameById.get(section.itemId) ?? null),
+    }));
+}
+
 function uniqueId() {
   return randomBytes(8).toString("hex");
 }

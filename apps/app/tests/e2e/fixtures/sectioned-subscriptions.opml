@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<opml version="1.1">
+<opml version="1.1" xmlns:serial="https://serial.tube/opml">
   <head>
     <title>Test Sectioned Subscriptions</title>
   </head>
   <body>
     <outline text="Music" title="Music">
-      <outline text="Scary Pockets" title="Scary Pockets" type="rss" xmlUrl="http://127.0.0.1:3003/feed/scary-pockets" htmlUrl="http://127.0.0.1:3003/scary-pockets"/>
+      <outline text="Scary Pockets" title="Scary Pockets" type="rss" serial:tags="[&quot;Funk&quot;]" xmlUrl="http://127.0.0.1:3003/feed/scary-pockets" htmlUrl="http://127.0.0.1:3003/scary-pockets"/>
     </outline>
     <outline text="Tech" title="Tech">
       <outline text="Fireship" title="Fireship" type="rss" xmlUrl="http://127.0.0.1:3003/feed/fireship" htmlUrl="http://127.0.0.1:3003/fireship"/>

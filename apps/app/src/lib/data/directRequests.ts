@@ -8,8 +8,10 @@ import {
   isMixedContentMembershipRevisionStale,
 } from "./mixed-content/membershipRevision";
 import { loadingActor } from "./loading-machine";
+import { dataReconciliation } from "./reconciliation";
 import { applyRequestedMixedContentPage } from "./subscriptionCoordinator";
 import { feedItemsStore } from "./store";
+import { viewsStore } from "./views/store";
 import type { ContentStatusFilter } from "~/lib/content-status";
 import type { ImportProgressChunk } from "~/server/api/routers/initialRouter";
 
@@ -35,6 +37,14 @@ export function applyImportProgressChunk(chunk: ImportProgressChunk) {
     case "import-feed-error":
       console.error(`Import error for ${chunk.feedUrl}: ${chunk.error}`);
       loadingActor.send({ type: "IMPORT_FEED_ERROR", feedUrl: chunk.feedUrl });
+      break;
+    case "import-views-updated":
+      // Authoritative server state: mark it a success so it renders even if a
+      // concurrent fetch later fails. An in-flight fetch is unaffected — the
+      // revision bump from set() makes it refetch rather than apply a stale
+      // response.
+      viewsStore.getState().set(chunk.views);
+      viewsStore.setState({ fetchStatus: "success" });
       break;
     case "feed-status":
       feedItemsStore.setState({
@@ -88,18 +98,23 @@ export const dataRequestActions = {
       >;
       tagNames?: string[];
     }>,
-    importMode?: "tags" | "views" | "ignore",
   ) =>
-    orpcRouterClient.initial
-      .streamingImport({ feeds, importMode })
-      .then(async (stream) => {
-        try {
-          for await (const chunk of stream) applyImportProgressChunk(chunk);
-        } finally {
-          loadingActor.send({ type: "IMPORT_COMPLETE" });
-          await getQueryClient().invalidateQueries({
-            queryKey: orpc.subscription.getStatus.queryOptions().queryKey,
-          });
-        }
-      }),
+    orpcRouterClient.initial.streamingImport({ feeds }).then(async (stream) => {
+      try {
+        for await (const chunk of stream) applyImportProgressChunk(chunk);
+      } finally {
+        loadingActor.send({ type: "IMPORT_COMPLETE" });
+        // The imported views land in the store via import-views-updated
+        // chunks, but their first content pages only load through a full
+        // reconciliation — and the SSE invalidations alone leave that to a
+        // later repair (or a reconnect if the connection dropped). Request it
+        // directly so the new views become browsable right away.
+        dataReconciliation.requestManualFull().catch(() => {
+          // A superseded or failed full sync will be retried by the runtime.
+        });
+        await getQueryClient().invalidateQueries({
+          queryKey: orpc.subscription.getStatus.queryOptions().queryKey,
+        });
+      }
+    }),
 };

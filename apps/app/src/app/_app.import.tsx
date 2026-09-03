@@ -16,7 +16,6 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ImportDropzone } from "../components/feed/import/ImportDropzone";
 import { getInitialFeedDataFromFileInputElement } from "../components/feed/import/utils/getInitialFeedDataFromFileInputElement";
-import type { CardRadioOption } from "~/components/ui/card-radio-group";
 import type {
   ImportFeedDataFromFilesError,
   ImportFeedDataItem,
@@ -26,7 +25,6 @@ import { FeedAvatar, FeedListItem } from "~/components/feed/FeedListItem";
 import { ImportLoading } from "~/components/ImportLoading";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { CardRadioGroup } from "~/components/ui/card-radio-group";
 import {
   Tooltip,
   TooltipContent,
@@ -39,6 +37,7 @@ import { useImportDropStore } from "~/lib/data/import-drop";
 import { useImportResults, useLoadingMode } from "~/lib/data/loading-machine";
 import { dataRequestActions } from "~/lib/data/directRequests";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
+import { MAX_BULK_MUTATION_ITEMS } from "~/lib/schemas/bulk";
 import { useCanMutate } from "~/lib/data/offline-mutations";
 
 function ImportedFeedStatus({
@@ -67,8 +66,6 @@ export const Route = createFileRoute("/_app/import")({
   component: EditFeedsPage,
 });
 
-type ImportMode = "tags" | "views" | "ignore";
-
 function getFeedWebsiteUrl(feed: ImportFeedDataItem) {
   if (feed.websiteUrl) return feed.websiteUrl;
 
@@ -78,27 +75,6 @@ function getFeedWebsiteUrl(feed: ImportFeedDataItem) {
     return feed.feedUrl;
   }
 }
-
-const IMPORT_MODE_OPTIONS: Array<CardRadioOption<ImportMode>> = [
-  {
-    value: "views",
-    title: "Import sections as Views",
-    description:
-      "Each section in the file becomes a view, and feeds are linked directly to it.",
-  },
-  {
-    value: "tags",
-    title: "Import sections as Tags",
-    description:
-      "Each section in the file becomes a tag, and feeds are tagged with it.",
-  },
-  {
-    value: "ignore",
-    title: "Ignore sections",
-    description:
-      "Import the feeds without preserving any of the section groupings.",
-  },
-];
 
 function EditFeedsPage() {
   const canMutate = useCanMutate();
@@ -112,7 +88,9 @@ function EditFeedsPage() {
   const [isImportComplete, setIsImportComplete] = useState(false);
   const [isImportPending, setIsImportPending] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(false);
-  const [importMode, setImportMode] = useState<ImportMode>("views");
+  const [leftOutByLimitUrls, setLeftOutByLimitUrls] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const [fileInputErrorList, setFileInputErrorList] =
     useState<ImportFeedDataFromFilesError | null>(null);
@@ -146,6 +124,40 @@ function EditFeedsPage() {
   ).length;
 
   const { feeds } = useFeeds();
+
+  // Already-added feeds are not selectable, but the ones carrying OPML
+  // sections or tags are still sent so a re-import links them into the
+  // matching views. The request schema caps items at MAX_BULK_MUTATION_ITEMS;
+  // selected feeds take priority and organized already-added ones fill the
+  // remainder, both keeping file order (section placement follows submission
+  // order). Anything beyond the cap is left for a follow-up import.
+  const existingFeedUrls = new Set(feeds.map((feed) => feed.url));
+  const selectedChannels = (feedsFoundFromFile ?? []).filter(
+    (channel) => channel.shouldImport,
+  );
+  const organizedAlreadyAddedChannels = (feedsFoundFromFile ?? []).filter(
+    (channel) =>
+      !channel.shouldImport &&
+      existingFeedUrls.has(channel.feedUrl) &&
+      (channel.categoryPaths?.length ||
+        channel.tagNames?.length ||
+        channel.categories.length),
+  );
+  const alreadyAddedUrlsToSubmit = new Set(
+    organizedAlreadyAddedChannels
+      .slice(0, Math.max(0, MAX_BULK_MUTATION_ITEMS - selectedChannels.length))
+      .map((channel) => channel.feedUrl),
+  );
+  const channelsToSubmit = (feedsFoundFromFile ?? [])
+    .filter(
+      (channel) =>
+        channel.shouldImport || alreadyAddedUrlsToSubmit.has(channel.feedUrl),
+    )
+    .slice(0, MAX_BULK_MUTATION_ITEMS);
+  const leftOutByLimitCount =
+    selectedChannels.length +
+    organizedAlreadyAddedChannels.length -
+    channelsToSubmit.length;
   const loading = useLoadingMode();
   const importResults = useImportResults();
   const isFetchingRss = loading.mode === "importing";
@@ -251,19 +263,35 @@ function EditFeedsPage() {
     setShouldAlwaysKeepSSEConnectionAlive(true);
     setIsImportPending(true);
 
-    const channelsToImport = feedsFoundFromFile
-      .filter((channel) => channel.shouldImport)
-      .map((feed) => ({
-        categories: feed.categories,
-        categoryPaths: feed.categoryPaths,
-        feedUrl: feed.feedUrl,
-        tagNames: feed.tagNames,
-      }));
+    const submittedUrls = new Set(
+      channelsToSubmit.map((channel) => channel.feedUrl),
+    );
+    setLeftOutByLimitUrls(
+      new Set(
+        selectedChannels
+          .filter((channel) => !submittedUrls.has(channel.feedUrl))
+          .map((channel) => channel.feedUrl),
+      ),
+    );
+    if (leftOutByLimitCount > 0) {
+      toast.warning(
+        `${leftOutByLimitCount} feed${leftOutByLimitCount > 1 ? "s were" : " was"} left out: an import is limited to ${MAX_BULK_MUTATION_ITEMS} feeds. Import the file again to add the rest.`,
+      );
+    }
+
+    const channelsToImport = channelsToSubmit.map((feed) => ({
+      categories: feed.categories,
+      categoryPaths: feed.categoryPaths,
+      feedUrl: feed.feedUrl,
+      tagNames: feed.tagNames,
+    }));
 
     try {
-      await dataRequestActions.streamingImport(channelsToImport, importMode);
+      await dataRequestActions.streamingImport(channelsToImport);
 
       setIsImportComplete(true);
+    } catch {
+      toast.error("Import failed. Please try again.");
     } finally {
       setIsImportPending(false);
     }
@@ -274,6 +302,7 @@ function EditFeedsPage() {
     setHasStartedImport(false);
     setIsImportComplete(false);
     setIsImportPending(false);
+    setLeftOutByLimitUrls(new Set());
     setShouldAlwaysKeepSSEConnectionAlive(false);
   };
 
@@ -350,18 +379,6 @@ function EditFeedsPage() {
         )}
         {!!feedsFoundFromFile && (
           <>
-            {!isPostImportScreen &&
-              feedsFoundFromFile.some((f) => f.categories.length > 0) && (
-                <div className="mt-12 grid gap-3">
-                  <h3 className="font-semibold">Sections</h3>
-                  <CardRadioGroup
-                    value={importMode}
-                    onValueChange={setImportMode}
-                    options={IMPORT_MODE_OPTIONS}
-                    orientation="vertical"
-                  />
-                </div>
-              )}
             <div className="mt-12">
               {!isPostImportScreen && (
                 <div className="flex items-center justify-between">
@@ -526,14 +543,12 @@ function EditFeedsPage() {
                                 )}
                               </Tooltip>
                             )}
-                            {isPostImportScreen &&
-                              wasImported &&
-                              channel.shouldImport && (
-                                <ImportedFeedStatus
-                                  feedUrl={channel.feedUrl}
-                                  feeds={feeds}
-                                />
-                              )}
+                            {isPostImportScreen && wasImported && (
+                              <ImportedFeedStatus
+                                feedUrl={channel.feedUrl}
+                                feeds={feeds}
+                              />
+                            )}
                             {isPostImportScreen &&
                               channel.shouldImport &&
                               failedImportUrls.has(channel.feedUrl) && (
@@ -546,16 +561,21 @@ function EditFeedsPage() {
                                   </TooltipContent>
                                 </Tooltip>
                               )}
-                            {isPostImportScreen && !channel.shouldImport && (
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <MinusIcon size={20} />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  This feed was excluded from the import.
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
+                            {isPostImportScreen &&
+                              (!channel.shouldImport ||
+                                leftOutByLimitUrls.has(channel.feedUrl)) &&
+                              !isAlreadyAdded && (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <MinusIcon size={20} />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {leftOutByLimitUrls.has(channel.feedUrl)
+                                      ? "This feed was left out: the import limit was reached."
+                                      : "This feed was excluded from the import."}
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
                           </>
                         }
                       />
@@ -579,7 +599,7 @@ function EditFeedsPage() {
               className="w-full gap-2"
               size="lg"
               onClick={onFeedImport}
-              disabled={channelImportCount === 0 || isImportPending}
+              disabled={channelsToSubmit.length === 0 || isImportPending}
             >
               {isImportPending && !hasStartedImport ? (
                 <>
@@ -587,7 +607,7 @@ function EditFeedsPage() {
                   <Loader2Icon size={16} className="animate-spin" />
                 </>
               ) : (
-                <>Import {channelImportCount} feeds</>
+                <>Import {channelsToSubmit.length} feeds</>
               )}
             </Button>
           </div>

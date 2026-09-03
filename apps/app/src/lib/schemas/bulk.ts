@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const MAX_BULK_MUTATION_ITEMS = 500;
+export const MAX_BULK_MUTATION_ITEMS = 1000;
 
 export const boundedNumberIdsSchema = z
   .array(z.number())

@@ -104,6 +104,78 @@ export async function verifyContentCategoriesOwnedByUser({
   return userCategories.length === categoryIds.length;
 }
 
+/** Bulk statements stay well under SQLite's bind-variable limit. */
+export const BULK_INSERT_BATCH_SIZE = 200;
+
+export function chunkRows<T>(rows: T[], size: number = BULK_INSERT_BATCH_SIZE) {
+  const chunks: T[][] = [];
+  for (let index = 0; index < rows.length; index += size) {
+    chunks.push(rows.slice(index, index + size));
+  }
+  return chunks;
+}
+
+/**
+ * Create any missing tags by name and link the given feeds to them.
+ * Idempotent: existing tags are reused and existing links are kept.
+ */
+export async function applyFeedCategories(
+  db: Transaction,
+  userId: string,
+  entries: Array<{ feedId: number; categories: string[] }>,
+) {
+  const names = [
+    ...new Set(entries.flatMap((entry) => entry.categories)),
+  ].filter((name) => !!name);
+  if (names.length === 0) return;
+
+  const categoryByName = new Map<string, { id: number }>();
+  for (const nameChunk of chunkRows(names)) {
+    const matchingCategories = await db
+      .select()
+      .from(schema.contentCategories)
+      .where(
+        and(
+          inArray(schema.contentCategories.name, nameChunk),
+          eq(schema.contentCategories.userId, userId),
+        ),
+      )
+      .all();
+    for (const category of matchingCategories) {
+      categoryByName.set(category.name, { id: category.id });
+    }
+  }
+
+  const namesToCreate = names.filter((name) => !categoryByName.has(name));
+  for (const nameChunk of chunkRows(namesToCreate)) {
+    const created = await db
+      .insert(schema.contentCategories)
+      .values(nameChunk.map((name) => ({ name, userId })))
+      .returning({
+        id: schema.contentCategories.id,
+        name: schema.contentCategories.name,
+      });
+    for (const category of created) {
+      categoryByName.set(category.name, { id: category.id });
+    }
+  }
+
+  const feedCategoryRows = entries.flatMap((entry) =>
+    entry.categories.flatMap((name) => {
+      const category = categoryByName.get(name);
+      return category
+        ? [{ feedId: entry.feedId, categoryId: category.id }]
+        : [];
+    }),
+  );
+  for (const rowChunk of chunkRows(feedCategoryRows)) {
+    await db
+      .insert(schema.feedCategories)
+      .values(rowChunk)
+      .onConflictDoNothing();
+  }
+}
+
 export type InsertFeedWithCategoriesSuccess = {
   success: true;
   feedId: number;
@@ -113,6 +185,8 @@ export type InsertFeedWithCategoriesSuccess = {
 export type InsertFeedWithCategoriesError = {
   success: false;
   error: string;
+  /** Set when the failure is a duplicate, so callers can still link the feed. */
+  existingFeed?: ApplicationFeed;
 };
 
 export type InsertFeedWithCategoriesResult =
@@ -144,9 +218,20 @@ export async function insertFeedWithCategories(
   });
 
   if (existingFeed) {
+    const [existingApplicationFeed] = parseArrayOfSchema(
+      [existingFeed],
+      schema.feedsSchema,
+    );
+    if (!existingApplicationFeed) {
+      return {
+        success: false,
+        error: "Couldn't read the existing feed",
+      };
+    }
     return {
       success: false,
       error: "Feed already exists",
+      existingFeed: existingApplicationFeed,
     };
   }
 
@@ -168,54 +253,9 @@ export async function insertFeedWithCategories(
     };
   }
 
-  if (feedInput.categories.length > 0) {
-    const matchingCategories = await db
-      .select()
-      .from(schema.contentCategories)
-      .where(
-        and(
-          inArray(schema.contentCategories.name, feedInput.categories),
-          eq(schema.contentCategories.userId, userId),
-        ),
-      )
-      .all();
-
-    const matchingCategoryNames = new Set(
-      matchingCategories.map((category) => category.name),
-    );
-
-    const nonMatchingCategoryNames = feedInput.categories.filter(
-      (category) => !matchingCategoryNames.has(category),
-    );
-
-    let newCategories: Array<{ id: number }> = [];
-    if (nonMatchingCategoryNames.length > 0) {
-      newCategories = await db
-        .insert(schema.contentCategories)
-        .values(
-          nonMatchingCategoryNames.map((name) => ({
-            name,
-            userId,
-          })),
-        )
-        .returning({ id: schema.contentCategories.id });
-    }
-
-    const feedCategoryValues = [
-      ...matchingCategories.map((c) => ({
-        feedId: newFeedRow.id,
-        categoryId: c.id,
-      })),
-      ...newCategories.map((c) => ({
-        feedId: newFeedRow.id,
-        categoryId: c.id,
-      })),
-    ];
-
-    if (feedCategoryValues.length > 0) {
-      await db.insert(schema.feedCategories).values(feedCategoryValues);
-    }
-  }
+  await applyFeedCategories(db, userId, [
+    { feedId: newFeedRow.id, categories: feedInput.categories },
+  ]);
 
   // Parse the feed to ApplicationFeed format
   const [applicationFeed] = parseArrayOfSchema(
