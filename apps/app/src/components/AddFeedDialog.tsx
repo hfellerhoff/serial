@@ -413,84 +413,28 @@ function FeedActiveSwitch({
 function EditFeedDialogFooter({
   canMutate,
   isFormDisabled,
-  selectedFeedId,
-  name,
-  selectedCategories,
-  selectedViewIds,
-  selectedOpenLocation,
-  onClose,
+  actions,
 }: {
   canMutate: boolean;
   isFormDisabled: boolean;
-  selectedFeedId: null | number;
-  name: string;
-  selectedCategories: number[];
-  selectedViewIds: number[];
-  selectedOpenLocation: FeedOpenLocation;
-  onClose: () => void;
+  actions: ReturnType<typeof useEditFeedDialogActions>;
 }) {
-  const [isUpdatingFeed, setIsUpdatingFeed] = useState(false);
-  const [isDeletingFeed, setIsDeletingFeed] = useState(false);
-
-  const { mutateAsync: editFeed } = useEditFeedMutation();
-  const { mutateAsync: deleteFeed } = useDeleteFeedMutation();
-
   return (
     <div className="flex gap-2">
       <Button
-        disabled={!canMutate || isDeletingFeed}
+        disabled={!canMutate || actions.isDeletingFeed}
         className="flex-1"
         variant="destructive"
-        onClick={async () => {
-          if (selectedFeedId === null || !canMutate) return;
-
-          setIsDeletingFeed(true);
-          try {
-            const deleteFeedPromise = deleteFeed(selectedFeedId);
-            toast.promise(deleteFeedPromise, {
-              loading: "Deleting feed...",
-              success: () => {
-                return "Feed deleted!";
-              },
-              error: () => {
-                return "Something went wrong deleting your feed.";
-              },
-            });
-            onClose();
-          } catch {
-            // Error handled by toast.promise
-          }
-
-          setIsDeletingFeed(false);
-        }}
+        onClick={actions.handleDelete}
       >
-        {isDeletingFeed ? "Deleting..." : "Delete"}
+        {actions.isDeletingFeed ? "Deleting..." : "Delete"}
       </Button>
       <Button
-        disabled={!canMutate || isFormDisabled || isUpdatingFeed}
-        onClick={async () => {
-          if (selectedFeedId === null || !canMutate) return;
-
-          setIsUpdatingFeed(true);
-          try {
-            await editFeed({
-              feedId: selectedFeedId,
-              categoryIds: selectedCategories,
-              viewIds: selectedViewIds,
-              openLocation: selectedOpenLocation,
-              name,
-            });
-            toast.success("Feed updated!");
-            onClose();
-          } catch {
-            // Error handled by toast
-          }
-
-          setIsUpdatingFeed(false);
-        }}
+        disabled={!canMutate || isFormDisabled || actions.isUpdatingFeed}
+        onClick={actions.handleSave}
         className="flex-1"
       >
-        {isUpdatingFeed ? "Saving..." : "Save"}
+        {actions.isUpdatingFeed ? "Saving..." : "Save"}
       </Button>
     </div>
   );
@@ -500,13 +444,15 @@ function FeedNameField({
   name,
   setName,
   feed,
+  hasCopied,
+  onCopy,
 }: {
   name: string;
   setName: (name: string) => void;
   feed: ApplicationFeed | undefined;
+  hasCopied: boolean;
+  onCopy: () => void;
 }) {
-  const [hasCopied, setHasCopied] = useState(false);
-
   const websiteUrl = getFeedWebsiteUrl(feed);
   const platformName =
     PLATFORM_TO_FORMATTED_NAME_MAP[feed?.platform ?? "youtube"];
@@ -529,12 +475,7 @@ function FeedNameField({
               variant="outline"
               size="icon"
               className="shrink-0"
-              onClick={() => {
-                navigator.clipboard.writeText(feed?.url ?? "");
-                toast.success("Feed URL copied!");
-                setHasCopied(true);
-                setTimeout(() => setHasCopied(false), 2000);
-              }}
+              onClick={onCopy}
             >
               {hasCopied ? <CheckIcon size={16} /> : <LinkIcon size={16} />}
             </Button>
@@ -559,6 +500,104 @@ function FeedNameField({
       </div>
     </div>
   );
+}
+
+function useEditFeedDialogActions({
+  canMutate,
+  selectedFeedId,
+  name,
+  selectedCategories,
+  selectedViewIds,
+  selectedOpenLocation,
+  feedUrl,
+  onClose,
+}: {
+  canMutate: boolean;
+  selectedFeedId: null | number;
+  name: string;
+  selectedCategories: number[];
+  selectedViewIds: number[];
+  selectedOpenLocation: FeedOpenLocation;
+  feedUrl: string | undefined;
+  onClose: () => void;
+}) {
+  const [isUpdatingFeed, setIsUpdatingFeed] = useState(false);
+  const [isDeletingFeed, setIsDeletingFeed] = useState(false);
+  const [hasCopied, setHasCopied] = useState(false);
+  const isUpdatingFeedRef = useRef(false);
+  const isDeletingFeedRef = useRef(false);
+
+  const { mutateAsync: editFeed } = useEditFeedMutation();
+  const { mutateAsync: deleteFeed } = useDeleteFeedMutation();
+
+  const handleDelete = async () => {
+    if (selectedFeedId === null || !canMutate || isDeletingFeedRef.current) {
+      return;
+    }
+
+    isDeletingFeedRef.current = true;
+    setIsDeletingFeed(true);
+    try {
+      const deleteFeedPromise = deleteFeed(selectedFeedId);
+      toast.promise(deleteFeedPromise, {
+        loading: "Deleting feed...",
+        success: () => {
+          return "Feed deleted!";
+        },
+        error: () => {
+          return "Something went wrong deleting your feed.";
+        },
+      });
+      onClose();
+      await deleteFeedPromise;
+    } catch {
+      // Error handled by toast.promise
+    } finally {
+      isDeletingFeedRef.current = false;
+      setIsDeletingFeed(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (selectedFeedId === null || !canMutate || isUpdatingFeedRef.current) {
+      return;
+    }
+
+    isUpdatingFeedRef.current = true;
+    setIsUpdatingFeed(true);
+    try {
+      await editFeed({
+        feedId: selectedFeedId,
+        categoryIds: selectedCategories,
+        viewIds: selectedViewIds,
+        openLocation: selectedOpenLocation,
+        name,
+      });
+      toast.success("Feed updated!");
+      onClose();
+    } catch {
+      // Error handled by toast
+    } finally {
+      isUpdatingFeedRef.current = false;
+      setIsUpdatingFeed(false);
+    }
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(feedUrl ?? "");
+    toast.success("Feed URL copied!");
+    setHasCopied(true);
+    setTimeout(() => setHasCopied(false), 2000);
+  };
+
+  return {
+    isUpdatingFeed,
+    isDeletingFeed,
+    hasCopied,
+    handleDelete,
+    handleSave,
+    handleCopy,
+  };
 }
 
 function EditFeedViewsField({
@@ -674,6 +713,16 @@ export function EditFeedDialog({
     setSelectedOpenLocation,
     feed,
   } = useEditFeedForm(selectedFeedId);
+  const actions = useEditFeedDialogActions({
+    canMutate,
+    selectedFeedId,
+    name,
+    selectedCategories,
+    selectedViewIds,
+    selectedOpenLocation,
+    feedUrl: feed?.url,
+    onClose,
+  });
 
   const isFormDisabled = !name;
 
@@ -693,17 +742,18 @@ export function EditFeedDialog({
         <EditFeedDialogFooter
           canMutate={canMutate}
           isFormDisabled={isFormDisabled}
-          selectedFeedId={selectedFeedId}
-          name={name}
-          selectedCategories={selectedCategories}
-          selectedViewIds={selectedViewIds}
-          selectedOpenLocation={selectedOpenLocation}
-          onClose={onClose}
+          actions={actions}
         />
       }
     >
       <div className="grid gap-6">
-        <FeedNameField name={name} setName={setName} feed={feed} />
+        <FeedNameField
+          name={name}
+          setName={setName}
+          feed={feed}
+          hasCopied={actions.hasCopied}
+          onCopy={actions.handleCopy}
+        />
         <EditFeedViewsField
           canMutate={canMutate}
           selectedViewIds={selectedViewIds}

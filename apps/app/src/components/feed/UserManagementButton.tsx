@@ -8,7 +8,7 @@ import {
   Loader2Icon,
   PlugIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useDialogStore } from "./dialogStore";
 import { Button } from "~/components/ui/button";
 import { DropdownMenuSeparator } from "~/components/ui/dropdown-menu";
@@ -138,34 +138,50 @@ function AccountMenuItems({ billingEnabled }: { billingEnabled: boolean }) {
   );
 }
 
-function SignOutMenuItem() {
+function useSignOutAction() {
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const isSigningOutRef = useRef(false);
   const queryClient = useQueryClient();
   const clearAllUserData = useClearAllUserData();
 
+  const handleSignOut = async () => {
+    if (isSigningOutRef.current) return;
+
+    isSigningOutRef.current = true;
+    setIsSigningOut(true);
+    try {
+      await signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            clearUserDataAfterSignOut({
+              clearQueryCache: () => queryClient.clear(),
+              clearPersistedUserData: clearAllUserData,
+              localStorage: window.localStorage,
+            });
+            void router.navigate({ to: "/auth/sign-in" });
+          },
+        },
+      });
+    } finally {
+      isSigningOutRef.current = false;
+      setIsSigningOut(false);
+    }
+  };
+
+  return { isSigningOut, handleSignOut };
+}
+
+function SignOutMenuItem({
+  isSigningOut,
+  onSignOut,
+}: {
+  isSigningOut: boolean;
+  onSignOut: () => void;
+}) {
   return (
     <ResponsiveDropdownMenuItem asChild>
-      <Button
-        className="w-full"
-        onClick={async () => {
-          await signOut({
-            fetchOptions: {
-              onRequest: () => {
-                setIsSigningOut(true);
-              },
-              onSuccess: () => {
-                clearUserDataAfterSignOut({
-                  clearQueryCache: () => queryClient.clear(),
-                  clearPersistedUserData: clearAllUserData,
-                  localStorage: window.localStorage,
-                });
-                void router.navigate({ to: "/auth/sign-in" });
-              },
-            },
-          });
-        }}
-      >
+      <Button className="w-full" disabled={isSigningOut} onClick={onSignOut}>
         {isSigningOut ? (
           <Loader2Icon className="animate-spin" size={16} />
         ) : (
@@ -183,6 +199,7 @@ export function UserManagementNavItem() {
   } = authClient.useSession();
 
   const { billingEnabled, planName } = useSubscription();
+  const { isSigningOut, handleSignOut } = useSignOutAction();
 
   // A DID-only user carries an internal placeholder address; treat it as
   // having no email rather than surfacing the garbled value.
@@ -216,7 +233,10 @@ export function UserManagementNavItem() {
             planName={planName}
           />
           <AccountMenuItems billingEnabled={billingEnabled} />
-          <SignOutMenuItem />
+          <SignOutMenuItem
+            isSigningOut={isSigningOut}
+            onSignOut={handleSignOut}
+          />
         </ResponsiveDropdown>
       </SidebarMenuItem>
     </SidebarMenu>
