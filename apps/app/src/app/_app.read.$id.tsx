@@ -27,18 +27,12 @@ import { useDebouncedSaveProgress } from "~/lib/hooks/useDebouncedSaveProgress";
 import { useRefreshFeedItem } from "~/lib/hooks/useRefreshFeedItem";
 import { useRestoreArticleProgress } from "~/lib/hooks/useRestoreArticleProgress";
 import { useScrollDirection } from "~/lib/hooks/useScrollDirection";
-import { detectTruncatedContent } from "~/lib/utils/detectTruncatedContent";
-import {
-  hasRespondedToTruncationAlert,
-  setTruncationAlertResponded,
-} from "~/lib/utils/truncationAlert";
-import { useEditFeedMutation } from "~/lib/data/feeds/mutations";
 import { REMOTE_IMAGE_PROPS } from "~/lib/remoteMedia";
-import { useFeedCategories } from "~/lib/data/feed-categories/store";
-import { useViewFeeds } from "~/lib/data/view-feeds/store";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
-import { Button } from "~/components/ui/button";
 import { ArticleSidebars } from "~/components/feed/read/ArticleSidebars";
+import {
+  TruncationAlert,
+  useTruncationAlert,
+} from "~/components/feed/read/TruncationAlert";
 import { useRetentionPin } from "~/lib/hooks/useRetentionPin";
 import { useBookmarkValue } from "~/lib/data/bookmarks";
 import { BookmarkReader } from "~/components/content-reader/BookmarkReader";
@@ -54,6 +48,16 @@ const parser = unified()
   .use(rehypeParse, { fragment: true })
   .use(rehypeSanitize)
   .use(rehypeStringify);
+
+function getReaderContent(
+  feedItem: { content?: string } | undefined,
+  articleStyle: "simplified" | "full",
+) {
+  if (articleStyle === "simplified") {
+    return String(parser.processSync(feedItem?.content ?? ""));
+  }
+  return feedItem?.content ?? "";
+}
 
 export const Route = createFileRoute("/_app/read/$id")({
   component: ReadPage,
@@ -85,45 +89,8 @@ function ReadPage() {
   );
 }
 
-function FeedReader({
-  id,
-  hasRefreshedFeedItem,
-}: {
-  id: string;
-  hasRefreshedFeedItem: boolean;
-}) {
-  const canMutate = useCanMutate();
-  useRetentionPin("feed-item", id);
-
-  const [articleStyle] = useFlagState("ARTICLE_STYLE");
-
-  const feedItem = useFeedItemValue(id);
-
-  const { feeds } = useFeeds();
-  const feedCategories = useFeedCategories();
-  const viewFeeds = useViewFeeds();
-
-  const feed = feeds.find((f) => f.id === feedItem?.feedId);
-
-  const { zoom } = useZoom();
-  const articleWidthLayout = getArticleWidthLayout(zoom);
-
-  let content = feedItem?.content ?? "";
-
-  if (articleStyle === "simplified") {
-    content = String(parser.processSync(feedItem?.content ?? ""));
-  }
-
-  const articleRef = useRef<HTMLDivElement>(null);
-  const [articleElement, setArticleElement] = useState<HTMLDivElement | null>(
-    null,
-  );
-  const updateArticleRef = useCallback((element: HTMLDivElement | null) => {
-    articleRef.current = element;
-    setArticleElement(element);
-  }, []);
-
-  // Show/hide header and footer bars based on scroll direction
+// Show/hide header and footer bars based on scroll direction
+function useReaderBars() {
   const setBarsHidden = useSetAtom(barsHiddenAtom);
   const barsHidden = useAtomValue(barsHiddenAtom);
   const handleScrollDirection = useCallback(
@@ -140,6 +107,43 @@ function FeedReader({
       setBarsHidden(false);
     };
   }, [setBarsHidden]);
+
+  return barsHidden;
+}
+
+function FeedReader({
+  id,
+  hasRefreshedFeedItem,
+}: {
+  id: string;
+  hasRefreshedFeedItem: boolean;
+}) {
+  const canMutate = useCanMutate();
+  useRetentionPin("feed-item", id);
+
+  const [articleStyle] = useFlagState("ARTICLE_STYLE");
+
+  const feedItem = useFeedItemValue(id);
+
+  const { feeds } = useFeeds();
+
+  const feed = feeds.find((f) => f.id === feedItem?.feedId);
+
+  const { zoom } = useZoom();
+  const articleWidthLayout = getArticleWidthLayout(zoom);
+
+  const content = getReaderContent(feedItem, articleStyle);
+
+  const articleRef = useRef<HTMLDivElement>(null);
+  const [articleElement, setArticleElement] = useState<HTMLDivElement | null>(
+    null,
+  );
+  const updateArticleRef = useCallback((element: HTMLDivElement | null) => {
+    articleRef.current = element;
+    setArticleElement(element);
+  }, []);
+
+  const barsHidden = useReaderBars();
 
   // Shortcut to open original URL
   useOpenOriginalShortcut(feedItem?.url);
@@ -166,53 +170,9 @@ function FeedReader({
     },
   });
 
-  // Truncation alert
-  const { mutate: editFeed } = useEditFeedMutation();
-
-  const [alertDismissed, setAlertDismissed] = useState(false);
-
-  const feedId = feed?.id;
-  const platform = feed?.platform;
-  const hasTruncationAlertResponse = feedId
-    ? hasRespondedToTruncationAlert(feedId)
-    : false;
-
-  const shouldCheckTruncatedContent =
-    !alertDismissed &&
-    platform === "website" &&
-    !!feedId &&
-    !hasTruncationAlertResponse &&
-    !!feedItem;
-  const shouldShowTruncationAlert =
-    shouldCheckTruncatedContent &&
-    feedItem !== undefined &&
-    detectTruncatedContent(feedItem.content, feedItem.contentSnippet);
-
-  const handleAlertResponse = (openLocation: "serial" | "origin") => {
-    if (!feedId || !canMutate) return;
-
-    const categoryIds = feedCategories
-      .filter((fc) => fc.feedId === feedId)
-      .map((fc) => fc.categoryId);
-    const viewIds = viewFeeds
-      .filter((vf) => vf.feedId === feedId)
-      .map((vf) => vf.viewId);
-
-    editFeed({
-      feedId,
-      categoryIds,
-      viewIds,
-      openLocation,
-      name: feed?.name ?? "",
-    });
-
-    setTruncationAlertResponded(feedId);
-    setAlertDismissed(true);
-
-    if (openLocation === "origin" && feedItem?.url) {
-      window.open(feedItem.url, "_blank", "noopener,noreferrer");
-    }
-  };
+  const { shouldShowTruncationAlert, handleAlertResponse } = useTruncationAlert(
+    { feed, feedItem, canMutate },
+  );
 
   return (
     <div
@@ -261,31 +221,10 @@ function FeedReader({
         </div>
       </div>
       {shouldShowTruncationAlert && (
-        <div className="w-full px-6">
-          <Alert>
-            <AlertTitle>Possible partial content detected</AlertTitle>
-            <AlertDescription className="mt-2 text-base">
-              It looks like this feed might not be providing all of its content
-              in its feed. Would you like to open future items in the original
-              website?
-            </AlertDescription>
-            <div className="mt-4 flex gap-2">
-              <Button
-                variant="outline"
-                disabled={!canMutate}
-                onClick={() => handleAlertResponse("serial")}
-              >
-                No, view in reader
-              </Button>
-              <Button
-                disabled={!canMutate}
-                onClick={() => handleAlertResponse("origin")}
-              >
-                Yes, open in website
-              </Button>
-            </div>
-          </Alert>
-        </div>
+        <TruncationAlert
+          canMutate={canMutate}
+          onRespond={handleAlertResponse}
+        />
       )}
       <div
         className={clsx(

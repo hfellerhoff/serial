@@ -72,26 +72,7 @@ function measureVisibleCount(container: HTMLElement) {
   return { count, clipHeight: rowCount > MAX_ROWS ? clipBottom : 0 };
 }
 
-export function SelectableChipList({
-  label,
-  options,
-  selectedIds,
-  onToggle,
-  onCreate,
-  createLabel = `Create ${label.toLowerCase()}`,
-  createPlaceholder = `New ${label.toLowerCase().replace(/s$/, "")} name...`,
-  prioritizedIds = new Set(),
-  emptyMessage = `No ${label.toLowerCase()} available`,
-  disabled = false,
-}: SelectableChipListProps) {
-  const [createOpen, setCreateOpen] = useState(false);
-  const [createSearch, setCreateSearch] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
-  const createInputRef = useRef<HTMLInputElement>(null);
-  const sortedOptions = sortSelectableChipOptions(options, prioritizedIds);
-  const selectedSet = new Set(selectedIds);
-  const totalCount = sortedOptions.length;
-  const orderKey = sortedOptions.map((option) => option.id).join(",");
+function useChipRowPagination(totalCount: number, orderKey: string) {
   const [visibleCount, setVisibleCount] = useState(0);
   const [firstPageCount, setFirstPageCount] = useState(0);
   const maxClipHeightRef = useRef(0);
@@ -113,23 +94,6 @@ export function SelectableChipList({
   }
 
   const { offset, currentPage } = pagination;
-  const renderOptions = sortedOptions.slice(offset, offset + RENDER_CHUNK);
-  const hasMore = totalCount > 0 && offset + visibleCount < totalCount;
-  const hasPrevious = offset > 0;
-  const showPagination = hasMore || hasPrevious;
-  const estimatedTotalPages =
-    firstPageCount > 0 ? Math.ceil(totalCount / firstPageCount) : 1;
-  const trimmedCreateSearch = createSearch.trim();
-  const hasExactCreateMatch = options.some(
-    (option) =>
-      option.label.toLowerCase() === trimmedCreateSearch.toLowerCase(),
-  );
-  const canCreate =
-    Boolean(onCreate) &&
-    !disabled &&
-    Boolean(trimmedCreateSearch) &&
-    !hasExactCreateMatch &&
-    !isCreating;
 
   useLayoutEffect(() => {
     if (totalCount !== measuredTotalCountRef.current) {
@@ -180,6 +144,44 @@ export function SelectableChipList({
     }));
   };
 
+  const hasMore = totalCount > 0 && offset + visibleCount < totalCount;
+  const hasPrevious = offset > 0;
+  const estimatedTotalPages =
+    firstPageCount > 0 ? Math.ceil(totalCount / firstPageCount) : 1;
+
+  return {
+    chipContainerRef,
+    offset,
+    currentPage,
+    hasMore,
+    hasPrevious,
+    showPagination: hasMore || hasPrevious,
+    estimatedTotalPages,
+    goForward,
+    goBack,
+  };
+}
+
+function useChipCreateFlow(
+  options: SelectableChipOption[],
+  onCreate: SelectableChipListProps["onCreate"],
+  disabled: boolean,
+) {
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createSearch, setCreateSearch] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+  const trimmedCreateSearch = createSearch.trim();
+  const hasExactCreateMatch = options.some(
+    (option) =>
+      option.label.toLowerCase() === trimmedCreateSearch.toLowerCase(),
+  );
+  const canCreate =
+    Boolean(onCreate) &&
+    !disabled &&
+    Boolean(trimmedCreateSearch) &&
+    !hasExactCreateMatch &&
+    !isCreating;
+
   const handleCreate = async () => {
     if (!onCreate || !canCreate) return;
     setIsCreating(true);
@@ -194,6 +196,206 @@ export function SelectableChipList({
     }
   };
 
+  return {
+    createOpen,
+    setCreateOpen,
+    createSearch,
+    setCreateSearch,
+    trimmedCreateSearch,
+    hasExactCreateMatch,
+    canCreate,
+    handleCreate,
+  };
+}
+
+function ChipCreatePopover({
+  label,
+  createLabel,
+  createPlaceholder,
+  disabled,
+  createFlow,
+}: {
+  label: string;
+  createLabel: string;
+  createPlaceholder: string;
+  disabled: boolean;
+  createFlow: ReturnType<typeof useChipCreateFlow>;
+}) {
+  const createInputRef = useRef<HTMLInputElement>(null);
+  const {
+    createOpen,
+    setCreateOpen,
+    createSearch,
+    setCreateSearch,
+    trimmedCreateSearch,
+    hasExactCreateMatch,
+    canCreate,
+    handleCreate,
+  } = createFlow;
+
+  return (
+    <Popover
+      open={createOpen}
+      onOpenChange={(open) => {
+        setCreateOpen(open);
+        if (!open) setCreateSearch("");
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-6"
+          aria-label={createLabel}
+          disabled={disabled}
+        >
+          <PlusIcon size={14} />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[250px] p-0" align="start">
+        <Command
+          shouldFilter={false}
+          className="[&_[cmdk-item]]:pointer-events-auto [&_[cmdk-item]]:opacity-100"
+        >
+          <CommandInput
+            ref={createInputRef}
+            placeholder={createPlaceholder}
+            value={createSearch}
+            onValueChange={setCreateSearch}
+          />
+          <CommandList>
+            {!trimmedCreateSearch && (
+              <CommandEmpty>Enter a name to create.</CommandEmpty>
+            )}
+            {hasExactCreateMatch && (
+              <CommandEmpty>
+                A {label.toLowerCase().replace(/s$/, "")} with this name
+                already exists.
+              </CommandEmpty>
+            )}
+            {canCreate && (
+              <CommandGroup>
+                <CommandItem
+                  value="__create__"
+                  onSelect={() => void handleCreate()}
+                >
+                  <PlusIcon className="mr-2 size-4" />
+                  <span className="truncate">
+                    {createLabel} &quot;{trimmedCreateSearch}&quot;
+                  </span>
+                </CommandItem>
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function ChipPaginationControls({
+  label,
+  pagination,
+}: {
+  label: string;
+  pagination: ReturnType<typeof useChipRowPagination>;
+}) {
+  const { currentPage, estimatedTotalPages, hasPrevious, hasMore, goBack, goForward } =
+    pagination;
+
+  return (
+    <div className="flex items-center gap-1">
+      <span className="text-muted-foreground text-xs">
+        {currentPage}/{estimatedTotalPages}
+      </span>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="size-6"
+        disabled={!hasPrevious}
+        onClick={goBack}
+        aria-label={`Previous ${label.toLowerCase()} page`}
+      >
+        <ChevronLeftIcon size={14} />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="size-6"
+        disabled={!hasMore}
+        onClick={goForward}
+        aria-label={`Next ${label.toLowerCase()} page`}
+      >
+        <ChevronRightIcon size={14} />
+      </Button>
+    </div>
+  );
+}
+
+function ChipButton({
+  option,
+  isSelected,
+  isPrioritized,
+  disabled,
+  onToggle,
+}: {
+  option: SelectableChipOption;
+  isSelected: boolean;
+  isPrioritized: boolean;
+  disabled: boolean;
+  onToggle: (id: number) => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={isSelected}
+      disabled={disabled}
+      onClick={() => onToggle(option.id)}
+      className={cn(
+        badgeVariants({
+          variant: isSelected ? "default" : "outline",
+        }),
+        "max-w-full min-w-0 shrink cursor-pointer [&>svg]:shrink-0",
+        isPrioritized && !isSelected && "border-primary/50",
+        !isPrioritized && !isSelected && "border-dashed",
+      )}
+    >
+      {isSelected ? (
+        <CheckIcon aria-hidden="true" />
+      ) : (
+        <PlusIcon aria-hidden="true" className="text-muted-foreground" />
+      )}
+      <span className="truncate">{option.label}</span>
+    </button>
+  );
+}
+
+export function SelectableChipList({
+  label,
+  options,
+  selectedIds,
+  onToggle,
+  onCreate,
+  createLabel = `Create ${label.toLowerCase()}`,
+  createPlaceholder = `New ${label.toLowerCase().replace(/s$/, "")} name...`,
+  prioritizedIds = new Set(),
+  emptyMessage = `No ${label.toLowerCase()} available`,
+  disabled = false,
+}: SelectableChipListProps) {
+  const sortedOptions = sortSelectableChipOptions(options, prioritizedIds);
+  const selectedSet = new Set(selectedIds);
+  const totalCount = sortedOptions.length;
+  const orderKey = sortedOptions.map((option) => option.id).join(",");
+  const pagination = useChipRowPagination(totalCount, orderKey);
+  const createFlow = useChipCreateFlow(options, onCreate, disabled);
+  const renderOptions = sortedOptions.slice(
+    pagination.offset,
+    pagination.offset + RENDER_CHUNK,
+  );
+
   return (
     <div
       className="grid min-w-0 gap-2"
@@ -204,131 +406,34 @@ export function SelectableChipList({
         <div className="flex items-center gap-2">
           <Label>{label}</Label>
           {onCreate && (
-            <Popover
-              open={createOpen}
-              onOpenChange={(open) => {
-                setCreateOpen(open);
-                if (!open) setCreateSearch("");
-              }}
-            >
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="size-6"
-                  aria-label={createLabel}
-                  disabled={disabled}
-                >
-                  <PlusIcon size={14} />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[250px] p-0" align="start">
-                <Command
-                  shouldFilter={false}
-                  className="[&_[cmdk-item]]:pointer-events-auto [&_[cmdk-item]]:opacity-100"
-                >
-                  <CommandInput
-                    ref={createInputRef}
-                    placeholder={createPlaceholder}
-                    value={createSearch}
-                    onValueChange={setCreateSearch}
-                  />
-                  <CommandList>
-                    {!trimmedCreateSearch && (
-                      <CommandEmpty>Enter a name to create.</CommandEmpty>
-                    )}
-                    {hasExactCreateMatch && (
-                      <CommandEmpty>
-                        A {label.toLowerCase().replace(/s$/, "")} with this name
-                        already exists.
-                      </CommandEmpty>
-                    )}
-                    {canCreate && (
-                      <CommandGroup>
-                        <CommandItem
-                          value="__create__"
-                          onSelect={() => void handleCreate()}
-                        >
-                          <PlusIcon className="mr-2 size-4" />
-                          <span className="truncate">
-                            {createLabel} &quot;{trimmedCreateSearch}&quot;
-                          </span>
-                        </CommandItem>
-                      </CommandGroup>
-                    )}
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <ChipCreatePopover
+              label={label}
+              createLabel={createLabel}
+              createPlaceholder={createPlaceholder}
+              disabled={disabled}
+              createFlow={createFlow}
+            />
           )}
         </div>
-        {showPagination && (
-          <div className="flex items-center gap-1">
-            <span className="text-muted-foreground text-xs">
-              {currentPage}/{estimatedTotalPages}
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="size-6"
-              disabled={!hasPrevious}
-              onClick={goBack}
-              aria-label={`Previous ${label.toLowerCase()} page`}
-            >
-              <ChevronLeftIcon size={14} />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="size-6"
-              disabled={!hasMore}
-              onClick={goForward}
-              aria-label={`Next ${label.toLowerCase()} page`}
-            >
-              <ChevronRightIcon size={14} />
-            </Button>
-          </div>
+        {pagination.showPagination && (
+          <ChipPaginationControls label={label} pagination={pagination} />
         )}
       </div>
       {totalCount > 0 ? (
         <div
-          ref={chipContainerRef}
+          ref={pagination.chipContainerRef}
           className="relative flex min-w-0 flex-wrap content-start gap-1 overflow-hidden"
         >
-          {renderOptions.map((option) => {
-            const isSelected = selectedSet.has(option.id);
-            const isPrioritized = prioritizedIds.has(option.id);
-            return (
-              <button
-                key={option.id}
-                type="button"
-                aria-pressed={isSelected}
-                disabled={disabled}
-                onClick={() => onToggle(option.id)}
-                className={cn(
-                  badgeVariants({
-                    variant: isSelected ? "default" : "outline",
-                  }),
-                  "max-w-full min-w-0 shrink cursor-pointer [&>svg]:shrink-0",
-                  isPrioritized && !isSelected && "border-primary/50",
-                  !isPrioritized && !isSelected && "border-dashed",
-                )}
-              >
-                {isSelected ? (
-                  <CheckIcon aria-hidden="true" />
-                ) : (
-                  <PlusIcon
-                    aria-hidden="true"
-                    className="text-muted-foreground"
-                  />
-                )}
-                <span className="truncate">{option.label}</span>
-              </button>
-            );
-          })}
+          {renderOptions.map((option) => (
+            <ChipButton
+              key={option.id}
+              option={option}
+              isSelected={selectedSet.has(option.id)}
+              isPrioritized={prioritizedIds.has(option.id)}
+              disabled={disabled}
+              onToggle={onToggle}
+            />
+          ))}
         </div>
       ) : (
         <p className="text-muted-foreground text-sm">{emptyMessage}</p>

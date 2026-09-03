@@ -8,6 +8,7 @@ import {
 import clsx from "clsx";
 import { AtSignIcon, Loader2, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import type { KeyboardEvent, RefObject } from "react";
 import type { AtprotoActorSuggestion } from "~/server/auth/atproto/typeahead";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
@@ -81,9 +82,6 @@ export function AtprotoHandleField({
 }: AtprotoHandleFieldProps) {
   const [identifier, setIdentifier] = useState("");
   const [selected, setSelected] = useState<AtprotoActorSuggestion | null>(null);
-  const [suggestions, setSuggestions] = useState<AtprotoActorSuggestion[]>([]);
-  /** The query the current suggestions answer; stale results never render. */
-  const [suggestionsFor, setSuggestionsFor] = useState("");
   const [dismissed, setDismissed] = useState(false);
   /** Enter only confirms a suggestion the combobox has highlighted. */
   const highlightedRef = useRef<AtprotoActorSuggestion | undefined>(undefined);
@@ -92,9 +90,12 @@ export function AtprotoHandleField({
 
   const query = identifier.trim();
   const searchable = query.length >= TYPEAHEAD_MIN_CHARS;
-  const suggestionsCurrent = searchable && suggestionsFor === query;
-  const visibleSuggestions =
-    suggestionsCurrent && !dismissed ? suggestions : [];
+  const visibleSuggestions = useAtprotoTypeahead(
+    query,
+    searchable,
+    selected,
+    dismissed,
+  );
   const open = visibleSuggestions.length > 0;
 
   useEffect(() => {
@@ -107,36 +108,6 @@ export function AtprotoHandleField({
     // natively, no synthetic key handling.
     if (selected) submitRef.current?.focus();
   }, [selected]);
-
-  useEffect(() => {
-    if (!searchable || selected !== null) return;
-
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => {
-      void authClient
-        .$fetch<{ actors: AtprotoActorSuggestion[] }>(
-          `${TYPEAHEAD_PATH}?q=${encodeURIComponent(query)}`,
-          { signal: controller.signal },
-        )
-        .then(({ data }) => {
-          setSuggestions(data?.actors ?? []);
-          setSuggestionsFor(query);
-        })
-        .catch(() => {
-          // A real failure degrades silently; an abort just means a newer
-          // query superseded this one, so its results stay.
-          if (!controller.signal.aborted) {
-            setSuggestions([]);
-            setSuggestionsFor(query);
-          }
-        });
-    }, TYPEAHEAD_DEBOUNCE_MS);
-
-    return () => {
-      controller.abort();
-      window.clearTimeout(timeoutId);
-    };
-  }, [query, searchable, selected]);
 
   // The typed value stays submittable so a handle the typeahead doesn't
   // return (unindexed PDS, proxy outage) — or a raw DID — can't lock the
@@ -164,37 +135,19 @@ export function AtprotoHandleField({
 
   if (selected) {
     return (
-      <div className="grid gap-2">
-        <Label htmlFor={id}>{label}</Label>
-        <Item variant="outline" render={<div />}>
-          <ItemMedia>
-            <AtprotoSuggestionAvatar suggestion={selected} />
-          </ItemMedia>
-          <ItemContent className="gap-0">
-            <ItemTitle>{selected.displayName ?? selected.handle}</ItemTitle>
-            <ItemDescription>{selected.handle}</ItemDescription>
-          </ItemContent>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Choose a different account"
-            disabled={busy || disabled}
-            onClick={clearSelection}
-          >
-            <XIcon size={16} />
-          </Button>
-        </Item>
-        <Button
-          ref={submitRef}
-          variant={submitVariant}
-          size={size}
-          className="w-full"
-          disabled={disabled || busy}
-          onClick={submit}
-        >
-          {busy ? <Loader2 size={16} className="animate-spin" /> : submitLabel}
-        </Button>
-      </div>
+      <AtprotoSelectedAccount
+        id={id}
+        label={label}
+        selected={selected}
+        busy={busy}
+        disabled={disabled}
+        submitLabel={submitLabel}
+        submitVariant={submitVariant}
+        size={size}
+        submitRef={submitRef}
+        onClear={clearSelection}
+        onSubmit={submit}
+      />
     );
   }
 
@@ -235,56 +188,18 @@ export function AtprotoHandleField({
           highlightedRef.current = item ?? undefined;
         }}
       >
-        <div className="relative">
-          <AtSignIcon
-            size={16}
-            className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
-          />
-          <ComboboxInput
-            id={id}
-            ref={inputRef}
-            className={clsx("pl-9", size === "lg" && "h-10")}
-            placeholder="name.bsky.social"
-            autoComplete="username"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            disabled={disabled}
-            // Advertise that the next Escape belongs to this field (it
-            // dismisses the popup or the pending search). A surrounding
-            // Radix dialog's escape listener runs before this element's
-            // handlers ever could, so it checks this attribute to leave
-            // the keystroke alone; see ControlledResponsiveDialog.
-            data-escape-dismisses={
-              open || (searchable && !dismissed) ? "true" : undefined
-            }
-            onFocus={() => setDismissed(false)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                // Selection is required: Enter confirms the highlighted
-                // suggestion (handled by the combobox) and otherwise does
-                // nothing.
-                if (!(open && highlightedRef.current)) e.preventDefault();
-                return;
-              }
-              if (e.key === "Escape") {
-                if (open) return; // The combobox dismisses its own popup.
-                // Gate on intent, not list presence: a query that is (or is
-                // about to be) searching dismisses first even if results are
-                // still in flight, so the same keystroke can't tear the step
-                // down just because the network was slow.
-                if (searchable && !dismissed) {
-                  e.preventDefault();
-                  setDismissed(true);
-                } else if (onCollapse) {
-                  // Second escape (or nothing to dismiss): back to the caller.
-                  e.preventDefault();
-                  onCollapse();
-                }
-              }
-            }}
-          />
-        </div>
+        <AtprotoHandleInput
+          id={id}
+          size={size}
+          disabled={disabled}
+          open={open}
+          searchable={searchable}
+          dismissed={dismissed}
+          setDismissed={setDismissed}
+          onCollapse={onCollapse}
+          highlightedRef={highlightedRef}
+          inputRef={inputRef}
+        />
         <ComboboxContent aria-label="Suggested accounts">
           <ComboboxList>
             {(suggestion: AtprotoActorSuggestion) => (
@@ -305,6 +220,189 @@ export function AtprotoHandleField({
       >
         {busy ? <Loader2 size={16} className="animate-spin" /> : submitLabel}
       </Button>
+    </div>
+  );
+}
+
+function useAtprotoTypeahead(
+  query: string,
+  searchable: boolean,
+  selected: AtprotoActorSuggestion | null,
+  dismissed: boolean,
+) {
+  const [suggestions, setSuggestions] = useState<AtprotoActorSuggestion[]>([]);
+  /** The query the current suggestions answer; stale results never render. */
+  const [suggestionsFor, setSuggestionsFor] = useState("");
+
+  useEffect(() => {
+    if (!searchable || selected !== null) return;
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => {
+      void authClient
+        .$fetch<{ actors: AtprotoActorSuggestion[] }>(
+          `${TYPEAHEAD_PATH}?q=${encodeURIComponent(query)}`,
+          { signal: controller.signal },
+        )
+        .then(({ data }) => {
+          setSuggestions(data?.actors ?? []);
+          setSuggestionsFor(query);
+        })
+        .catch(() => {
+          // A real failure degrades silently; an abort just means a newer
+          // query superseded this one, so its results stay.
+          if (!controller.signal.aborted) {
+            setSuggestions([]);
+            setSuggestionsFor(query);
+          }
+        });
+    }, TYPEAHEAD_DEBOUNCE_MS);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [query, searchable, selected]);
+
+  const suggestionsCurrent = searchable && suggestionsFor === query;
+  return suggestionsCurrent && !dismissed ? suggestions : [];
+}
+
+function AtprotoSelectedAccount({
+  id,
+  label,
+  selected,
+  busy,
+  disabled,
+  submitLabel,
+  submitVariant,
+  size,
+  submitRef,
+  onClear,
+  onSubmit,
+}: {
+  id: string;
+  label: string;
+  selected: AtprotoActorSuggestion;
+  busy: boolean;
+  disabled: boolean;
+  submitLabel: string;
+  submitVariant: "outline" | "default";
+  size: "default" | "lg";
+  submitRef: RefObject<HTMLButtonElement | null>;
+  onClear: () => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Item variant="outline" render={<div />}>
+        <ItemMedia>
+          <AtprotoSuggestionAvatar suggestion={selected} />
+        </ItemMedia>
+        <ItemContent className="gap-0">
+          <ItemTitle>{selected.displayName ?? selected.handle}</ItemTitle>
+          <ItemDescription>{selected.handle}</ItemDescription>
+        </ItemContent>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Choose a different account"
+          disabled={busy || disabled}
+          onClick={onClear}
+        >
+          <XIcon size={16} />
+        </Button>
+      </Item>
+      <Button
+        ref={submitRef}
+        variant={submitVariant}
+        size={size}
+        className="w-full"
+        disabled={disabled || busy}
+        onClick={onSubmit}
+      >
+        {busy ? <Loader2 size={16} className="animate-spin" /> : submitLabel}
+      </Button>
+    </div>
+  );
+}
+
+function AtprotoHandleInput({
+  id,
+  size,
+  disabled,
+  open,
+  searchable,
+  dismissed,
+  setDismissed,
+  onCollapse,
+  highlightedRef,
+  inputRef,
+}: {
+  id: string;
+  size: "default" | "lg";
+  disabled: boolean;
+  open: boolean;
+  searchable: boolean;
+  dismissed: boolean;
+  setDismissed: (dismissed: boolean) => void;
+  onCollapse?: () => void;
+  highlightedRef: RefObject<AtprotoActorSuggestion | undefined>;
+  inputRef: RefObject<HTMLInputElement | null>;
+}) {
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      // Selection is required: Enter confirms the highlighted
+      // suggestion (handled by the combobox) and otherwise does
+      // nothing.
+      if (!(open && highlightedRef.current)) e.preventDefault();
+      return;
+    }
+    if (e.key === "Escape") {
+      if (open) return; // The combobox dismisses its own popup.
+      // Gate on intent, not list presence: a query that is (or is
+      // about to be) searching dismisses first even if results are
+      // still in flight, so the same keystroke can't tear the step
+      // down just because the network was slow.
+      if (searchable && !dismissed) {
+        e.preventDefault();
+        setDismissed(true);
+      } else if (onCollapse) {
+        // Second escape (or nothing to dismiss): back to the caller.
+        e.preventDefault();
+        onCollapse();
+      }
+    }
+  };
+
+  return (
+    <div className="relative">
+      <AtSignIcon
+        size={16}
+        className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
+      />
+      <ComboboxInput
+        id={id}
+        ref={inputRef}
+        className={clsx("pl-9", size === "lg" && "h-10")}
+        placeholder="name.bsky.social"
+        autoComplete="username"
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
+        disabled={disabled}
+        // Advertise that the next Escape belongs to this field (it
+        // dismisses the popup or the pending search). A surrounding
+        // Radix dialog's escape listener runs before this element's
+        // handlers ever could, so it checks this attribute to leave
+        // the keystroke alone; see ControlledResponsiveDialog.
+        data-escape-dismisses={
+          open || (searchable && !dismissed) ? "true" : undefined
+        }
+        onFocus={() => setDismissed(false)}
+        onKeyDown={onKeyDown}
+      />
     </div>
   );
 }

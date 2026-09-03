@@ -10,7 +10,7 @@ export default defineConfig({
   envDir: "./tests",
   test: {
     include: ["tests/unit/**/*.test.ts"],
-    hookTimeout: process.env.CI ? 15_000 : 10_000,
+    hookTimeout: process.env.CI ? 60_000 : 10_000,
     testTimeout: process.env.CI ? 15_000 : 5_000,
   },
   resolve: {

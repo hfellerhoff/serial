@@ -59,12 +59,8 @@ function ProviderToggle({
   );
 }
 
-export function PublicSignupToggle() {
+function usePublicSignupMutations() {
   const queryClient = useQueryClient();
-
-  const { data, isLoading } = useQuery(
-    orpc.admin.getPublicSignupSetting.queryOptions(),
-  );
 
   const signupMutation = useMutation(
     orpc.admin.setPublicSignupSetting.mutationOptions({
@@ -112,30 +108,28 @@ export function PublicSignupToggle() {
     }),
   );
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-3 rounded-lg border p-4">
-        <Loader2Icon className="animate-spin" size={16} />
-        <span className="text-muted-foreground text-sm">Loading...</span>
-      </div>
-    );
-  }
+  return { signupMutation, signinMutation, signupProvidersMutation };
+}
 
-  const globalEnabled = data?.enabled ?? false;
-  const signinProviders = data?.signinProviders ?? ["email"];
-  const signupProviders = data?.signupProviders ?? ["email"];
-  const oauthConfigured = data?.isOAuthConfigured ?? false;
-  const atprotoConfigured = data?.isAtprotoConfigured ?? false;
-  const oauthProviderName = data?.oauthProviderName ?? "OAuth";
-  const adminSigninMethods = data?.adminSigninMethods ?? ["email"];
+type PublicSignupMutations = ReturnType<typeof usePublicSignupMutations>;
 
-  const toggleSignin = (provider: AuthProvider, checked: boolean) => {
-    const next = checked
-      ? [...signinProviders, provider]
-      : signinProviders.filter((p) => p !== provider);
-    signinMutation.mutate({ providers: next });
-  };
-
+function SignupMethodsCard({
+  globalEnabled,
+  signupProviders,
+  oauthConfigured,
+  atprotoConfigured,
+  oauthProviderName,
+  signupMutation,
+  signupProvidersMutation,
+}: {
+  globalEnabled: boolean;
+  signupProviders: AuthProvider[];
+  oauthConfigured: boolean;
+  atprotoConfigured: boolean;
+  oauthProviderName: string;
+  signupMutation: PublicSignupMutations["signupMutation"];
+  signupProvidersMutation: PublicSignupMutations["signupProvidersMutation"];
+}) {
   const toggleSignup = (provider: AuthProvider, checked: boolean) => {
     const next = checked
       ? [...signupProviders, provider]
@@ -143,6 +137,90 @@ export function PublicSignupToggle() {
     signupProvidersMutation.mutate({
       providers: next,
     });
+  };
+
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border p-4">
+      <span className="text-muted-foreground text-xs">Sign-up methods</span>
+
+      {globalEnabled && (
+        <>
+          <ProviderToggle
+            id="signup-email-toggle"
+            label="Email"
+            checked={signupProviders.includes("email")}
+            onToggle={(checked) => toggleSignup("email", checked)}
+            isPending={signupProvidersMutation.isPending}
+          />
+
+          {oauthConfigured && (
+            <ProviderToggle
+              id="signup-oauth-toggle"
+              label={oauthProviderName}
+              checked={signupProviders.includes("oauth")}
+              onToggle={(checked) => toggleSignup("oauth", checked)}
+              isPending={signupProvidersMutation.isPending}
+            />
+          )}
+
+          {atprotoConfigured && (
+            <ProviderToggle
+              id="signup-atproto-toggle"
+              label="Atmosphere"
+              checked={signupProviders.includes("atproto")}
+              onToggle={(checked) => toggleSignup("atproto", checked)}
+              isPending={signupProvidersMutation.isPending}
+            />
+          )}
+        </>
+      )}
+
+      <div
+        className={`flex items-center justify-between ${globalEnabled ? "mt-2 border-t pt-4" : ""}`}
+      >
+        <div className="flex flex-1 flex-col gap-1">
+          <Label htmlFor="public-signup-toggle" className="font-medium">
+            Allow public sign up
+          </Label>
+          <span className="text-muted-foreground text-sm">
+            {globalEnabled
+              ? "Anyone can create an account"
+              : "Only admins can create accounts"}
+          </span>
+        </div>
+        <Switch
+          id="public-signup-toggle"
+          checked={globalEnabled}
+          onCheckedChange={(checked) =>
+            signupMutation.mutate({ enabled: checked })
+          }
+          disabled={signupMutation.isPending}
+        />
+      </div>
+    </div>
+  );
+}
+
+function SigninMethodsCard({
+  signinProviders,
+  oauthConfigured,
+  atprotoConfigured,
+  oauthProviderName,
+  adminSigninMethods,
+  signinMutation,
+}: {
+  signinProviders: AuthProvider[];
+  oauthConfigured: boolean;
+  atprotoConfigured: boolean;
+  oauthProviderName: string;
+  adminSigninMethods: AuthProvider[];
+  signinMutation: PublicSignupMutations["signinMutation"];
+}) {
+  const toggleSignin = (provider: AuthProvider, checked: boolean) => {
+    const next = checked
+      ? [...signinProviders, provider]
+      : signinProviders.filter((p) => p !== provider);
+    signinMutation.mutate({ providers: next });
   };
 
   const getSigninLockedTooltip = (provider: AuthProvider) => {
@@ -153,100 +231,80 @@ export function PublicSignupToggle() {
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-2 rounded-lg border p-4">
-        <span className="text-muted-foreground text-xs">Sign-up methods</span>
+    <div className="flex flex-col gap-2 rounded-lg border p-4">
+      <span className="text-muted-foreground text-xs">Sign-in methods</span>
 
-        {globalEnabled && (
-          <>
-            <ProviderToggle
-              id="signup-email-toggle"
-              label="Email"
-              checked={signupProviders.includes("email")}
-              onToggle={(checked) => toggleSignup("email", checked)}
-              isPending={signupProvidersMutation.isPending}
-            />
+      <ProviderToggle
+        id="signin-email-toggle"
+        label="Email"
+        checked={signinProviders.includes("email")}
+        onToggle={(checked) => toggleSignin("email", checked)}
+        isPending={signinMutation.isPending}
+        lockedTooltip={getSigninLockedTooltip("email")}
+      />
 
-            {oauthConfigured && (
-              <ProviderToggle
-                id="signup-oauth-toggle"
-                label={oauthProviderName}
-                checked={signupProviders.includes("oauth")}
-                onToggle={(checked) => toggleSignup("oauth", checked)}
-                isPending={signupProvidersMutation.isPending}
-              />
-            )}
-
-            {atprotoConfigured && (
-              <ProviderToggle
-                id="signup-atproto-toggle"
-                label="Atmosphere"
-                checked={signupProviders.includes("atproto")}
-                onToggle={(checked) => toggleSignup("atproto", checked)}
-                isPending={signupProvidersMutation.isPending}
-              />
-            )}
-          </>
-        )}
-
-        <div
-          className={`flex items-center justify-between ${globalEnabled ? "mt-2 border-t pt-4" : ""}`}
-        >
-          <div className="flex flex-1 flex-col gap-1">
-            <Label htmlFor="public-signup-toggle" className="font-medium">
-              Allow public sign up
-            </Label>
-            <span className="text-muted-foreground text-sm">
-              {globalEnabled
-                ? "Anyone can create an account"
-                : "Only admins can create accounts"}
-            </span>
-          </div>
-          <Switch
-            id="public-signup-toggle"
-            checked={globalEnabled}
-            onCheckedChange={(checked) =>
-              signupMutation.mutate({ enabled: checked })
-            }
-            disabled={signupMutation.isPending}
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2 rounded-lg border p-4">
-        <span className="text-muted-foreground text-xs">Sign-in methods</span>
-
+      {oauthConfigured && (
         <ProviderToggle
-          id="signin-email-toggle"
-          label="Email"
-          checked={signinProviders.includes("email")}
-          onToggle={(checked) => toggleSignin("email", checked)}
+          id="signin-oauth-toggle"
+          label={oauthProviderName}
+          checked={signinProviders.includes("oauth")}
+          onToggle={(checked) => toggleSignin("oauth", checked)}
           isPending={signinMutation.isPending}
-          lockedTooltip={getSigninLockedTooltip("email")}
+          lockedTooltip={getSigninLockedTooltip("oauth")}
         />
+      )}
 
-        {oauthConfigured && (
-          <ProviderToggle
-            id="signin-oauth-toggle"
-            label={oauthProviderName}
-            checked={signinProviders.includes("oauth")}
-            onToggle={(checked) => toggleSignin("oauth", checked)}
-            isPending={signinMutation.isPending}
-            lockedTooltip={getSigninLockedTooltip("oauth")}
-          />
-        )}
+      {atprotoConfigured && (
+        <ProviderToggle
+          id="signin-atproto-toggle"
+          label="Atmosphere"
+          checked={signinProviders.includes("atproto")}
+          onToggle={(checked) => toggleSignin("atproto", checked)}
+          isPending={signinMutation.isPending}
+          lockedTooltip={getSigninLockedTooltip("atproto")}
+        />
+      )}
+    </div>
+  );
+}
 
-        {atprotoConfigured && (
-          <ProviderToggle
-            id="signin-atproto-toggle"
-            label="Atmosphere"
-            checked={signinProviders.includes("atproto")}
-            onToggle={(checked) => toggleSignin("atproto", checked)}
-            isPending={signinMutation.isPending}
-            lockedTooltip={getSigninLockedTooltip("atproto")}
-          />
-        )}
+export function PublicSignupToggle() {
+  const { data, isLoading } = useQuery(
+    orpc.admin.getPublicSignupSetting.queryOptions(),
+  );
+
+  const { signupMutation, signinMutation, signupProvidersMutation } =
+    usePublicSignupMutations();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-3 rounded-lg border p-4">
+        <Loader2Icon className="animate-spin" size={16} />
+        <span className="text-muted-foreground text-sm">Loading...</span>
       </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <SignupMethodsCard
+        globalEnabled={data?.enabled ?? false}
+        signupProviders={data?.signupProviders ?? ["email"]}
+        oauthConfigured={data?.isOAuthConfigured ?? false}
+        atprotoConfigured={data?.isAtprotoConfigured ?? false}
+        oauthProviderName={data?.oauthProviderName ?? "OAuth"}
+        signupMutation={signupMutation}
+        signupProvidersMutation={signupProvidersMutation}
+      />
+
+      <SigninMethodsCard
+        signinProviders={data?.signinProviders ?? ["email"]}
+        oauthConfigured={data?.isOAuthConfigured ?? false}
+        atprotoConfigured={data?.isAtprotoConfigured ?? false}
+        oauthProviderName={data?.oauthProviderName ?? "OAuth"}
+        adminSigninMethods={data?.adminSigninMethods ?? ["email"]}
+        signinMutation={signinMutation}
+      />
     </div>
   );
 }
