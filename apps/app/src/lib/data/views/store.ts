@@ -38,16 +38,25 @@ export function removeFeedReferencesFromViews(
 
 let inFlightFetch: Promise<void> | null = null;
 
+// A request that hangs rather than rejecting (dropped mobile radio) must not
+// gate every later view fetch for the browser's own multi-minute timeout.
+const VIEW_FETCH_TIMEOUT_MS = 30_000;
+
 export const viewsStoreApi = createStore<ViewsStore>()(
   persist<ViewsStore, [], [], PersistedViewsState>(
     (set, get) => ({
-      reset: () =>
+      reset: () => {
+        // Sever the in-flight fetch (sign-out clears the store for the next
+        // session): its eventual settle must not gate or short-circuit that
+        // session's first fetch.
+        inFlightFetch = null;
         set({
           views: [],
           viewsDict: {},
           revision: get().revision + 1,
           fetchStatus: "idle",
-        }),
+        });
+      },
       views: [],
       viewsDict: {},
       revision: 0,
@@ -61,16 +70,21 @@ export const viewsStoreApi = createStore<ViewsStore>()(
 
         set({ fetchStatus: "fetching" });
 
-        inFlightFetch = (async () => {
+        let thisFetch: Promise<void> | null = null;
+        thisFetch = (async () => {
           try {
             // A write landing while the request is in flight (an import
             // stream chunk, another mutation's reset) makes the response
             // stale, and callers empty the store before fetching — so a
             // stale response must be replaced by a fresh one, never applied
             // or dropped.
+            let lastResponse: ApplicationView[] | null = null;
             for (let attempt = 0; attempt < 5; attempt++) {
               const startRevision = get().revision;
-              const data = await orpcRouterClient.view.getAll();
+              const data = await orpcRouterClient.view.getAll(undefined, {
+                signal: AbortSignal.timeout(VIEW_FETCH_TIMEOUT_MS),
+              });
+              lastResponse = data;
               if (get().revision !== startRevision) continue;
 
               const dict: Record<number, ApplicationView> = {};
@@ -86,9 +100,23 @@ export const viewsStoreApi = createStore<ViewsStore>()(
               });
               return;
             }
-            // Writes kept racing the refetches; keep the latest written
-            // state, but an empty list is a cleared store awaiting data, not
-            // a result worth reporting as success.
+            // Writes kept racing the refetches. A non-empty store keeps its
+            // latest written state; an empty one is a cleared store awaiting
+            // data, where even a slightly stale response beats stranding the
+            // caller with nothing.
+            if (get().views.length === 0 && lastResponse) {
+              const dict: Record<number, ApplicationView> = {};
+              lastResponse.forEach((view) => {
+                dict[view.id] = view;
+              });
+              set({
+                views: lastResponse,
+                viewsDict: dict,
+                revision: get().revision + 1,
+                fetchStatus: "success",
+              });
+              return;
+            }
             set({
               fetchStatus: get().views.length > 0 ? "success" : "idle",
             });
@@ -96,10 +124,13 @@ export const viewsStoreApi = createStore<ViewsStore>()(
             set({ fetchStatus: "idle" });
             throw error;
           } finally {
-            inFlightFetch = null;
+            // A reset may have severed this run and a newer fetch may
+            // already be in flight; only clear our own registration.
+            if (inFlightFetch === thisFetch) inFlightFetch = null;
           }
         })();
-        return inFlightFetch;
+        inFlightFetch = thisFetch;
+        return thisFetch;
       },
 
       set: (views) => {

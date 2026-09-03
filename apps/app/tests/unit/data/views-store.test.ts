@@ -117,7 +117,7 @@ describe("views store fetch", () => {
     expect(viewsStoreApi.getState().views).toEqual([view]);
   });
 
-  it("gives up after repeated races without reporting an empty store as success", async () => {
+  it("applies the last response after repeated races when the store is empty", async () => {
     const staleView = makeView(1, { name: "Stale" });
     mocks.getAll.mockImplementation(() => {
       // A write that leaves the store empty lands before every response.
@@ -128,7 +128,53 @@ describe("views store fetch", () => {
     await viewsStoreApi.getState().fetch();
 
     expect(mocks.getAll).toHaveBeenCalledTimes(5);
-    expect(viewsStoreApi.getState().views).toEqual([]);
-    expect(viewsStoreApi.getState().fetchStatus).toBe("idle");
+    expect(viewsStoreApi.getState().views).toEqual([staleView]);
+    expect(viewsStoreApi.getState().fetchStatus).toBe("success");
+  });
+
+  it("keeps the latest written state after repeated races when the store is non-empty", async () => {
+    const writtenView = makeView(2, { name: "Written" });
+    const staleView = makeView(1, { name: "Stale" });
+    mocks.getAll.mockImplementation(() => {
+      viewsStoreApi.getState().set([writtenView]);
+      return Promise.resolve([staleView]);
+    });
+
+    await viewsStoreApi.getState().fetch();
+
+    expect(mocks.getAll).toHaveBeenCalledTimes(5);
+    expect(viewsStoreApi.getState().views).toEqual([writtenView]);
+    expect(viewsStoreApi.getState().fetchStatus).toBe("success");
+  });
+
+  it("lets a fresh fetch start after reset severs a hung request", async () => {
+    const view = makeView(1);
+    let resolveHung: ((views: ApplicationView[]) => void) | undefined;
+    mocks.getAll
+      .mockImplementationOnce(
+        () =>
+          new Promise<ApplicationView[]>((resolve) => {
+            resolveHung = resolve;
+          }),
+      )
+      .mockResolvedValue([view]);
+
+    const hung = viewsStoreApi.getState().fetch();
+    viewsStoreApi.getState().reset();
+
+    const next = viewsStoreApi.getState().fetch();
+    expect(next).not.toBe(hung);
+    await next;
+
+    expect(viewsStoreApi.getState().views).toEqual([view]);
+    expect(viewsStoreApi.getState().fetchStatus).toBe("success");
+
+    // The severed run settles late: it retries against fresh data and must
+    // not clear the newer registration or clobber state.
+    resolveHung?.([makeView(2, { name: "Stale" })]);
+    await hung;
+
+    expect(viewsStoreApi.getState().views).toEqual([view]);
+    expect(viewsStoreApi.getState().fetchStatus).toBe("success");
   });
 });

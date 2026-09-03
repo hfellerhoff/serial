@@ -37,6 +37,7 @@ import { useImportDropStore } from "~/lib/data/import-drop";
 import { useImportResults, useLoadingMode } from "~/lib/data/loading-machine";
 import { dataRequestActions } from "~/lib/data/directRequests";
 import { IS_DEMO_INSTANCE } from "~/lib/demo";
+import { MAX_BULK_MUTATION_ITEMS } from "~/lib/schemas/bulk";
 import { useCanMutate } from "~/lib/data/offline-mutations";
 
 function ImportedFeedStatus({
@@ -123,11 +124,29 @@ function EditFeedsPage() {
 
   // Already-added feeds are not selectable, but they are still sent with the
   // import so their OPML sections populate the matching views on re-import.
+  // The request schema caps items at MAX_BULK_MUTATION_ITEMS; selected feeds
+  // take priority and already-added ones fill the remainder, both keeping
+  // file order (section placement follows submission order).
   const isFeedAlreadyAdded = (feedUrl: string) =>
     feeds.some((feed) => feed.url === feedUrl);
-  const channelsToSubmit = (feedsFoundFromFile ?? []).filter(
-    (channel) => channel.shouldImport || isFeedAlreadyAdded(channel.feedUrl),
+  const selectedChannelCount = (feedsFoundFromFile ?? []).filter(
+    (channel) => channel.shouldImport,
+  ).length;
+  const alreadyAddedUrlsToSubmit = new Set(
+    (feedsFoundFromFile ?? [])
+      .filter(
+        (channel) =>
+          !channel.shouldImport && isFeedAlreadyAdded(channel.feedUrl),
+      )
+      .slice(0, Math.max(0, MAX_BULK_MUTATION_ITEMS - selectedChannelCount))
+      .map((channel) => channel.feedUrl),
   );
+  const channelsToSubmit = (feedsFoundFromFile ?? [])
+    .filter(
+      (channel) =>
+        channel.shouldImport || alreadyAddedUrlsToSubmit.has(channel.feedUrl),
+    )
+    .slice(0, MAX_BULK_MUTATION_ITEMS);
   const loading = useLoadingMode();
   const importResults = useImportResults();
   const isFetchingRss = loading.mode === "importing";
@@ -244,6 +263,8 @@ function EditFeedsPage() {
       await dataRequestActions.streamingImport(channelsToImport);
 
       setIsImportComplete(true);
+    } catch {
+      toast.error("Import failed. Please try again.");
     } finally {
       setIsImportPending(false);
     }
